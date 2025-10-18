@@ -9,12 +9,8 @@ import java.util.LinkedHashMap; // Dùng LinkedHashMap để duy trì thứ tự
 import java.util.Map;
 
 public class MainGUI extends JFrame {
-
-    // --- Định nghĩa màu sắc từ mẫu ---
     private static final Color COLOR_ACCENT_BLUE = new Color(56, 118, 243); // Màu xanh nhấn chính
     private static final Color COLOR_BUTTON_ACTIVE = new Color(40, 28, 244); // Màu nền nút đang active (đậm hơn 1 chút)
-    private static final Color COLOR_TEXT_WHITE = Color.WHITE; // Màu chữ trắng
-    private static final Color COLOR_SEPARATOR = new Color(255, 255, 255, 255); // Màu đường kẻ phân cách
 
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel mainContentPanel = new JPanel(cardLayout);
@@ -31,8 +27,6 @@ public class MainGUI extends JFrame {
         getRootPane().setBorder(BorderFactory.createEmptyBorder());
         setLayout(new BorderLayout(0,0));
 
-
-
         // ===== TẠO CÁC THÀNH PHẦN GIAO DIỆN =====
         JPanel menuPanel = createMenuPanel();
         setupMainContentPanel();
@@ -40,19 +34,17 @@ public class MainGUI extends JFrame {
         contentWrapperPanel.add(createHeaderPanel(), BorderLayout.NORTH); // Header ở trên
         contentWrapperPanel.add(mainContentPanel, BorderLayout.CENTER); // Nội dung chính ở giữa
 
-        add(menuPanel, BorderLayout.WEST);
-        add(contentWrapperPanel, BorderLayout.CENTER);
+        add(menuPanel, BorderLayout.WEST); // Menu bên trái
+        add(contentWrapperPanel, BorderLayout.CENTER); // Nội dung chính bên phải
 
         // Mặc định hiển thị màn hình đầu tiên ("Màn hình chính")
         showCard("Màn hình chính");
     }
-    /**
-     * TẠO HEADER (NAVBAR) - PHIÊN BẢN CÓ THỂ ĐIỀU CHỈNH CHIỀU RỘNG
-     */
+
     private JPanel createHeaderPanel() {
         // --- Panel bao bọc bên ngoài ---
         JPanel headerContainer = new JPanel(new BorderLayout());
-        headerContainer.setBackground(COLOR_TEXT_WHITE);
+        headerContainer.setBackground(Color.WHITE);
         headerContainer.setBorder(new EmptyBorder(0, 10, 0, 0)); // Padding
         headerContainer.setPreferredSize(new Dimension(0, 50)); // Set chiều cao tổng thể
 
@@ -127,7 +119,7 @@ public class MainGUI extends JFrame {
         menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
         // Sử dụng màu nền xanh từ hình ảnh sidebar
         menuPanel.setBackground(COLOR_ACCENT_BLUE);
-        menuPanel.setPreferredSize(new Dimension(220, getHeight()));
+        menuPanel.setPreferredSize(new Dimension(220, 0));
         menuPanel.setBorder(new EmptyBorder(10, 0, 10, 0)); // Bỏ padding ngang để các nút tràn ra
 
 
@@ -144,12 +136,12 @@ public class MainGUI extends JFrame {
         } catch (Exception e) {
             JLabel titleLabel = new JLabel("StarGuardian"); // Thay thế bằng tên nhà hàng
             titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
-            titleLabel.setForeground(COLOR_TEXT_WHITE);
+            titleLabel.setForeground(Color.WHITE);
             titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
             menuPanel.add(titleLabel);
             JLabel subtitleLabel = new JLabel("restaurant");
             subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-            subtitleLabel.setForeground(COLOR_TEXT_WHITE);
+            subtitleLabel.setForeground(Color.WHITE);
             subtitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
             menuPanel.add(subtitleLabel);
             menuPanel.add(Box.createRigidArea(new Dimension(0, 20)));
@@ -188,21 +180,20 @@ public class MainGUI extends JFrame {
         buttonPanel.setBackground(COLOR_ACCENT_BLUE); // Màu nền mặc định
         buttonPanel.setMaximumSize(new Dimension(220, 50)); // Chiều rộng bằng sidebar
         buttonPanel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder()); // Bỏ border
-        buttonPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, COLOR_SEPARATOR)); // Đường kẻ dưới dày 1px
+        buttonPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.WHITE)); // Đường kẻ dưới dày 1px
 
 
         // Icon
         if (iconChar != null && !iconChar.isEmpty()) {
             JLabel iconLabel = new JLabel(iconChar);
-            iconLabel.setForeground(COLOR_TEXT_WHITE);
+            iconLabel.setForeground(Color.WHITE);
             iconLabel.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 18)); // Font cho Unicode icons
             buttonPanel.add(iconLabel);
         }
 
         // Text
         JLabel label = new JLabel(text);
-        label.setForeground(COLOR_TEXT_WHITE);
+        label.setForeground(Color.WHITE);
         label.setFont(new Font("Arial", Font.BOLD, 14)); // Font theo mẫu
         buttonPanel.add(label);
 
@@ -247,7 +238,6 @@ public class MainGUI extends JFrame {
         mainContentPanel.add(createPlaceholderPanel("Khuyến mãi"), "Khuyến mãi");
         mainContentPanel.add(createPlaceholderPanel("Hóa đơn"), "Hóa đơn");
         mainContentPanel.add(createPlaceholderPanel("Nhân viên"), "Nhân viên");
-        mainContentPanel.add(createPlaceholderPanel("Đăng xuất"), "Đăng xuất"); // Mặc dù sẽ không hiển thị, nhưng vẫn cần cho CardLayout
     }
 
     private JPanel createPlaceholderPanel(String name) {
@@ -276,22 +266,22 @@ public class MainGUI extends JFrame {
         }
     }
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            try {
-                // Cố gắng dùng Nimbus Look and Feel nếu có
-                for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-                    if ("Nimbus".equals(info.getName())) {
-                        UIManager.setLookAndFeel(info.getClassName());
-                        break;
-                    }
-                }
-                UIManager.put("RootPane.border", BorderFactory.createEmptyBorder());
-            } catch (Exception e) {
-                // Fallback về mặc định nếu không được
-                e.printStackTrace();
-            }
-            new MainGUI().setVisible(true);
-        });
-    }
+//    public static void main(String[] args) {
+//        SwingUtilities.invokeLater(() -> {
+//            try {
+//                // Cố gắng dùng Nimbus Look and Feel nếu có
+//                for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+//                    if ("Nimbus".equals(info.getName())) {
+//                        UIManager.setLookAndFeel(info.getClassName());
+//                        break;
+//                    }
+//                }
+//                UIManager.put("RootPane.border", BorderFactory.createEmptyBorder());
+//            } catch (Exception e) {
+//                // Fallback về mặc định nếu không được
+//                e.printStackTrace();
+//            }
+//            new MainGUI().setVisible(true);
+//        });
+//    }
 }
