@@ -13,6 +13,8 @@ import java.awt.event.MouseEvent;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime; // Cần cho LocalDateTime.now()
+import util.ExcelExporter;      // Giả định ExcelExporter nằm trong package util
 
 public class HoaDonGUI extends JPanel {
     private final HoaDonDAO hoaDonDAO;
@@ -129,7 +131,45 @@ public class HoaDonGUI extends JPanel {
         ));
         btnExport.setContentAreaFilled(true); // Đảm bảo màu nền được tô
 
-        btnExport.addActionListener(e -> JOptionPane.showMessageDialog(this, "Chức năng Xuất hóa đơn chưa được triển khai!", "Thông báo", JOptionPane.INFORMATION_MESSAGE));
+        btnExport.addActionListener(e -> {
+            // 1. Lấy danh sách hóa đơn cần xuất
+            List<HoaDon> listToExport = hoaDonDAO.getAllHoaDon(); // Lấy tất cả hóa đơn từ DAO
+
+            if (listToExport.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Không có dữ liệu hóa đơn để xuất.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            // 2. Hiển thị hộp thoại chọn nơi lưu file
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Chọn nơi lưu file Excel");
+
+            // Đặt tên file mặc định
+            DateTimeFormatter fileNameFormat = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
+            String defaultFileName = "HoaDon_" + LocalDateTime.now().format(fileNameFormat) + ".xlsx";
+            fileChooser.setSelectedFile(new java.io.File(defaultFileName));
+
+            int userSelection = fileChooser.showSaveDialog(this);
+
+            if (userSelection == JFileChooser.APPROVE_OPTION) {
+                String filePath = fileChooser.getSelectedFile().getAbsolutePath();
+
+                // Đảm bảo file có đuôi .xlsx
+                if (!filePath.toLowerCase().endsWith(".xlsx")) {
+                    filePath += ".xlsx";
+                }
+
+                // 3. Thực hiện xuất file
+                ExcelExporter exporter = new ExcelExporter();
+                boolean success = exporter.exportToExcel(listToExport, filePath);
+
+                if (success) {
+                    JOptionPane.showMessageDialog(this, "Xuất hóa đơn thành công tại:\n" + filePath, "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Lỗi khi xuất file Excel.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
 
         panel.add(btnExport, BorderLayout.EAST);
 
