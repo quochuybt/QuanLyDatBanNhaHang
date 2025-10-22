@@ -129,17 +129,39 @@ public class TaiKhoanGUI extends JFrame {
                     return;
                 }
 
-                boolean result = true; // Logic test, luôn đúng
+                // --- THAY ĐỔI LOGIC: Thay thế phần này bằng logic check CSDL của bạn ---
 
-                if (result) {
-                    JOptionPane.showMessageDialog(TaiKhoanGUI.this, "Đăng nhập TEST thành công ",
+                // Ví dụ: Bạn gọi hàm checkLogin(tenDangNhap, matKhau) từ BUS/DAO
+                // Hàm đó sẽ trả về vai trò (String), ví dụ: "Quản lý", "Nhân viên", hoặc null nếu sai
+
+                String userRole = null; // Biến lưu vai trò
+
+                // **** GIẢ LẬP LOGIC CHECK ĐĂNG NHẬP ****
+                // (Bạn phải thay thế phần này bằng code thật)
+                if (tenDangNhap.equalsIgnoreCase("quanly") && matKhau.equals("123")) {
+                    userRole = "Quản lý";
+                } else if (tenDangNhap.equalsIgnoreCase("nhanvien") && matKhau.equals("123")) {
+                    userRole = "Nhân viên";
+                }
+                // **** KẾT THÚC GIẢ LẬP ****
+
+
+                // --- Logic xử lý kết quả ---
+                if (userRole != null) { // Nếu đăng nhập thành công (userRole không null)
+                    JOptionPane.showMessageDialog(TaiKhoanGUI.this, "Đăng nhập thành công với vai trò: " + userRole,
                             "Thành công", JOptionPane.INFORMATION_MESSAGE);
+
                     dispose(); // Đóng cửa sổ (JFrame) hiện tại
+
+                    // Truyền vai trò (userRole) vào MainGUI
+                    final String finalUserRole = userRole;
                     SwingUtilities.invokeLater(() -> {
-                        MainGUI mainGUI = new MainGUI();
+                        // Gọi constructor mới của MainGUI và truyền vai trò vào
+                        MainGUI mainGUI = new MainGUI(finalUserRole);
                         mainGUI.setVisible(true);
                     });
-                } else {
+
+                } else { // Nếu userRole là null (đăng nhập thất bại)
                     JOptionPane.showMessageDialog(TaiKhoanGUI.this, "Sai tên tài khoản hoặc mật khẩu!",
                             "Lỗi Đăng nhập", JOptionPane.ERROR_MESSAGE);
                 }

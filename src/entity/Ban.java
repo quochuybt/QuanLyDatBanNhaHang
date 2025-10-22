@@ -3,6 +3,7 @@ package entity;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Objects;
 
 public class Ban {
     private static int soThuTuBan = 1;
@@ -12,21 +13,24 @@ public class Ban {
     private int soGhe;
     private TrangThaiBan trangThai;
     private LocalDateTime gioMoBan;
+    private String khuVuc;
 
     public Ban() {
         this.maBan = phatSinhMaBan();
         this.tenBan = "Chưa đặt tên";
         this.soGhe = 2;
         this.trangThai = TrangThaiBan.TRONG;
-        this.gioMoBan = LocalDateTime.now();
+        this.gioMoBan = LocalDateTime.now().plusHours(1);
+        this.khuVuc = "Tầng trệt";
     }
 
-    public Ban(String tenBan, int soGhe, TrangThaiBan trangThai, LocalDateTime gioMoBan) {
+    public Ban(String tenBan, int soGhe, TrangThaiBan trangThai, LocalDateTime gioMoBan, String khuVuc) {
         this.maBan = phatSinhMaBan();
         setTenBan(tenBan);
         setSoGhe(soGhe);
         setTrangThai(trangThai);
         setGioMoBan(gioMoBan);
+        setKhuVuc(khuVuc);
     }
 
     public Ban(Ban other) {
@@ -35,6 +39,7 @@ public class Ban {
         this.soGhe = other.soGhe;
         this.trangThai = other.trangThai;
         this.gioMoBan = other.gioMoBan;
+        this.khuVuc = other.khuVuc;
     }
 
     private String phatSinhMaBan() {
@@ -90,6 +95,16 @@ public class Ban {
         }
         this.gioMoBan = gioMoBan;
     }
+    public String getKhuVuc() {
+        return khuVuc;
+    }
+
+    public void setKhuVuc(String khuVuc) {
+        if (khuVuc == null || khuVuc.trim().isEmpty()) {
+            this.khuVuc = "Chưa phân loại";
+        }
+        this.khuVuc = khuVuc;
+    }
 
     @Override
     public String toString() {
@@ -101,6 +116,18 @@ public class Ban {
                 ", trangThai='" + trangThai + '\'' +
                 ", gioMoBan='" + gioMoBan.format(formatter) + '\'' +
                 '}';
+    }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Ban ban = (Ban) o;
+        return Objects.equals(maBan, ban.maBan); // So sánh bằng mã bàn
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(maBan); // Hash theo mã bàn
     }
 
 }

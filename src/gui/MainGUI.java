@@ -20,8 +20,11 @@ public class MainGUI extends JFrame {
     // Lưu trữ các nút menu để quản lý trạng thái active/inactive theo thứ tự
     private final Map<String, JPanel> menuButtons = new LinkedHashMap<>();
     private JPanel currentActiveButton = null;
+    // --- THAY ĐỔI 1: Thêm biến lưu vai trò ---
+    private final String userRole;
 
-    public MainGUI() {
+    public MainGUI(String userRole) {
+        this.userRole = userRole;
         setTitle("Phần mềm quản lý cửa hàng tiện lợi");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1300, 800);
@@ -99,7 +102,7 @@ public class MainGUI extends JFrame {
         JLabel nameLabel = new JLabel("Lâm Đình Khoa");
         nameLabel.setFont(new Font("Arial", Font.BOLD, 14));
         nameLabel.setForeground(Color.BLACK);
-        JLabel roleLabel = new JLabel("Quản lý");
+        JLabel roleLabel = new JLabel(this.userRole); // Lấy vai trò từ biến đã lưu
         roleLabel.setForeground(Color.BLACK);
         textPanel.add(nameLabel);
         textPanel.add(roleLabel);
@@ -136,31 +139,28 @@ public class MainGUI extends JFrame {
             menuPanel.add(logoLabel);
             menuPanel.add(Box.createRigidArea(new Dimension(0, 20)));
         } catch (Exception e) {
-            JLabel titleLabel = new JLabel("StarGuardian"); // Thay thế bằng tên nhà hàng
-            titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
-            titleLabel.setForeground(Color.WHITE);
-            titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-            menuPanel.add(titleLabel);
-            JLabel subtitleLabel = new JLabel("restaurant");
-            subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-            subtitleLabel.setForeground(Color.WHITE);
-            subtitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-            menuPanel.add(subtitleLabel);
-            menuPanel.add(Box.createRigidArea(new Dimension(0, 20)));
-            System.err.println("LỖI: Không tìm thấy logo tại /img/DangNhap+Logo/Logo.jpg");
             e.printStackTrace();
         }
 
         // --- Các nút chức năng ---
         // Sử dụng LinkedHashMap để duy trì thứ tự thêm vào
         LinkedHashMap<String, String> menuItems = new LinkedHashMap<>();
-        menuItems.put("Màn hình chính", "⌂"); // Icon Unicode
-        menuItems.put("Danh mục món ăn", "🍽️");
-        menuItems.put("Lịch làm việc", "📅");
-        menuItems.put("Khuyến mãi", "🏷️");
-        menuItems.put("Hóa đơn", "🧾");
-        menuItems.put("Thành viên", "🦊🦊🦊");
-        menuItems.put("Nhân viên", "👤");
+        if ("Quản lý".equals(this.userRole)) {
+            // Quản lý: Hiển thị tất cả các mục như cũ
+            menuItems.put("Màn hình chính", "⌂"); // Icon Unicode
+            menuItems.put("Danh mục món ăn", "🍽️");
+            menuItems.put("Lịch làm việc", "📅");
+            menuItems.put("Khuyến mãi", "🏷️");
+            menuItems.put("Hóa đơn", "🧾");
+            menuItems.put("Nhân viên", "👤");
+        } else if ("Nhân viên".equals(this.userRole)) {
+            // Nhân viên: Hiển thị các mục bạn yêu cầu
+            menuItems.put("Màn hình chính", "⌂");
+            menuItems.put("Danh sách bàn", "🪑"); // (Icon ví dụ)
+            menuItems.put("Thành viên", "🧑"); // (Icon ví dụ)
+            menuItems.put("Lịch làm việc", "📅");
+            menuItems.put("Hóa đơn", "🧾");
+        }
         menuItems.put("Đăng xuất", "⎋");
 
         for (Map.Entry<String, String> entry : menuItems.entrySet()) {
@@ -173,12 +173,6 @@ public class MainGUI extends JFrame {
         return menuPanel;
     }
 
-    /**
-     * Helper để tạo một nút menu trên sidebar
-     *
-     * @param text     Tên nút
-     * @param iconChar Ký tự Unicode làm icon (hoặc null nếu không có)
-     */
     private JPanel createMenuButton(String text, String iconChar) {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 12));
         buttonPanel.setBackground(COLOR_ACCENT_BLUE); // Màu nền mặc định
@@ -209,6 +203,11 @@ public class MainGUI extends JFrame {
                 if (text.equals("Đăng xuất")) {
                     JOptionPane.showMessageDialog(MainGUI.this, "Đăng xuất thành công!");
                     // Thực hiện logic đăng xuất, ví dụ: đóng cửa sổ này và mở cửa sổ đăng nhập
+                    dispose();
+                    // Mở lại cửa sổ đăng nhập
+                    SwingUtilities.invokeLater(() -> {
+                        new TaiKhoanGUI().setVisible(true);
+                    });
                 } else {
                     showCard(text);
                 }
@@ -235,14 +234,19 @@ public class MainGUI extends JFrame {
     }
 
     private void setupMainContentPanel() {
-        mainContentPanel.setBorder(BorderFactory.createEmptyBorder());
+        // Chung
         mainContentPanel.add(createPlaceholderPanel("Màn hình chính"), "Màn hình chính");
-        mainContentPanel.add(createPlaceholderPanel("Danh mục món ăn"), "Danh mục món ăn");
         mainContentPanel.add(createPlaceholderPanel("Lịch làm việc"), "Lịch làm việc");
+        mainContentPanel.add(createPlaceholderPanel("Hóa đơn"), "Hóa đơn");
+
+        // Chỉ Quản lý
+        mainContentPanel.add(createPlaceholderPanel("Danh mục món ăn"), "Danh mục món ăn");
         mainContentPanel.add(new KhuyenMaiGUI(), "Khuyến mãi");
-        mainContentPanel.add(new HoaDonGUI(), "Hóa đơn");
-        mainContentPanel.add(new KhachHangGUI(), "Thành viên");
         mainContentPanel.add(createPlaceholderPanel("Nhân viên"), "Nhân viên");
+
+        // Chỉ Nhân viên
+        mainContentPanel.add(createPlaceholderPanel("Danh sách bàn"), "Danh sách bàn");
+        mainContentPanel.add(createPlaceholderPanel("Thành viên"), "Thành viên");
     }
 
     private JPanel createPlaceholderPanel(String name) {
