@@ -26,8 +26,8 @@ public class TaiKhoanGUI extends JFrame {
         setContentPane(backgroundPanel);
 
         JPanel loginFormPanel = new JPanel(new BorderLayout());
-        loginFormPanel.setPreferredSize(new Dimension(390, 700));
-        loginFormPanel.setMaximumSize(new Dimension(390, 700));
+        loginFormPanel.setPreferredSize(new Dimension(390, 600));
+        loginFormPanel.setMaximumSize(new Dimension(390, 600));
         loginFormPanel.setOpaque(false);
 
         // Custom painting cho nền mờ bo góc
@@ -90,10 +90,6 @@ public class TaiKhoanGUI extends JFrame {
 
         formInputPanel.add(createInputRow("Tên đăng nhập", txtTenDangNhap = new JTextField(), "Nhập tên đăng nhập"));
 
-        String[] chucVuOptions = {"Quản lý", "Nhân viên"};
-        cbxChucVu = new JComboBox<>(chucVuOptions);
-        formInputPanel.add(createInputRow("Chức vụ", cbxChucVu, null));
-
         formInputPanel.add(createInputRow("Mật khẩu", txtMatKhau = new JPasswordField(), "Nhập mật khẩu"));
 
         contentPanel.add(formInputPanel);
@@ -126,7 +122,6 @@ public class TaiKhoanGUI extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 String tenDangNhap = txtTenDangNhap.getText().trim();
                 String matKhau = new String(txtMatKhau.getPassword()).trim();
-                String chucVu = (String) cbxChucVu.getSelectedItem();
 
                 if (tenDangNhap.isEmpty() || matKhau.isEmpty() || tenDangNhap.equals("Nhập tên đăng nhập") || matKhau.equals("Nhập mật khẩu")) {
                     JOptionPane.showMessageDialog(TaiKhoanGUI.this, "Vui lòng nhập đầy đủ Tên đăng nhập và Mật khẩu!",
@@ -137,7 +132,7 @@ public class TaiKhoanGUI extends JFrame {
                 boolean result = true; // Logic test, luôn đúng
 
                 if (result) {
-                    JOptionPane.showMessageDialog(TaiKhoanGUI.this, "Đăng nhập TEST thành công với vai trò: " + chucVu,
+                    JOptionPane.showMessageDialog(TaiKhoanGUI.this, "Đăng nhập TEST thành công ",
                             "Thành công", JOptionPane.INFORMATION_MESSAGE);
                     dispose(); // Đóng cửa sổ (JFrame) hiện tại
                     SwingUtilities.invokeLater(() -> {
@@ -319,8 +314,6 @@ public class TaiKhoanGUI extends JFrame {
             try {
                 backgroundImage = new ImageIcon(getClass().getResource(imagePath)).getImage();
             } catch (Exception e) {
-                System.err.println("Lỗi: Không tìm thấy hình nền tại " + imagePath);
-                setBackground(new Color(230, 230, 230));
                 e.printStackTrace();
             }
         }
