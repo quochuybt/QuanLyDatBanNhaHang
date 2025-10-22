@@ -159,6 +159,7 @@ public class MainGUI extends JFrame {
         menuItems.put("Lịch làm việc", "📅");
         menuItems.put("Khuyến mãi", "🏷️");
         menuItems.put("Hóa đơn", "🧾");
+        menuItems.put("Thành viên", "🦊🦊🦊");
         menuItems.put("Nhân viên", "👤");
         menuItems.put("Đăng xuất", "⎋");
 
@@ -240,6 +241,7 @@ public class MainGUI extends JFrame {
         mainContentPanel.add(createPlaceholderPanel("Lịch làm việc"), "Lịch làm việc");
         mainContentPanel.add(new KhuyenMaiGUI(), "Khuyến mãi");
         mainContentPanel.add(createPlaceholderPanel("Hóa đơn"), "Hóa đơn");
+        mainContentPanel.add(new KhachHangGUI(), "Thành viên");
         mainContentPanel.add(createPlaceholderPanel("Nhân viên"), "Nhân viên");
     }
 
