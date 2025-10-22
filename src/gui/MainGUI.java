@@ -237,7 +237,7 @@ public class MainGUI extends JFrame {
         // Chung
         mainContentPanel.add(createPlaceholderPanel("Màn hình chính"), "Màn hình chính");
         mainContentPanel.add(createPlaceholderPanel("Lịch làm việc"), "Lịch làm việc");
-        mainContentPanel.add(createPlaceholderPanel("Hóa đơn"), "Hóa đơn");
+        mainContentPanel.add(new HoaDonGUI(), "Hóa đơn");
 
         // Chỉ Quản lý
         mainContentPanel.add(createPlaceholderPanel("Danh mục món ăn"), "Danh mục món ăn");
@@ -245,8 +245,8 @@ public class MainGUI extends JFrame {
         mainContentPanel.add(createPlaceholderPanel("Nhân viên"), "Nhân viên");
 
         // Chỉ Nhân viên
-        mainContentPanel.add(createPlaceholderPanel("Danh sách bàn"), "Danh sách bàn");
-        mainContentPanel.add(createPlaceholderPanel("Thành viên"), "Thành viên");
+        mainContentPanel.add(new QuanLyBanGUI(), "Danh sách bàn");
+        mainContentPanel.add(new KhachHangGUI(), "Thành viên");
     }
 
     private JPanel createPlaceholderPanel(String name) {

@@ -1,16 +1,7 @@
 package gui;
 
-import entity.Ban;
-import entity.TrangThaiBan;
-import javax.swing.border.Border;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.image.BufferedImage;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.ArrayList;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
@@ -25,12 +16,13 @@ public class QuanLyBanGUI extends JPanel implements ActionListener {
 
     public QuanLyBanGUI() {
         setLayout(new BorderLayout());
-        setOpaque(false);
+//        setOpaque(True);
+        setBorder(new EmptyBorder(20, 10, 0, 0));
+        setBackground(Color.WHITE);
 
         JPanel topNavPanel = new JPanel(new BorderLayout());
         topNavPanel.setOpaque(true);
         topNavPanel.setBackground(COLOR_ACCENT_BLUE);
-        topNavPanel.setBorder(new MatteBorder(1, 1, 1, 1, Color.GRAY));
 
         JPanel leftButtonsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         leftButtonsPanel.setOpaque(false);
@@ -42,29 +34,28 @@ public class QuanLyBanGUI extends JPanel implements ActionListener {
             String cardName = topNavCards[i];
             JToggleButton navButton = new JToggleButton(btnName);
             navButton.setFocusPainted(false);
-            navButton.setBorder(new EmptyBorder(10, 20, 10, 20));
+
+            // --- SỬA 1: SET BORDER RỖNG 1 LẦN DUY NHẤT TẠI ĐÂY ---
+            navButton.setBorder(new EmptyBorder(10, 20, 10, 20)); // Viền rỗng cố định
+
             navButton.setPreferredSize(new Dimension(120, 40));
             navButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
             navButton.setBackground(COLOR_ACCENT_BLUE);
             navButton.setForeground(Color.WHITE);
 
+            // --- SỬA 2: CHỈ THAY ĐỔI MÀU, KHÔNG THAY ĐỔI BORDER ---
             navButton.addChangeListener(e -> {
                 if (navButton.isSelected()) {
                     navButton.setBackground(Color.WHITE);
                     navButton.setForeground(Color.BLACK);
-                    // Dùng viền dưới màu xanh khi chọn
-                    navButton.setBorder(BorderFactory.createCompoundBorder(
-                            new MatteBorder(1, 1, 1, 1, COLOR_ACCENT_BLUE),
-                            new EmptyBorder(10, 20, 7, 20)
-                    ));
-
+                    // KHÔNG setBorder() ở đây
                 } else {
                     navButton.setBackground(COLOR_ACCENT_BLUE);
                     navButton.setForeground(Color.WHITE);
-                    // Dùng EmptyBorder khi không chọn
-                    navButton.setBorder(new EmptyBorder(10, 20, 13, 20)); // Giữ chiều cao
+                    // KHÔNG setBorder() ở đây
                 }
             });
+
             navButton.addActionListener(e -> {
                 contentCardLayout.show(contentCardPanel, cardName);
             });
