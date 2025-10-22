@@ -240,7 +240,7 @@ public class MainGUI extends JFrame {
         mainContentPanel.add(createPlaceholderPanel("Danh mục món ăn"), "Danh mục món ăn");
         mainContentPanel.add(createPlaceholderPanel("Lịch làm việc"), "Lịch làm việc");
         mainContentPanel.add(new KhuyenMaiGUI(), "Khuyến mãi");
-        mainContentPanel.add(createPlaceholderPanel("Hóa đơn"), "Hóa đơn");
+        mainContentPanel.add(new HoaDonGUI(), "Hóa đơn");
         mainContentPanel.add(new KhachHangGUI(), "Thành viên");
         mainContentPanel.add(createPlaceholderPanel("Nhân viên"), "Nhân viên");
     }

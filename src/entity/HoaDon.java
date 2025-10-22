@@ -15,7 +15,7 @@ public class HoaDon {
     private String hinhThucThanhToan;
     private float tienKhachDua;
 
-    public HoaDon() {
+    public HoaDon(LocalDateTime ngayLap, float tongTien, String trangThai, String hinhThucThanhToan, float tienKhachDua, int tienThoi) {
         this.maHD = phatSinhMaHD();
         this.ngayLap = LocalDateTime.now();
         this.tongTien = 0;
@@ -46,7 +46,7 @@ public class HoaDon {
         return maHD;
     }
 
-    private void setMaHD(String maHD) {
+    public void setMaHD(String maHD) {
         this.maHD = maHD;
     }
 
