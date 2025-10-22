@@ -21,7 +21,7 @@ public class SQLConnection {
     //  Dùng SQL Server Authentication (Dùng user/pass của SQL Server) ---
     // Thường dùng user 'sa' (System Administrator)
     private static final String SQL_USER = "sa";
-    private static final String SQL_PASSWORD = "sapassword"; // ⚠️ THAY MẬT KHẨU CỦA BẠN VÀO ĐÂY
+    private static final String SQL_PASSWORD = "123456789"; // ⚠️ THAY MẬT KHẨU CỦA BẠN VÀO ĐÂY
     private static final String URL_SQL_AUTH = 
         String.format("jdbc:sqlserver://%s:%s;databaseName=%s;user=%s;password=%s;encrypt=true;trustServerCertificate=true;",
                       SERVER_NAME, PORT, DB_NAME, SQL_USER, SQL_PASSWORD);
