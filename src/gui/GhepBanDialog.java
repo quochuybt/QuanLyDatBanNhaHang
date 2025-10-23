@@ -72,7 +72,8 @@ public class GhepBanDialog extends JDialog {
         // Thêm panel nội dung vào JDialog
         add(contentPanel);
 
-        pack(); // Tự động điều chỉnh kích thước
+        setSize(parent.getSize());
+        setLocationRelativeTo(parent);
         setLocationRelativeTo(parent); // Căn giữa so với cửa sổ cha
 
         // Populate
