@@ -4,19 +4,17 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.MatteBorder;
 import java.awt.*;
 
-public class QuanLyBanGUI extends JPanel implements ActionListener {
+public class DanhSachBanGUI extends JPanel implements ActionListener {
     private static final Color COLOR_ACCENT_BLUE = new Color(56, 118, 243);
 
     private CardLayout contentCardLayout = new CardLayout();
     private JPanel contentCardPanel;
     private ButtonGroup topNavGroup = new ButtonGroup();
 
-    public QuanLyBanGUI() {
+    public DanhSachBanGUI() {
         setLayout(new BorderLayout());
-//        setOpaque(True);
         setBorder(new EmptyBorder(20, 10, 0, 0));
         setBackground(Color.WHITE);
 
@@ -34,25 +32,22 @@ public class QuanLyBanGUI extends JPanel implements ActionListener {
             String cardName = topNavCards[i];
             JToggleButton navButton = new JToggleButton(btnName);
             navButton.setFocusPainted(false);
+            navButton.setBorderPainted(false);
 
-            // --- SỬA 1: SET BORDER RỖNG 1 LẦN DUY NHẤT TẠI ĐÂY ---
-            navButton.setBorder(new EmptyBorder(10, 20, 10, 20)); // Viền rỗng cố định
+            navButton.setBorder(new EmptyBorder(10, 20, 10, 20));
 
             navButton.setPreferredSize(new Dimension(120, 40));
             navButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
             navButton.setBackground(COLOR_ACCENT_BLUE);
             navButton.setForeground(Color.WHITE);
 
-            // --- SỬA 2: CHỈ THAY ĐỔI MÀU, KHÔNG THAY ĐỔI BORDER ---
             navButton.addChangeListener(e -> {
                 if (navButton.isSelected()) {
                     navButton.setBackground(Color.WHITE);
                     navButton.setForeground(Color.BLACK);
-                    // KHÔNG setBorder() ở đây
                 } else {
                     navButton.setBackground(COLOR_ACCENT_BLUE);
                     navButton.setForeground(Color.WHITE);
-                    // KHÔNG setBorder() ở đây
                 }
             });
 
@@ -61,7 +56,7 @@ public class QuanLyBanGUI extends JPanel implements ActionListener {
             });
 
             topNavGroup.add(navButton);
-            leftButtonsPanel.add(navButton); // Thêm vào panel bên trái
+            leftButtonsPanel.add(navButton);
 
             if (i == 0) {
                 navButton.setSelected(true);
@@ -71,7 +66,7 @@ public class QuanLyBanGUI extends JPanel implements ActionListener {
         // --- Panel chứa nút "..." bên phải ---
         JPanel rightButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         rightButtonPanel.setOpaque(false); // Nền trong suốt
-        rightButtonPanel.setBorder(new EmptyBorder(0, 0, 0, 5)); // Chừa 5px lề phải
+        rightButtonPanel.setBorder(new EmptyBorder(0, 0, 0, 5));
 
         JButton menuButton = new JButton("...");
         menuButton.setFocusPainted(false);
@@ -85,7 +80,7 @@ public class QuanLyBanGUI extends JPanel implements ActionListener {
         menuButton.addActionListener(e -> {
             // 1. Tạo JPopupMenu
             JPopupMenu popupMenu = new JPopupMenu();
-            popupMenu.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1)); // Thêm viền
+            popupMenu.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
             // 2. Tạo các mục menu (menu items)
             JMenuItem itemInLaiHoaDon = new JMenuItem("In lại hóa đơn");
@@ -103,18 +98,14 @@ public class QuanLyBanGUI extends JPanel implements ActionListener {
 
             // 3. Thêm hành động cho mục
             itemInLaiHoaDon.addActionListener(e_themBan -> {
-                // Khi click, gọi hàm hiển thị modal làm mờ nền
                 InLaiHoaDon();
             });
             itemGhepBan.addActionListener(e_themBan -> {
-                // Khi click, gọi hàm hiển thị modal làm mờ nền
                 showGhepBanSplitDialog();
             });
             itemChuyenBan.addActionListener(e_themBan -> {
-                // Khi click, gọi hàm hiển thị modal làm mờ nền
                 showChuyenBanDiaLog();
             });
-
 
             // 4. Thêm các mục vào popup và hiển thị
             popupMenu.add(itemInLaiHoaDon);
@@ -135,12 +126,12 @@ public class QuanLyBanGUI extends JPanel implements ActionListener {
 
         contentCardPanel = new JPanel(contentCardLayout);
         contentCardPanel.setOpaque(false);
-        add(contentCardPanel, BorderLayout.CENTER);
 
-        JPanel banScreenPanel = createBanScreenPanel();
-        contentCardPanel.add(banScreenPanel, "MAN_HINH_BAN");
-        contentCardPanel.add(createPlaceholderPanel("Màn hình Gọi Món"), "MAN_HINH_GOI_MON");
-        contentCardPanel.add(createPlaceholderPanel("Màn hình Đặt Bàn"), "MAN_HINH_DAT_BAN");
+        contentCardPanel.add(new ManHinhBanGUI(), "MAN_HINH_BAN");
+        contentCardPanel.add(new ManHinhGoiMonGUI(), "MAN_HINH_GOI_MON");
+        contentCardPanel.add(new ManHinhDatBanGUI(), "MAN_HINH_DAT_BAN");
+
+        add(contentCardPanel, BorderLayout.CENTER);
 
         // Hiển thị màn hình Bàn đầu tiên
         contentCardLayout.show(contentCardPanel, "MAN_HINH_BAN");
@@ -148,10 +139,8 @@ public class QuanLyBanGUI extends JPanel implements ActionListener {
 
     private void showChuyenBanDiaLog() {
         Window parentFrame = SwingUtilities.getWindowAncestor(this);
-
-        // --- SỬA: Gọi class JDialog mới ---
         ChuyenBanDialog dialog = new ChuyenBanDialog(parentFrame);
-        dialog.setVisible(true); // Hiển thị dialog
+        dialog.setVisible(true);
     }
 
     private void InLaiHoaDon() {
@@ -159,10 +148,8 @@ public class QuanLyBanGUI extends JPanel implements ActionListener {
 
     private void showGhepBanSplitDialog() {
         Window parentFrame = SwingUtilities.getWindowAncestor(this);
-
-        // --- SỬA: Gọi class JDialog mới ---
         GhepBanDialog dialog = new GhepBanDialog(parentFrame);
-        dialog.setVisible(true); // Hiển thị dialog
+        dialog.setVisible(true);
     }
 
     @Override
@@ -170,35 +157,4 @@ public class QuanLyBanGUI extends JPanel implements ActionListener {
 
     }
 
-    private JPanel createBanScreenPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        // Phần lọc bàn ở trên cùng
-        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        filterPanel.setOpaque(false);
-
-        return panel;
-    }
-
-    // xoá khi có đủ màn hình
-    private JPanel createPlaceholderPanel(String name) {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(new Color(244, 247, 252)); // Màu nền chính
-        JLabel label = new JLabel("Đây là giao diện " + name);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        panel.add(label);
-        return panel;
-    }
-
-
-    public static void main(String[] args) {
-        JFrame frame = new JFrame("Quản Lý Bàn GUI Test");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(1000, 800);
-        frame.setLocationRelativeTo(null);
-
-        QuanLyBanGUI quanLyBanGUI = new QuanLyBanGUI();
-        frame.add(quanLyBanGUI);
-
-        frame.setVisible(true);
-    }
 }
