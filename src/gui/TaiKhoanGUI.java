@@ -1,10 +1,13 @@
 package gui;
 
+import dao.TaiKhoanDAO;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.RoundRectangle2D;
+import java.util.Map;
 
 public class TaiKhoanGUI extends JFrame {
     private static final Color COLOR_ACCENT_BLUE = new Color(40, 28, 244); // Màu xanh nút
@@ -129,39 +132,43 @@ public class TaiKhoanGUI extends JFrame {
                     return;
                 }
 
-                // --- THAY ĐỔI LOGIC: Thay thế phần này bằng logic check CSDL của bạn ---
+                Map<String, String> loginResult = null;
+                try {
+                    // 1. Khởi tạo lớp DAO
+                    TaiKhoanDAO taiKhoanDAO = new TaiKhoanDAO();
 
-                // Ví dụ: Bạn gọi hàm checkLogin(tenDangNhap, matKhau) từ BUS/DAO
-                // Hàm đó sẽ trả về vai trò (String), ví dụ: "Quản lý", "Nhân viên", hoặc null nếu sai
+                    // 2. Gọi hàm checkLogin (truyền mật khẩu thô)
+                    loginResult = taiKhoanDAO.checkLoginAndGetInfo(tenDangNhap, matKhau);
 
-                String userRole = null; // Biến lưu vai trò
-
-                // **** GIẢ LẬP LOGIC CHECK ĐĂNG NHẬP ****
-                // (Bạn phải thay thế phần này bằng code thật)
-                if (tenDangNhap.equalsIgnoreCase("quanly") && matKhau.equals("123")) {
-                    userRole = "Quản lý";
-                } else if (tenDangNhap.equalsIgnoreCase("nhanvien") && matKhau.equals("123")) {
-                    userRole = "Nhân viên";
+                } catch (RuntimeException ex) {
+                    // Bắt lỗi nếu CSDL bị sập hoặc không kết nối được
+                    JOptionPane.showMessageDialog(TaiKhoanGUI.this,
+                            "Lỗi kết nối CSDL! Vui lòng kiểm tra lại.\nChi tiết: " + ex.getMessage(),
+                            "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
+                    return; // Dừng lại không làm gì nữa
                 }
-                // **** KẾT THÚC GIẢ LẬP ****
 
+// --- Logic xử lý kết quả (GIỮ NGUYÊN) ---
+                if (loginResult != null) { // Nếu đăng nhập thành công (userRole không null)
 
-                // --- Logic xử lý kết quả ---
-                if (userRole != null) { // Nếu đăng nhập thành công (userRole không null)
-                    JOptionPane.showMessageDialog(TaiKhoanGUI.this, "Đăng nhập thành công với vai trò: " + userRole,
+                    String userRole = loginResult.get("role");
+                    String userName = loginResult.get("name");
+                    JOptionPane.showMessageDialog(TaiKhoanGUI.this,
+                            "Đăng nhập thành công!\nTên: " + userName + "\nVai trò: " + userRole, // <-- Hiển thị cả tên
                             "Thành công", JOptionPane.INFORMATION_MESSAGE);
 
-                    dispose(); // Đóng cửa sổ (JFrame) hiện tại
+                    dispose();
 
                     // Truyền vai trò (userRole) vào MainGUI
                     final String finalUserRole = userRole;
+                    final String finalUserName = userName; // <-- Tạo biến final cho tên
                     SwingUtilities.invokeLater(() -> {
-                        // Gọi constructor mới của MainGUI và truyền vai trò vào
-                        MainGUI mainGUI = new MainGUI(finalUserRole);
+                        // Gọi constructor mới của MainGUI (sẽ tạo ở bước sau)
+                        MainGUI mainGUI = new MainGUI(finalUserRole, finalUserName);
                         mainGUI.setVisible(true);
                     });
 
-                } else { // Nếu userRole là null (đăng nhập thất bại)
+                } else { // Nếu loginResult là null (đăng nhập thất bại)
                     JOptionPane.showMessageDialog(TaiKhoanGUI.this, "Sai tên tài khoản hoặc mật khẩu!",
                             "Lỗi Đăng nhập", JOptionPane.ERROR_MESSAGE);
                 }

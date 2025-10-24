@@ -185,7 +185,7 @@ public class KhachHang {
         } else if (tongChiTieu > 1500000) {
             hangThanhVien = HangThanhVien.SILVER;
         } else if (tongChiTieu > 800000) {
-            hangThanhVien = HangThanhVien.BRONE;
+            hangThanhVien = HangThanhVien.BRONZE;
         } else if (tongChiTieu > 100000) {
             hangThanhVien = HangThanhVien.MEMBER;
         }

@@ -17,11 +17,11 @@ public class NhanVien {
     private String diachi;
     private LocalDate ngayvaolam;
     private float luong;
-    private String viTri;
+    private VaiTro vaiTro;
 
     public NhanVien() {
-        this.viTri = "Nhân viên";
-        this.manv = phatSinhMaNV(this.viTri);
+        this.vaiTro = VaiTro.NHANVIEN;
+        this.manv = phatSinhMaNV(vaiTro);
         this.hoten = "Chưa có tên";
         this.ngaysinh = LocalDate.now().minusYears(18);
         this.gioitinh = "Khác";
@@ -31,10 +31,17 @@ public class NhanVien {
         this.luong = 2000000f;
     }
 
+    public VaiTro getVaiTro() {
+        return vaiTro;
+    }
+    public void setVaiTro(VaiTro vaiTro) {
+        this.vaiTro = vaiTro;
+    }
+
     public NhanVien(String hoTen, LocalDate ngaySinh, String gioiTinh, String sdt,
-                    String diaChi, LocalDate ngayVaoLam, float luong, String viTri) {
-        setViTri(viTri);
-        this.manv = phatSinhMaNV(this.viTri);
+                    String diaChi, LocalDate ngayVaoLam, float luong ,VaiTro vaiTro) {
+        setVaiTro(vaiTro);
+        this.manv = phatSinhMaNV(vaiTro);
         setHoten(hoTen);
         setNgaysinh(ngaySinh);
         setGioitinh(gioiTinh);
@@ -43,9 +50,9 @@ public class NhanVien {
         setNgayvaolam(ngayVaoLam);
         setLuong(luong);
     }
-
     public NhanVien(NhanVien other) {
-        this.manv = phatSinhMaNV(other.viTri);
+        this.vaiTro = other.vaiTro;
+        this.manv = phatSinhMaNV(other.vaiTro);
         this.hoten = other.hoten;
         this.ngaysinh = other.ngaysinh;
         this.gioitinh = other.gioitinh;
@@ -53,26 +60,21 @@ public class NhanVien {
         this.diachi = other.diachi;
         this.ngayvaolam = other.ngayvaolam;
         this.luong = other.luong;
-        this.viTri = other.viTri;
     }
 
-    private String phatSinhMaNV(String viTri) {
-        String maViTri;
-        if (viTri.equalsIgnoreCase("Quản lý")) {
-            maViTri = "02";
+    private String phatSinhMaNV(VaiTro vaiTro) {
+        String maVaiTro;
+        if (vaiTro == VaiTro.QUANLY) {
+            maVaiTro = "02";
         } else {
-            maViTri = "01";
+            maVaiTro = "01";
         }
         int soNgauNhien = ThreadLocalRandom.current().nextInt(100, 1000);
-        return "NV" + maViTri + soNgauNhien;
+        return "NV" + maVaiTro + soNgauNhien;
     }
 
     public String getManv() {
         return manv;
-    }
-
-    private void setManv(String manv) {
-        this.manv = manv;
     }
 
     public String getHoten() {
@@ -144,22 +146,6 @@ public class NhanVien {
         this.luong = luong;
     }
 
-    public String getViTri() {
-        return viTri;
-    }
-
-    public void setViTri(String viTri) {
-        List<String> viTriHopLe = Arrays.asList("Nhân viên", "Quản lý");
-        if (viTri == null || !viTriHopLe.contains(viTri)) {
-            throw new IllegalArgumentException("Vị trí không hợp lệ. Chỉ chấp nhận: " + viTriHopLe);
-        }
-        this.viTri = viTri;
-    }
-
-    public float tinhLuongThang() {
-        return this.luong;
-    }
-
     @Override
     public String toString() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -171,8 +157,126 @@ public class NhanVien {
                 ", sdt='" + sdt + '\'' +
                 ", diachi='" + diachi + '\'' +
                 ", ngayvaolam=" + ngayvaolam.format(formatter) +
-                ", viTri='" + viTri + '\'' +
                 ", luong=" + luong +
                 '}';
     }
+//        public static void main(String[] args) {
+//            System.out.println("--- Bắt đầu chương trình test NhanVien ---");
+//
+//            // === KỊCH BẢN 1: TẠO ĐỐI TƯỢNG HỢP LỆ (HAPPY PATH) ===
+//            System.out.println("\n--- Kịch bản 1: Tạo đối tượng hợp lệ ---");
+//            try {
+//                NhanVien nv1 = new NhanVien(
+//                        "Nguyễn Văn An",
+//                        LocalDate.of(1995, 10, 20),
+//                        "Nam",
+//                        "0912345678",
+//                        "123 Lê Lợi, Q1, TPHCM",
+//                        LocalDate.of(2023, 1, 15),
+//                        12000000f,
+//                        VaiTro.NHANVIEN
+//                );
+//                System.out.println("Tạo Nhân Viên thành công:");
+//                System.out.println(nv1);
+//
+//                NhanVien ql1 = new NhanVien(
+//                        "Trần Thị Bình",
+//                        LocalDate.of(1990, 5, 1),
+//                        "Nữ",
+//                        "0987654321",
+//                        "456 CMT8, Q3, TPHCM",
+//                        LocalDate.of(2020, 2, 10),
+//                        25000000f,
+//                        VaiTro.QUANLY
+//                );
+//                System.out.println("\nTạo Quản Lý thành công:");
+//                System.out.println(ql1);
+//
+//            } catch (IllegalArgumentException e) {
+//                System.out.println("LỖI KHÔNG MONG MUỐN (Kịch bản 1): " + e.getMessage());
+//            }
+//
+//            // === KỊCH BẢN 2: TẠO BẰNG CONSTRUCTOR MẶC ĐỊNH ===
+//            System.out.println("\n--- Kịch bản 2: Dùng constructor mặc định ---");
+//            NhanVien nvDefault = new NhanVien();
+//            System.out.println(nvDefault);
+//
+//            // === KỊCH BẢN 3: TẠO BẰNG COPY CONSTRUCTOR ===
+//            System.out.println("\n--- Kịch bản 3: Dùng copy constructor ---");
+//            NhanVien nvToCopy = new NhanVien("Lê Văn C", LocalDate.of(2000, 1, 1), "Nam", "0333444555", "789 Nguyễn Trãi, Q5", LocalDate.now(), 8000000f, VaiTro.NHANVIEN);
+//            NhanVien nvCopied = new NhanVien(nvToCopy);
+//            System.out.println("Đối tượng gốc:");
+//            System.out.println(nvToCopy);
+//            System.out.println("Đối tượng sao chép (Lưu ý: mã NV sẽ khác nhau do logic phatSinhMaNV):");
+//            System.out.println(nvCopied);
+//
+//            // === KỊCH BẢN 4: TEST VALIDATION (CÁC TRƯỜNG HỢP LỖI) ===
+//            System.out.println("\n--- Kịch bản 4: Test các trường hợp lỗi validation ---");
+//
+//            // 4a: Lỗi Tên rỗng
+//            try {
+//                nvDefault.setHoten("   ");
+//            } catch (IllegalArgumentException e) {
+//                System.out.println("Bắt lỗi thành công (Tên): " + e.getMessage());
+//            }
+//
+//            // 4b: Lỗi Tuổi (dưới 18)
+//            try {
+//                nvDefault.setNgaysinh(LocalDate.now().minusYears(17)); // Mới 17 tuổi
+//            } catch (IllegalArgumentException e) {
+//                System.out.println("Bắt lỗi thành công (Tuổi): " + e.getMessage());
+//            }
+//
+//            // 4c: Lỗi SĐT (sai định dạng)
+//            try {
+//                nvDefault.setSdt("12345"); // Sai
+//            } catch (IllegalArgumentException e) {
+//                System.out.println("Bắt lỗi thành công (SĐT ngắn): " + e.getMessage());
+//            }
+//            try {
+//                nvDefault.setSdt("09123456789"); // 11 số (sai)
+//            } catch (IllegalArgumentException e) {
+//                System.out.println("Bắt lỗi thành công (SĐT dài): " + e.getMessage());
+//            }
+//            try {
+//                nvDefault.setSdt("a912345678"); // Có chữ (sai)
+//            } catch (IllegalArgumentException e) {
+//                System.out.println("Bắt lỗi thành công (SĐT có chữ): " + e.getMessage());
+//            }
+//
+//            // 4d: Lỗi Lương (<= 0)
+//            try {
+//                nvDefault.setLuong(0);
+//            } catch (IllegalArgumentException e) {
+//                System.out.println("Bắt lỗi thành công (Lương = 0): " + e.getMessage());
+//            }
+//            try {
+//                nvDefault.setLuong(-100000);
+//            } catch (IllegalArgumentException e) {
+//                System.out.println("Bắt lỗi thành công (Lương âm): " + e.getMessage());
+//            }
+//
+//            // === KỊCH BẢN 5: CẬP NHẬT THÔNG TIN HỢP LỆ ===
+//            System.out.println("\n--- Kịch bản 5: Cập nhật thông tin thành công ---");
+//            try {
+//                NhanVien nvUpdate = new NhanVien();
+//                System.out.println("Trước khi cập nhật:");
+//                System.out.println(nvUpdate);
+//
+//                nvUpdate.setHoten("Đỗ Thị Diễm");
+//                nvUpdate.setNgaysinh(LocalDate.of(1999, 11, 20));
+//                nvUpdate.setGioitinh("Nữ");
+//                nvUpdate.setSdt("0888999111");
+//                nvUpdate.setDiachi("Bình Dương");
+//                nvUpdate.setLuong(9500000f);
+//
+//                System.out.println("Sau khi cập nhật:");
+//                System.out.println(nvUpdate);
+//            } catch (IllegalArgumentException e) {
+//                System.out.println("LỖI KHÔNG MONG MUỐN (Kịch bản 5): " + e.getMessage());
+//            }
+//
+//            System.out.println("\n--- Kết thúc test ---");
+//        }
+
 }

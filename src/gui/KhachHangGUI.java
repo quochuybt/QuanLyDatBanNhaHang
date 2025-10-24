@@ -102,7 +102,7 @@ public class KhachHangGUI extends JPanel {
                 case DIAMOND: return new Color(255, 240, 255);
                 case GOLD: return new Color(255, 245, 204);
                 case SILVER: return new Color(240, 240, 245);
-                case BRONE: return new Color(250, 240, 230);
+                case BRONZE: return new Color(250, 240, 230);
                 case MEMBER: return new Color(230, 240, 255);
                 case NONE: default: return new Color(255, 255, 255);
             }
@@ -113,7 +113,7 @@ public class KhachHangGUI extends JPanel {
                 case DIAMOND: return new Color(180, 0, 180);
                 case GOLD: return new Color(200, 160, 0);
                 case SILVER: return new Color(100, 100, 150);
-                case BRONE: return new Color(150, 100, 50);
+                case BRONZE: return new Color(150, 100, 50);
                 case MEMBER: return new Color(40, 100, 180);
                 case NONE: default: return Color.GRAY.darker();
             }

@@ -14,6 +14,8 @@ public class MainGUI extends JFrame {
     private static final Color COLOR_ACCENT_BLUE = new Color(56, 118, 243); // Màu xanh nhấn chính
     private static final Color COLOR_BUTTON_ACTIVE = new Color(40, 28, 244); // Màu nền nút đang active (đậm hơn 1 chút)
 
+
+
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel mainContentPanel = new JPanel(cardLayout);
 
@@ -22,9 +24,11 @@ public class MainGUI extends JFrame {
     private JPanel currentActiveButton = null;
     // --- THAY ĐỔI 1: Thêm biến lưu vai trò ---
     private final String userRole;
+    private final String userName;
 
-    public MainGUI(String userRole) {
+    public MainGUI(String userRole, String userName) {
         this.userRole = userRole;
+        this.userName = userName;
         setTitle("Phần mềm quản lý cửa hàng tiện lợi");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1300, 800);
@@ -33,11 +37,11 @@ public class MainGUI extends JFrame {
         setLayout(new BorderLayout(0, 0));
 
         // ===== TẠO CÁC THÀNH PHẦN GIAO DIỆN =====
-        JPanel menuPanel = createMenuPanel();
-        setupMainContentPanel();
+        JPanel menuPanel = createMenuPanel(); // Tạo menu trước (dùng userRole)
+        setupMainContentPanel();              // Tạo content sau
         JPanel contentWrapperPanel = new JPanel(new BorderLayout());
-        contentWrapperPanel.add(createHeaderPanel(), BorderLayout.NORTH); // Header ở trên
-        contentWrapperPanel.add(mainContentPanel, BorderLayout.CENTER); // Nội dung chính ở giữa
+        contentWrapperPanel.add(createHeaderPanel(), BorderLayout.NORTH); // Tạo header (dùng userName, userRole)
+        contentWrapperPanel.add(mainContentPanel, BorderLayout.CENTER);
 
         add(menuPanel, BorderLayout.WEST); // Menu bên trái
         add(contentWrapperPanel, BorderLayout.CENTER); // Nội dung chính bên phải
@@ -99,10 +103,11 @@ public class MainGUI extends JFrame {
         JPanel textPanel = new JPanel();
         textPanel.setOpaque(false);
         textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
-        JLabel nameLabel = new JLabel("Lâm Đình Khoa");
+        JLabel nameLabel = new JLabel(this.userName); // <-- Lấy tên từ biến đã lưu
         nameLabel.setFont(new Font("Arial", Font.BOLD, 14));
         nameLabel.setForeground(Color.BLACK);
-        JLabel roleLabel = new JLabel(this.userRole); // Lấy vai trò từ biến đã lưu
+
+        JLabel roleLabel = new JLabel(this.userRole);
         roleLabel.setForeground(Color.BLACK);
         textPanel.add(nameLabel);
         textPanel.add(roleLabel);
@@ -145,7 +150,7 @@ public class MainGUI extends JFrame {
         // --- Các nút chức năng ---
         // Sử dụng LinkedHashMap để duy trì thứ tự thêm vào
         LinkedHashMap<String, String> menuItems = new LinkedHashMap<>();
-        if ("Quản lý".equals(this.userRole)) {
+        if ("QuanLy".equals(this.userRole)) {
             // Quản lý: Hiển thị tất cả các mục như cũ
             menuItems.put("Màn hình chính", "⌂"); // Icon Unicode
             menuItems.put("Danh mục món ăn", "🍽️");
@@ -153,7 +158,7 @@ public class MainGUI extends JFrame {
             menuItems.put("Khuyến mãi", "🏷️");
             menuItems.put("Hóa đơn", "🧾");
             menuItems.put("Nhân viên", "👤");
-        } else if ("Nhân viên".equals(this.userRole)) {
+        } else if ("NhanVien".equals(this.userRole)) {
             // Nhân viên: Hiển thị các mục bạn yêu cầu
             menuItems.put("Màn hình chính", "⌂");
             menuItems.put("Danh sách bàn", "🪑"); // (Icon ví dụ)
