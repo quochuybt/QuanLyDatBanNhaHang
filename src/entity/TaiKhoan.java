@@ -6,14 +6,12 @@ import java.util.regex.Pattern;
 public class TaiKhoan {
     private String tentk;
     private String matkhau;
-    private VaiTro vaitro;
     private boolean trangthai;
 
     public TaiKhoan(String tentk, String matkhau, VaiTro vaitro, boolean trangthai) {
         this.setTentk(tentk);
         this.tentk = tentk;
         this.setMatkhau(matkhau);
-        this.vaitro = vaitro;
         this.trangthai = trangthai;
     }
 
@@ -42,14 +40,6 @@ public class TaiKhoan {
         this.matkhau = hashPassword(matkhau);
     }
 
-    public VaiTro getVaitro() {
-        return vaitro;
-    }
-
-    public void setVaitro(VaiTro vaitro) {
-        this.vaitro = vaitro;
-    }
-
     public Boolean getTrangthai() {
         return trangthai;
     }
@@ -65,7 +55,6 @@ public class TaiKhoan {
         return "TaiKhoan{" +
                 "tentk='" + tentk + '\'' +
                 ", matkhau='***'" +
-                ", vaitro=" + vaitro +
                 ", trangthai=" + trangthai +
                 '}';
     }

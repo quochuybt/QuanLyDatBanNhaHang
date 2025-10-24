@@ -25,12 +25,11 @@ public class HoaDonDAO {
         String trangThai = rs.getString("trangThai");
         String hinhThucThanhToan = rs.getString("hinhThucThanhToan");
         float tienKhachDua = rs.getFloat("tienKhachDua");
-        int tienThoi = rs.getInt("tienThoi"); // Lấy tiền thối từ CSDL
 
         // ❌ KHÔNG CÒN LẤY CÁC TRƯỜNG KHÓA NGOẠI NỮA: maKH, maNV, maBan
 
         // Sử dụng Constructor mới (Hoặc Constructor cũ và setTienThoi)
-        HoaDon hd = new HoaDon(ngayLap, tongTien, trangThai, hinhThucThanhToan, tienKhachDua, tienThoi);
+        HoaDon hd = new HoaDon(ngayLap, tongTien, trangThai, hinhThucThanhToan, tienKhachDua);
         hd.setMaHD(maHD);
 
         return hd;
@@ -44,7 +43,7 @@ public class HoaDonDAO {
     public List<HoaDon> getAllHoaDon() {
         List<HoaDon> dsHoaDon = new ArrayList<>();
         // Cập nhật câu lệnh SQL: BỎ maKH, maNV, maBan, THÊM tienThoi
-        String sql = "SELECT maHD, ngayLap, tongTien, trangThai, hinhThucThanhToan, tienKhachDua, tienThoi FROM HoaDon ORDER BY ngayLap DESC";
+        String sql = "SELECT maHD, ngayLap, tongTien, trangThai, hinhThucThanhToan, tienKhachDua FROM HoaDon ORDER BY ngayLap DESC";
 
         try (Connection conn = SQLConnection.getConnection();
              Statement stmt = conn.createStatement();
@@ -66,8 +65,8 @@ public class HoaDonDAO {
      */
     public boolean themHoaDon(HoaDon hd) {
         // Cập nhật câu lệnh SQL: BỎ maKH, maNV, maBan, THÊM tienThoi
-        String sql = "INSERT INTO HoaDon (maHD, ngayLap, tongTien, trangThai, hinhThucThanhToan, tienKhachDua, tienThoi) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO HoaDon (maHD, ngayLap, tongTien, trangThai, hinhThucThanhToan, tienKhachDua,maNV, maKM, maDon) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -78,7 +77,17 @@ public class HoaDonDAO {
             ps.setString(4, hd.getTrangThai());
             ps.setString(5, hd.getHinhThucThanhToan());
             ps.setFloat(6, hd.getTienKhachDua());
-            ps.setInt(7, hd.getTienThoi()); // THÊM tienThoi
+// --- ADDED REQUIRED FOREIGN KEYS ---
+            // You need to get these values from the HoaDon object
+            // For example:
+            // ps.setString(7, hd.getMaNV()); // Replace with your actual getter
+            // ps.setString(8, hd.getMaKM()); // Replace with your actual getter, handle nulls
+            // ps.setString(9, hd.getMaDon()); // Replace with your actual getter
+
+            // Placeholder - Replace with actual FK getters from your HoaDon entity
+            ps.setNull(7, java.sql.Types.NVARCHAR); // Placeholder for maNV
+            ps.setNull(8, java.sql.Types.NVARCHAR); // Placeholder for maKM
+            ps.setNull(9, java.sql.Types.NVARCHAR); // Placeholder for maDon
 
             return ps.executeUpdate() > 0;
         } catch (java.sql.SQLIntegrityConstraintViolationException e) {
@@ -98,7 +107,8 @@ public class HoaDonDAO {
     public List<HoaDon> timHoaDon(String tuKhoa) {
         List<HoaDon> dsKetQua = new ArrayList<>();
         // Chỉ tìm kiếm theo Mã HD (Không còn Mã NV/Bàn)
-        String sql = "SELECT * FROM HoaDon WHERE maHD LIKE ? ORDER BY ngayLap DESC";
+        String sql = "SELECT maHD, ngayLap, tongTien, trangThai, hinhThucThanhToan, tienKhachDua " +
+                "FROM HoaDon WHERE maHD LIKE ? ORDER BY ngayLap DESC";
 
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
