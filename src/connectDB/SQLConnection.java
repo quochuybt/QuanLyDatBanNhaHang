@@ -61,29 +61,29 @@ public class SQLConnection {
     /**
      * Hàm main để kiểm tra kết nối CSDL
      */
-    public static void main(String[] args) {
-        try {
-            Connection conn = SQLConnection.getConnection();
-            if (conn != null && !conn.isClosed()) {
-                System.out.println("✅ Kết nối CSDL SQL Server THÀNH CÔNG!");
-                System.out.println("Đã kết nối tới database: " + conn.getCatalog());
-
-                // Thử kết nối lần 2
-                Connection conn2 = SQLConnection.getConnection();
-                System.out.println("Kết nối lần 2...");
-                // So sánh 2 đối tượng connection
-                if (conn == conn2) {
-                    System.out.println("Tốt! Đã tái sử dụng kết nối thành công.");
-                } else {
-                    System.err.println("Lỗi! Đã tạo kết nối mới.");
-                }
-
-            }
-        } catch (Exception e) {
-            System.err.println("❌ Kết nối CSDL THẤT BẠI!");
-            e.printStackTrace();
-        } finally {
-            SQLConnection.closeConnection(); // Đóng kết nối khi test xong
-        }
-    }
+//    public static void main(String[] args) {
+//        try {
+//            Connection conn = SQLConnection.getConnection();
+//            if (conn != null && !conn.isClosed()) {
+//                System.out.println("✅ Kết nối CSDL SQL Server THÀNH CÔNG!");
+//                System.out.println("Đã kết nối tới database: " + conn.getCatalog());
+//
+//                // Thử kết nối lần 2
+//                Connection conn2 = SQLConnection.getConnection();
+//                System.out.println("Kết nối lần 2...");
+//                // So sánh 2 đối tượng connection
+//                if (conn == conn2) {
+//                    System.out.println("Tốt! Đã tái sử dụng kết nối thành công.");
+//                } else {
+//                    System.err.println("Lỗi! Đã tạo kết nối mới.");
+//                }
+//
+//            }
+//        } catch (Exception e) {
+//            System.err.println("❌ Kết nối CSDL THẤT BẠI!");
+//            e.printStackTrace();
+//        } finally {
+//            SQLConnection.closeConnection(); // Đóng kết nối khi test xong
+//        }
+//    }
 }
