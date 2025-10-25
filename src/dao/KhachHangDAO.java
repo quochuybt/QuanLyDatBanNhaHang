@@ -178,4 +178,64 @@ public class KhachHangDAO {
         }
         return dsKetQua;
     }
+    public KhachHang timTheoMaKH(String maKH) {
+        // Câu lệnh SQL tìm chính xác 1 người
+        String sql = "SELECT * FROM KhachHang WHERE maKH = ?";
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maKH);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    // (Copy logic từ hàm getAllKhachHang của bạn)
+                    String tenKH = rs.getString("tenKH");
+                    String gioitinh = rs.getString("gioitinh");
+                    String sdt = rs.getString("sdt");
+                    String email = rs.getString("email");
+                    LocalDate ngaySinh = rs.getDate("ngaySinh").toLocalDate();
+                    String diaChi = rs.getString("diaChi");
+                    LocalDate ngayThamGia = rs.getDate("ngayThamGia").toLocalDate();
+                    float tongChiTieu = rs.getFloat("tongChiTieu");
+                    HangThanhVien hangTV = HangThanhVien.valueOf(rs.getString("hangThanhVien").toUpperCase());
+
+                    return new KhachHang(maKH, tenKH, gioitinh, sdt, ngaySinh, diaChi, email, ngayThamGia, tongChiTieu, hangTV);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null; // Không tìm thấy
+    }
+    public KhachHang timTheoSDT(String sdt) {
+        // Câu lệnh SQL tìm chính xác 1 người
+        String sql = "SELECT * FROM KhachHang WHERE sdt = ?";
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, sdt);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    // (Copy logic từ hàm getAllKhachHang của bạn)
+                    String maKH = rs.getString("maKH");
+                    String tenKH = rs.getString("tenKH");
+                    String gioitinh = rs.getString("gioitinh");
+                    String email = rs.getString("email");
+                    LocalDate ngaySinh = rs.getDate("ngaySinh").toLocalDate();
+                    String diaChi = rs.getString("diaChi");
+                    LocalDate ngayThamGia = rs.getDate("ngayThamGia").toLocalDate();
+                    float tongChiTieu = rs.getFloat("tongChiTieu");
+                    HangThanhVien hangTV = HangThanhVien.valueOf(rs.getString("hangThanhVien").toUpperCase());
+
+                    return new KhachHang(maKH, tenKH, gioitinh, sdt, ngaySinh, diaChi, email, ngayThamGia, tongChiTieu, hangTV);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null; // Không tìm thấy
+    }
 }

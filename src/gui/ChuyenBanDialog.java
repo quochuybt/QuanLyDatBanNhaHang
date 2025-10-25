@@ -12,13 +12,13 @@ import java.awt.event.MouseEvent;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
+import dao.BanDAO;
 /**
  * Dialog chức năng Ghép Bàn
  */
 public class ChuyenBanDialog extends JDialog {
 
-    private final List<Ban> allTablesFromDB;
+    private List<Ban> allTablesFromDB;
     private List<Ban> selectedTables;
     private JPanel leftTableContainer;
     private JPanel rightTableContainer;
@@ -26,24 +26,33 @@ public class ChuyenBanDialog extends JDialog {
     private String currentRightFilter = "Tất cả";
     private List<BanPanel> leftBanPanelList = new ArrayList<>();
     private List<BanPanel> rightBanPanelList = new ArrayList<>();
+    private BanDAO banDAO;
 
     public ChuyenBanDialog(Window parent) {
         super(parent, Dialog.ModalityType.APPLICATION_MODAL); // <-- Quan trọng
         this.selectedTables = new ArrayList<>();
+        this.banDAO = new BanDAO();
 
-        // (Dữ liệu mẫu giữ nguyên)
-        allTablesFromDB = new ArrayList<>();
+
         try {
-            LocalDateTime time = LocalDateTime.now().plusHours(1);
-            allTablesFromDB.add(new Ban("Bàn 1", 4, TrangThaiBan.TRONG, time, "Tầng trệt"));
-            allTablesFromDB.add(new Ban("Bàn 2", 2, TrangThaiBan.DANG_PHUC_VU, time, "Tầng 1"));
-            allTablesFromDB.add(new Ban("Bàn 3", 4, TrangThaiBan.DA_DAT_TRUOC, time, "Tầng trệt"));
-            allTablesFromDB.add(new Ban("Bàn 4", 6, TrangThaiBan.TRONG, time, "Tầng 1"));
-            // (Thêm dữ liệu khác của bạn)
-            for (int i = 8; i <= 30; i++) {
-                allTablesFromDB.add(new Ban("Bàn " + i, 4, TrangThaiBan.TRONG, time, "Tầng trệt"));
-            }
-        } catch (Exception e) { e.printStackTrace(); }
+            // Tải danh sách bàn từ CSDL
+            this.allTablesFromDB = banDAO.getAllBan();
+
+            // Cập nhật lại bộ đếm static (giống ManHinhBanGUI)
+            int maxSoThuTu = banDAO.getSoThuTuBanLonNhat();
+            Ban.setSoThuTuBanHienTai(maxSoThuTu);
+
+            System.out.println("Dialog Chuyển Bàn: Tải thành công " + allTablesFromDB.size() + " bàn.");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Nếu có lỗi, khởi tạo danh sách rỗng để tránh NullPointerException
+            this.allTablesFromDB = new ArrayList<>();
+            JOptionPane.showMessageDialog(this,
+                    "Lỗi kết nối hoặc tải dữ liệu Bàn.\nChi tiết: " + e.getMessage(),
+                    "Lỗi CSDL",
+                    JOptionPane.ERROR_MESSAGE);
+        }
 
         // --- Thiết lập cho JDialog (thay vì JPanel) ---
         setUndecorated(true);
@@ -63,8 +72,8 @@ public class ChuyenBanDialog extends JDialog {
         splitPane.setBorder(BorderFactory.createEmptyBorder());
         JPanel leftPane = createListPanel("Danh sách bàn trống", true);
         JPanel rightPane = createListPanel("Danh sách bàn đã đặt/ phục vụ", false);
-        splitPane.setLeftComponent(leftPane);
-        splitPane.setRightComponent(rightPane);
+        splitPane.setLeftComponent(rightPane);
+        splitPane.setRightComponent(leftPane);
         contentPanel.add(splitPane, BorderLayout.CENTER);
 
         contentPanel.add(createBottomBar(), BorderLayout.SOUTH);

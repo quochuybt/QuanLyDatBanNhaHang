@@ -15,6 +15,18 @@ public class Ban {
     private LocalDateTime gioMoBan;
     private String khuVuc;
 
+    public static void setSoThuTuBanHienTai(int maxSoThuTu) {
+        // Nếu maxSoThuTu là 10 (từ BAN10), thì số tiếp theo phải là 11
+        soThuTuBan = maxSoThuTu + 1;
+    }
+    public Ban(String maBan, String tenBan, int soGhe, TrangThaiBan trangThai, LocalDateTime gioMoBan, String khuVuc) {
+        this.maBan = maBan; // Gán mã trực tiếp từ DB
+        this.tenBan = tenBan;
+        this.soGhe = soGhe;
+        this.trangThai = trangThai;
+        this.gioMoBan = gioMoBan; // Gán giờ trực tiếp từ DB (có thể null hoặc quá khứ)
+        this.khuVuc = khuVuc;
+    }
     public Ban() {
         this.maBan = phatSinhMaBan();
         this.tenBan = "Chưa đặt tên";
@@ -90,9 +102,12 @@ public class Ban {
     }
 
     public void setGioMoBan(LocalDateTime gioMoBan) {
-        if (gioMoBan == null || !gioMoBan.isAfter(LocalDateTime.now())) {
-            throw new IllegalArgumentException("Giờ mở bàn phải lớn hơn giờ hiện tại.");
+        if (this.trangThai == TrangThaiBan.DA_DAT_TRUOC) {
+            if (gioMoBan == null || !gioMoBan.isAfter(LocalDateTime.now())) {
+                throw new IllegalArgumentException("Giờ đặt trước phải lớn hơn giờ hiện tại.");
+            }
         }
+        // Nếu là trạng thái khác (Trống, Đang phục vụ), chấp nhận null hoặc giờ quá khứ
         this.gioMoBan = gioMoBan;
     }
     public String getKhuVuc() {
