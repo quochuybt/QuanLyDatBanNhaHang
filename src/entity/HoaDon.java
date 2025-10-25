@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.ArrayList; // Thêm
+import java.util.List; // Thêm
 import java.util.concurrent.ThreadLocalRandom;
 
 public class HoaDon {
@@ -15,22 +17,56 @@ public class HoaDon {
     private String hinhThucThanhToan;
     private float tienKhachDua;
 
-    public HoaDon(LocalDateTime ngayLap, float tongTien, String trangThai, String hinhThucThanhToan, float tienKhachDua, int tienThoi) {
-        this.maHD = phatSinhMaHD();
-        this.ngayLap = LocalDateTime.now();
-        this.tongTien = 0;
-        this.trangThai = "Chưa thanh toán";
-        this.hinhThucThanhToan = "Tiền mặt";
-        this.tienKhachDua = 0;
-    }
 
-    public HoaDon(LocalDateTime ngayLap, float tongTien, String trangThai, String hinhThucThanhToan, float tienKhachDua) {
-        this.maHD = phatSinhMaHD();
-        setNgayLap(ngayLap);
-        setTongTien(tongTien);
-        setTrangThai(trangThai);
-        setHinhThucThanhToan(hinhThucThanhToan);
-        setTienKhachDua(tienKhachDua);
+    private String maDon; // BẮT BUỘC: Để liên kết với ChiTietHoaDon
+    private String maNV;
+    private String maKM;
+    private String maKH;
+    private float giamGia; // Tiền giảm giá (từ maKM)
+    private float vat; // Thuế VAT
+    private float tongThanhToan;
+    private List<ChiTietHoaDon> dsChiTiet;
+
+    public HoaDon(String maHD, LocalDateTime ngayLap, String trangThai,
+                  String hinhThucThanhToan, String maDon,
+                  String maNV, String maKM) {
+        this.maHD = maHD;
+        this.ngayLap = ngayLap;
+        this.trangThai = trangThai;
+        this.hinhThucThanhToan = hinhThucThanhToan;
+        this.maDon = maDon;
+        this.maNV = maNV;
+        this.maKM = maKM;
+
+        // Khởi tạo các giá trị
+        this.dsChiTiet = new ArrayList<>();
+        this.tongTien = 0;
+        this.giamGia = 0;
+        this.vat = 0;
+        this.tongThanhToan = 0;
+    }
+    public void setDsChiTiet(List<ChiTietHoaDon> dsChiTiet) {
+        this.dsChiTiet = dsChiTiet;
+        tinhTatCaTien(); // Tính lại tổng tiền khi có chi tiết
+    }
+    private void tinhTatCaTien() {
+        // 1. Tính tổng tiền món ăn
+        this.tongTien = 0;
+        for (ChiTietHoaDon ct : dsChiTiet) {
+            this.tongTien += ct.getThanhtien();
+        }
+
+        // 2. TODO: Tính giảm giá (dựa vào this.maKM)
+        // Ví dụ: if (this.maKM.equals("GIAM20K")) { this.giamGia = 20000; }
+        // Hiện tại để là 0
+        this.giamGia = 0;
+
+        // 3. TODO: Tính VAT (dựa vào quy định, ví dụ 8%)
+        // Hiện tại để là 0
+        this.vat = 0;
+
+        // 4. Tính tổng thanh toán
+        this.tongThanhToan = this.tongTien - this.giamGia + this.vat;
     }
 
     public HoaDon(HoaDon other) {
@@ -41,77 +77,45 @@ public class HoaDon {
         this.hinhThucThanhToan = other.hinhThucThanhToan;
         this.tienKhachDua = other.tienKhachDua;
     }
-
-    public String getMaHD() {
-        return maHD;
+    public String getMaKH() {
+        return maKH;
     }
 
-    public void setMaHD(String maHD) {
-        this.maHD = maHD;
+    public void setMaKH(String maKH) {
+        this.maKH = maKH;
     }
+    public String getMaHD() { return maHD; }
+    public LocalDateTime getNgayLap() { return ngayLap; }
+    public String getTrangThai() { return trangThai; }
+    public String getHinhThucThanhToan() { return hinhThucThanhToan; }
+    public float getTienKhachDua() { return tienKhachDua; }
+    public String getMaDon() { return maDon; }
+    public String getMaNV() { return maNV; }
+    public String getMaKM() { return maKM; }
+    public List<ChiTietHoaDon> getDsChiTiet() { return dsChiTiet; }
 
-    public LocalDateTime getNgayLap() {
-        return ngayLap;
-    }
+    // Các giá trị đã tính toán
+    public float getTongTien() { return tongTien; } // Tổng món ăn
+    public float getGiamGia() { return giamGia; }
+    public float getVat() { return vat; }
+    public float getTongThanhToan() { return tongThanhToan; } // Tiền phải trả
 
-    public void setNgayLap(LocalDateTime ngayLap) {
-        if (ngayLap == null || ngayLap.isAfter(LocalDateTime.now())) {
-            throw new IllegalArgumentException("Ngày lập không hợp lệ (không được rỗng và phải nhỏ hơn hoặc bằng ngày hiện tại)");
-        }
-        this.ngayLap = ngayLap;
-    }
+    // (Bỏ các hàm set, validate, phatSinhMaHD... cũ để đơn giản hóa)
 
-    public float getTongTien() {
-        return tongTien;
-    }
 
-    public void setTongTien(float tongTien) {
-        if (tongTien < 0) {
-            throw new IllegalArgumentException("Tổng tiền phải ≥ 0");
-        }
-        this.tongTien = tongTien;
-    }
-
-    public String getTrangThai() {
-        return trangThai;
-    }
-
-    public void setTrangThai(String trangThai) {
-        List<String> trangThaiHopLe = Arrays.asList("Đã thanh toán", "Chưa thanh toán");
-        if (trangThai == null || !trangThaiHopLe.contains(trangThai)) {
-            throw new IllegalArgumentException("Trạng thái không hợp lệ. Chỉ chấp nhận: " + trangThaiHopLe);
-        }
-        this.trangThai = trangThai;
-    }
-
-    public String getHinhThucThanhToan() {
-        return hinhThucThanhToan;
-    }
-
-    public void setHinhThucThanhToan(String hinhThucThanhToan) {
-        List<String> hinhThucHopLe = Arrays.asList("Tiền mặt", "Chuyển khoản");
-        if (hinhThucThanhToan == null || !hinhThucHopLe.contains(hinhThucThanhToan)) {
-            throw new IllegalArgumentException("Hình thức không hợp lệ. Chỉ chấp nhận: " + hinhThucHopLe);
-        }
-        this.hinhThucThanhToan = hinhThucThanhToan;
-    }
-
-    public float getTienKhachDua() {
-        return tienKhachDua;
-    }
-
-    public void setTienKhachDua(float tienKhachDua) {
-        if (tienKhachDua < this.tongTien) {
-            throw new IllegalArgumentException("Tiền khách đưa không đủ (phải lớn hơn hoặc bằng tổng tiền)");
-        }
-        this.tienKhachDua = tienKhachDua;
-    }
 
     private String phatSinhMaHD() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyy");
         String datePart = LocalDateTime.now().format(formatter);
         int randomPart = ThreadLocalRandom.current().nextInt(1000, 10000);
         return "HD" + datePart + randomPart;
+    }
+    public void setTongTienTuDB(float tongTien) {
+        this.tongTien = tongTien;
+
+        // Cũng cập nhật tongThanhToan để GUI hiển thị đúng
+        // (Tạm thời giả định tongTien DB là tiền cuối)
+        this.tongThanhToan = tongTien;
     }
 
     public int tinhTienThoi() {
@@ -125,26 +129,14 @@ public class HoaDon {
         return tinhTienThoi();
     }
 
-     public float tinhTongTien(List<ChiTietHoaDon> chiTietHoaDons) {
-         float total = 0;
-         for (ChiTietHoaDon ct : chiTietHoaDons) {
-             total += ct.getThanhtien();
-         }
-         this.tongTien = total;
-         return total;
-     }
-
     @Override
     public String toString() {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss dd-MM-yyyy");
         return "HoaDon{" +
                 "maHD='" + maHD + '\'' +
-                ", ngayLap='" + ngayLap.format(formatter) + '\'' +
-                ", tongTien=" + tongTien +
+                ", maDon='" + maDon + '\'' +
                 ", trangThai='" + trangThai + '\'' +
-                ", hinhThucThanhToan='" + hinhThucThanhToan + '\'' +
-                ", tienKhachDua=" + tienKhachDua +
-                ", tienThoi=" + getTienThoi() +
+                ", tongThanhToan=" + tongThanhToan +
+                ", soLuongMon=" + dsChiTiet.size() +
                 '}';
     }
 }

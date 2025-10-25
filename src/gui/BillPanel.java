@@ -4,7 +4,10 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-
+import entity.ChiTietHoaDon; // Thêm
+import entity.HoaDon; // Thêm
+import java.text.NumberFormat; // Thêm
+import java.util.Locale; // Thêm
 /**
  * Panel này hiển thị chi tiết hóa đơn (JTable) VÀ BẢNG ĐIỀU KHIỂN THANH TOÁN.
  */
@@ -12,8 +15,6 @@ public class BillPanel extends JPanel {
 
     // Hằng số màu cho các nút
     private static final Color COLOR_BUTTON_BLUE = new Color(56, 118, 243);
-
-
     // Các thành phần trong panel thanh toán
     private JLabel lblTongCong; // (Tạm tính)
     private JLabel lblKhuyenMai;
@@ -29,28 +30,14 @@ public class BillPanel extends JPanel {
     private long currentTotal = 0; // Lưu tổng tiền (dạng số)
     private JPanel suggestedCashPanel; // Panel chứa 6 nút
     private final JButton[] suggestedCashButtons = new JButton[6];
-    private final int[] denominations = {1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000};
+    private final NumberFormat nf = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
 
     public BillPanel() {
         super(new BorderLayout(0, 10)); // Gap 10px
         setBackground(Color.WHITE);
-        // Bỏ viền cũ, panel mới sẽ tự có viền
-        // setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
-
-
-
-
-        // 3. Panel Thanh Toán MỚI (thay thế footer cũ)
         JPanel checkoutPanel = createCheckoutPanel();
-        add(checkoutPanel, BorderLayout.SOUTH);
-
-        // (Thêm dữ liệu mẫu để test)
-        loadBillData();
+        add(checkoutPanel, BorderLayout.SOUTH); // Thanh toán ở dưới
     }
-
-    /**
-     * HÀM MỚI: Tạo toàn bộ panel thanh toán phức tạp
-     */
     private JPanel createCheckoutPanel() {
         // Panel chính cho phần checkout
         JPanel mainPanel = new JPanel(new BorderLayout(15, 10)); // Gap
@@ -336,46 +323,41 @@ public class BillPanel extends JPanel {
         btn.setPreferredSize(new Dimension(150, 60)); // Set chiều cao
         return btn;
     }
+    public void loadBill(HoaDon hoaDon) {
+        int tongSoLuong = 0;
 
+        // 2. Thêm món ăn vào bảng
+        for (ChiTietHoaDon ct : hoaDon.getDsChiTiet()) {
+            tongSoLuong += ct.getSoluong();
+        }
+
+        // 3. Cập nhật các JLabel tóm tắt
+        lblTongSoLuong.setText(String.valueOf(tongSoLuong));
+        lblTongCong.setText(nf.format(hoaDon.getTongTien()));
+        lblKhuyenMai.setText(nf.format(hoaDon.getGiamGia()));
+        lblPhanTramVAT.setText("0%"); // TODO: Cập nhật sau
+        lblVAT.setText(nf.format(hoaDon.getVat()));
+        lblTongThanhToan.setText(nf.format(hoaDon.getTongThanhToan()));
+
+        // 4. Cập nhật gợi ý tiền
+        updateSuggestedCash((long) hoaDon.getTongThanhToan());
+        tinhTienThoi(); // Reset tiền thối
+    }
     /**
      * (Hàm này sau này sẽ nhận 1 Hóa Đơn và load)
      */
-    public void loadBillData() {
-        long tongCong = 145000;
-        long khuyenMai = -500;
-        long vatValue = 0;
-        long tongThanhToan = tongCong + khuyenMai + vatValue;
-
-        // Định dạng số (NumberFormat)
-        java.text.NumberFormat nf = java.text.NumberFormat.getInstance();
-
-        // Cập nhật các JLabel
-        lblTongSoLuong.setText("5"); // (2 + 3)
-        lblTongCong.setText(nf.format(tongCong));
-        lblKhuyenMai.setText(nf.format(khuyenMai));
-        lblPhanTramVAT.setText("0%");
-        lblVAT.setText(nf.format(vatValue));
-        lblTongThanhToan.setText(nf.format(tongThanhToan));
-
-        // Gọi hàm cập nhật gợi ý
-        updateSuggestedCash(tongThanhToan);
-        // Gọi hàm tính tiền thối (để reset)
-        tinhTienThoi();
-    }
 
     public void clearBill() {
-        // ... (Code reset các JLabel giữ nguyên)
         lblTongSoLuong.setText("0");
-        lblTongCong.setText("0");
-        lblKhuyenMai.setText("0");
+        lblTongCong.setText(nf.format(0));
+        lblKhuyenMai.setText(nf.format(0));
         lblPhanTramVAT.setText("0%");
-        lblVAT.setText("0");
-        lblTongThanhToan.setText("0");
-        lblTienThoi.setText("0");
+        lblVAT.setText(nf.format(0));
+        lblTongThanhToan.setText(nf.format(0));
+        lblTienThoi.setText(nf.format(0));
         txtKhachTra.setText("0");
 
-        // --- THÊM DÒNG NÀY ---
-        // Ẩn các nút gợi ý khi không có hóa đơn
+        // 3. Ẩn các nút gợi ý
         updateSuggestedCash(0);
     }
 }

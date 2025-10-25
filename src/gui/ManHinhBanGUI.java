@@ -1,7 +1,14 @@
 package gui;
 
+import dao.DonDatMonDAO;
+import dao.HoaDonDAO;
+import dao.KhachHangDAO;
 import entity.Ban;
 import entity.TrangThaiBan;
+import dao.BanDAO;
+
+import entity.HoaDon;
+import java.time.format.DateTimeFormatter;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -10,6 +17,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,6 +28,10 @@ public class ManHinhBanGUI extends JPanel {
     public static final Color COLOR_STATUS_RESERVED = new Color(187, 247, 208);
 
     private List<Ban> allTablesFromDB;
+    private BanDAO banDAO;
+    private HoaDonDAO hoaDonDAO;
+    private KhachHangDAO khachHangDAO;
+    private DonDatMonDAO donDatMonDAO;
     private Ban selectedTable = null;
     private JPanel leftTableContainer;
     private String currentLeftFilter = "Tất cả";
@@ -47,10 +59,15 @@ public class ManHinhBanGUI extends JPanel {
     private JTextField txtSoLuongKhach; // <-- SỬA
     private JTextField txtGhiChu;
     private JLabel statusColorBox;
+    private BillPanel billPanel;
     // --- KẾT THÚC THÊM BIẾN ---
 
     public ManHinhBanGUI() {
         super(new BorderLayout());
+        this.banDAO = new BanDAO();
+        this.hoaDonDAO = new HoaDonDAO();
+        this.khachHangDAO = new KhachHangDAO();
+        this.donDatMonDAO = new DonDatMonDAO();
         buildUI();
     }
     private JTextField createStyledTextField(boolean isEditable) {
@@ -82,18 +99,27 @@ public class ManHinhBanGUI extends JPanel {
         this.setBackground(Color.WHITE);
         this.setBorder(new EmptyBorder(10, 0, 10, 10));
 
-        // --- 1. KHỞI TẠO DỮ LIỆU ---
-        this.allTablesFromDB = new ArrayList<>();
         try {
-            LocalDateTime time = LocalDateTime.now().plusHours(1);
-            allTablesFromDB.add(new Ban("Bàn 1", 4, TrangThaiBan.TRONG, time, "Tầng trệt"));
-            allTablesFromDB.add(new Ban("Bàn 2", 2, TrangThaiBan.DANG_PHUC_VU, time, "Tầng 1"));
-            allTablesFromDB.add(new Ban("Bàn 3", 4, TrangThaiBan.DA_DAT_TRUOC, time, "Tầng trệt"));
-            allTablesFromDB.add(new Ban("Bàn 4", 6, TrangThaiBan.TRONG, time, "Tầng 1"));
-            for (int i = 8; i <= 30; i++) {
-                allTablesFromDB.add(new Ban("Bàn " + i, 4, TrangThaiBan.DANG_PHUC_VU, time, "Tầng trệt"));
-            }
-        } catch (Exception e) { e.printStackTrace(); }
+            // Tải danh sách bàn từ CSDL
+            this.allTablesFromDB = banDAO.getAllBan();
+
+            // Cập nhật lại bộ đếm static trong class Ban
+            // để khi tạo bàn MỚI, mã bàn sẽ tiếp tục từ số lớn nhất
+            int maxSoThuTu = banDAO.getSoThuTuBanLonNhat();
+            Ban.setSoThuTuBanHienTai(maxSoThuTu);
+
+            System.out.println("Tải thành công " + allTablesFromDB.size() + " bàn từ CSDL.");
+            System.out.println("Bộ đếm bàn tiếp theo được set là: " + (maxSoThuTu + 1));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Nếu có lỗi, khởi tạo danh sách rỗng để tránh NullPointerException
+            this.allTablesFromDB = new ArrayList<>();
+            JOptionPane.showMessageDialog(this,
+                    "Lỗi kết nối hoặc tải dữ liệu Bàn.\nChi tiết: " + e.getMessage(),
+                    "Lỗi CSDL",
+                    JOptionPane.ERROR_MESSAGE);
+        }
 
 
         // --- 2. TẠO PANEL BÊN TRÁI ---
@@ -215,13 +241,13 @@ public class ManHinhBanGUI extends JPanel {
         infoPanel.add(createInfoBox("Ghi chú", txtGhiChu), gbc);
 
         // 5. Panel Bill (Nửa dưới)
-        BillPanel billPanel = new BillPanel();
+        this.billPanel = new BillPanel();
 
         // 6. Thêm 2 panel vào container
         JSplitPane verticalSplitPane = new JSplitPane(
                 JSplitPane.VERTICAL_SPLIT, // Chia DỌC
                 infoPanel,                 // Nửa TRÊN
-                billPanel                  // Nửa DƯỚI
+                this.billPanel               // Nửa DƯỚI
         );
 
         // --- ĐÂY LÀ CHÌA KHÓA ---
@@ -237,26 +263,23 @@ public class ManHinhBanGUI extends JPanel {
     }
     private void timKiemThanhVienTuSDT() {
         String sdt = txtSDTKhach.getText().trim();
+        if (sdt.isEmpty()) {
+            txtHoTenKhach.setText("");
+            txtThanhVien.setText("");
+            return;
+        }
 
-        // --- BẠN SẼ GỌI LOGIC DAO/BUS Ở ĐÂY ---
-        // Ví dụ: KhachHang kh = khachHang_DAO.timTheoSDT(sdt);
-        // if (kh != null) {
-        //    txtThanhVien.setText(kh.getLoaiThanhVien().getTenLoai());
-        //    txtHoTenKhach.setText(kh.getHoTen());
-        // } else {
-        //    txtThanhVien.setText("Chưa là thành viên");
-        // }
-        // ----------------------------------------
+        // --- GỌI KHÁCH HÀNG DAO (Hàm mới ở Bước 1) ---
+        entity.KhachHang kh = khachHangDAO.timTheoSDT(sdt);
 
-        // (Đây là code GIẢ LẬP để test)
-        System.out.println("Đang tìm kiếm SĐT: " + sdt);
-        if (sdt.equals("0909123456")) {
-            txtThanhVien.setText("Vàng");
-            txtHoTenKhach.setText("Nguyễn Văn A"); // (Tùy chọn: Tự điền họ tên)
-        } else if (sdt.equals("0987654321")) {
-            txtThanhVien.setText("Bạc");
-            txtHoTenKhach.setText("Trần Thị B");
+        if (kh != null) {
+            // Nếu tìm thấy
+            txtHoTenKhach.setText(kh.getTenKH());
+            // Chuyển Enum (VD: HangThanhVien.GOLD) thành String ("GOLD")
+            txtThanhVien.setText(kh.getHangThanhVien().toString());
         } else {
+            // Nếu không tìm thấy
+            txtHoTenKhach.setText("");
             txtThanhVien.setText("Chưa là thành viên");
         }
     }
@@ -274,12 +297,15 @@ public class ManHinhBanGUI extends JPanel {
         return box;
     }
     private void updateRightPanelDetails(Ban ban) {
+        // --- Định dạng ngày giờ ---
+        DateTimeFormatter dtfNgay = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        DateTimeFormatter dtfGio = DateTimeFormatter.ofPattern("HH:mm");
+        HoaDon activeHoaDon = null;
         if (ban != null) {
             // (Code xác định statusColor, tinhTrangText giữ nguyên)
             Color statusColor;
             String tinhTrangText;
             switch (ban.getTrangThai()) {
-                // ... (code switch case của bạn) ...
                 case TRONG:
                     statusColor = COLOR_STATUS_FREE;
                     tinhTrangText = "Trống";
@@ -296,20 +322,19 @@ public class ManHinhBanGUI extends JPanel {
             }
 
             // --- CẬP NHẬT HEADER (Giữ nguyên) ---
-            // Cập nhật Header
             statusColorBox.setBackground(statusColor);
-
-            // 1. Set Tên Bàn KÈM DẤU GẠCH NỐI
             lblTenBanHeader.setText(ban.getTenBan() + " -");
-            // 2. Set Khu Vực
             lblKhuVucHeader.setText(ban.getKhuVuc());
 
             // --- 3. CẬP NHẬT INFO (SỬA Ở ĐÂY) ---
             txtTinhTrang.setText(tinhTrangText);
 
+            // Lấy giờ mở bàn (nếu có)
+            LocalDateTime gioMoBan = ban.getGioMoBan();
+
             if (ban.getTrangThai() == TrangThaiBan.TRONG) {
-                // Nếu bàn trống, reset mọi trường có thể sửa
-                cmbPTThanhToan.setSelectedItem("Tiền mặt"); // <-- SỬA
+                // Nếu bàn trống, reset mọi trường
+                cmbPTThanhToan.setSelectedItem("Tiền mặt");
                 txtSDTKhach.setText("");
                 txtHoTenKhach.setText("");
                 txtThanhVien.setText("");
@@ -317,34 +342,95 @@ public class ManHinhBanGUI extends JPanel {
                 txtGhiChu.setText("");
                 txtNgayVao.setText("");
                 txtGioVao.setText("");
-            } else if (ban.getTrangThai() == TrangThaiBan.DA_DAT_TRUOC) {
-                // (Đây là dữ liệu từ Phiếu Đặt Bàn)
-                txtNgayVao.setText("2025-10-23");
-                txtGioVao.setText("19:00");
-                cmbPTThanhToan.setSelectedItem("Chưa thanh toán"); // (Bạn có thể cần thêm mục này)
-                txtSDTKhach.setText("0909123456");
-                txtHoTenKhach.setText("Nguyễn Văn A");
-                txtThanhVien.setText("Vàng");
+            }
+            else if (ban.getTrangThai() == TrangThaiBan.DA_DAT_TRUOC) {
+                // Lấy thông tin từ Bàn (Giờ đặt)
+                txtNgayVao.setText(gioMoBan != null ? gioMoBan.format(dtfNgay) : "");
+                txtGioVao.setText(gioMoBan != null ? gioMoBan.format(dtfGio) : "");
+                // Lấy số ghế làm số lượng khách tạm thời
                 txtSoLuongKhach.setText(String.valueOf(ban.getSoGhe()));
-                txtGhiChu.setText("Đặt bàn lúc 19:00, " + ban.getSoGhe() + " người.");
-            } else { // Đang phục vụ
-                // (Đây là dữ liệu từ Hóa Đơn)
-                txtNgayVao.setText("2025-10-23");
-                txtGioVao.setText("18:15");
-                cmbPTThanhToan.setSelectedItem("Tiền mặt"); // <-- SỬA
-                txtSDTKhach.setText("0987654321");
-                txtHoTenKhach.setText("Trần Thị B");
-                txtThanhVien.setText("Bạc");
-                txtSoLuongKhach.setText("2");
-                txtGhiChu.setText("Khách không ăn hành.");
+
+                // --- GỌI DAO ĐỂ LẤY THÔNG TIN ĐẶT BÀN ---
+                entity.DonDatMon ddm = donDatMonDAO.getDonDatMonDatTruoc(ban.getMaBan());
+                entity.KhachHang kh = null;
+
+                if (ddm != null && ddm.getMaKH() != null) {
+                    // Dùng KhachHangDAO để tìm khách từ maKH
+                    kh = khachHangDAO.timTheoMaKH(ddm.getMaKH());
+                }
+
+                // Cập nhật các ô
+                cmbPTThanhToan.setSelectedItem("Chưa thanh toán");
+                if (kh != null) {
+                    txtSDTKhach.setText(kh.getSdt());
+                    txtHoTenKhach.setText(kh.getTenKH());
+                    txtThanhVien.setText(kh.getHangThanhVien().toString());
+                } else {
+                    txtSDTKhach.setText("");
+                    txtHoTenKhach.setText("");
+                    txtThanhVien.setText("Vãng lai");
+                }
+
+                // TODO: Bảng DonDatMon của bạn chưa có Ghi chú
+                txtGhiChu.setText("");
+            }
+            else { // Đang phục vụ
+                // Lấy thông tin từ Bàn (Giờ vào)
+                activeHoaDon = hoaDonDAO.getHoaDonChuaThanhToan(ban.getMaBan());
+
+                if (activeHoaDon != null) {
+                    // Lấy thông tin từ Hóa Đơn (như cũ)
+                    LocalDateTime gioVao = activeHoaDon.getNgayLap();
+                    txtNgayVao.setText(gioVao != null ? gioVao.format(dtfNgay) : "");
+                    txtGioVao.setText(gioVao != null ? gioVao.format(dtfGio) : "");
+                    cmbPTThanhToan.setSelectedItem(activeHoaDon.getHinhThucThanhToan());
+
+                    // --- THAY THẾ KHỐI TODO BẰNG CODE NÀY ---
+                    entity.KhachHang kh = null;
+                    if (activeHoaDon.getMaKH() != null) {
+                        // Lấy khách hàng từ maKH trên hóa đơn
+                        kh = khachHangDAO.timTheoMaKH(activeHoaDon.getMaKH());
+                    }
+
+                    if (kh != null) {
+                        txtSDTKhach.setText(kh.getSdt());
+                        txtHoTenKhach.setText(kh.getTenKH());
+                        // Chuyển Enum (VD: HangThanhVien.GOLD) thành String ("GOLD")
+                        txtThanhVien.setText(kh.getHangThanhVien().toString());
+                    } else {
+                        // Trường hợp không tìm thấy KH (dữ liệu lỗi)
+                        txtSDTKhach.setText("");
+                        txtHoTenKhach.setText("");
+                        txtThanhVien.setText("Vãng lai");
+                    }
+                    // --- KẾT THÚC THAY THẾ ---
+
+                    // (Để trống 2 ô này, chúng sẽ được nhập tay)
+                    txtSoLuongKhach.setText("");
+                    txtGhiChu.setText("");
+                }
             }
 
         } else {
-            // --- RESET (SỬA Ở ĐÂY) ---
+            // --- RESET (Giữ nguyên) ---
             statusColorBox.setBackground(COLOR_STATUS_FREE);
             lblTenBanHeader.setText("Chọn một bàn");
-            lblKhuVucHeader.setText(""); // 2. Set Khu Vực rỗng
-            cmbPTThanhToan.setSelectedItem("Tiền mặt"); // <-- SỬA
+            lblKhuVucHeader.setText("");
+            cmbPTThanhToan.setSelectedItem("Tiền mặt");
+            txtSDTKhach.setText("");
+            txtHoTenKhach.setText("");
+            txtThanhVien.setText("");
+            txtSoLuongKhach.setText("");
+            txtGhiChu.setText("");
+            txtNgayVao.setText("");
+            txtGioVao.setText("");
+        }
+        if (activeHoaDon != null) {
+            // Tải hóa đơn thật vào BillPanel
+            billPanel.loadBill(activeHoaDon);
+        } else {
+            // Xóa BillPanel nếu không có hóa đơn
+            billPanel.clearBill();
         }
     }
 
