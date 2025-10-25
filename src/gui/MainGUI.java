@@ -205,14 +205,25 @@ public class MainGUI extends JFrame {
             @Override
             public void mousePressed(MouseEvent e) {
                 // Xử lý sự kiện click
-                if (text.equals("Đăng xuất")) {
-                    JOptionPane.showMessageDialog(MainGUI.this, "Đăng xuất thành công!");
-                    // Thực hiện logic đăng xuất, ví dụ: đóng cửa sổ này và mở cửa sổ đăng nhập
-                    dispose();
-                    // Mở lại cửa sổ đăng nhập
-                    SwingUtilities.invokeLater(() -> {
-                        new TaiKhoanGUI().setVisible(true);
-                    });
+            	if (text.equals("Đăng xuất")) {
+            	    // 1. Hiển thị hộp thoại xác nhận
+            	    int choice = JOptionPane.showConfirmDialog(
+            	        MainGUI.this,                         // Cửa sổ cha
+            	        "Bạn có chắc chắn muốn đăng xuất?",    // Câu hỏi
+            	        "Xác nhận đăng xuất",                // Tiêu đề hộp thoại
+            	        JOptionPane.YES_NO_OPTION,           // Chỉ có nút Yes và No
+            	        JOptionPane.QUESTION_MESSAGE       // Icon dấu hỏi
+            	    );
+
+            	    // 2. Kiểm tra lựa chọn của người dùng
+            	    if (choice == JOptionPane.YES_OPTION) {
+            	        // Nếu người dùng chọn Yes, thực hiện đăng xuất
+            	        dispose(); // Đóng cửa sổ MainGUI hiện tại
+            	        // Mở lại cửa sổ đăng nhập
+            	        SwingUtilities.invokeLater(() -> {
+            	            new TaiKhoanGUI().setVisible(true);
+            	        });
+            	    }
                 } else {
                     showCard(text);
                 }

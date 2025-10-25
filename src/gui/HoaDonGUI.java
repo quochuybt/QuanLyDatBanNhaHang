@@ -1,184 +1,130 @@
 package gui;
 
+import dao.ChiTietHoaDonDAO;
 import dao.HoaDonDAO;
+import dao.MonAnDAO; // <-- Bỏ comment nếu bạn đã tạo và muốn dùng MonAnDAO
+import entity.ChiTietHoaDon;
 import entity.HoaDon;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.text.DecimalFormat;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.time.LocalDateTime; // Cần cho LocalDateTime.now()
-import util.ExcelExporter;      // Giả định ExcelExporter nằm trong package util
+import util.ExcelExporter;
 
 public class HoaDonGUI extends JPanel {
     private final HoaDonDAO hoaDonDAO;
+    private final ChiTietHoaDonDAO chiTietHoaDonDAO;
+    private final MonAnDAO monAnDAO; // <-- Bỏ comment nếu dùng
     private final JTable tableHoaDon;
     private final DefaultTableModel tableModel;
     private final JTabbedPane tabbedPane;
     private JTextField txtTimKiem;
+    private List<HoaDon> dsHoaDonDisplayed; // Danh sách đang hiển thị trên bảng
+    private DocumentListener searchListener; // Listener cho ô tìm kiếm
+    private Timer searchTimer; // Timer để trì hoãn tìm kiếm
 
     private static final Color COLOR_BG_LIGHT = new Color(244, 247, 252);
-    // Vẫn giữ các cột này để khớp với thiết kế giao diện (cột NV, Ghi chú sẽ là dữ liệu mô phỏng/tổng hợp)
     private final String[] columnNames = {"Thời gian thanh toán", "Mã tham chiếu", "Nhân viên", "Ghi chú", "Thanh toán", "Tổng tiền"};
+    private final DecimalFormat currencyFormatter = new DecimalFormat("#,##0 ₫");
+    private final DateTimeFormatter tableDateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     public HoaDonGUI() {
-        // Khởi tạo DAO để lấy dữ liệu từ CSDL
         this.hoaDonDAO = new HoaDonDAO();
+        this.chiTietHoaDonDAO = new ChiTietHoaDonDAO();
+        this.monAnDAO = new MonAnDAO(); // <-- Bỏ comment nếu dùng
+        this.dsHoaDonDisplayed = new ArrayList<>();
 
         setLayout(new BorderLayout(10, 10));
         setBackground(COLOR_BG_LIGHT);
         setBorder(new EmptyBorder(15, 15, 15, 15));
 
-        // --- 1. Header (Tiêu đề + Nút Export) ---
+        // --- Header ---
         add(createHeaderPanel(), BorderLayout.NORTH);
 
-        // --- 2. Nội dung chính (Tab và Bảng) ---
-        tabbedPane = createTabbedPane();
-
-        // Khởi tạo model và bảng
+        // --- Components Chính (Tạo một lần) ---
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+            public boolean isCellEditable(int row, int column) { return false; }
         };
         tableHoaDon = new JTable(tableModel);
         setupTable(tableHoaDon);
+        JScrollPane scrollPane = new JScrollPane(tableHoaDon); // ScrollPane chính
+        JPanel mainTablePanel = createTablePanel(scrollPane); // Panel chính chứa search và scrollPane
 
-        // Thêm các tab
-        JScrollPane scrollPane = new JScrollPane(tableHoaDon);
-        tabbedPane.addTab("Tất cả hóa đơn", createTablePanel(scrollPane));
-        // Sử dụng lại scrollPane vì dữ liệu được load dynamically vào cùng một tableModel
-        tabbedPane.addTab("Đã thanh toán", createTablePanel(scrollPane));
-        tabbedPane.addTab("Chờ xác nhận thanh toán", createTablePanel(scrollPane));
-
-        // Thêm sự kiện chuyển tab
+        // --- JTabbedPane để Lọc ---
+        tabbedPane = createTabbedPane();
+        tabbedPane.addTab("Tất cả hóa đơn", null);
+        tabbedPane.addTab("Đã thanh toán", null);
+        tabbedPane.addTab("Chờ xác nhận thanh toán", null);
         tabbedPane.addChangeListener(e -> loadDataForSelectedTab());
 
-        add(tabbedPane, BorderLayout.CENTER);
+        // --- Bố Cục Chính ---
+        JPanel centerPanel = new JPanel(new BorderLayout());
+        centerPanel.setOpaque(false);
+        centerPanel.add(tabbedPane, BorderLayout.NORTH); // Tabs ở trên
+        centerPanel.add(mainTablePanel, BorderLayout.CENTER); // Panel bảng ở giữa
 
-        // Load dữ liệu lần đầu tiên (Tab "Tất cả hóa đơn")
-        loadDataToTable(hoaDonDAO.getAllHoaDon());
+        add(centerPanel, BorderLayout.CENTER); // Add panel trung tâm vào frame
+
+        // --- Listeners ---
+        addTableClickListener();
+
+        // --- Load dữ liệu lần đầu ---
+        SwingUtilities.invokeLater(() -> loadDataToTable(hoaDonDAO.getAllHoaDon()));
     }
 
-    /**
-     * Tạo Panel chứa tiêu đề và nút Xuất hóa đơn.
-     */
+    // --- Create Header Panel ---
     private JPanel createHeaderPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
         panel.setBorder(new EmptyBorder(0, 0, 10, 0));
 
-        // 1. Tiêu đề
         JLabel titleLabel = new JLabel("Hóa đơn");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         panel.add(titleLabel, BorderLayout.WEST);
 
-        // 2. Nút Xuất hóa đơn (Với Icon Image và Text)
-
-        // 💡 BƯỚC 1: Tải Icon Excel
-        // Đảm bảo file "excel_icon.png" nằm trong thư mục resources hoặc cùng cấp với class file
-        // Ví dụ: new ImageIcon(getClass().getResource("/images/excel_icon.png"));
-        // Tôi sẽ dùng đường dẫn tương đối, bạn cần đặt file ảnh phù hợp.
+        // --- Nút Xuất Excel ---
+        JButton btnExport = new JButton("Xuất hóa đơn");
         ImageIcon originalIcon = null;
         try {
-            originalIcon = new ImageIcon(getClass().getResource("/img/icon_excel/excel.png")); // Đổi đường dẫn nếu cần
-            if (originalIcon.getImageLoadStatus() != MediaTracker.COMPLETE) {
-                System.err.println("Lỗi tải ảnh Excel: Đảm bảo đường dẫn và file ảnh đúng.");
-                // Fallback nếu ảnh không tải được
-                originalIcon = null;
-            }
-        } catch (Exception e) {
-            System.err.println("Không tìm thấy file icon Excel: " + e.getMessage());
-            originalIcon = null; // Đặt null để xử lý nếu không có icon
-        }
-
-        // 💡 BƯỚC 2: Tạo JButton và tùy chỉnh
-        JButton btnExport = new JButton("Xuất hóa đơn");
-
+            originalIcon = new ImageIcon(getClass().getResource("/img/icon_excel/excel.png"));
+            if (originalIcon.getImageLoadStatus() != MediaTracker.COMPLETE) originalIcon = null;
+        } catch (Exception e) { originalIcon = null; }
         if (originalIcon != null) {
-            // Thay đổi kích thước icon để phù hợp (ví dụ: cao 24px)
-            // Kích thước nút trong ảnh trông khá nhỏ, icon có thể cần được scale
-            Image scaledImage = originalIcon.getImage().getScaledInstance(24, 24, Image.SCALE_SMOOTH);
-            ImageIcon scaledIcon = new ImageIcon(scaledImage);
-            btnExport.setIcon(scaledIcon);
-
-            // Đặt vị trí icon ở bên trái của text
-            btnExport.setHorizontalTextPosition(SwingConstants.RIGHT);
-            btnExport.setVerticalTextPosition(SwingConstants.CENTER);
-            btnExport.setIconTextGap(8); // Khoảng cách giữa icon và text
-        } else {
-            // Nếu không tải được icon, chỉ hiển thị text
-            btnExport.setText("Xuất hóa đơn (Lỗi tải icon)");
-        }
-
-        btnExport.setBackground(new Color(0, 150, 60)); // Màu nền xanh lá
-        btnExport.setForeground(Color.WHITE); // Màu chữ
-        btnExport.setFont(new Font("Arial", Font.BOLD, 14)); // Font của text
+             Image scaledImage = originalIcon.getImage().getScaledInstance(24, 24, Image.SCALE_SMOOTH);
+             btnExport.setIcon(new ImageIcon(scaledImage));
+             btnExport.setHorizontalTextPosition(SwingConstants.RIGHT);
+             btnExport.setIconTextGap(8);
+        } else { btnExport.setText("Xuất hóa đơn (Lỗi icon)"); }
+        btnExport.setBackground(new Color(0, 150, 60));
+        btnExport.setForeground(Color.WHITE);
+        btnExport.setFont(new Font("Arial", Font.BOLD, 14));
         btnExport.setFocusPainted(false);
         btnExport.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        // Tạo border màu xanh lá nhạt hơn cho nút
         btnExport.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(0, 180, 80), 1), // Border ngoài (màu xanh lá nhạt)
-                new EmptyBorder(8, 15, 8, 15) // Padding nội dung
-        ));
-        btnExport.setContentAreaFilled(true); // Đảm bảo màu nền được tô
+                BorderFactory.createLineBorder(new Color(0, 180, 80), 1), new EmptyBorder(8, 15, 8, 15) ));
+        btnExport.setContentAreaFilled(true);
 
-        btnExport.addActionListener(e -> {
-            // 1. Lấy danh sách hóa đơn cần xuất
-            List<HoaDon> listToExport = hoaDonDAO.getAllHoaDon(); // Lấy tất cả hóa đơn từ DAO
-
-            if (listToExport.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Không có dữ liệu hóa đơn để xuất.", "Thông báo", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-
-            // 2. Hiển thị hộp thoại chọn nơi lưu file
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setDialogTitle("Chọn nơi lưu file Excel");
-
-            // Đặt tên file mặc định
-            DateTimeFormatter fileNameFormat = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
-            String defaultFileName = "HoaDon_" + LocalDateTime.now().format(fileNameFormat) + ".xlsx";
-            fileChooser.setSelectedFile(new java.io.File(defaultFileName));
-
-            int userSelection = fileChooser.showSaveDialog(this);
-
-            if (userSelection == JFileChooser.APPROVE_OPTION) {
-                String filePath = fileChooser.getSelectedFile().getAbsolutePath();
-
-                // Đảm bảo file có đuôi .xlsx
-                if (!filePath.toLowerCase().endsWith(".xlsx")) {
-                    filePath += ".xlsx";
-                }
-
-                // 3. Thực hiện xuất file
-                ExcelExporter exporter = new ExcelExporter();
-                boolean success = exporter.exportToExcel(listToExport, filePath);
-
-                if (success) {
-                    JOptionPane.showMessageDialog(this, "Xuất hóa đơn thành công tại:\n" + filePath, "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(this, "Lỗi khi xuất file Excel.", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
-
+        btnExport.addActionListener(e -> exportDataToExcel());
         panel.add(btnExport, BorderLayout.EAST);
-
         return panel;
     }
 
-    /**
-     * Tạo JTabbedPane cho các trạng thái hóa đơn.
-     */
+    // --- Create Tabbed Pane ---
     private JTabbedPane createTabbedPane() {
         JTabbedPane tabPane = new JTabbedPane();
         tabPane.setFont(new Font("Arial", Font.BOLD, 14));
@@ -186,19 +132,17 @@ public class HoaDonGUI extends JPanel {
         return tabPane;
     }
 
-    /**
-     * Tạo Panel chính chứa thanh tìm kiếm và bảng.
-     */
+    // --- Create Main Table Panel ---
     private JPanel createTablePanel(JScrollPane scrollPane) {
         JPanel panel = new JPanel(new BorderLayout(0, 10));
         panel.setOpaque(false);
 
-        // 1. Panel tìm kiếm
+        // --- Panel Tìm kiếm ---
         JPanel searchPanel = new JPanel(new BorderLayout(10, 0));
         searchPanel.setBorder(new EmptyBorder(10, 0, 10, 0));
         searchPanel.setOpaque(false);
 
-        txtTimKiem = new JTextField(" Tìm kiếm qua mã hóa đơn/ tên đơn hàng");
+        txtTimKiem = new JTextField(" Tìm kiếm qua mã hóa đơn");
         txtTimKiem.setFont(new Font("Arial", Font.PLAIN, 14));
         txtTimKiem.setForeground(Color.GRAY);
         txtTimKiem.setPreferredSize(new Dimension(0, 35));
@@ -207,48 +151,55 @@ public class HoaDonGUI extends JPanel {
                 BorderFactory.createEmptyBorder(5, 5, 5, 5)
         ));
 
-        // Xử lý Placeholder
-        txtTimKiem.addMouseListener(new MouseAdapter() {
+        // Placeholder Handling (Focus Listener)
+        txtTimKiem.addFocusListener(new FocusAdapter() {
             @Override
-            public void mouseClicked(MouseEvent e) {
-                if (txtTimKiem.getText().trim().equals(" Tìm kiếm qua mã hóa đơn/ tên đơn hàng")) {
+            public void focusGained(FocusEvent e) {
+                if (txtTimKiem.getText().trim().equals(" Tìm kiếm qua mã hóa đơn")) {
                     txtTimKiem.setText("");
                     txtTimKiem.setForeground(Color.BLACK);
                 }
             }
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (txtTimKiem.getText().trim().isEmpty()) {
+                    txtTimKiem.setForeground(Color.GRAY);
+                    txtTimKiem.setText(" Tìm kiếm qua mã hóa đơn");
+                }
+            }
         });
-        txtTimKiem.addActionListener(e -> searchHoaDon(txtTimKiem.getText()));
 
-        // Icon tìm kiếm
+        // Real-time Search (Document Listener with Timer)
+        searchTimer = new Timer(300, e -> performSearch());
+        searchTimer.setRepeats(false);
+
+        searchListener = new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { searchTimer.restart(); }
+            @Override public void removeUpdate(DocumentEvent e) { searchTimer.restart(); }
+            @Override public void changedUpdate(DocumentEvent e) { /* Not used */ }
+        };
+        txtTimKiem.getDocument().addDocumentListener(searchListener);
+
+        // Search Icon
         JLabel searchIcon = new JLabel("🔎");
         searchIcon.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 16));
         JPanel inputWrapper = new JPanel(new BorderLayout(5, 0));
+        inputWrapper.setOpaque(false);
         inputWrapper.add(searchIcon, BorderLayout.WEST);
         inputWrapper.add(txtTimKiem, BorderLayout.CENTER);
         searchPanel.add(inputWrapper, BorderLayout.CENTER);
 
         panel.add(searchPanel, BorderLayout.NORTH);
 
-        // 2. Bảng hóa đơn
-        // Lưu ý: Chỉ thêm scrollPane vào panel, không thêm table trực tiếp nhiều lần
-        if (scrollPane.getParent() == null) {
-            panel.add(scrollPane, BorderLayout.CENTER);
-        }
-
+        // --- Bảng Hóa Đơn ---
         scrollPane.getViewport().setBackground(Color.WHITE);
         scrollPane.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
-
-        // 3. Phân trang
-        JLabel lblPagination = new JLabel("1 / X trang"); // Cần cập nhật động
-        lblPagination.setBorder(new EmptyBorder(10, 0, 0, 0));
-        panel.add(lblPagination, BorderLayout.SOUTH);
+        panel.add(scrollPane, BorderLayout.CENTER);
 
         return panel;
     }
 
-    /**
-     * Cài đặt các thuộc tính hiển thị cho bảng.
-     */
+    // --- Setup Table Appearance ---
     private void setupTable(JTable table) {
         table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 14));
         table.getTableHeader().setBackground(new Color(230, 230, 230));
@@ -259,96 +210,252 @@ public class HoaDonGUI extends JPanel {
         table.setGridColor(new Color(230, 230, 230));
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-        // Cài đặt chiều rộng cột
         TableColumnModel tcm = table.getColumnModel();
-        tcm.getColumn(0).setPreferredWidth(150); // Thời gian
-        tcm.getColumn(1).setPreferredWidth(100); // Mã
-        tcm.getColumn(2).setPreferredWidth(100); // Nhân viên (Mô phỏng)
-        tcm.getColumn(3).setPreferredWidth(200); // Ghi chú (Mô phỏng)
-        tcm.getColumn(4).setPreferredWidth(100); // Thanh toán
-        tcm.getColumn(5).setPreferredWidth(100); // Tổng tiền
+        tcm.getColumn(0).setPreferredWidth(150);
+        tcm.getColumn(1).setPreferredWidth(100);
+        tcm.getColumn(2).setPreferredWidth(100);
+        tcm.getColumn(3).setPreferredWidth(200);
+        tcm.getColumn(4).setPreferredWidth(100);
+        tcm.getColumn(5).setPreferredWidth(100);
     }
 
-    /**
-     * Load dữ liệu từ List<HoaDon> vào JTable.
-     */
+    // --- Load Data to Table ---
     private void loadDataToTable(List<HoaDon> list) {
-        tableModel.setRowCount(0);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        SwingUtilities.invokeLater(() -> {
+            if (list == null) {
+                dsHoaDonDisplayed = new ArrayList<>();
+            } else {
+                 dsHoaDonDisplayed = list;
+            }
 
-        for (HoaDon hd : list) {
-            String maThamChieu = hd.getMaHD();
+            tableModel.setRowCount(0);
 
-            // 💡 MÔ PHỎNG DỮ LIỆU KHÔNG CÓ TRONG ENTITY HOA DON:
-            // Tên Nhân viên (Trong thực tế cần lấy từ DonDatMon hoặc NhanVienDAO)
-            String tenNV_Moc = (maThamChieu.hashCode() % 2 == 0) ? "Huỳnh Quốc Huy" : "Nguyễn Văn A";
+            for (HoaDon hd : dsHoaDonDisplayed) {
+                if (hd == null) continue;
 
-            // Ghi chú (Trong thực tế cần lấy từ DonDatMon hoặc ChiTietHoaDon)
-            String ghiChu = "Không";
-            if (hd.getTongTien() > 1000000) ghiChu = "Yêu cầu xuất VAT";
-            else if (hd.getHinhThucThanhToan().equals("Chuyển khoản")) ghiChu = "Đã xác nhận";
+                 String maThamChieu = hd.getMaHD() != null ? hd.getMaHD() : "N/A";
+                 String tenNV_Moc = (maThamChieu.hashCode() % 2 == 0) ? "Huỳnh Quốc Huy" : "Nguyễn Văn A";
+                 String ghiChu = "Không";
+                 if (hd.getTongTien() > 1000000) ghiChu = "Yêu cầu xuất VAT";
+                 else if (hd.getHinhThucThanhToan() != null && hd.getHinhThucThanhToan().equals("Chuyển khoản")) ghiChu = "Đã xác nhận";
 
-            tableModel.addRow(new Object[]{
-                    hd.getNgayLap().format(formatter),
-                    maThamChieu,
-                    tenNV_Moc,
-                    ghiChu,
-                    hd.getHinhThucThanhToan(),
-                    String.format("%,.0f ₫", hd.getTongTien())
-            });
-        }
+                 try {
+                     tableModel.addRow(new Object[]{
+                         (hd.getNgayLap() != null ? hd.getNgayLap().format(tableDateFormatter) : "N/A"),
+                         maThamChieu,
+                         tenNV_Moc,
+                         ghiChu,
+                         hd.getHinhThucThanhToan() != null ? hd.getHinhThucThanhToan() : "N/A",
+                         currencyFormatter.format(hd.getTongTien())
+                     });
+                 } catch (Exception e) {
+                     // Optionally log the error more formally
+                     System.err.println("Error adding row for HD " + maThamChieu + ": " + e.getMessage());
+                 }
+            }
+        });
     }
 
-    /**
-     * Lọc dữ liệu hiển thị dựa trên tab đang chọn.
-     */
+    // --- Load Data Based on Selected Tab ---
     private void loadDataForSelectedTab() {
-        int selectedIndex = tabbedPane.getSelectedIndex();
-        List<HoaDon> allList = hoaDonDAO.getAllHoaDon(); // Lấy tất cả từ CSDL
-        List<HoaDon> list;
+        List<HoaDon> allList = hoaDonDAO.getAllHoaDon();
+        List<HoaDon> filteredList;
 
+        if (allList == null) allList = new ArrayList<>();
+
+        int selectedIndex = tabbedPane.getSelectedIndex();
         switch (selectedIndex) {
-            case 0: // Tất cả hóa đơn
-                list = allList;
-                break;
             case 1: // Đã thanh toán
-                list = allList.stream()
-                        .filter(hd -> hd.getTrangThai().equals("Đã thanh toán"))
+                filteredList = allList.stream()
+                        .filter(hd -> hd != null && "Đã thanh toán".equals(hd.getTrangThai()))
                         .collect(Collectors.toList());
                 break;
-            case 2: // Chờ xác nhận thanh toán (Chưa thanh toán & Chuyển khoản)
-                list = allList.stream()
-                        .filter(hd -> hd.getTrangThai().equals("Chưa thanh toán") && hd.getHinhThucThanhToan().equals("Chuyển khoản"))
+            case 2: // Chờ xác nhận thanh toán
+                filteredList = allList.stream()
+                        .filter(hd -> hd != null && "Chưa thanh toán".equals(hd.getTrangThai()) && "Chuyển khoản".equals(hd.getHinhThucThanhToan()))
                         .collect(Collectors.toList());
                 break;
+            case 0: // Tất cả hóa đơn
             default:
-                list = allList;
+                filteredList = allList;
         }
 
-        loadDataToTable(list);
+        loadDataToTable(filteredList);
+        resetSearchFieldIfNeeded();
     }
 
-    /**
-     * Tìm kiếm hóa đơn dựa trên từ khóa.
-     */
-    private void searchHoaDon(String query) {
-        if (query.equals(" Tìm kiếm qua mã hóa đơn/ tên đơn hàng") || query.trim().isEmpty()) {
+     // --- Reset Search Field Safely ---
+     private void resetSearchFieldIfNeeded() {
+         final String placeholder = " Tìm kiếm qua mã hóa đơn";
+         if (!txtTimKiem.getText().equals(placeholder)) {
+             SwingUtilities.invokeLater(() -> {
+                 txtTimKiem.getDocument().removeDocumentListener(searchListener);
+                 txtTimKiem.setForeground(Color.GRAY);
+                 txtTimKiem.setText(placeholder);
+                 txtTimKiem.getDocument().addDocumentListener(searchListener);
+             });
+         }
+     }
+
+
+    // --- Perform Search (Called by Timer) ---
+    private void performSearch() {
+        SwingUtilities.invokeLater(this::searchHoaDonRealTime);
+    }
+
+    // --- Real-time Search Logic ---
+    private void searchHoaDonRealTime() {
+        final String currentText = txtTimKiem.getText();
+        final String placeholder = " Tìm kiếm qua mã hóa đơn";
+
+        if (currentText == null) return;
+
+        String query = currentText.trim().toLowerCase();
+
+        if (query.isEmpty() || query.equals(placeholder.trim().toLowerCase())) {
             loadDataForSelectedTab();
             return;
         }
 
-        // Tìm kiếm theo Mã HD (theo HoaDonDAO mới)
-        List<HoaDon> searchResult = hoaDonDAO.timHoaDon(query.trim());
-
-        // Nếu muốn mô phỏng tìm kiếm theo tên NV (dù không có trong DAO):
-        /*
-        List<HoaDon> fullList = hoaDonDAO.getAllHoaDon();
-        searchResult = fullList.stream()
-                .filter(hd -> hd.getMaHD().toLowerCase().contains(query.toLowerCase()) ||
-                              "Huỳnh Quốc Huy".toLowerCase().contains(query.toLowerCase())) // Giả định tên
+        List<HoaDon> allListForTab = getCurrentTabList();
+        List<HoaDon> searchResult = allListForTab.stream()
+                .filter(hd -> hd != null && hd.getMaHD() != null && hd.getMaHD().toLowerCase().contains(query))
                 .collect(Collectors.toList());
-        */
 
         loadDataToTable(searchResult);
+    }
+
+    // --- Helper: Get Base List for Current Tab ---
+    private List<HoaDon> getCurrentTabList() {
+        int selectedIndex = tabbedPane.getSelectedIndex();
+        List<HoaDon> allList = hoaDonDAO.getAllHoaDon();
+        if (allList == null) allList = new ArrayList<>();
+
+        switch (selectedIndex) {
+            case 1:
+                return allList.stream().filter(hd -> hd != null && "Đã thanh toán".equals(hd.getTrangThai())).collect(Collectors.toList());
+            case 2:
+                return allList.stream().filter(hd -> hd != null && "Chưa thanh toán".equals(hd.getTrangThai()) && "Chuyển khoản".equals(hd.getHinhThucThanhToan())).collect(Collectors.toList());
+            case 0:
+            default:
+                return allList;
+        }
+    }
+
+    // --- Add Table Click Listener (for details) ---
+    private void addTableClickListener() {
+        tableHoaDon.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    int selectedRow = tableHoaDon.getSelectedRow();
+                    if (selectedRow == -1) return;
+
+                    if (dsHoaDonDisplayed == null || selectedRow >= dsHoaDonDisplayed.size()) {
+                         return;
+                    }
+
+                    HoaDon selectedHoaDon = dsHoaDonDisplayed.get(selectedRow);
+                    if (selectedHoaDon == null) {
+                         return;
+                    }
+
+                    String maDon = selectedHoaDon.getMaDon();
+                    if (maDon == null || maDon.trim().isEmpty()) {
+                        JOptionPane.showMessageDialog(HoaDonGUI.this, "Hóa đơn [" + selectedHoaDon.getMaHD() + "] không có Mã Đơn liên kết.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+
+                    List<ChiTietHoaDon> chiTietList = chiTietHoaDonDAO.getChiTietByMaDon(maDon);
+                    showChiTietDialog(selectedHoaDon, chiTietList);
+                }
+            }
+        });
+    }
+
+    // --- Show Details Dialog ---
+    private void showChiTietDialog(HoaDon hoaDon, List<ChiTietHoaDon> chiTietList) {
+        if (chiTietList == null || chiTietList.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Không tìm thấy chi tiết món ăn cho Mã Đơn: " + hoaDon.getMaDon(), "Chi tiết hóa đơn", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        StringBuilder detailsText = new StringBuilder();
+        detailsText.append("<html><h2>Chi Tiết Hóa Đơn: ").append(hoaDon.getMaHD()).append("</h2>");
+        detailsText.append("<b>Ngày lập:</b> ").append(hoaDon.getNgayLap() != null ? hoaDon.getNgayLap().format(tableDateFormatter) : "N/A").append("<br>");
+        detailsText.append("<b>Mã Đơn Đặt:</b> ").append(hoaDon.getMaDon()).append("<br><br>");
+        detailsText.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse; width:100%;'>");
+        detailsText.append("<tr style='background-color:#f0f0f0;'><th>Mã Món</th><th>Tên Món</th><th>Số Lượng</th><th>Đơn Giá</th><th>Thành Tiền</th></tr>"); // Thêm cột Tên Món
+
+        float tongTienChiTiet = 0;
+        for (ChiTietHoaDon ct : chiTietList) {
+             if (ct == null) continue;
+             String maMon = ct.getMaMon() != null ? ct.getMaMon() : "N/A";
+             String tenMon = monAnDAO.getTenMonByMa(maMon); // Lấy tên món từ DAO
+             float thanhTien = ct.getThanhtien();
+             tongTienChiTiet += thanhTien;
+
+             detailsText.append("<tr>");
+             detailsText.append("<td>").append(maMon).append("</td>");
+             detailsText.append("<td>").append(tenMon).append("</td>"); // Hiển thị tên món
+             detailsText.append("<td align='right'>").append(ct.getSoluong()).append("</td>");
+             detailsText.append("<td align='right'>").append(currencyFormatter.format(ct.getDongia())).append("</td>");
+             detailsText.append("<td align='right'>").append(currencyFormatter.format(thanhTien)).append("</td>");
+             detailsText.append("</tr>");
+        }
+        detailsText.append("</table><br>");
+        detailsText.append("<b>Tổng tiền chi tiết: ").append(currencyFormatter.format(tongTienChiTiet)).append("</b><br>");
+        // So sánh tổng tiền
+        if (Math.abs(tongTienChiTiet - hoaDon.getTongTien()) > 1) {
+             detailsText.append("<b style='color:red;'>Lưu ý: Tổng tiền chi tiết khác tổng tiền hóa đơn (")
+                        .append(currencyFormatter.format(hoaDon.getTongTien())).append(")</b><br>");
+         }
+        // Thông tin thanh toán
+        detailsText.append("<b>Trạng thái HĐ:</b> ").append(hoaDon.getTrangThai() != null ? hoaDon.getTrangThai() : "N/A").append("<br>");
+        detailsText.append("<b>Hình thức TT:</b> ").append(hoaDon.getHinhThucThanhToan() != null ? hoaDon.getHinhThucThanhToan() : "N/A").append("<br>");
+        if ("Đã thanh toán".equals(hoaDon.getTrangThai())) {
+             detailsText.append("<b>Tiền khách đưa:</b> ").append(currencyFormatter.format(hoaDon.getTienKhachDua())).append("<br>");
+             detailsText.append("<b>Tiền thối:</b> ").append(currencyFormatter.format(hoaDon.getTienThoi())).append("<br>");
+        }
+        detailsText.append("</html>");
+
+        JEditorPane editorPane = new JEditorPane("text/html", detailsText.toString());
+        editorPane.setEditable(false);
+        editorPane.setBackground(COLOR_BG_LIGHT);
+
+        JScrollPane scrollPane = new JScrollPane(editorPane);
+        scrollPane.setPreferredSize(new Dimension(550, 400)); // Tăng chiều rộng
+
+        JOptionPane.showMessageDialog(this, scrollPane, "Chi tiết hóa đơn " + hoaDon.getMaHD(), JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    // --- Hàm Xuất Excel ---
+    private void exportDataToExcel() {
+        List<HoaDon> listToExport = this.dsHoaDonDisplayed;
+        if (listToExport == null || listToExport.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Không có dữ liệu hóa đơn để xuất.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Chọn nơi lưu file Excel");
+        DateTimeFormatter fileNameFormat = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
+        String defaultFileName = "HoaDon_" + LocalDateTime.now().format(fileNameFormat) + ".xlsx";
+        fileChooser.setSelectedFile(new java.io.File(defaultFileName));
+
+        int userSelection = fileChooser.showSaveDialog(this);
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            String filePath = fileChooser.getSelectedFile().getAbsolutePath();
+            if (!filePath.toLowerCase().endsWith(".xlsx")) {
+                filePath += ".xlsx";
+            }
+            ExcelExporter exporter = new ExcelExporter();
+            boolean success = exporter.exportToExcel(listToExport, filePath);
+            if (success) {
+                JOptionPane.showMessageDialog(this, "Xuất hóa đơn thành công tại:\n" + filePath, "Thành công", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "Lỗi khi xuất file Excel.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 }
