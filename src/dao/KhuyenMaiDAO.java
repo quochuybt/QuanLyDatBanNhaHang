@@ -20,7 +20,7 @@ public class KhuyenMaiDAO {
     public List<KhuyenMai> getAllKhuyenMai() {
         List<KhuyenMai> dsKhuyenMai = new ArrayList<>();
         // SỬA 1: Đổi tên bảng thành MaKhuyenMai
-        String sql = "SELECT maKM, tenKM, moTa, ngayBatDau, ngayKetThuc, loaiGiam, giaTriGiam, trangThai FROM MaKhuyenMai";
+        String sql = "SELECT maKM, tenKM, moTa, ngayBatDau, ngayKetThuc, loaiGiam, giaTriGiam, trangThai FROM KhuyenMai";
 
         try (Connection conn = SQLConnection.getConnection();
              Statement stmt = conn.createStatement();
@@ -47,15 +47,13 @@ public class KhuyenMaiDAO {
                     KhuyenMai km = new KhuyenMai(maKM, tenKM, loaiGiam, giaTriGiam, ngayBD, ngayKT, trangThai /*, moTa */); // Cập nhật Constructor nếu cần
                     dsKhuyenMai.add(km);
                 } catch (Exception e) {
-                    System.err.println("Lỗi khi đọc dữ liệu khuyến mãi từ ResultSet: " + e.getMessage());
                     e.printStackTrace();
                 }
             }
         } catch (Exception e) {
-            System.err.println("Lỗi nghiêm trọng khi lấy danh sách khuyến mãi: " + e.getMessage());
             e.printStackTrace(); // In ra lỗi để dễ debug hơn
         }
-        System.out.println("KhuyenMaiDAO: Đã tải " + dsKhuyenMai.size() + " khuyến mãi."); // Thêm log
+
         return dsKhuyenMai;
     }
 
@@ -65,7 +63,7 @@ public class KhuyenMaiDAO {
      */
     public boolean updateKhuyenMai(KhuyenMai km) {
         // SỬA 4: Đổi tên bảng và tên cột trong câu UPDATE
-        String sql = "UPDATE MaKhuyenMai SET tenKM = ?, moTa = ?, loaiGiam = ?, giaTriGiam = ?, " +
+        String sql = "UPDATE KhuyenMai SET tenKM = ?, moTa = ?, loaiGiam = ?, giaTriGiam = ?, " +
                      "ngayBatDau = ?, ngayKetThuc = ?, trangThai = ? WHERE maKM = ?";
 
         try (Connection conn = SQLConnection.getConnection();

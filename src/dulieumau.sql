@@ -86,7 +86,7 @@ INSERT INTO KhachHang (maKH, tenKH, gioiTinh, sdt, hangThanhVien, tongChiTieu, n
 GO
 
 -- 10. Bảng Mã Khuyến Mãi
-INSERT INTO MaKhuyenMai (maKM, tenKM, moTa, ngayBatDau, ngayKetThuc, loaiGiam, giaTriGiam, trangThai) VALUES
+INSERT INTO KhuyenMai (maKM, tenKM, moTa, ngayBatDau, ngayKetThuc, loaiGiam, giaTriGiam, trangThai) VALUES
 (N'KMHE2025', N'Chào hè 2025', N'Giảm 15% tổng hóa đơn', '2025-06-01', '2025-08-30', N'Giảm theo phần trăm', 15.00, N'Đang áp dụng'),
 (N'GIAM20K', N'Giảm 20.000đ', N'Giảm 20.000đ cho hóa đơn từ 100.000đ', '2025-10-01', '2025-10-31', N'Giảm giá số tiền', 20000.00, N'Đang áp dụng'),
 (N'SINHNHAT', N'Chúc mừng sinh nhật', N'Giảm 30% cho khách hàng thành viên', '2025-01-01', '2025-12-31', N'Giảm theo phần trăm', 30.00, N'Đang áp dụng'),

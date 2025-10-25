@@ -35,7 +35,7 @@ public class KhachHangDAO {
                 String email = rs.getString("email");
 
                 // Xử lý các trường Date
-                LocalDate ngaySinh = rs.getDate("ngaySinh").toLocalDate();
+                LocalDate ngaySinh = (rs.getDate("ngaySinh") == null) ? null : rs.getDate("ngaySinh").toLocalDate();
                 String diaChi = rs.getString("diaChi");
                 LocalDate ngayThamGia = rs.getDate("ngayThamGia").toLocalDate();
 
