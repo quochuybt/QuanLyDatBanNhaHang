@@ -366,7 +366,7 @@ public class HoaDonGUI extends JPanel {
                         return;
                     }
 
-                    List<ChiTietHoaDon> chiTietList = chiTietHoaDonDAO.getChiTietByMaDon(maDon);
+                    List<ChiTietHoaDon> chiTietList = chiTietHoaDonDAO.getChiTietTheoMaDon(maDon);
                     showChiTietDialog(selectedHoaDon, chiTietList);
                 }
             }
