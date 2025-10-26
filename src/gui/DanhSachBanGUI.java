@@ -69,12 +69,6 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
                         "Vui lòng chọn một bàn từ tab 'Bàn' trước khi chuyển sang 'Gọi Món'.",
                         "Chưa chọn bàn",
                         JOptionPane.WARNING_MESSAGE);
-                // b. Tự động chọn lại nút "Bàn" (quan trọng)
-                btnTabBan.setSelected(true);
-                // c. Không cần gọi contentCardLayout.show lại vì setSelected(true)
-                //    sẽ kích hoạt ActionListener của btnTabBan (nếu nó chỉ đơn giản là show card).
-                // d. Cập nhật lại màu sắc nút tab sau khi chọn lại nút Bàn
-                updateTopNavButtonStyles();
             }
         });
         // --- KẾT THÚC XỬ LÝ RIÊNG CHO "GỌI MÓN" ---
@@ -193,6 +187,8 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
             contentCardLayout.show(contentCardPanel, cardName);
             updateTopNavButtonStyles();
         });
+        navButton.setSelected(selected);
+
 
         return navButton;
     }
