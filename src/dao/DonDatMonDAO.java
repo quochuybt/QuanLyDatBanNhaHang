@@ -7,6 +7,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.time.LocalDateTime;
+import java.sql.Timestamp; //
+import java.util.ArrayList; // Thêm import
+import java.util.List;
+
 
 public class DonDatMonDAO {
 
@@ -50,5 +54,84 @@ public class DonDatMonDAO {
             e.printStackTrace();
         }
         return ddm; // Trả về null nếu không tìm thấy
+    }
+    public boolean themDonDatMon(DonDatMon ddm) {
+        String sql = "INSERT INTO DonDatMon (maDon, ngayKhoiTao, maNV, maKH, maBan) VALUES (?, ?, ?, ?, ?)";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, ddm.getMaDon());
+            ps.setTimestamp(2, Timestamp.valueOf(ddm.getNgayKhoiTao()));
+            ps.setString(3, ddm.getMaNV());
+            ps.setString(4, ddm.getMaKH()); // Có thể null
+            ps.setString(5, ddm.getMaBan()); // Có thể null (nếu đặt mang về)
+
+            return ps.executeUpdate() > 0;
+        } catch (java.sql.SQLIntegrityConstraintViolationException e) {
+            System.err.println("Lỗi trùng Mã Đơn: " + ddm.getMaDon());
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+    public boolean xoaDonDatMon(String maDon) {
+        // Cẩn thận: Nếu ChiTietHoaDon có khóa ngoại tới DonDatMon, bạn cần xóa chi tiết trước
+        // Hoặc cài đặt ON DELETE CASCADE trong CSDL.
+        String sql = "DELETE FROM DonDatMon WHERE maDon = ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maDon);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+    public List<DonDatMon> getAllDonDatMonChuaNhan() {
+        List<DonDatMon> dsDonDat = new ArrayList<>();
+        // Lấy các DonDatMon mà maDon không tồn tại trong HoaDon
+        String sql = "SELECT * FROM DonDatMon ddm " +
+                "WHERE NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maDon = ddm.maDon) " +
+                "ORDER BY ddm.ngayKhoiTao DESC"; // Sắp xếp mới nhất lên đầu
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                dsDonDat.add(createDonDatMonFromResultSet(rs));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return dsDonDat;
+    }
+    public List<DonDatMon> timDonDatMonChuaNhan(String query) {
+        List<DonDatMon> dsKetQua = new ArrayList<>();
+        // JOIN với KhachHang để tìm theo tên hoặc SĐT
+        String sql = "SELECT ddm.* FROM DonDatMon ddm " +
+                "LEFT JOIN KhachHang kh ON ddm.maKH = kh.maKH " + // LEFT JOIN phòng trường hợp KH null
+                "WHERE NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maDon = ddm.maDon) " + // Chỉ lấy đơn chưa nhận
+                "AND (kh.sdt LIKE ? OR kh.tenKH LIKE ?) " + // Điều kiện tìm kiếm
+                "ORDER BY ddm.ngayKhoiTao DESC";
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            String likeQuery = "%" + query + "%";
+            ps.setString(1, likeQuery); // Tìm sdt
+            ps.setString(2, likeQuery); // Tìm tenKH
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    dsKetQua.add(createDonDatMonFromResultSet(rs));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return dsKetQua;
     }
 }

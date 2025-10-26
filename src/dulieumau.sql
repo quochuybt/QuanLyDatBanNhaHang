@@ -66,13 +66,13 @@ GO
 
 -- 8. Bảng Món Ăn (Phụ thuộc DanhMucMon)
 INSERT INTO MonAn (maMonAn, tenMon, moTa, donGia, donViTinh, trangThai, hinhAnh, maDM) VALUES
-('MA108', N'Cà ri vịt', N'Cà ri vịt truyền thống', 60000.00, N'Tô', N'Còn', 'images/pho_bo.jpg', 'DM0001'),
-('MA107', N'Cá tra kho', N'Cá tra kho', 49000.00, N'Tô', N'Còn', 'images/pho_bo.jpg', 'DM0001'),
-('MA106', N'Cá chiên xù', N'Cá tai tượng chiên xù', 100000.00, N'Dỉa', N'Còn', 'images/pho_bo.jpg', 'DM0001'),
-('MA101', N'Phở Bò Tái', N'Phở bò truyền thống, nước lèo đậm đà', 50000.00, N'Tô', N'Còn', 'images/pho_bo.jpg', 'DM0001'),
-('MA103', N'Nước Suối Aquafina', N'Nước suối tinh khiết 500ml', 10000.00, N'Chai', N'Còn', '', 'DM0002'),
-('MA104', N'Trà Đá', N'Trà đá giải khát', 3000.00, N'Ly', N'Còn', '', 'DM0002'),
-('MA105', N'Vang đỏ Chile', N'Vang đỏ nhập khẩu Chile, 750ml', 350000.00, N'Chai', N'Còn', 'images/vang_chile.jpg', 'DM0003');
+('MA108', N'Cà ri vịt', N'Cà ri vịt truyền thống', 60000.00, N'Tô', N'Còn', 'cariVit.jpg', 'DM0001'),
+('MA107', N'Cá tra kho', N'Cá tra kho', 49000.00, N'Tô', N'Còn', 'caTraKho.jpg', 'DM0001'),
+('MA106', N'Cá chiên xù', N'Cá tai tượng chiên xù', 100000.00, N'Dỉa', N'Còn', 'ca-tai-tuong.jpg', 'DM0001'),
+('MA101', N'Phở Bò Tái', N'Phở bò truyền thống, nước lèo đậm đà', 50000.00, N'Tô', N'Còn', 'phoBo.jpg', 'DM0001'),
+('MA103', N'Nước Suối Aquafina', N'Nước suối tinh khiết 500ml', 10000.00, N'Chai', N'Còn', 'nuocSuoi.jpg', 'DM0002'),
+('MA104', N'Trà Đá', N'Trà đá giải khát', 3000.00, N'Ly', N'Còn', 'traDa.jpg', 'DM0002'),
+('MA105', N'Vang đỏ Chile', N'Vang đỏ nhập khẩu Chile, 750ml', 350000.00, N'Chai', N'Còn', 'vangdoCHILE.jpg', 'DM0003');
 GO
 
 -- 9. Bảng Khách Hàng (Phụ thuộc HangThanhVien)

@@ -30,7 +30,117 @@ public class BanDAO {
                 return TrangThaiBan.TRONG;
         }
     }
+    public boolean updateBan(Ban ban) {
+        String sql = "UPDATE Ban SET tenBan = ?, soGhe = ?, trangThai = ?, gioMoBan = ?, khuVuc = ? WHERE maBan = ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
+            ps.setString(1, ban.getTenBan());
+            ps.setInt(2, ban.getSoGhe());
+
+            // Chuyển Enum trạng thái thành String lưu vào DB
+            String trangThaiDB;
+            switch (ban.getTrangThai()) {
+                case DANG_PHUC_VU:
+                    trangThaiDB = "Đang có khách"; // Hoặc "Đang phục vụ" tùy CSDL
+                    break;
+                case DA_DAT_TRUOC:
+                    trangThaiDB = "Đã đặt trước";
+                    break;
+                case TRONG:
+                default:
+                    trangThaiDB = "Trống";
+                    break;
+            }
+            ps.setString(3, trangThaiDB);
+
+            // Xử lý gioMoBan (có thể null)
+            if (ban.getGioMoBan() != null) {
+                ps.setTimestamp(4, Timestamp.valueOf(ban.getGioMoBan()));
+            } else {
+                ps.setNull(4, Types.TIMESTAMP);
+            }
+
+            ps.setString(5, ban.getKhuVuc());
+            ps.setString(6, ban.getMaBan()); // Điều kiện WHERE
+
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+    public List<Ban> getDanhSachBanTrong() {
+        List<Ban> dsBanTrong = new ArrayList<>();
+        String sql = "SELECT * FROM Ban WHERE trangThai = N'Trống' ORDER BY maBan"; // Lọc theo trạng thái 'Trống'
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                String maBan = rs.getString("maBan");
+                String tenBan = rs.getString("tenBan");
+                int soGhe = rs.getInt("soGhe");
+                // String trangThaiStr = rs.getString("trangThai"); // Biết chắc là Trống rồi
+                Timestamp gioMoBanTS = rs.getTimestamp("gioMoBan");
+                String khuVuc = rs.getString("khuVuc");
+
+                LocalDateTime gioMoBan = null; // Bàn trống thì giờ mở = null
+                // Không cần kiểm tra gioMoBanTS vì bàn trống thường là null
+
+                // Dùng constructor của Ban
+                Ban ban = new Ban(maBan, tenBan, soGhe, TrangThaiBan.TRONG, gioMoBan, khuVuc);
+                dsBanTrong.add(ban);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return dsBanTrong;
+    }
+    public String getTenBanByMa(String maBan) {
+        String tenBan = maBan; // Giá trị mặc định
+        String sql = "SELECT tenBan FROM Ban WHERE maBan = ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maBan);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    tenBan = rs.getString("tenBan");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return tenBan;
+    }
+    public Ban getBanByMa(String maBan) {
+        Ban ban = null;
+        String sql = "SELECT * FROM Ban WHERE maBan = ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maBan);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String tenBan = rs.getString("tenBan");
+                    int soGhe = rs.getInt("soGhe");
+                    String trangThaiStr = rs.getString("trangThai");
+                    Timestamp gioMoBanTS = rs.getTimestamp("gioMoBan");
+                    String khuVuc = rs.getString("khuVuc");
+
+                    TrangThaiBan trangThai = convertStringToTrangThai(trangThaiStr);
+                    LocalDateTime gioMoBan = (gioMoBanTS != null) ? gioMoBanTS.toLocalDateTime() : null;
+
+                    ban = new Ban(maBan, tenBan, soGhe, trangThai, gioMoBan, khuVuc);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ban;
+    }
     /**
      * Lấy toàn bộ danh sách Bàn từ CSDL
      */

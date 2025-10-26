@@ -10,6 +10,7 @@ public class MonAn {
     private String donViTinh;  // 1.5: Không rỗng
     private String trangThai;  // 1.6: Còn / Hết món
     private String hinhAnh;    // 1.7: Có thể rỗng
+    private String maDM;
 
     /**
      * Biến đếm tĩnh (static) để sinh mã món ăn tăng dần.
@@ -70,29 +71,23 @@ public class MonAn {
      * @throws IllegalArgumentException Ném ngoại lệ nếu các ràng buộc khác vi phạm.
      */
     public MonAn(String maMonAn, String tenMon, String moTa, float donGia,
-                 String donViTinh, String trangThai, String hinhAnh) throws Exception {
+                 String donViTinh, String trangThai, String hinhAnh, String maDM) throws Exception { // <-- THÊM maDM
 
-        // 1.1: Ràng buộc: Dãy gồm 5 kí tự MAXXX (XXX là 3 chữ số)
+        // (Code xử lý maMonAn, nextId giữ nguyên)
         if (maMonAn == null || !maMonAn.matches("^MA\\d{3}$")) {
             throw new IllegalArgumentException("Mã món ăn không hợp lệ. Phải có dạng MAXXX (XXX là 3 chữ số).");
         }
         this.maMonAn = maMonAn;
-
-        // Cập nhật biến đếm tĩnh nếu cần
         try {
-            int idNum = Integer.parseInt(maMonAn.substring(2)); // Lấy phần số (ví dụ: 105)
-
-            // Chỉ cập nhật nếu số này nằm trong hoặc lớn hơn phạm vi tự động tăng
+            int idNum = Integer.parseInt(maMonAn.substring(2));
             if (idNum >= 100) {
-                // Đồng bộ hóa để cập nhật biến static an toàn
                 synchronized (MonAn.class) {
                     if (idNum >= nextId) {
-                        nextId = idNum + 1; // Đặt mã *tiếp theo* là mã này + 1
+                        nextId = idNum + 1;
                     }
                 }
             }
         } catch (NumberFormatException e) {
-            // Lỗi này không nên xảy ra nếu đã qua regex, nhưng để an toàn
             throw new IllegalArgumentException("Mã món ăn có phần số không hợp lệ.", e);
         }
 
@@ -103,6 +98,7 @@ public class MonAn {
         setDonViTinh(donViTinh);
         setTrangThai(trangThai);
         this.hinhAnh = hinhAnh;
+        setMaDM(maDM);
     }
 
     /**
@@ -118,39 +114,21 @@ public class MonAn {
         this.donViTinh = other.donViTinh;
         this.trangThai = other.trangThai;
         this.hinhAnh = other.hinhAnh;
+        this.maDM = other.maDM; // <-- THÊM DÒNG NÀY
     }
 
     // 2. Viết các phương thức getter, setter
     // (Phần này không thay đổi so với phiên bản trước)
 
     // --- Getters ---
-    public String getMaMonAn() {
-        return maMonAn;
-    }
-
-    public String getTenMon() {
-        return tenMon;
-    }
-
-    public String getMota() {
-        return mota;
-    }
-
-    public float getDonGia() {
-        return donGia;
-    }
-
-    public String getDonViTinh() {
-        return donViTinh;
-    }
-
-    public String getTrangThai() {
-        return trangThai;
-    }
-
-    public String getHinhAnh() {
-        return hinhAnh;
-    }
+    public String getMaMonAn() { return maMonAn; }
+    public String getTenMon() { return tenMon; }
+    public String getMota() { return mota; }
+    public float getDonGia() { return donGia; }
+    public String getDonViTinh() { return donViTinh; }
+    public String getTrangThai() { return trangThai; }
+    public String getHinhAnh() { return hinhAnh; }
+    public String getMaDM() { return maDM; }
 
     // --- Setters (với validation) ---
 
@@ -215,7 +193,10 @@ public class MonAn {
         this.hinhAnh = hinhAnh;
     }
 
-
+    public void setMaDM(String maDM) {
+        // Ví dụ validation: if (maDM == null || !maDM.startsWith("DM")) throw ...
+        this.maDM = maDM;
+    }
     /**
      * 4. Viết phương thức toString()
      * (Đã sửa "loaiMon" thành "mota" để khớp với thuộc tính)
@@ -226,10 +207,8 @@ public class MonAn {
                 "maMon='" + maMonAn + '\'' +
                 ", tenMon='" + tenMon + '\'' +
                 ", donGia=" + donGia +
-                ", mota='" + mota + '\'' + // Sửa từ "loaiMon"
-                ", donViTinh='" + donViTinh + '\'' +
+                ", maDM='" + maDM + '\'' + // <-- THÊM VÀO toString
                 ", trangThai='" + trangThai + '\'' +
-                ", hinhAnh='" + hinhAnh + '\'' +
                 '}';
     }
 }

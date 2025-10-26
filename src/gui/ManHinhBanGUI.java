@@ -17,7 +17,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,6 +35,7 @@ public class ManHinhBanGUI extends JPanel {
     private JPanel leftTableContainer;
     private String currentLeftFilter = "Tất cả";
     private List<BanPanel> leftBanPanelList = new ArrayList<>();
+    private DanhSachBanGUI parentDanhSachBanGUI;
 
     // --- THÊM CÁC BIẾN CHO PANEL BÊN PHẢI ---
     private JPanel rightPanel; // Panel chính bên phải
@@ -62,8 +62,9 @@ public class ManHinhBanGUI extends JPanel {
     private BillPanel billPanel;
     // --- KẾT THÚC THÊM BIẾN ---
 
-    public ManHinhBanGUI() {
+    public ManHinhBanGUI(DanhSachBanGUI parent) {
         super(new BorderLayout());
+        this.parentDanhSachBanGUI = parent;
         this.banDAO = new BanDAO();
         this.hoaDonDAO = new HoaDonDAO();
         this.khachHangDAO = new KhachHangDAO();
@@ -613,11 +614,18 @@ public class ManHinhBanGUI extends JPanel {
             selectedTable = null;
             clickedPanel.setSelected(false);
         }
+        updateRightPanelDetails(selectedTable);
         if (selectedTable != null) {
-            System.out.println("Bàn đang được chọn: " + selectedTable.getTenBan());
+            System.out.println("Bàn được chọn để gọi món: " + selectedTable.getTenBan());
+            // Gọi hàm của panel cha để xử lý việc chuyển màn hình
+            parentDanhSachBanGUI.chuyenSangManHinhGoiMon(selectedTable); // <-- GỌI HÀM CỦA DANHSACHBANGUI
         } else {
             System.out.println("Không có bàn nào được chọn.");
         }
-        updateRightPanelDetails(selectedTable);
+
     }
+    public Ban getSelectedTable() {
+        return selectedTable; // Trả về biến thành viên selectedTable
+    }
+
 }
