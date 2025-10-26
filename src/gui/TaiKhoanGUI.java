@@ -15,7 +15,6 @@ public class TaiKhoanGUI extends JFrame {
 
     private JTextField txtTenDangNhap;
     private JPasswordField txtMatKhau;
-    private JComboBox<String> cbxChucVu;
     private JButton btnDangNhap;
 
     public TaiKhoanGUI() {

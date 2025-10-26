@@ -135,7 +135,7 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
         // Truyền 'this' (DanhSachBanGUI) vào ManHinhBanGUI
         manHinhBanGUI = new ManHinhBanGUI(this);
         manHinhGoiMonGUI = new ManHinhGoiMonGUI();
-        manHinhDatBanGUI = new ManHinhDatBanGUI();
+        manHinhDatBanGUI = new ManHinhDatBanGUI(this);
 
         // --- Thêm các màn hình con vào CardLayout ---
         contentCardPanel.add(manHinhBanGUI, "MAN_HINH_BAN");
@@ -215,6 +215,11 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
             contentCardLayout.show(contentCardPanel, "MAN_HINH_GOI_MON");
             btnTabGoiMon.setSelected(true); // Chọn nút Gọi Món
             updateTopNavButtonStyles(); // <-- Gọi update style ở đây nữa
+        }
+    }
+    public void refreshManHinhBan() {
+        if (manHinhBanGUI != null) {
+            manHinhBanGUI.refreshTableList();
         }
     }
     private void showChuyenBanDiaLog() {
