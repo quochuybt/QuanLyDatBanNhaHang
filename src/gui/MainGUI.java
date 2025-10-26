@@ -258,7 +258,7 @@ public class MainGUI extends JFrame {
         // Chỉ Quản lý
         mainContentPanel.add(createPlaceholderPanel("Danh mục món ăn"), "Danh mục món ăn");
         mainContentPanel.add(new KhuyenMaiGUI(), "Khuyến mãi");
-        mainContentPanel.add(createPlaceholderPanel("Nhân viên"), "Nhân viên");
+        mainContentPanel.add(new NhanVienGUI(), "Nhân viên");
 
         // Chỉ Nhân viên
         mainContentPanel.add(new DanhSachBanGUI(), "Danh sách bàn");

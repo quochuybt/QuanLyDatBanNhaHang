@@ -3,9 +3,9 @@ package entity;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class NhanVien {
 
@@ -18,7 +18,9 @@ public class NhanVien {
     private LocalDate ngayvaolam;
     private float luong;
     private VaiTro vaiTro;
+    private String tenTK; // THÊM: Thuộc tính Tên Tài khoản để dễ dàng cập nhật/truy vấn
 
+    // Constructor mặc định
     public NhanVien() {
         this.vaiTro = VaiTro.NHANVIEN;
         this.manv = phatSinhMaNV(vaiTro);
@@ -29,17 +31,19 @@ public class NhanVien {
         this.diachi = "Chưa cập nhật";
         this.ngayvaolam = LocalDate.now();
         this.luong = 2000000f;
+        this.tenTK = "";
     }
 
-    public VaiTro getVaiTro() {
-        return vaiTro;
-    }
-    public void setVaiTro(VaiTro vaiTro) {
-        this.vaiTro = vaiTro;
-    }
-
+    // Constructor đầy đủ (dành cho việc tạo mới)
     public NhanVien(String hoTen, LocalDate ngaySinh, String gioiTinh, String sdt,
                     String diaChi, LocalDate ngayVaoLam, float luong ,VaiTro vaiTro) {
+        // Tên TK sẽ được set sau hoặc lấy từ SĐT nếu cần mặc định
+        this(hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, "");
+    }
+
+    // Constructor đầy đủ (có thêm tenTK)
+    public NhanVien(String hoTen, LocalDate ngaySinh, String gioiTinh, String sdt,
+                    String diaChi, LocalDate ngayVaoLam, float luong ,VaiTro vaiTro, String tenTK) {
         setVaiTro(vaiTro);
         this.manv = phatSinhMaNV(vaiTro);
         setHoten(hoTen);
@@ -49,7 +53,26 @@ public class NhanVien {
         setDiachi(diaChi);
         setNgayvaolam(ngayVaoLam);
         setLuong(luong);
+        setTenTK(tenTK);
     }
+
+    // Constructor dùng để truyền mã NV khi cập nhật hoặc đọc từ DB
+    public NhanVien(String maNV, String hoTen, LocalDate ngaySinh, String gioiTinh, String sdt,
+                    String diaChi, LocalDate ngayVaoLam, float luong ,VaiTro vaiTro) {
+        // Constructor này không gọi phatSinhMaNV
+        this.manv = maNV;
+        setVaiTro(vaiTro);
+        setHoten(hoTen);
+        setNgaysinh(ngaySinh);
+        setGioitinh(gioiTinh);
+        setSdt(sdt);
+        setDiachi(diaChi);
+        setNgayvaolam(ngayVaoLam);
+        setLuong(luong);
+        this.tenTK = "";
+    }
+
+    // Constructor copy
     public NhanVien(NhanVien other) {
         this.vaiTro = other.vaiTro;
         this.manv = phatSinhMaNV(other.vaiTro);
@@ -60,8 +83,10 @@ public class NhanVien {
         this.diachi = other.diachi;
         this.ngayvaolam = other.ngayvaolam;
         this.luong = other.luong;
+        this.tenTK = other.tenTK;
     }
 
+    // Logic phát sinh mã NV
     private String phatSinhMaNV(VaiTro vaiTro) {
         String maVaiTro;
         if (vaiTro == VaiTro.QUANLY) {
@@ -73,8 +98,16 @@ public class NhanVien {
         return "NV" + maVaiTro + soNgauNhien;
     }
 
+    // =================================================================
+    // GETTERS & SETTERS (Có Validation)
+    // =================================================================
+
     public String getManv() {
         return manv;
+    }
+
+    public void setManv(String manv) {
+        this.manv = manv;
     }
 
     public String getHoten() {
@@ -146,6 +179,23 @@ public class NhanVien {
         this.luong = luong;
     }
 
+    public VaiTro getVaiTro() {
+        return vaiTro;
+    }
+
+    public void setVaiTro(VaiTro vaiTro) {
+        this.vaiTro = vaiTro;
+    }
+
+    public String getTenTK() {
+        return tenTK;
+    }
+
+    public void setTenTK(String tenTK) {
+        // Có thể thêm validation cho tenTK nếu cần (ví dụ: không chứa ký tự đặc biệt)
+        this.tenTK = tenTK;
+    }
+
     @Override
     public String toString() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -158,125 +208,8 @@ public class NhanVien {
                 ", diachi='" + diachi + '\'' +
                 ", ngayvaolam=" + ngayvaolam.format(formatter) +
                 ", luong=" + luong +
+                ", vaiTro=" + vaiTro.name() +
+                ", tenTK='" + tenTK + '\'' +
                 '}';
     }
-//        public static void main(String[] args) {
-//            System.out.println("--- Bắt đầu chương trình test NhanVien ---");
-//
-//            // === KỊCH BẢN 1: TẠO ĐỐI TƯỢNG HỢP LỆ (HAPPY PATH) ===
-//            System.out.println("\n--- Kịch bản 1: Tạo đối tượng hợp lệ ---");
-//            try {
-//                NhanVien nv1 = new NhanVien(
-//                        "Nguyễn Văn An",
-//                        LocalDate.of(1995, 10, 20),
-//                        "Nam",
-//                        "0912345678",
-//                        "123 Lê Lợi, Q1, TPHCM",
-//                        LocalDate.of(2023, 1, 15),
-//                        12000000f,
-//                        VaiTro.NHANVIEN
-//                );
-//                System.out.println("Tạo Nhân Viên thành công:");
-//                System.out.println(nv1);
-//
-//                NhanVien ql1 = new NhanVien(
-//                        "Trần Thị Bình",
-//                        LocalDate.of(1990, 5, 1),
-//                        "Nữ",
-//                        "0987654321",
-//                        "456 CMT8, Q3, TPHCM",
-//                        LocalDate.of(2020, 2, 10),
-//                        25000000f,
-//                        VaiTro.QUANLY
-//                );
-//                System.out.println("\nTạo Quản Lý thành công:");
-//                System.out.println(ql1);
-//
-//            } catch (IllegalArgumentException e) {
-//                System.out.println("LỖI KHÔNG MONG MUỐN (Kịch bản 1): " + e.getMessage());
-//            }
-//
-//            // === KỊCH BẢN 2: TẠO BẰNG CONSTRUCTOR MẶC ĐỊNH ===
-//            System.out.println("\n--- Kịch bản 2: Dùng constructor mặc định ---");
-//            NhanVien nvDefault = new NhanVien();
-//            System.out.println(nvDefault);
-//
-//            // === KỊCH BẢN 3: TẠO BẰNG COPY CONSTRUCTOR ===
-//            System.out.println("\n--- Kịch bản 3: Dùng copy constructor ---");
-//            NhanVien nvToCopy = new NhanVien("Lê Văn C", LocalDate.of(2000, 1, 1), "Nam", "0333444555", "789 Nguyễn Trãi, Q5", LocalDate.now(), 8000000f, VaiTro.NHANVIEN);
-//            NhanVien nvCopied = new NhanVien(nvToCopy);
-//            System.out.println("Đối tượng gốc:");
-//            System.out.println(nvToCopy);
-//            System.out.println("Đối tượng sao chép (Lưu ý: mã NV sẽ khác nhau do logic phatSinhMaNV):");
-//            System.out.println(nvCopied);
-//
-//            // === KỊCH BẢN 4: TEST VALIDATION (CÁC TRƯỜNG HỢP LỖI) ===
-//            System.out.println("\n--- Kịch bản 4: Test các trường hợp lỗi validation ---");
-//
-//            // 4a: Lỗi Tên rỗng
-//            try {
-//                nvDefault.setHoten("   ");
-//            } catch (IllegalArgumentException e) {
-//                System.out.println("Bắt lỗi thành công (Tên): " + e.getMessage());
-//            }
-//
-//            // 4b: Lỗi Tuổi (dưới 18)
-//            try {
-//                nvDefault.setNgaysinh(LocalDate.now().minusYears(17)); // Mới 17 tuổi
-//            } catch (IllegalArgumentException e) {
-//                System.out.println("Bắt lỗi thành công (Tuổi): " + e.getMessage());
-//            }
-//
-//            // 4c: Lỗi SĐT (sai định dạng)
-//            try {
-//                nvDefault.setSdt("12345"); // Sai
-//            } catch (IllegalArgumentException e) {
-//                System.out.println("Bắt lỗi thành công (SĐT ngắn): " + e.getMessage());
-//            }
-//            try {
-//                nvDefault.setSdt("09123456789"); // 11 số (sai)
-//            } catch (IllegalArgumentException e) {
-//                System.out.println("Bắt lỗi thành công (SĐT dài): " + e.getMessage());
-//            }
-//            try {
-//                nvDefault.setSdt("a912345678"); // Có chữ (sai)
-//            } catch (IllegalArgumentException e) {
-//                System.out.println("Bắt lỗi thành công (SĐT có chữ): " + e.getMessage());
-//            }
-//
-//            // 4d: Lỗi Lương (<= 0)
-//            try {
-//                nvDefault.setLuong(0);
-//            } catch (IllegalArgumentException e) {
-//                System.out.println("Bắt lỗi thành công (Lương = 0): " + e.getMessage());
-//            }
-//            try {
-//                nvDefault.setLuong(-100000);
-//            } catch (IllegalArgumentException e) {
-//                System.out.println("Bắt lỗi thành công (Lương âm): " + e.getMessage());
-//            }
-//
-//            // === KỊCH BẢN 5: CẬP NHẬT THÔNG TIN HỢP LỆ ===
-//            System.out.println("\n--- Kịch bản 5: Cập nhật thông tin thành công ---");
-//            try {
-//                NhanVien nvUpdate = new NhanVien();
-//                System.out.println("Trước khi cập nhật:");
-//                System.out.println(nvUpdate);
-//
-//                nvUpdate.setHoten("Đỗ Thị Diễm");
-//                nvUpdate.setNgaysinh(LocalDate.of(1999, 11, 20));
-//                nvUpdate.setGioitinh("Nữ");
-//                nvUpdate.setSdt("0888999111");
-//                nvUpdate.setDiachi("Bình Dương");
-//                nvUpdate.setLuong(9500000f);
-//
-//                System.out.println("Sau khi cập nhật:");
-//                System.out.println(nvUpdate);
-//            } catch (IllegalArgumentException e) {
-//                System.out.println("LỖI KHÔNG MONG MUỐN (Kịch bản 5): " + e.getMessage());
-//            }
-//
-//            System.out.println("\n--- Kết thúc test ---");
-//        }
-
 }
