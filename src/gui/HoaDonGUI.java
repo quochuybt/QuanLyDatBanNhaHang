@@ -270,9 +270,9 @@ public class HoaDonGUI extends JPanel {
                         .filter(hd -> hd != null && "Đã thanh toán".equals(hd.getTrangThai()))
                         .collect(Collectors.toList());
                 break;
-            case 2: // Chờ xác nhận thanh toán
+            case 2: // Chờ xác nhận thanh toán (ĐÃ CẬP NHẬT)
                 filteredList = allList.stream()
-                        .filter(hd -> hd != null && "Chưa thanh toán".equals(hd.getTrangThai()) && "Chuyển khoản".equals(hd.getHinhThucThanhToan()))
+                        .filter(hd -> hd != null && "Chưa thanh toán".equals(hd.getTrangThai())) // <--- Đã loại bỏ điều kiện hinhThucThanhToan
                         .collect(Collectors.toList());
                 break;
             case 0: // Tất cả hóa đơn
