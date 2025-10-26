@@ -346,7 +346,28 @@ public class BillPanel extends JPanel {
     /**
      * (Hàm này sau này sẽ nhận 1 Hóa Đơn và load)
      */
+    public void loadBillTotals(long tongCong, long khuyenMai, long vat, long tongThanhToan, int tongSoLuong) {
 
+        // 1. Cập nhật các JLabel tóm tắt
+        lblTongSoLuong.setText(String.valueOf(tongSoLuong));
+        lblTongCong.setText(nf.format(tongCong));         // Dùng NumberFormat nf đã khai báo
+        lblKhuyenMai.setText(nf.format(khuyenMai));
+        lblPhanTramVAT.setText(vat == 0 ? "0%" : "..."); // TODO: Cập nhật % VAT sau
+        lblVAT.setText(nf.format(vat));
+        lblTongThanhToan.setText(nf.format(tongThanhToan));
+
+        // 2. Cập nhật gợi ý tiền mặt
+        updateSuggestedCash(tongThanhToan);
+
+        // 3. Reset tiền thối (vì tổng tiền đã thay đổi)
+        // Nếu muốn giữ lại tiền khách nhập thì comment dòng này
+        // txtKhachTra.setText("0");
+        tinhTienThoi();
+        if (tongThanhToan == 0) {
+            txtKhachTra.setText("0"); // Đặt lại ô khách trả về 0
+            tinhTienThoi();          // Tính lại tiền thối (sẽ là 0)
+        }
+    }
     public void clearBill() {
         lblTongSoLuong.setText("0");
         lblTongCong.setText(nf.format(0));
