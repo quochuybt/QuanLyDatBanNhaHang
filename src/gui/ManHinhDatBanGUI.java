@@ -7,9 +7,10 @@ import entity.Ban;
 import entity.TrangThaiBan; // Cần import này
 
 import java.awt.event.*;
-import java.util.stream.Collectors;
+
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import java.time.LocalDateTime;
 import java.awt.*;
@@ -17,6 +18,10 @@ import java.time.LocalTime; // Cho giờ
 import java.time.format.DateTimeFormatter; // Cho giờ
 import java.util.ArrayList;
 import java.util.List;
+import entity.DonDatMon; // Cần import DonDatMon
+import entity.KhachHang; // Cần import KhachHang
+import javax.swing.event.ListSelectionListener; // Có thể cần nếu muốn xử lý chọn item
+import javax.swing.event.ListSelectionEvent;
 
 public class ManHinhDatBanGUI extends JPanel {
 
@@ -24,6 +29,7 @@ public class ManHinhDatBanGUI extends JPanel {
     private BanDAO banDAO;
     private KhachHangDAO khachHangDAO;
     private DonDatMonDAO donDatMonDAO; // Sẽ dùng khi bấm nút Đặt
+    private DanhSachBanGUI parentDanhSachBanGUI_DatBan;
 
     // --- Panel trái ---
     private JSpinner spinnerSoLuongKhach;
@@ -39,12 +45,13 @@ public class ManHinhDatBanGUI extends JPanel {
 
     // --- Panel phải ---
     private JTextField txtTimKiemPhieuDat;
-    private JList<String> listPhieuDat; // Hoặc JTable
-    private DefaultListModel<String> modelListPhieuDat;
+    private JList<DonDatMon> listPhieuDat; // Hoặc JTable
+    private DefaultListModel<DonDatMon> modelListPhieuDat;
 
     private static final Color COLOR_ACCENT_BLUE = new Color(56, 118, 243);
 
-    public ManHinhDatBanGUI() {
+    public ManHinhDatBanGUI(DanhSachBanGUI parent) {
+        this.parentDanhSachBanGUI_DatBan = parent;
         // --- Khởi tạo DAO ---
         banDAO = new BanDAO();
         khachHangDAO = new KhachHangDAO();
@@ -302,37 +309,166 @@ public class ManHinhDatBanGUI extends JPanel {
     // PANEL BÊN PHẢI (Danh sách đặt trước)
     // ==========================================================
     private JPanel createRightPanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBorder(new EmptyBorder(15, 10, 15, 15)); // Lề
-        panel.setBackground(new Color(245, 245, 245)); // Màu nền hơi xám
+        JPanel panel = new JPanel(new BorderLayout(10, 10)); // Khoảng cách dọc 10
+        panel.setBorder(new EmptyBorder(15, 10, 15, 15));   // Lề xung quanh
+        panel.setBackground(new Color(245, 245, 245));      // Nền xám nhạt
 
-        // --- 1. NORTH: Tìm kiếm ---
-        JPanel searchPanel = new JPanel(new BorderLayout(5,0));
-        searchPanel.setOpaque(false);
-        searchPanel.add(new JLabel("🔎"), BorderLayout.WEST);
-        txtTimKiemPhieuDat = new JTextField(" Tìm kiếm bàn đặt SĐT/Tên khách...");
+        // --- 1. NORTH: Panel Tìm kiếm ---
+        JPanel searchPanel = new JPanel(new BorderLayout(5, 0)); // Panel riêng cho tìm kiếm
+        searchPanel.setOpaque(false); // Nền trong suốt để thấy màu nền của panel cha
+        searchPanel.setBorder(new EmptyBorder(0, 0, 5, 0)); // Lề dưới cho search panel
+
+        // Icon kính lúp
+        JLabel searchIcon = new JLabel("🔎");
+        searchIcon.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 16));
+        searchPanel.add(searchIcon, BorderLayout.WEST);
+
+        // Ô nhập liệu tìm kiếm
+        final String placeholder = " Tìm kiếm bàn đặt SĐT/Tên khách..."; // Lưu placeholder
+        txtTimKiemPhieuDat = new JTextField(placeholder); // Đặt placeholder ban đầu
         txtTimKiemPhieuDat.setForeground(Color.GRAY);
-        // TODO: Thêm placeholder và KeyListener để lọc listPhieuDat
+        applyTextFieldStyle(txtTimKiemPhieuDat);
+        txtTimKiemPhieuDat.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (txtTimKiemPhieuDat.getText().equals(placeholder)) {
+                    txtTimKiemPhieuDat.setText("");
+                    txtTimKiemPhieuDat.setForeground(Color.BLACK);
+                }
+            }
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (txtTimKiemPhieuDat.getText().isEmpty()) {
+                    txtTimKiemPhieuDat.setForeground(Color.GRAY);
+                    txtTimKiemPhieuDat.setText(placeholder);
+                }
+            }
+        });
+        // --- KẾT THÚC PLACEHOLDER ---
+
+        // --- THÊM KEYLISTENER ĐỂ TÌM KIẾM ---
+        txtTimKiemPhieuDat.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                // Gọi hàm tìm kiếm mỗi khi người dùng nhả phím
+                timKiemPhieuDat();
+            }
+        });
         searchPanel.add(txtTimKiemPhieuDat, BorderLayout.CENTER);
         panel.add(searchPanel, BorderLayout.NORTH);
+        // --- Đảm bảo dòng trên tồn tại ---
 
-        // --- 2. CENTER: Danh sách ---
+        // --- 2. CENTER: Danh sách đặt trước ---
         modelListPhieuDat = new DefaultListModel<>();
         listPhieuDat = new JList<>(modelListPhieuDat);
-        listPhieuDat.setCellRenderer(new PhieuDatListRenderer()); // Renderer tùy chỉnh
+        listPhieuDat.setCellRenderer(new PhieuDatListRenderer());
         listPhieuDat.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        // TODO: Thêm MouseListener vào JList để xử lý click nút Xóa
+        listPhieuDat.setBackground(Color.WHITE);
+
+        // Thêm MouseListener để xử lý click nút Xóa (như code cũ)
+        listPhieuDat.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int index = listPhieuDat.locationToIndex(e.getPoint());
+                if (index != -1) {
+                    DonDatMon ddm = modelListPhieuDat.getElementAt(index);
+                    Rectangle itemBounds = listPhieuDat.getCellBounds(index, index); // Vùng bao của cả item
+
+                    // Lấy component renderer để lấy kích thước nút thật và border
+                    Component rendererComp = listPhieuDat.getCellRenderer().getListCellRendererComponent(listPhieuDat, ddm, index, false, false);
+                    Component mainPanelComp = null; // Panel chứa text và nút X
+                    Component deleteBtnComp = null; // Nút Xóa
+
+                    // Tìm mainPanel và nút xóa bên trong cấu trúc renderer
+                    if (rendererComp instanceof JPanel) { // containerPanel
+                        mainPanelComp = ((JPanel) rendererComp).getComponent(0); // mainPanel
+                        if (mainPanelComp instanceof JPanel) {
+                            deleteBtnComp = ((JPanel) mainPanelComp).getComponent(1); // JButton (EAST)
+                        }
+                    }
+
+                    if (deleteBtnComp instanceof JButton && mainPanelComp instanceof JPanel) { // Đảm bảo tìm thấy cả hai
+                        JButton btnDelete = (JButton) deleteBtnComp;
+                        JPanel itemMainPanel = (JPanel) mainPanelComp; // Panel có border
+
+                        // --- SỬA CÁCH LẤY BORDER INSETS ---
+                        Insets borderInsets = new Insets(0,0,0,0); // Mặc định không có lề
+                        Border border = itemMainPanel.getBorder(); // Lấy border của mainPanel
+                        if (border != null) {
+                            borderInsets = border.getBorderInsets(itemMainPanel); // Lấy insets từ border
+                        }
+                        // --- KẾT THÚC SỬA ---
+
+                        // Tính toán vùng của nút Xóa tương đối so với itemBounds
+                        int btnX = itemBounds.x + itemBounds.width - btnDelete.getWidth()
+                                - borderInsets.right // <-- Dùng insets đã lấy
+                                - ((BorderLayout)itemMainPanel.getLayout()).getHgap(); // Khoảng cách ngang layout
+                        int btnY = itemBounds.y + (itemBounds.height - btnDelete.getHeight()) / 2; // Căn giữa Y (ước lượng)
+
+                        Rectangle deleteButtonBounds = new Rectangle(btnX, btnY, btnDelete.getWidth(), btnDelete.getHeight());
+
+                        // Kiểm tra click
+                        if (deleteButtonBounds.contains(e.getPoint())) {
+                            System.out.println("Clicked delete button for: " + ddm.getMaDon());
+                            xuLyHuyDatBan(ddm, index);
+                        }
+                    } else {
+                        System.err.println("Không tìm thấy JButton xóa hoặc mainPanel trong renderer!");
+                    }
+                }
+            }
+        });
 
         JScrollPane scrollPaneList = new JScrollPane(listPhieuDat);
         scrollPaneList.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
         panel.add(scrollPaneList, BorderLayout.CENTER);
 
-        // --- 3. SOUTH: Nút "..." Menu (Tạm thời bỏ) ---
-        // (Nếu cần thì thêm lại)
-
         return panel;
     }
+    private void timKiemPhieuDat() {
+        String query = txtTimKiemPhieuDat.getText().trim();
+        final String placeholder = " Tìm kiếm bàn đặt SĐT/Tên khách..."; // Lấy lại placeholder
 
+        // Xóa model hiện tại trước khi thêm kết quả mới
+        modelListPhieuDat.clear();
+
+        try {
+            List<entity.DonDatMon> dsKetQua;
+
+            // Nếu ô tìm kiếm trống hoặc là placeholder -> hiển thị tất cả
+            if (query.isEmpty() || query.equals(placeholder)) {
+                dsKetQua = donDatMonDAO.getAllDonDatMonChuaNhan(); // Lấy tất cả
+            } else {
+                // Nếu có từ khóa -> gọi hàm tìm kiếm của DAO
+                dsKetQua = donDatMonDAO.timDonDatMonChuaNhan(query); // Tìm theo query
+            }
+
+            // Hiển thị kết quả lên JList
+            if (dsKetQua.isEmpty() && !(query.isEmpty() || query.equals(placeholder))) {
+                // Nếu tìm kiếm có query mà không ra kết quả
+                modelListPhieuDat.addElement(null); // Thêm null để renderer biết hiển thị "Không tìm thấy"
+                // Hoặc thêm một String đặc biệt
+                // modelListPhieuDat.addElement("Không tìm thấy kết quả nào.");
+            } else if (dsKetQua.isEmpty() && (query.isEmpty() || query.equals(placeholder))) {
+                // Nếu không có đơn đặt nào cả
+                modelListPhieuDat.addElement(null); // Thêm null để renderer hiển thị "Chưa có..."
+                // modelListPhieuDat.addElement("Chưa có bàn nào được đặt trước.");
+            }
+            else {
+                for (entity.DonDatMon ddm : dsKetQua) {
+                    modelListPhieuDat.addElement(ddm); // Thêm các đơn tìm thấy
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi khi tìm kiếm phiếu đặt: " + e.getMessage());
+            modelListPhieuDat.clear(); // Xóa hết nếu lỗi
+            modelListPhieuDat.addElement(null); // Hiển thị lỗi
+            // modelListPhieuDat.addElement("Lỗi khi tìm kiếm dữ liệu!");
+        }
+        // Cập nhật lại model cho JList (quan trọng)
+        listPhieuDat.setModel(modelListPhieuDat);
+        listPhieuDat.repaint();
+    }
     // ==========================================================
     // LOGIC & HELPER METHODS
     // ==========================================================
@@ -533,6 +669,9 @@ public class ManHinhDatBanGUI extends JPanel {
                 txtHoTenKhach.setText("");
                 banDaChon = null; // Bỏ chọn bàn
 
+                if (parentDanhSachBanGUI_DatBan != null) {
+                    parentDanhSachBanGUI_DatBan.refreshManHinhBan(); // <-- GỌI LÀM MỚI Ở ĐÂY
+                }
                 JOptionPane.showMessageDialog(this, "Đặt bàn thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
             } else {
                 JOptionPane.showMessageDialog(this, "Đặt đơn thành công nhưng lỗi cập nhật trạng thái bàn!", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
@@ -550,121 +689,202 @@ public class ManHinhDatBanGUI extends JPanel {
     private void loadDanhSachDatTruoc() {
         modelListPhieuDat.clear(); // Xóa list cũ
         try {
-            // Giả sử DonDatMonDAO có hàm này và trả về List<DonDatMon> đã JOIN
-            // Hoặc trả về List<String> đã format sẵn
-            List<entity.DonDatMon> dsDatTruoc = donDatMonDAO.getAllDonDatMonChuaNhan(); // Cần JOIN để có tên bàn, tên KH
+            List<entity.DonDatMon> dsDatTruoc = donDatMonDAO.getAllDonDatMonChuaNhan(); // Lấy list object
 
             if (dsDatTruoc.isEmpty()) {
-                modelListPhieuDat.addElement("Chưa có bàn nào được đặt trước.");
+                // Thêm một object đặc biệt hoặc để trống
+                // modelListPhieuDat.addElement(null); // Hoặc không thêm gì cả
+                System.out.println("Không có đơn đặt trước nào."); // Hoặc hiển thị label
             } else {
-                DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
-                // Cần tạo hàm để lấy tên bàn, tên KH từ mã
                 for (entity.DonDatMon ddm : dsDatTruoc) {
-                    String tenBan = banDAO.getTenBanByMa(ddm.getMaBan()); // Cần hàm này trong BanDAO
-                    entity.KhachHang kh = khachHangDAO.timTheoMaKH(ddm.getMaKH());
-                    String tenKH = (kh != null) ? kh.getTenKH() : "Vãng lai";
-                    String sdtKH = (kh != null) ? kh.getSdt() : "Không có";
-                    // Lấy giờ đặt từ Ban tương ứng (vì DonDatMon chỉ có ngày tạo)
-                    Ban banDat = banDAO.getBanByMa(ddm.getMaBan()); // Cần hàm này
-                    String gioDen = (banDat != null && banDat.getGioMoBan() != null) ? banDat.getGioMoBan().format(timeFormatter) : "Chưa rõ";
-                    // Tạm thời lấy số lượng từ bàn (cần lấy từ DonDatMon nếu có)
-                    int soNguoi = (banDat != null) ? banDat.getSoGhe() : 0;
-
-                    // Format chuỗi hiển thị
-                    String displayText = String.format("%s (%s) - %s\n%s - %s - %d người",
-                            tenBan, sdtKH, tenKH,
-                            gioDen, /* Lấy ghi chú từ ddm nếu có */ " ", soNguoi);
-
-                    modelListPhieuDat.addElement(displayText); // TODO: Cần cách lưu maDon/maBan kèm theo
+                    modelListPhieuDat.addElement(ddm); // Thêm object vào model
                 }
             }
         } catch (Exception e) {
             System.err.println("Lỗi khi tải danh sách đặt trước: " + e.getMessage());
-            modelListPhieuDat.addElement("Lỗi tải dữ liệu đặt bàn!");
+            // modelListPhieuDat.addElement(null); // Hoặc thông báo lỗi
+        }
+        // Cập nhật JList (quan trọng)
+        listPhieuDat.setModel(modelListPhieuDat); // Đặt lại model để JList nhận biết thay đổi data type
+        listPhieuDat.repaint();
+    }
+    private void xuLyHuyDatBan(DonDatMon ddmToCancel, int index) {
+        // 1. Xác nhận
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Bạn có chắc chắn muốn hủy đặt bàn cho mã đơn '" + ddmToCancel.getMaDon() + "'?",
+                "Xác nhận hủy đặt bàn",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            // 2. Gọi DAO xóa DonDatMon
+            boolean xoaDonOK = donDatMonDAO.xoaDonDatMon(ddmToCancel.getMaDon());
+
+            if (xoaDonOK) {
+                // 3. Tìm và cập nhật lại trạng thái Bàn
+                Ban banCanUpdate = banDAO.getBanByMa(ddmToCancel.getMaBan());
+                if (banCanUpdate != null && banCanUpdate.getTrangThai() == TrangThaiBan.DA_DAT_TRUOC) {
+                    banCanUpdate.setTrangThai(TrangThaiBan.TRONG);
+                    banCanUpdate.setGioMoBan(null); // Reset giờ đặt
+                    boolean updateBanOK = banDAO.updateBan(banCanUpdate);
+                    if (!updateBanOK) {
+                        JOptionPane.showMessageDialog(this, "Hủy đơn thành công nhưng lỗi cập nhật lại trạng thái bàn!", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
+                    }
+                } else {
+                    System.err.println("Không tìm thấy bàn " + ddmToCancel.getMaBan() + " hoặc trạng thái không phải DA_DAT_TRUOC để reset.");
+                }
+
+                // 4. Cập nhật giao diện
+                // Xóa item khỏi JList bên phải
+                modelListPhieuDat.removeElementAt(index);
+                // Tải lại danh sách bàn trống và hiển thị lại panel bên trái
+                taiDanhSachBanTrong();
+                hienThiBanPhuHop();
+                if (parentDanhSachBanGUI_DatBan != null) {
+                    parentDanhSachBanGUI_DatBan.refreshManHinhBan(); // <-- GỌI LÀM MỚI
+                }
+
+                JOptionPane.showMessageDialog(this, "Đã hủy đặt bàn thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+
+            } else {
+                JOptionPane.showMessageDialog(this, "Hủy đặt bàn thất bại! Vui lòng thử lại.", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 
     // --- Renderer tùy chỉnh cho JList bên phải ---
     // (Class này nên để thành inner class hoặc file riêng)
-    private class PhieuDatListRenderer extends DefaultListCellRenderer {
+    private class PhieuDatListRenderer implements ListCellRenderer<DonDatMon> { // Sửa: Dùng ListCellRenderer<DonDatMon>
+
+        private final JPanel mainPanel;
+        private final JPanel textPanel;
+        private final JLabel lblLine1; // Dòng trên: Bàn (SDT)
+        private final JLabel lblLine2; // Dòng dưới: Giờ - Tên KH - Số người
+        private final JButton btnDelete;
+        private final JSeparator separator; // Đường kẻ phân cách
+
         private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
         private final Font mainFont = new Font("Segoe UI", Font.BOLD, 14);
-        private final Font subFont = new Font("Segoe UI", Font.PLAIN, 12);
+        private final Font subFont = new Font("Segoe UI", Font.PLAIN, 13); // Tăng size chữ phụ
         private final Color textColor = Color.DARK_GRAY;
-        private final Color timeColor = Color.BLUE;
+        private final Color timeColor = Color.BLACK; // Đổi màu giờ thành đen
+        private final Color separatorColor = new Color(220, 220, 220); // Màu đường kẻ
+
+        public PhieuDatListRenderer() {
+            // --- Cấu trúc Panel cho mỗi Item ---
+            mainPanel = new JPanel(new BorderLayout(10, 0)); // Panel chính, cách nút Xóa 10px
+            mainPanel.setBorder(new EmptyBorder(8, 10, 8, 10)); // Lề trên/dưới 8, trái/phải 10
+
+            // Panel chứa 2 dòng text (xếp dọc)
+            textPanel = new JPanel();
+            textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
+            textPanel.setOpaque(false); // Nền trong suốt
+
+            lblLine1 = new JLabel(" "); // Khởi tạo label trống
+            lblLine1.setFont(mainFont);
+            lblLine1.setForeground(textColor);
+
+            lblLine2 = new JLabel(" "); // Khởi tạo label trống
+            lblLine2.setFont(subFont);
+            lblLine2.setForeground(timeColor);
+
+            textPanel.add(lblLine1);
+            textPanel.add(Box.createRigidArea(new Dimension(0, 3))); // Khoảng cách nhỏ giữa 2 dòng
+            textPanel.add(lblLine2);
+
+            // Nút Xóa (JButton màu đỏ)
+            btnDelete = new JButton("X");
+            btnDelete.setFont(new Font("Arial", Font.BOLD, 16));
+            btnDelete.setForeground(Color.WHITE);
+            btnDelete.setBackground(new Color(239, 68, 68)); // Màu đỏ giống ManHinhBanGUI
+            btnDelete.setFocusPainted(false);
+            btnDelete.setBorder(new EmptyBorder(5, 10, 5, 10)); // Padding cho nút
+            btnDelete.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btnDelete.setPreferredSize(new Dimension(40, 40)); // Kích thước nút X
+            // Không thêm ActionListener ở đây, JList sẽ xử lý
+
+            // Đường kẻ phân cách
+            separator = new JSeparator(SwingConstants.HORIZONTAL);
+            separator.setForeground(separatorColor);
+
+            // Gắn các thành phần vào mainPanel
+            mainPanel.add(textPanel, BorderLayout.CENTER);
+            mainPanel.add(btnDelete, BorderLayout.EAST);
+            // Không thêm separator trực tiếp vào item panel
+        }
 
         @Override
-        public Component getListCellRendererComponent(JList<?> list, Object value,
+        public Component getListCellRendererComponent(JList<? extends DonDatMon> list, DonDatMon value,
                                                       int index, boolean isSelected, boolean cellHasFocus) {
-            // Dùng JPanel để chứa nhiều JLabel và nút Xóa
-            JPanel itemPanel = new JPanel(new BorderLayout(10, 2)); // Khoảng cách
-            itemPanel.setBorder(new EmptyBorder(5, 10, 5, 5)); // Lề
 
-            // Nút Xóa (JButton)
-            JButton btnDelete = new JButton("X");
-            btnDelete.setForeground(Color.RED);
-            btnDelete.setFocusPainted(false);
-            btnDelete.setBorder(null);
-            btnDelete.setContentAreaFilled(false);
-            btnDelete.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            // TODO: Thêm ActionListener cho btnDelete để xử lý xóa
+            // Lấy dữ liệu và cập nhật Labels (Giống logic cũ, gọi DAO)
+            if (value instanceof DonDatMon) {
+                DonDatMon ddm = value;
+                String tenBan = banDAO.getTenBanByMa(ddm.getMaBan());
+                KhachHang kh = (ddm.getMaKH() != null) ? khachHangDAO.timTheoMaKH(ddm.getMaKH()) : null;
+                String tenKH = (kh != null) ? kh.getTenKH() : "Vãng lai";
+                String sdtKH = (kh != null) ? kh.getSdt() : "--";
+                Ban banDat = banDAO.getBanByMa(ddm.getMaBan());
+                String gioDen = (banDat != null && banDat.getGioMoBan() != null) ? banDat.getGioMoBan().format(timeFormatter) : "N/A";
+                // Lấy số người từ spinner lúc đặt (Cần lưu vào DonDatMon)
+                // Tạm thời vẫn dùng số ghế:
+                int soNguoi = (banDat != null) ? banDat.getSoGhe() : 0;
 
-            // Panel chứa thông tin (2 dòng)
-            JPanel infoPanel = new JPanel();
-            infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
-            infoPanel.setOpaque(false);
+                lblLine1.setText(String.format("%s (%s)", tenBan, sdtKH));
+                lblLine2.setText(String.format("%s - %s - %d người", gioDen, tenKH, soNguoi));
 
-            if (value instanceof String && !value.toString().startsWith("Lỗi") && !value.toString().startsWith("Chưa có")) {
-                // Tách chuỗi hiển thị (đây là cách tạm, nên lưu object DonDatMon vào model)
-                String displayString = (String) value;
-                String[] lines = displayString.split("\n");
-                String line1 = lines.length > 0 ? lines[0] : ""; // VD: "Bàn 1 (0123456789) - Lê Nguyễn Quốc Huy"
-                String line2 = lines.length > 1 ? lines[1] : ""; // VD: "12:00 -  - 10 người"
-
-                // Tách dòng 1
-                String tenBan = line1.substring(0, line1.indexOf("(")).trim();
-                String sdt = line1.substring(line1.indexOf("(") + 1, line1.indexOf(")")).trim();
-                String tenKH = line1.substring(line1.indexOf("-") + 1).trim();
-
-                // Tách dòng 2
-                String gioDen = line2.substring(0, line2.indexOf("-")).trim();
-                // String ghiChu = ... (Lấy ghi chú nếu có)
-                String soNguoi = line2.substring(line2.lastIndexOf("-") + 1).trim();
-
-
-                JLabel lblLine1 = new JLabel(String.format("%s (%s) - %s", tenBan, sdt, tenKH));
-                lblLine1.setFont(mainFont);
-                lblLine1.setForeground(textColor);
-
-                JLabel lblLine2 = new JLabel(String.format("%s - %s", gioDen, soNguoi));
-                lblLine2.setFont(subFont);
-                lblLine2.setForeground(timeColor);
-
-                infoPanel.add(lblLine1);
-                infoPanel.add(lblLine2);
-
+                // Hiện nút xóa cho item hợp lệ
+                btnDelete.setVisible(true);
             } else {
-                // Hiển thị thông báo lỗi/trống
-                JLabel lblInfo = new JLabel(value.toString());
-                lblInfo.setFont(subFont);
-                lblInfo.setForeground(Color.GRAY);
-                infoPanel.add(lblInfo);
+                String message;
+                // Lấy text tìm kiếm và placeholder
+                String currentSearchText = txtTimKiemPhieuDat.getText().trim();
+                final String placeholder = " Tìm kiếm bàn đặt SĐT/Tên khách...";
+
+                // Kiểm tra xem người dùng có đang tìm kiếm không
+                if (!currentSearchText.isEmpty() && !currentSearchText.equals(placeholder)) {
+                    // Nếu đang tìm kiếm mà value là null -> Không tìm thấy
+                    message = "Không tìm thấy kết quả phù hợp.";
+                } else {
+                    // Nếu không tìm kiếm mà value là null -> Chưa có đơn nào
+                    message = "Chưa có bàn nào được đặt trước.";
+                }
+
+                lblLine1.setText(message); // Hiển thị thông báo ở dòng 1
+                lblLine1.setFont(subFont);    // Dùng font nhỏ hơn
+                lblLine1.setForeground(Color.GRAY); // Màu xám
+                lblLine2.setText(" ");       // Dòng 2 để trống
+                btnDelete.setVisible(false); // Ẩn nút xóa
             }
 
-
-            itemPanel.add(infoPanel, BorderLayout.CENTER);
-            itemPanel.add(btnDelete, BorderLayout.EAST);
-
-            // Xử lý màu nền khi chọn
+            // Xử lý màu nền khi chọn/không chọn
             if (isSelected) {
-                itemPanel.setBackground(list.getSelectionBackground());
-                itemPanel.setForeground(list.getSelectionForeground());
+                mainPanel.setBackground(list.getSelectionBackground()); // Màu nền khi chọn
+                mainPanel.setForeground(list.getSelectionForeground()); // Màu chữ khi chọn (thường không cần)
+                textPanel.setOpaque(true); // Cần đặt opaque để thấy màu nền
+                textPanel.setBackground(list.getSelectionBackground());
+                lblLine1.setForeground(Color.WHITE); // Đổi chữ thành trắng khi nền xanh
+                lblLine2.setForeground(Color.WHITE);
             } else {
-                itemPanel.setBackground(list.getBackground());
-                itemPanel.setForeground(list.getForeground());
+                mainPanel.setBackground(list.getBackground()); // Nền trắng mặc định
+                mainPanel.setForeground(list.getForeground());
+                textPanel.setOpaque(false); // Nền trong suốt trở lại
+                lblLine1.setForeground(textColor); // Trả màu chữ về mặc định
+                lblLine2.setForeground(timeColor);
             }
+            // Đặt nền nút xóa theo nền panel
+            btnDelete.setBackground(mainPanel.getBackground());
+            if (isSelected) btnDelete.setForeground(Color.DARK_GRAY); else btnDelete.setForeground(Color.RED);
 
-            return itemPanel;
+
+            // --- Tạo Panel bao gồm item và separator ---
+            JPanel containerPanel = new JPanel(new BorderLayout());
+            containerPanel.setBackground(list.getBackground()); // Nền trắng
+            containerPanel.add(mainPanel, BorderLayout.CENTER);
+            containerPanel.add(separator, BorderLayout.SOUTH); // Thêm đường kẻ dưới
+
+            return containerPanel; // Trả về panel chứa cả item và đường kẻ
         }
     }
 

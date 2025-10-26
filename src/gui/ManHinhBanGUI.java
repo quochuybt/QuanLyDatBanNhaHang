@@ -627,5 +627,44 @@ public class ManHinhBanGUI extends JPanel {
     public Ban getSelectedTable() {
         return selectedTable; // Trả về biến thành viên selectedTable
     }
+    public void refreshTableList() {
+        System.out.println("ManHinhBanGUI: Refreshing table list..."); // Debug
+        try {
+            // 1. Tải lại dữ liệu mới nhất
+            this.allTablesFromDB = banDAO.getAllBan();
 
+            // 2. Vẽ lại panel bàn (dùng lại hàm populateLeftPanel)
+            populateLeftPanel(currentLeftFilter); // Vẽ lại với bộ lọc hiện tại
+
+            // 3. (Tùy chọn) Cập nhật lại panel thống kê
+            // Cần tách logic cập nhật stats ra hàm riêng hoặc gọi lại buildUI phần đó
+            // Ví dụ: updateStatsPanel(); // Bạn cần tạo hàm này nếu muốn stats cập nhật
+
+            // 4. (Tùy chọn) Bỏ chọn bàn hiện tại nếu nó không còn nữa hoặc đổi trạng thái
+            if (selectedTable != null) {
+                // Tìm xem bàn đã chọn còn tồn tại và trạng thái có hợp lệ không
+                boolean stillExists = false;
+                for(Ban ban : allTablesFromDB) {
+                    if (ban.equals(selectedTable)) {
+                        // Cập nhật lại selectedTable với dữ liệu mới nhất
+                        selectedTable = ban;
+                        stillExists = true;
+                        break;
+                    }
+                }
+                if (!stillExists) {
+                    selectedTable = null; // Bỏ chọn nếu bàn đã bị xóa (ít xảy ra)
+                }
+                updateRightPanelDetails(selectedTable); // Cập nhật lại panel phải
+            }
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Lỗi khi làm mới danh sách bàn.\nChi tiết: " + e.getMessage(),
+                    "Lỗi CSDL",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
 }
