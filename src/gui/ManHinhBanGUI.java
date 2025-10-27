@@ -33,6 +33,7 @@ public class ManHinhBanGUI extends JPanel {
     private DonDatMonDAO donDatMonDAO;
     private Ban selectedTable = null;
     private JPanel leftTableContainer;
+    private JPanel statsPanel;
     private String currentLeftFilter = "Tất cả";
     private List<BanPanel> leftBanPanelList = new ArrayList<>();
     private DanhSachBanGUI parentDanhSachBanGUI;
@@ -127,7 +128,7 @@ public class ManHinhBanGUI extends JPanel {
         JPanel leftPanel = new JPanel(new BorderLayout(0, 10));
         leftPanel.setOpaque(false);
         JPanel listPanel = createListPanel("Danh sách toàn bộ bàn");
-        JPanel statsPanel = createStatsPanel();
+        this.statsPanel = createStatsPanel();
         leftPanel.add(listPanel, BorderLayout.CENTER);
         leftPanel.add(statsPanel, BorderLayout.SOUTH);
 
@@ -147,6 +148,7 @@ public class ManHinhBanGUI extends JPanel {
 
         populateLeftPanel(currentLeftFilter);
         updateRightPanelDetails(selectedTable);
+        updateStatsPanel();
     }
     private JPanel createRightPanel() {
         // 1. Panel chính bên phải (vẫn dùng BorderLayout)
@@ -353,11 +355,14 @@ public class ManHinhBanGUI extends JPanel {
 
                 // --- GỌI DAO ĐỂ LẤY THÔNG TIN ĐẶT BÀN ---
                 entity.DonDatMon ddm = donDatMonDAO.getDonDatMonDatTruoc(ban.getMaBan());
+                System.out.println("DEBUG: DonDatMon tìm thấy: " + ddm);
                 entity.KhachHang kh = null;
 
-                if (ddm != null && ddm.getMaKH() != null) {
-                    // Dùng KhachHangDAO để tìm khách từ maKH
-                    kh = khachHangDAO.timTheoMaKH(ddm.getMaKH());
+                if (ddm != null) { // Thêm kiểm tra null ở đây cho an toàn
+                    System.out.println("DEBUG: Ghi chú từ ddm: '" + ddm.getGhiChu() + "'"); // In ra giá trị ghiChu
+                    if (ddm.getMaKH() != null) {
+                        kh = khachHangDAO.timTheoMaKH(ddm.getMaKH());
+                    }
                 }
 
                 // Cập nhật các ô
@@ -372,8 +377,7 @@ public class ManHinhBanGUI extends JPanel {
                     txtThanhVien.setText("Vãng lai");
                 }
 
-                // TODO: Bảng DonDatMon của bạn chưa có Ghi chú
-                txtGhiChu.setText("");
+                txtGhiChu.setText( (ddm != null && ddm.getGhiChu() != null) ? ddm.getGhiChu() : "" );
             }
             else { // Đang phục vụ
                 // Lấy thông tin từ Bàn (Giờ vào)
@@ -471,7 +475,27 @@ public class ManHinhBanGUI extends JPanel {
 
         return statsPanel;
     }
+    private void updateStatsPanel() {
+        // Lấy panel cha của statsPanel hiện tại (là leftPanel)
+        Container parent = statsPanel.getParent();
+        if (parent != null) {
+            // Xóa statsPanel cũ khỏi panel cha
+            parent.remove(statsPanel);
 
+            // Tạo statsPanel MỚI với dữ liệu cập nhật
+            this.statsPanel = createStatsPanel(); // Gọi lại hàm create để tính toán lại
+
+            // Thêm statsPanel mới vào vị trí cũ (SOUTH của leftPanel)
+            parent.add(this.statsPanel, BorderLayout.SOUTH);
+
+            // Vẽ lại panel cha để hiển thị thay đổi
+            parent.revalidate();
+            parent.repaint();
+            System.out.println("Stats Panel updated!"); // Debug
+        } else {
+            System.err.println("Không tìm thấy panel cha của statsPanel để cập nhật!");
+        }
+    }
     private JPanel createStatItem(String name, int count, Color color) {
         JPanel itemPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         itemPanel.setOpaque(false);
@@ -636,9 +660,7 @@ public class ManHinhBanGUI extends JPanel {
             // 2. Vẽ lại panel bàn (dùng lại hàm populateLeftPanel)
             populateLeftPanel(currentLeftFilter); // Vẽ lại với bộ lọc hiện tại
 
-            // 3. (Tùy chọn) Cập nhật lại panel thống kê
-            // Cần tách logic cập nhật stats ra hàm riêng hoặc gọi lại buildUI phần đó
-            // Ví dụ: updateStatsPanel(); // Bạn cần tạo hàm này nếu muốn stats cập nhật
+            updateStatsPanel();
 
             // 4. (Tùy chọn) Bỏ chọn bàn hiện tại nếu nó không còn nữa hoặc đổi trạng thái
             if (selectedTable != null) {

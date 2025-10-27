@@ -3,7 +3,6 @@ package gui;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
-
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -25,6 +24,9 @@ public class MainGUI extends JFrame {
     // --- THAY ĐỔI 1: Thêm biến lưu vai trò ---
     private final String userRole;
     private final String userName;
+
+    private DanhSachBanGUI danhSachBanGUI; // Để truyền 'this' vào constructor của nó
+    private KhachHangGUI khachHangGUI;
 
     public MainGUI(String userRole, String userName) {
         this.userRole = userRole;
@@ -261,10 +263,20 @@ public class MainGUI extends JFrame {
         mainContentPanel.add(new NhanVienGUI(), "Nhân viên");
 
         // Chỉ Nhân viên
-        mainContentPanel.add(new DanhSachBanGUI(), "Danh sách bàn");
-        mainContentPanel.add(new KhachHangGUI(), "Thành viên");
+        mainContentPanel.add(new DanhSachBanGUI(this), "Danh sách bàn");
+        this.khachHangGUI = new KhachHangGUI(); // <-- LƯU INSTANCE
+        mainContentPanel.add(this.khachHangGUI, "Thành viên");
     }
 
+    public void refreshKhachHangScreen() {
+        // Kiểm tra xem KhachHangGUI đã được tạo chưa (cho trường hợp Quản lý không có màn hình này)
+        if (khachHangGUI != null) {
+            khachHangGUI.refreshKhachHangTable(); // Gọi hàm refresh bạn đã tạo trong KhachHangGUI
+            System.out.println("MainGUI: Đã yêu cầu KhachHangGUI làm mới."); // Debug
+        } else {
+            System.err.println("MainGUI: KhachHangGUI chưa được khởi tạo (có thể do vai trò không phải Nhân viên?).");
+        }
+    }
     private JPanel createPlaceholderPanel(String name) {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBackground(new Color(244, 247, 252)); // Màu nền chính

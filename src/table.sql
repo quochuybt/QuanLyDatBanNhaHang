@@ -62,11 +62,15 @@ CREATE TABLE KhachHang (
     hangThanhVien NVARCHAR(20) NOT NULL DEFAULT N'NONE',
     tongChiTieu DECIMAL(18, 2) NOT NULL DEFAULT 0,
     CONSTRAINT FK_KhachHang_HangTV FOREIGN KEY (hangThanhVien) REFERENCES HangThanhVien(tenHang),
-    ngaySinh DATE,
-    diaChi NVARCHAR(255),
+    ngaySinh DATE NULL,
+    diaChi NVARCHAR(255) NULL,
     ngayThamGia DATE NOT NULL DEFAULT GETDATE(),
-    email NVARCHAR(100) UNIQUE
+    email NVARCHAR(100) NULL
 );
+CREATE UNIQUE NONCLUSTERED INDEX UQ_KhachHang_Email_NotNull
+ON dbo.KhachHang(email)
+WHERE email IS NOT NULL;
+GO
 
 CREATE TABLE MonAn (
     maMonAn NVARCHAR(20) PRIMARY KEY,
@@ -110,6 +114,7 @@ CREATE TABLE DonDatMon (
     maNV NVARCHAR(20) NOT NULL,
     maKH NVARCHAR(20) NULL,
     maBan NVARCHAR(10) NULL,
+    ghiChu NVARCHAR(MAX) NULL,
 
     CONSTRAINT FK_DonDatMon_NhanVien FOREIGN KEY (maNV) REFERENCES NhanVien(maNV),
     CONSTRAINT FK_DonDatMon_KhachHang FOREIGN KEY (maKH) REFERENCES KhachHang(maKH),
