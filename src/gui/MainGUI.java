@@ -28,6 +28,7 @@ public class MainGUI extends JFrame {
 
     public MainGUI(String userRole, String userName) {
         this.userRole = userRole;
+
         this.userName = userName;
         setTitle("Phần mềm quản lý cửa hàng tiện lợi");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -150,7 +151,7 @@ public class MainGUI extends JFrame {
         // --- Các nút chức năng ---
         // Sử dụng LinkedHashMap để duy trì thứ tự thêm vào
         LinkedHashMap<String, String> menuItems = new LinkedHashMap<>();
-        if ("QuanLy".equals(this.userRole)) {
+        if ("QUANLY".equals(this.userRole)) {
             // Quản lý: Hiển thị tất cả các mục như cũ
             menuItems.put("Màn hình chính", "⌂"); // Icon Unicode
             menuItems.put("Danh mục món ăn", "🍽️");
@@ -158,7 +159,7 @@ public class MainGUI extends JFrame {
             menuItems.put("Khuyến mãi", "🏷️");
             menuItems.put("Hóa đơn", "🧾");
             menuItems.put("Nhân viên", "👤");
-        } else if ("NhanVien".equals(this.userRole)) {
+        } else if ("NHANVIEN".equals(this.userRole)) {
             // Nhân viên: Hiển thị các mục bạn yêu cầu
             menuItems.put("Màn hình chính", "⌂");
             menuItems.put("Danh sách bàn", "🪑"); // (Icon ví dụ)
