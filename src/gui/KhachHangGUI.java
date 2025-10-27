@@ -419,10 +419,10 @@ public class KhachHangGUI extends JPanel {
         buttonPanel.setBorder(new EmptyBorder(0, 10, 0, 0));
 
         btnLamMoiForm = createStyledButton("🔄 Làm mới", COLOR_ACCENT_BLUE.brighter());
-        btnThem = createStyledButton("➕ Thêm", new Color(0, 150, 50));
-        btnXoa = createStyledButton("➖ Xóa", new Color(210, 0, 0));
-        btnSua = createStyledButton("🔧 Sửa", COLOR_BUTTON_BLUE);
-        btnTimKiem = createStyledButton("🔍 Tìm kiếm", Color.LIGHT_GRAY.darker());
+        btnThem = createStyledButton(" Thêm", new Color(0, 150, 50));
+        btnXoa = createStyledButton(" Xóa", new Color(210, 0, 0));
+        btnSua = createStyledButton(" Sửa", COLOR_BUTTON_BLUE);
+        btnTimKiem = createStyledButton(" Tìm kiếm", Color.LIGHT_GRAY.darker());
 
         Dimension buttonSize = new Dimension(150, 40);
         btnLamMoiForm.setMaximumSize(buttonSize);

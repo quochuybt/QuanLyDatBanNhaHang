@@ -6,8 +6,6 @@ import entity.VaiTro;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.KeyAdapter; // Import mới
-import java.awt.event.KeyEvent; // Import mới
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -25,7 +23,7 @@ public class ThemNhanVienDialog extends JDialog {
     private final JTextField txtDiaChi = new JTextField(30);
     private final JTextField txtLuong = new JTextField(8);
     private final JComboBox<VaiTro> cmbVaiTro = new JComboBox<>(VaiTro.values());
-    private final JTextField txtTenTK = new JTextField(10); // Trường Tên Tài khoản riêng
+    private final JTextField txtTenTK = new JTextField(10);
     private final JPasswordField txtMatKhau = new JPasswordField(10);
 
     public ThemNhanVienDialog(NhanVienGUI parentPanel) {
@@ -69,16 +67,6 @@ public class ThemNhanVienDialog extends JDialog {
         mainPanel.add(txtDiaChi, gbc);
 
         txtMatKhau.setText(generateDefaultPassword());
-
-        // THÊM: Listener để tự động điền SĐT vào Tên TK mặc định
-        txtSdt.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyReleased(KeyEvent e) {
-                // Tự động điền SĐT vào Tên TK (người dùng có thể sửa)
-                txtTenTK.setText(txtSdt.getText().trim());
-            }
-        });
-
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton btnThem = new JButton("Thêm");
@@ -149,7 +137,7 @@ public class ThemNhanVienDialog extends JDialog {
                     hoTen,
                     ngaySinh,
                     gioiTinh,
-                    sdt, // SĐT vẫn được dùng để lưu vào cột sdt và kiểm tra validation
+                    sdt,
                     diaChi,
                     LocalDate.now(),
                     luong,
@@ -157,7 +145,6 @@ public class ThemNhanVienDialog extends JDialog {
             );
 
             // 3. Thực hiện thêm nhân viên và tài khoản
-            // Truyền tenTK riêng vào DAO
             boolean success = nhanVienDAO.addNhanVienAndAccount(nv, tenTK, matKhau);
 
             if (success) {
