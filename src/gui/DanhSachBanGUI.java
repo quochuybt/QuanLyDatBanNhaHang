@@ -54,23 +54,32 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
         // 2. Thêm ActionListener mới, đặc biệt cho nút "Gọi Món"
         btnTabGoiMon.addActionListener(e -> {
             // Lấy bàn đang được chọn từ màn hình Bàn
-            Ban banDangChon = manHinhBanGUI.getSelectedTable();
+            if (btnTabGoiMon.isSelected()) {
+                Ban banDangChon = manHinhBanGUI.getSelectedTable();
 
-            if (banDangChon != null) {
-                // Nếu đã chọn bàn:
-                // a. Tải dữ liệu món ăn của bàn đó vào màn hình Gọi Món
-                manHinhGoiMonGUI.loadDuLieuBan(banDangChon);
-                // b. Chuyển sang hiển thị màn hình Gọi Món
-                contentCardLayout.show(contentCardPanel, "MAN_HINH_GOI_MON");
-                // c. Cập nhật lại màu sắc cho tất cả các nút tab
-                updateTopNavButtonStyles();
-            } else {
-                // Nếu chưa chọn bàn:
-                // a. Hiển thị thông báo lỗi
-                JOptionPane.showMessageDialog(this,
-                        "Vui lòng chọn một bàn từ tab 'Bàn' trước khi chuyển sang 'Gọi Món'.",
-                        "Chưa chọn bàn",
-                        JOptionPane.WARNING_MESSAGE);
+                if (banDangChon != null) {
+                    boolean shouldShowGoiMon = manHinhGoiMonGUI.loadDuLieuBan(banDangChon);
+                    if (shouldShowGoiMon) {
+                        contentCardLayout.show(contentCardPanel, "MAN_HINH_GOI_MON");
+                        updateTopNavButtonStyles();
+                    }else {
+                        System.out.println("loadDuLieuBan trả về false, quay lại tab Bàn."); // Debug
+                        SwingUtilities.invokeLater(() -> {
+                            btnTabBan.setSelected(true);
+                        });
+                    }
+                } else {
+                    // Nếu chưa chọn bàn:
+                    // a. Hiển thị thông báo lỗi
+                    JOptionPane.showMessageDialog(this,
+                            "Vui lòng chọn một bàn từ tab 'Bàn' trước khi chuyển sang 'Gọi Món'.",
+                            "Chưa chọn bàn",
+                            JOptionPane.WARNING_MESSAGE);
+                    SwingUtilities.invokeLater(() -> {
+                        btnTabBan.setSelected(true); // Chọn lại nút Bàn
+                        // Không cần gọi show card lại vì setSelected sẽ trigger listener của btnTabBan
+                    });
+                }
             }
         });
         // --- KẾT THÚC XỬ LÝ RIÊNG CHO "GỌI MÓN" ---
@@ -136,7 +145,7 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
         // --- Khởi tạo các màn hình con ---
         // Truyền 'this' (DanhSachBanGUI) vào ManHinhBanGUI
         manHinhBanGUI = new ManHinhBanGUI(this);
-        manHinhGoiMonGUI = new ManHinhGoiMonGUI();
+        manHinhGoiMonGUI = new ManHinhGoiMonGUI(this);
         manHinhDatBanGUI = new ManHinhDatBanGUI(this, mainGUI_Parent);
 
         // --- Thêm các màn hình con vào CardLayout ---
@@ -163,31 +172,10 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
         navButton.setPreferredSize(new Dimension(120, 40)); // Kích thước nút
         navButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         navButton.setFont(new Font("Segoe UI", Font.BOLD, 14)); // Font chữ
-
-        // Màu sắc ban đầu
-        if (selected) {
-            navButton.setBackground(Color.WHITE);
-            navButton.setForeground(Color.BLACK);
-        } else {
-            navButton.setBackground(COLOR_ACCENT_BLUE);
-            navButton.setForeground(Color.WHITE);
-        }
-
-        // Đổi màu khi trạng thái selected thay đổi
-//        navButton.addChangeListener(e -> {
-//            if (navButton.isSelected()) {
-//                navButton.setBackground(Color.WHITE);
-//                navButton.setForeground(Color.BLACK);
-//            } else {
-//                navButton.setBackground(COLOR_ACCENT_BLUE);
-//                navButton.setForeground(Color.WHITE);
-//            }
-//        });
-
-        // Chuyển card khi nút được bấm
         navButton.addActionListener(e -> {
-            contentCardLayout.show(contentCardPanel, cardName);
-            updateTopNavButtonStyles();
+            if (navButton.isSelected()) {
+                contentCardLayout.show(contentCardPanel, cardName);
+            }
         });
         navButton.setSelected(selected);
 
@@ -211,18 +199,29 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
             }
         }
     }
-    public void chuyenSangManHinhGoiMon(Ban banDuocChon) {
-        if (banDuocChon != null) {
-            manHinhGoiMonGUI.loadDuLieuBan(banDuocChon);
-            contentCardLayout.show(contentCardPanel, "MAN_HINH_GOI_MON");
-            btnTabGoiMon.setSelected(true); // Chọn nút Gọi Món
-            updateTopNavButtonStyles(); // <-- Gọi update style ở đây nữa
-        }
-    }
     public void refreshManHinhBan() {
+        System.out.println("Đã nhận yêu cầu refresh...");
         if (manHinhBanGUI != null) {
             manHinhBanGUI.refreshTableList();
         }
+    }
+    public void switchToTab(String cardName) {
+        // 1. Chuyển CardLayout
+        contentCardLayout.show(contentCardPanel, cardName);
+
+        // 2. Chọn nút tab tương ứng
+        if ("MAN_HINH_BAN".equals(cardName) && btnTabBan != null) {
+            btnTabBan.setSelected(true);
+        } else if ("MAN_HINH_GOI_MON".equals(cardName) && btnTabGoiMon != null) {
+            btnTabGoiMon.setSelected(true);
+        } else if ("MAN_HINH_DAT_BAN".equals(cardName) && btnTabDatBan != null) {
+            btnTabDatBan.setSelected(true);
+        }
+        // ButtonGroup sẽ tự động bỏ chọn các nút khác
+
+        // 3. Cập nhật lại style của tất cả các nút tab
+        updateTopNavButtonStyles();
+        System.out.println("Đã chuyển sang tab: " + cardName); // Debug
     }
     private void showChuyenBanDiaLog() {
         Window parentFrame = SwingUtilities.getWindowAncestor(this);

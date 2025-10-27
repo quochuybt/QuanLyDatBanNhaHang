@@ -1,6 +1,6 @@
 package gui;
 
-import dao.MonAnDAO; // Giả sử bạn sẽ tạo DAO này
+import dao.*;
 import entity.*;
 
 import javax.swing.*;
@@ -11,11 +11,11 @@ import java.awt.event.ActionListener; // Thêm
 import java.awt.event.MouseAdapter;  // Thêm
 import java.awt.event.MouseEvent;
 import java.text.NumberFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-
-import dao.HoaDonDAO; // Thêm import HoaDonDAO
 
 import javax.swing.table.TableColumn;
 
@@ -24,6 +24,7 @@ public class ManHinhGoiMonGUI extends JPanel {
     private HoaDonDAO hoaDonDAO_GoiMon; // Dùng instance DAO riêng nếu cần
     private final NumberFormat nf = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
 
+    private DanhSachBanGUI parentDanhSachBanGUI_GoiMon;
     // Panel bên trái
     private MonAnDAO monAnDAO;
     private List<MonAn> dsMonAnFull; // Danh sách TẤT CẢ món ăn (để lọc)
@@ -32,6 +33,10 @@ public class ManHinhGoiMonGUI extends JPanel {
     private JTextField txtTimKiem;
     private String currentCategoryFilter = "Tất cả";
     private JLabel statusColorBox;
+    private DonDatMonDAO donDatMonDAO;
+    private BanDAO banDAO;
+    private ChiTietHoaDonDAO chiTietDAO;
+    private KhachHangDAO khachHangDAO;
 
     // Panel bên phải
     private JLabel lblTenBanHeader;
@@ -39,76 +44,193 @@ public class ManHinhGoiMonGUI extends JPanel {
     private DefaultTableModel modelChiTietHoaDon;
     private BillPanel billPanel; // TÁI SỬ DỤNG BILLPANEL CỦA BẠN
 
-    public ManHinhGoiMonGUI() {
+    public ManHinhGoiMonGUI(DanhSachBanGUI parent) {
         super(new BorderLayout());
+        this.parentDanhSachBanGUI_GoiMon = parent;
         this.monAnDAO = new MonAnDAO();
         this.dsMonAnFull = new ArrayList<>(); // Khởi tạo list
         this.hoaDonDAO_GoiMon = new HoaDonDAO();
+        this.donDatMonDAO = new DonDatMonDAO();
+        this.banDAO = new BanDAO();
         this.dsMonAnPanel = new ArrayList<>(); // Khởi tạo list
+        this.chiTietDAO = new ChiTietHoaDonDAO();
+        this.khachHangDAO = new KhachHangDAO();
+
         buildUI();
         loadDataFromDB();
         xoaThongTinGoiMon();
     }
-    public void loadDuLieuBan(Ban banDuocChon) {
+    private String phatSinhMaHD() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyy");
+        String datePart = LocalDateTime.now().format(formatter);
+        // Dùng ThreadLocalRandom cho đơn giản
+        int randomPart = java.util.concurrent.ThreadLocalRandom.current().nextInt(1000, 10000);
+        return "HD" + datePart + randomPart;
+    }
+    public DanhSachBanGUI getParentDanhSachBanGUI() {
+        return parentDanhSachBanGUI_GoiMon;
+    }
+    public boolean loadDuLieuBan(Ban banDuocChon) {
+        System.out.println("loadDuLieuBan được gọi cho: " + banDuocChon.getTenBan() + " - Trạng thái: " + banDuocChon.getTrangThai());
         this.banHienTai = banDuocChon; // Lưu lại bàn hiện tại
 
-        // 1. Cập nhật Header
+        // 1. Cập nhật Header và Màu sắc (luôn thực hiện)
         lblTenBanHeader.setText(banDuocChon.getTenBan() + " - " + banDuocChon.getKhuVuc());
-
         Color statusColor;
         switch (banDuocChon.getTrangThai()) {
-            case TRONG: // Mặc dù ít khi gọi món cho bàn trống, nhưng để đủ case
-                statusColor = ManHinhBanGUI.COLOR_STATUS_FREE;
-                break;
-            case DA_DAT_TRUOC:
-                statusColor = ManHinhBanGUI.COLOR_STATUS_RESERVED;
-                break;
-            case DANG_PHUC_VU:
-            default:
-                statusColor = ManHinhBanGUI.COLOR_STATUS_OCCUPIED;
-                break;
+            case TRONG: statusColor = ManHinhBanGUI.COLOR_STATUS_FREE; break;
+            case DA_DAT_TRUOC: statusColor = ManHinhBanGUI.COLOR_STATUS_RESERVED; break;
+            case DANG_PHUC_VU: default: statusColor = ManHinhBanGUI.COLOR_STATUS_OCCUPIED; break;
         }
         statusColorBox.setBackground(statusColor);
-        // 2. Xóa chi tiết đơn hàng cũ
+
+        // 2. Xóa chi tiết đơn hàng cũ trên bảng (luôn thực hiện)
         modelChiTietHoaDon.setRowCount(0);
 
-        // 3. Tìm hóa đơn chưa thanh toán hiện tại của bàn này
-        HoaDon activeHoaDon = null;
-        // Chỉ tìm hóa đơn nếu bàn đang phục vụ
-        if (banDuocChon.getTrangThai() == TrangThaiBan.DANG_PHUC_VU) {
-            activeHoaDon = hoaDonDAO_GoiMon.getHoaDonChuaThanhToan(banDuocChon.getMaBan());
-        }
-        // TODO: Xử lý trường hợp bàn DA_DAT_TRUOC nếu cần (tải DonDatMon?)
+        HoaDon activeHoaDon = null;     // Hóa đơn sẽ hiển thị
+        boolean requireBanRefresh = false; // Cờ kiểm tra có cần refresh ManHinhBanGUI không
 
-        // 4. Tải các món nếu tìm thấy hóa đơn
-        if (activeHoaDon != null) {
-            System.out.println("Đang tải hóa đơn: " + activeHoaDon.getMaHD() + " cho bàn " + banDuocChon.getMaBan());
-            List<ChiTietHoaDon> dsChiTiet = activeHoaDon.getDsChiTiet();
-            if (dsChiTiet != null && !dsChiTiet.isEmpty()) {
-                for (ChiTietHoaDon ct : dsChiTiet) {
-                    // Thêm dòng vào JTable
-                    Object[] rowData = {
-                            "X",                // Cột 0: Nút xóa
-                            ct.getMaMon(),      // Cột 1: Mã Món (Ẩn)
-                            ct.getTenMon(),     // Cột 2: Tên Món
-                            Integer.valueOf(ct.getSoluong()),    // Cột 3: Số lượng
-                            ct.getDongia(),     // Cột 4: Đơn giá
-                            ct.getThanhtien()   // Cột 5: Thành tiền
-                    };
-                    modelChiTietHoaDon.addRow(rowData);
+        try { // Bọc trong try-catch để xử lý lỗi CSDL
+            if (banDuocChon.getTrangThai() == TrangThaiBan.DANG_PHUC_VU) {
+                // --- BÀN ĐANG PHỤC VỤ: Tải hóa đơn hiện có ---
+                activeHoaDon = hoaDonDAO_GoiMon.getHoaDonChuaThanhToan(banDuocChon.getMaBan());
+                if (activeHoaDon == null) {
+                    System.err.println("Lỗi logic: Bàn ĐPV nhưng không có HĐ!");
+                    JOptionPane.showMessageDialog(this, "Lỗi: Không tìm thấy hóa đơn hiện tại.", "Lỗi Dữ Liệu", JOptionPane.ERROR_MESSAGE);
+                    updateBillPanelTotals(); // Reset bill
+                    return false; // Báo lỗi và yêu cầu quay lại màn Bàn
+                }
+                System.out.println("Đang tải hóa đơn: " + activeHoaDon.getMaHD());
+
+            } else if (banDuocChon.getTrangThai() == TrangThaiBan.TRONG) {
+                // --- BÀN TRỐNG: Hỏi và Mở bàn mới ---
+                int confirm = JOptionPane.showConfirmDialog(this,
+                        "Bạn có muốn mở bàn '" + banDuocChon.getTenBan() + "' cho khách không?",
+                        "Xác nhận mở bàn", JOptionPane.YES_NO_OPTION);
+
+                if (confirm == JOptionPane.YES_OPTION) {
+                    // --- Code xử lý MỞ BÀN (update Ban, them DDM, them HD) ---
+                    // ... (Giữ nguyên code gọi DAO của bạn ở đây) ...
+                    banDuocChon.setTrangThai(TrangThaiBan.DANG_PHUC_VU);
+                    banDuocChon.setGioMoBan(LocalDateTime.now());
+                    if (!banDAO.updateBan(banDuocChon)) throw new Exception("Lỗi cập nhật trạng thái bàn!");
+                    requireBanRefresh = true;
+                    String maNV_LoggedIn = "NV01102";
+                    DonDatMon ddmMoi = new DonDatMon();
+                    ddmMoi.setNgayKhoiTao(LocalDateTime.now());
+                    ddmMoi.setMaNV(maNV_LoggedIn);
+                    ddmMoi.setMaBan(banDuocChon.getMaBan());
+                    if (!donDatMonDAO.themDonDatMon(ddmMoi)) throw new Exception("Lỗi tạo đơn đặt món mới!");
+                    String newMaHD = phatSinhMaHD();
+                    // ... (Tạo hdMoi dùng constructor đầy đủ) ...
+                    HoaDon hdMoi = new HoaDon(newMaHD, LocalDateTime.now(), "Chưa thanh toán", "Tiền mặt", ddmMoi.getMaDon(), maNV_LoggedIn, null);
+                    hdMoi.setMaKH(null);
+                    hdMoi.setTongTienTuDB(0);
+                    if (!hoaDonDAO_GoiMon.themHoaDon(hdMoi)) throw new Exception("Lỗi tạo hóa đơn mới!");
+
+                    activeHoaDon = hoaDonDAO_GoiMon.getHoaDonTheoMaDon(ddmMoi.getMaDon());
+                    if(activeHoaDon == null){ activeHoaDon = hdMoi; }
+                    statusColorBox.setBackground(ManHinhBanGUI.COLOR_STATUS_OCCUPIED); // Đổi màu ngay
+                } else { // Chọn NO hoặc CANCEL
+                    System.out.println("Người dùng không muốn mở bàn.");
+                    updateBillPanelTotals(); // Reset bill
+                    return false; // Báo cho DanhSachBanGUI không chuyển tab
+                }
+
+            } else if (banDuocChon.getTrangThai() == TrangThaiBan.DA_DAT_TRUOC) {
+                // --- BÀN ĐÃ ĐẶT: Hỏi và Nhận bàn ---
+                DonDatMon ddmDaDat = donDatMonDAO.getDonDatMonDatTruoc(banDuocChon.getMaBan());
+                String tenKH = "Khách vãng lai";
+                String gioDenStr = "chưa rõ";
+                if (ddmDaDat != null) { // Lấy thông tin nếu tìm thấy đơn đặt
+                    if (ddmDaDat.getMaKH() != null && khachHangDAO != null) { // Kiểm tra khachHangDAO null
+                        KhachHang kh = khachHangDAO.timTheoMaKH(ddmDaDat.getMaKH());
+                        if (kh != null) {
+                            tenKH = kh.getTenKH();
+                        }
+                    }
+                    // Lấy giờ đặt từ bàn (vì DonDatMon không lưu giờ hẹn)
+                    if (banDuocChon.getGioMoBan() != null) {
+                        gioDenStr = banDuocChon.getGioMoBan().format(DateTimeFormatter.ofPattern("HH:mm dd/MM"));
+                    }
+                } else {
+                    // Nếu không tìm thấy đơn đặt tương ứng -> Lỗi logic
+                    System.err.println("Lỗi: Bàn " + banDuocChon.getMaBan() + " DA_DAT_TRUOC nhưng không tìm thấy DonDatMon tương ứng!");
+                    JOptionPane.showMessageDialog(this, "Lỗi: Không tìm thấy thông tin đặt bàn!", "Lỗi Dữ Liệu", JOptionPane.ERROR_MESSAGE);
+                    updateBillPanelTotals();
+                    return false; // Báo lỗi, yêu cầu quay lại
+                }
+                int confirm = JOptionPane.showConfirmDialog(this,
+                        "Bàn '" + banDuocChon.getTenBan() + "' đã được đặt trước lúc " + gioDenStr + ".\nBạn có muốn nhận bàn này không?", // Câu hỏi
+                        "Xác nhận nhận bàn", // Tiêu đề
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.QUESTION_MESSAGE);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    if (ddmDaDat == null) throw new Exception("Lỗi: Không tìm thấy đơn đặt món!");
+                    banDuocChon.setTrangThai(TrangThaiBan.DANG_PHUC_VU);
+                    banDuocChon.setGioMoBan(LocalDateTime.now());
+                    if (!banDAO.updateBan(banDuocChon)) throw new Exception("Lỗi cập nhật trạng thái bàn!");
+                    requireBanRefresh = true;
+                    String newMaHD = phatSinhMaHD();
+                    // ... (Tạo hdMoi dùng constructor đầy đủ, liên kết ddmDaDat) ...
+                    HoaDon hdMoi = new HoaDon(newMaHD, LocalDateTime.now(), "Chưa thanh toán", "Tiền mặt", ddmDaDat.getMaDon(), ddmDaDat.getMaNV(), null);
+                    hdMoi.setMaKH(ddmDaDat.getMaKH());
+                    hdMoi.setTongTienTuDB(0);
+                    if (!hoaDonDAO_GoiMon.themHoaDon(hdMoi)) throw new Exception("Lỗi tạo hóa đơn mới!");
+
+                    activeHoaDon = hoaDonDAO_GoiMon.getHoaDonTheoMaDon(ddmDaDat.getMaDon());
+                    if(activeHoaDon == null){ activeHoaDon = hdMoi;}
+                    statusColorBox.setBackground(ManHinhBanGUI.COLOR_STATUS_OCCUPIED); // Đổi màu ngay
+                } else { // Chọn NO hoặc CANCEL
+                    System.out.println("Người dùng không muốn nhận bàn đặt.");
+                    updateBillPanelTotals(); // Reset bill
+                    return false; // Báo cho DanhSachBanGUI không chuyển tab
+                }
+            } // Kết thúc if/else if trạng thái
+
+            // 4. Tải chi tiết món ăn nếu có activeHoaDon
+            if (activeHoaDon != null) {
+                // ... (Code tải ChiTietHoaDon vào modelChiTietHoaDon như cũ) ...
+                List<ChiTietHoaDon> dsChiTiet = chiTietDAO.getChiTietTheoMaDon(activeHoaDon.getMaDon());
+                if (dsChiTiet != null && !dsChiTiet.isEmpty()) {
+                    activeHoaDon.setDsChiTiet(dsChiTiet);
+                    for (ChiTietHoaDon ct : dsChiTiet) {
+                        Object[] rowData = { "X", ct.getMaMon(), ct.getTenMon(), Integer.valueOf(ct.getSoluong()), ct.getDongia(), ct.getThanhtien() };
+                        modelChiTietHoaDon.addRow(rowData);
+                    }
+                } else {
+                    System.out.println("Hóa đơn " + activeHoaDon.getMaHD() + " chưa có món nào.");
+                    if (activeHoaDon.getDsChiTiet() == null || !activeHoaDon.getDsChiTiet().isEmpty()) {
+                        activeHoaDon.setDsChiTiet(new ArrayList<>());
+                    }
                 }
             } else {
-                System.out.println("Hóa đơn " + activeHoaDon.getMaHD() + " không có chi tiết hoặc danh sách chi tiết rỗng.");
+                System.out.println("Không có hóa đơn nào đang hoạt động.");
+                activeHoaDon = null;
             }
-        } else {
-            System.out.println("Không tìm thấy hóa đơn chưa thanh toán cho bàn " + banDuocChon.getMaBan() + " hoặc bàn không ở trạng thái Đang phục vụ.");
-            // Có thể hiển thị thông báo cho người dùng ở đây nếu muốn
+
+        } catch (Exception ex) { // Xử lý lỗi chung
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Đã xảy ra lỗi:\n" + ex.getMessage(), "Lỗi Hệ Thống", JOptionPane.ERROR_MESSAGE);
+            xoaThongTinGoiMon();    // Xóa trắng màn gọi món
+            requireBanRefresh = true; // Refresh lại màn Bàn
+            updateBillPanelTotals(); // Reset bill
+            return false; // Báo lỗi và yêu cầu quay lại màn Bàn
+        } finally {
+            // Cập nhật BillPanel cuối cùng
+            updateBillPanelTotals();
         }
 
-        // 5. Cập nhật BillPanel (ngay cả khi không có hóa đơn, tổng sẽ là 0)
-        updateBillPanelTotals();
+        // Nếu mọi thứ chạy thành công và không return false ở trên
+        // -> cho phép hiển thị màn hình Gọi Món
+        // Refresh màn hình Bàn nếu trạng thái đã thay đổi
+        if (requireBanRefresh && parentDanhSachBanGUI_GoiMon != null) {
+            parentDanhSachBanGUI_GoiMon.refreshManHinhBan();
+        }
+        return true; // Báo cho DanhSachBanGUI là xử lý OK, có thể chuyển tab
     }
-    private void xoaThongTinGoiMon() {
+
+    public void xoaThongTinGoiMon() {
         lblTenBanHeader.setText("Chưa chọn bàn");
         modelChiTietHoaDon.setRowCount(0);
         billPanel.clearBill();
@@ -117,6 +239,7 @@ public class ManHinhGoiMonGUI extends JPanel {
             statusColorBox.setBackground(ManHinhBanGUI.COLOR_STATUS_FREE);
         }
     }
+
     private void addMonAnToOrder(MonAn monAn) {
         if (banHienTai == null) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn bàn trước khi gọi món!", "Chưa chọn bàn", JOptionPane.WARNING_MESSAGE);
@@ -334,7 +457,7 @@ public class ManHinhGoiMonGUI extends JPanel {
         panel.add(createOrderHeaderPanel(), BorderLayout.NORTH);
 
         // 2. SOUTH: Panel thanh toán (Tái sử dụng BillPanel)
-        this.billPanel = new BillPanel();
+        this.billPanel = new BillPanel(this);
         panel.add(billPanel, BorderLayout.SOUTH);
 
         // 3. CENTER: Bảng chi tiết hóa đơn
@@ -408,6 +531,20 @@ public class ManHinhGoiMonGUI extends JPanel {
 
     // --- CÁC HÀM HELPER (Tạm thời) ---
 
+    public DefaultTableModel getModelChiTietHoaDon() {
+        return modelChiTietHoaDon;
+    }
+
+    public Ban getBanHienTai() {
+        return banHienTai;
+    }
+    public HoaDon getActiveHoaDon() {
+        if (banHienTai != null && banHienTai.getTrangThai() == TrangThaiBan.DANG_PHUC_VU) {
+            // Gọi lại DAO để đảm bảo lấy Hóa đơn mới nhất
+            return hoaDonDAO_GoiMon.getHoaDonChuaThanhToan(banHienTai.getMaBan());
+        }
+        return null;
+    }
     private JPanel createCategoryFilterPanel() {
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0)); // Khoảng cách giữa các nút
         filterPanel.setOpaque(false);
