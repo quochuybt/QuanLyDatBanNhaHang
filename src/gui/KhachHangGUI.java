@@ -73,6 +73,28 @@ public class KhachHangGUI extends JPanel {
     /**
      * Tải dữ liệu từ danh sách (được lấy từ DAO) lên JTable
      */
+    public void refreshKhachHangTable() {
+        System.out.println("KhachHangGUI: Yêu cầu làm mới bảng khách hàng..."); // Debug
+        try {
+            // 1. Gọi DAO để lấy danh sách khách hàng mới nhất
+            List<KhachHang> dsKhachHangMoi = khachHangDAO.getAllKhachHang();
+
+            // 2. Gọi hàm loadDataToTable để cập nhật JTable
+            loadDataToTable(dsKhachHangMoi);
+
+            // 3. (Tùy chọn) Có thể gọi làm mới form nếu muốn
+            // lamMoiForm(); // Bỏ comment nếu muốn form cũng reset
+
+        } catch (Exception e) {
+            System.err.println("Lỗi khi làm mới bảng khách hàng: " + e.getMessage());
+            e.printStackTrace();
+            // Có thể hiển thị thông báo lỗi cho người dùng
+            JOptionPane.showMessageDialog(this,
+                    "Lỗi khi làm mới danh sách khách hàng.",
+                    "Lỗi CSDL",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
     private void loadDataToTable(List<KhachHang> listKH) {
         modelKhachHang.setRowCount(0);
         dsKhachHang = listKH;

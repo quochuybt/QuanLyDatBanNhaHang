@@ -8,6 +8,11 @@ import entity.TrangThaiBan; // Cần import này
 
 import java.awt.event.*;
 
+import javax.swing.SpinnerDateModel;
+import java.util.Date;
+import java.util.Calendar;
+import java.time.ZoneId;
+import java.time.LocalDate;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -33,7 +38,8 @@ public class ManHinhDatBanGUI extends JPanel {
 
     // --- Panel trái ---
     private JSpinner spinnerSoLuongKhach;
-    private JTextField txtThoiGian; // Nên dùng JSpinner hoặc component chọn giờ
+    private JSpinner dateSpinner;    // Thêm spinner ngày
+    private JSpinner timeSpinner;
     private JTextField txtGhiChu;
     private JPanel pnlBanContainer; // Đổi tên từ leftTableContainer
     private List<Ban> dsBanTrongFull; // Danh sách TẤT CẢ bàn trống
@@ -42,6 +48,7 @@ public class ManHinhDatBanGUI extends JPanel {
     private JTextField txtSDTKhach;
     private JTextField txtHoTenKhach;
     private JButton btnDatBan;
+    private MainGUI mainGUI_DatBan;
 
     // --- Panel phải ---
     private JTextField txtTimKiemPhieuDat;
@@ -50,8 +57,9 @@ public class ManHinhDatBanGUI extends JPanel {
 
     private static final Color COLOR_ACCENT_BLUE = new Color(56, 118, 243);
 
-    public ManHinhDatBanGUI(DanhSachBanGUI parent) {
+    public ManHinhDatBanGUI(DanhSachBanGUI parent,MainGUI main) {
         this.parentDanhSachBanGUI_DatBan = parent;
+        this.mainGUI_DatBan = main;
         // --- Khởi tạo DAO ---
         banDAO = new BanDAO();
         khachHangDAO = new KhachHangDAO();
@@ -150,11 +158,12 @@ public class ManHinhDatBanGUI extends JPanel {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setOpaque(false); // Nền trong suốt
         GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
         // --- Hàng 1: Labels ---
         gbc.gridy = 0; // Hàng cho labels
         gbc.anchor = GridBagConstraints.WEST; // Căn lề trái cho labels
-        gbc.insets = new Insets(0, 5, 2, 5); // Khoảng cách: trên, trái, dưới=2, phải
         gbc.weightx = 0.33; // Chia đều không gian ngang (tương đối)
 
         // Label Số lượng khách
@@ -163,17 +172,13 @@ public class ManHinhDatBanGUI extends JPanel {
         gbc.gridx = 0;
         panel.add(lblSoLuong, gbc);
 
-        // Label Thời gian
-        JLabel lblThoiGian = new JLabel("Thời gian");
-        lblThoiGian.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        gbc.gridx = 1;
-        panel.add(lblThoiGian, gbc);
+        JLabel lblNgayDat = new JLabel("Ngày đặt:");
+        lblNgayDat.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        gbc.gridx = 1; panel.add(lblNgayDat, gbc);
 
-        // Label Ghi chú
-        JLabel lblGhiChu = new JLabel("Ghi chú");
-        lblGhiChu.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        gbc.gridx = 2;
-        panel.add(lblGhiChu, gbc);
+        JLabel lblGioDat = new JLabel("Giờ đặt:");
+        lblGioDat.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        gbc.gridx = 2; panel.add(lblGioDat, gbc);
 
         // --- Hàng 2: Input Fields ---
         gbc.gridy = 1; // Hàng cho input fields
@@ -188,17 +193,51 @@ public class ManHinhDatBanGUI extends JPanel {
         gbc.gridx = 0;
         panel.add(spinnerSoLuongKhach, gbc);
 
-        // Input Thời gian (JTextField)
-        txtThoiGian = new JTextField("19:30"); // Giữ giá trị mặc định
-        applyTextFieldStyle(txtThoiGian); // Áp dụng style
-        // TODO: Validate định dạng giờ HH:mm
-        gbc.gridx = 1;
-        panel.add(txtThoiGian, gbc);
+        Date earliestDate = Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
+        SpinnerDateModel dateModel = new SpinnerDateModel(new Date(), // Giá trị ban đầu (hôm nay)
+                earliestDate, // Ngày nhỏ nhất (hôm nay)
+                null,        // Ngày lớn nhất (không giới hạn)
+                Calendar.DAY_OF_MONTH); // Bước nhảy
+        dateSpinner = new JSpinner(dateModel);
+        // Định dạng hiển thị ngày
+        dateSpinner.setEditor(new JSpinner.DateEditor(dateSpinner, "dd/MM/yyyy"));
+        applySpinnerStyle(dateSpinner); // Áp dụng style (có thể cần chỉnh hàm style)
+        gbc.gridx = 1; panel.add(dateSpinner, gbc);
 
-        // Input Ghi chú (JTextField)
+        // Spinner chọn Giờ
+        SpinnerDateModel timeModel = new SpinnerDateModel();
+        timeSpinner = new JSpinner(timeModel);
+        // Định dạng hiển thị giờ:phút
+        timeSpinner.setEditor(new JSpinner.DateEditor(timeSpinner, "HH:mm"));
+        applySpinnerStyle(timeSpinner); // Áp dụng style
+        // Đặt giá trị mặc định (1 tiếng sau, làm tròn)
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.HOUR_OF_DAY, 1);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        timeSpinner.setValue(cal.getTime());
+        gbc.gridx = 2; panel.add(timeSpinner, gbc);
+
+        // --- Hàng 3: Label Ghi chú ---
+        gbc.gridy = 2; // Hàng mới cho label Ghi chú
+        gbc.gridx = 0; // Bắt đầu từ cột 0
+        gbc.gridwidth = 4; // Kéo dài qua cả 4 cột
+        gbc.anchor = GridBagConstraints.WEST; // Căn trái
+        gbc.insets = new Insets(5, 5, 2, 5); // Lề trên 5, dưới 2
+        JLabel lblGhiChu = new JLabel("Ghi chú:");
+        lblGhiChu.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        panel.add(lblGhiChu, gbc);
+
+
+        // --- Hàng 4: Input Ghi chú ---
+        gbc.gridy = 3; // Hàng mới cho input Ghi chú
+        gbc.gridx = 0; // Bắt đầu từ cột 0
+        gbc.gridwidth = 4; // Kéo dài qua cả 4 cột
+        gbc.fill = GridBagConstraints.HORIZONTAL; // Co giãn ngang
+        gbc.anchor = GridBagConstraints.CENTER; // Căn giữa (hoặc WEST)
+        gbc.insets = new Insets(0, 5, 10, 5); // Lề dưới 10
         txtGhiChu = new JTextField();
         applyTextFieldStyle(txtGhiChu); // Áp dụng style
-        gbc.gridx = 2;
         panel.add(txtGhiChu, gbc);
 
         return panel;
@@ -599,24 +638,36 @@ public class ManHinhDatBanGUI extends JPanel {
             return;
         }
         // Validate thời gian (cần chuẩn hóa)
-        String thoiGianStr = txtThoiGian.getText().trim();
-        LocalDateTime thoiGianDat;
+        LocalDateTime thoiGianDat = null;
         try {
-            // Giả sử chỉ nhập giờ:phút, kết hợp với ngày hiện tại hoặc ngày mai?
-            // Cần logic phức tạp hơn để xử lý ngày tháng
-            LocalTime time = LocalTime.parse(thoiGianStr, DateTimeFormatter.ofPattern("HH:mm"));
-            // Tạm thời ghép với ngày hôm nay
-            thoiGianDat = LocalDateTime.now().with(time);
+            // Lấy Date từ spinner
+            Date selectedDate = (Date) dateSpinner.getValue();
+            Date selectedTime = (Date) timeSpinner.getValue();
+
+            // Dùng Calendar để kết hợp ngày và giờ
+            Calendar dateCal = Calendar.getInstance();
+            dateCal.setTime(selectedDate);
+
+            Calendar timeCal = Calendar.getInstance();
+            timeCal.setTime(selectedTime);
+
+            // Đặt giờ, phút, giây từ timeCal vào dateCal
+            dateCal.set(Calendar.HOUR_OF_DAY, timeCal.get(Calendar.HOUR_OF_DAY));
+            dateCal.set(Calendar.MINUTE, timeCal.get(Calendar.MINUTE));
+            dateCal.set(Calendar.SECOND, 0); // Đặt giây = 0
+
+            // Chuyển Calendar kết hợp sang LocalDateTime
+            thoiGianDat = dateCal.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+
+            // Kiểm tra thời gian phải trong tương lai
             if (thoiGianDat.isBefore(LocalDateTime.now())) {
-                // Nếu giờ đã qua trong ngày hôm nay -> lỗi hoặc chuyển sang ngày mai?
                 JOptionPane.showMessageDialog(this, "Thời gian đặt phải trong tương lai!", "Lỗi nhập liệu", JOptionPane.WARNING_MESSAGE);
-                txtThoiGian.requestFocus();
-                return;
+                return; // Dừng lại
             }
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Định dạng thời gian không hợp lệ (HH:mm)!", "Lỗi nhập liệu", JOptionPane.WARNING_MESSAGE);
-            txtThoiGian.requestFocus();
-            return;
+            JOptionPane.showMessageDialog(this, "Ngày hoặc giờ không hợp lệ!", "Lỗi nhập liệu", JOptionPane.WARNING_MESSAGE);
+            ex.printStackTrace(); // In lỗi ra console để debug
+            return; // Dừng lại
         }
 
 
@@ -624,17 +675,82 @@ public class ManHinhDatBanGUI extends JPanel {
         entity.KhachHang kh = khachHangDAO.timTheoSDT(sdt);
         String maKHCanDung;
         if (kh == null) {
-            // TODO: Nếu không tìm thấy, có thể hiện form/dialog để tạo KH mới
-            // Hoặc đơn giản là tạo KH vãng lai mặc định
-            JOptionPane.showMessageDialog(this, "Khách hàng mới? (Chức năng tạo KH chưa hoàn thiện)", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-            // Tạm thời dùng KH vãng lai (cần có sẵn trong DB)
-            kh = khachHangDAO.timTheoMaKH("KH_VANGLAI"); // Giả sử có mã KH_VANGLAI
-            if (kh == null) {
-                JOptionPane.showMessageDialog(this, "Lỗi: Không tìm thấy khách hàng vãng lai mặc định!", "Lỗi dữ liệu", JOptionPane.ERROR_MESSAGE);
-                return;
+            // Nếu không tìm thấy khách hàng với SĐT này -> Khách hàng mới
+            // Hiển thị hộp thoại hỏi có muốn thêm thành viên không
+            int choice = JOptionPane.showConfirmDialog(
+                    this,
+                    "Khách hàng mới với SĐT '" + sdt + "'.\nBạn có muốn thêm khách hàng này làm thành viên (Hạng MEMBER) không?",
+                    "Xác nhận thêm khách hàng",
+                    JOptionPane.YES_NO_CANCEL_OPTION, // Thêm nút Cancel
+                    JOptionPane.QUESTION_MESSAGE
+            );
+
+            if (choice == JOptionPane.YES_OPTION) {
+                // --- Người dùng chọn CÓ (Thêm làm MEMBER) ---
+                // Tạo khách hàng mới
+                kh = new entity.KhachHang(); // Dùng constructor mặc định tự sinh mã KH
+                kh.setTenKH(tenKH);          // Lấy tên từ ô nhập
+                kh.setSdt(sdt);              // Lấy SĐT từ ô nhập
+                kh.setHangThanhVien(entity.HangThanhVien.MEMBER); // Đặt hạng MEMBER
+                // Đặt các giá trị mặc định khác nếu cần (Entity của bạn có thể đã làm)
+                kh.setGioitinh("Khác"); // Hoặc một giá trị mặc định khác
+                kh.setNgaySinh(java.time.LocalDate.of(2000, 1, 1)); // Mặc định
+                kh.setDiaChi("");
+                kh.setEmail(null);
+                kh.setTongChiTieu(0);
+                kh.setNgayThamGia(java.time.LocalDate.now());
+
+                // Gọi DAO để thêm vào CSDL
+                boolean themOK = khachHangDAO.themKhachHang(kh);
+                if (themOK) {
+                    maKHCanDung = kh.getMaKH(); // Lấy mã KH vừa tạo
+                    JOptionPane.showMessageDialog(this, "Đã thêm khách hàng mới với hạng MEMBER.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                    if (mainGUI_DatBan != null) {
+                        mainGUI_DatBan.refreshKhachHangScreen(); // <-- GỌI HÀM CỦA MAIN GUI
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(this, "Lỗi khi thêm khách hàng mới vào CSDL!", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
+                    return; // Dừng xử lý nếu không thêm được KH
+                }
+
+            } else if (choice == JOptionPane.NO_OPTION) {
+                // --- Người dùng chọn KHÔNG (Thêm làm NONE) ---
+                // Tạo khách hàng mới
+                kh = new entity.KhachHang();
+                kh.setTenKH(tenKH);
+                kh.setSdt(sdt);
+                kh.setHangThanhVien(entity.HangThanhVien.NONE); // Đặt hạng NONE
+                // Đặt các giá trị mặc định khác
+                kh.setGioitinh("Khác");
+                kh.setNgaySinh(java.time.LocalDate.of(2000, 1, 1));
+                kh.setDiaChi("");
+                kh.setEmail(null);
+                kh.setTongChiTieu(0);
+                kh.setNgayThamGia(java.time.LocalDate.now());
+
+                // Gọi DAO để thêm vào CSDL
+                boolean themOK = khachHangDAO.themKhachHang(kh);
+                if (themOK) {
+                    maKHCanDung = kh.getMaKH(); // Lấy mã KH vừa tạo
+                    JOptionPane.showMessageDialog(this, "Đã thêm khách hàng mới (không phải thành viên).", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                    if (mainGUI_DatBan != null) {
+                        mainGUI_DatBan.refreshKhachHangScreen(); // <-- THÊM Ở ĐÂY
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(this, "Lỗi khi thêm khách hàng mới vào CSDL!", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
+                    return; // Dừng xử lý
+                }
+
+            } else {
+                // Người dùng bấm Cancel hoặc đóng hộp thoại
+                JOptionPane.showMessageDialog(this, "Đã hủy thao tác đặt bàn.", "Hủy bỏ", JOptionPane.INFORMATION_MESSAGE);
+                return; // Dừng xử lý đặt bàn
             }
+        } else {
+            // Nếu khách hàng đã tồn tại (tìm thấy theo SĐT)
+            maKHCanDung = kh.getMaKH(); // Lấy mã KH đã có
+            // (Không cần cập nhật tên KH ở đây trừ khi bạn muốn cho phép sửa)
         }
-        maKHCanDung = kh.getMaKH();
 
 
         // 3. Tạo đối tượng DonDatMon
@@ -645,7 +761,8 @@ public class ManHinhDatBanGUI extends JPanel {
         ddm.setMaNV(maNV_LoggedIn);
         ddm.setMaKH(maKHCanDung);
         ddm.setMaBan(banDaChon.getMaBan());
-        // TODO: Thêm Ghi chú vào DonDatMon nếu Entity và DB có hỗ trợ
+        String ghiChu = txtGhiChu.getText().trim();
+        ddm.setGhiChu(ghiChu);
 
         // 4. Gọi DAO để lưu
         boolean datThanhCong = donDatMonDAO.themDonDatMon(ddm); // Giả sử có hàm này
@@ -663,7 +780,10 @@ public class ManHinhDatBanGUI extends JPanel {
                 loadDanhSachDatTruoc(); // Cập nhật list bên phải
                 // Xóa input
                 spinnerSoLuongKhach.setValue(1);
-                txtThoiGian.setText("19:30");
+                Calendar calReset = Calendar.getInstance();
+                calReset.add(Calendar.HOUR_OF_DAY, 1);
+                calReset.set(Calendar.MINUTE, 0);
+                timeSpinner.setValue(calReset.getTime());
                 txtGhiChu.setText("");
                 txtSDTKhach.setText("");
                 txtHoTenKhach.setText("");
@@ -867,25 +987,19 @@ public class ManHinhDatBanGUI extends JPanel {
                 lblLine1.setForeground(Color.WHITE); // Đổi chữ thành trắng khi nền xanh
                 lblLine2.setForeground(Color.WHITE);
             } else {
-                mainPanel.setBackground(list.getBackground()); // Nền trắng mặc định
+                mainPanel.setBackground(list.getBackground());
                 mainPanel.setForeground(list.getForeground());
-                textPanel.setOpaque(false); // Nền trong suốt trở lại
-                lblLine1.setForeground(textColor); // Trả màu chữ về mặc định
+                textPanel.setOpaque(false);
+                lblLine1.setForeground(textColor);
                 lblLine2.setForeground(timeColor);
             }
-            // Đặt nền nút xóa theo nền panel
             btnDelete.setBackground(mainPanel.getBackground());
             if (isSelected) btnDelete.setForeground(Color.DARK_GRAY); else btnDelete.setForeground(Color.RED);
-
-
-            // --- Tạo Panel bao gồm item và separator ---
             JPanel containerPanel = new JPanel(new BorderLayout());
-            containerPanel.setBackground(list.getBackground()); // Nền trắng
+            containerPanel.setBackground(list.getBackground());
             containerPanel.add(mainPanel, BorderLayout.CENTER);
-            containerPanel.add(separator, BorderLayout.SOUTH); // Thêm đường kẻ dưới
-
-            return containerPanel; // Trả về panel chứa cả item và đường kẻ
+            containerPanel.add(separator, BorderLayout.SOUTH);
+            return containerPanel;
         }
     }
-
-} // Kết thúc class ManHinhDatBanGUI
+}

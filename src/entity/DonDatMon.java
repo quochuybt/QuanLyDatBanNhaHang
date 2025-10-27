@@ -16,6 +16,7 @@ public class DonDatMon {
     private String maNV; // <-- BỔ SUNG
     private String maKH; // <-- BỔ SUNG
     private String maBan;
+    private String ghiChu;
 
     /**
      * Phương thức private hỗ trợ sinh mã đơn ngẫu nhiên.
@@ -39,13 +40,15 @@ public class DonDatMon {
     public DonDatMon() {
         this.maDon = generateMaDon();
         this.ngayKhoiTao = LocalDateTime.now();
+        this.ghiChu = "";
     }
-    public DonDatMon(String maDon, LocalDateTime ngayKhoiTao, String maNV, String maKH, String maBan) {
+    public DonDatMon(String maDon, LocalDateTime ngayKhoiTao, String maNV, String maKH, String maBan, String ghiChu) {
         setMaDon(maDon);
         setNgayKhoiTao(ngayKhoiTao);
         setMaNV(maNV); // Giả sử không cần validate
         setMaKH(maKH); // Giả sử không cần validate
         setMaBan(maBan); // Giả sử không cần validate
+        setGhiChu(ghiChu);
     }
 
     // (Copy constructor giữ nguyên)
@@ -55,12 +58,14 @@ public class DonDatMon {
         this.maNV = donDatMon.maNV;
         this.maKH = donDatMon.maKH;
         this.maBan = donDatMon.maBan;
+        this.ghiChu = donDatMon.ghiChu;
     }
 
     // 2. Viết các phương thức getter, setter
 
     // --- Getters ---
-
+    public String getGhiChu() { return ghiChu; }
+    public void setGhiChu(String ghiChu) { this.ghiChu = ghiChu; }
     public String getMaDon() {
         return maDon;
     }
@@ -101,6 +106,7 @@ public class DonDatMon {
                 ", ngayKhoiTao='" + ngayStr + '\'' +
                 ", maKH='" + maKH + '\'' + // Bổ sung
                 ", maBan='" + maBan + '\'' + // Bổ sung
+                ", ghiChu='" + ghiChu + '\'' +
                 '}';
     }
 }

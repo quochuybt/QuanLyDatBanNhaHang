@@ -23,9 +23,8 @@ public class DonDatMonDAO {
         String maNV = rs.getString("maNV");
         String maKH = rs.getString("maKH");
         String maBan = rs.getString("maBan");
-
-        // Dùng constructor mới (từ Bước 1)
-        return new DonDatMon(maDon, ngayKhoiTao, maNV, maKH, maBan);
+        String ghiChu = rs.getString("ghiChu");
+        return new DonDatMon(maDon, ngayKhoiTao, maNV, maKH, maBan,ghiChu);
     }
 
     /**
@@ -56,7 +55,7 @@ public class DonDatMonDAO {
         return ddm; // Trả về null nếu không tìm thấy
     }
     public boolean themDonDatMon(DonDatMon ddm) {
-        String sql = "INSERT INTO DonDatMon (maDon, ngayKhoiTao, maNV, maKH, maBan) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO DonDatMon (maDon, ngayKhoiTao, maNV, maKH, maBan, ghiChu) VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -65,12 +64,11 @@ public class DonDatMonDAO {
             ps.setString(3, ddm.getMaNV());
             ps.setString(4, ddm.getMaKH()); // Có thể null
             ps.setString(5, ddm.getMaBan()); // Có thể null (nếu đặt mang về)
+            ps.setString(6, ddm.getGhiChu());
 
             return ps.executeUpdate() > 0;
-        } catch (java.sql.SQLIntegrityConstraintViolationException e) {
-            System.err.println("Lỗi trùng Mã Đơn: " + ddm.getMaDon());
-            e.printStackTrace();
         } catch (Exception e) {
+            System.err.println("Lỗi khi thêm DonDatMon: " + e.getMessage());
             e.printStackTrace();
         }
         return false;
