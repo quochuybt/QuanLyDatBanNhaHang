@@ -1,21 +1,25 @@
 package entity;
 
 import java.time.LocalDate;
+import java.util.Objects;
 
 public class KhuyenMai {
-	private String maKM;
-    private String tenChuongTrinh;
-    private String loaiKhuyenMai; // "Giảm theo phần trăm", "Tặng món", "Giảm giá số tiền"
-    private double giaTri; // Ví dụ: 12 (%), 100000 (VND)
+    private String maKM;
+    private String tenChuongTrinh; // tenKM trong CSDL
+    private String moTa;
+    private String loaiKhuyenMai; // loaiGiam trong CSDL
+    private double giaTri;        // giaTriGiam trong CSDL
     private LocalDate ngayBatDau;
     private LocalDate ngayKetThuc;
-    private String trangThai; // "Đang áp dụng", "Ngưng áp dụng"
+    private String trangThai;
 
-    // --- Constructor ---
-    public KhuyenMai(String maKM, String tenChuongTrinh, String loaiKhuyenMai, 
-                     double giaTri, LocalDate ngayBatDau, LocalDate ngayKetThuc, String trangThai) {
+    /**
+     * Constructor này dùng để tạo đối tượng từ GUI (Dialog)
+     */
+    public KhuyenMai(String maKM, String tenChuongTrinh, String moTa, String loaiKhuyenMai, double giaTri, LocalDate ngayBatDau, LocalDate ngayKetThuc, String trangThai) {
         this.maKM = maKM;
         this.tenChuongTrinh = tenChuongTrinh;
+        this.moTa = moTa;
         this.loaiKhuyenMai = loaiKhuyenMai;
         this.giaTri = giaTri;
         this.ngayBatDau = ngayBatDau;
@@ -23,61 +27,57 @@ public class KhuyenMai {
         this.trangThai = trangThai;
     }
 
-	public String getMaKM() {
-		return maKM;
-	}
+    // Getters
+    public String getMaKM() {
+        return maKM;
+    }
 
-	public void setMaKM(String maKM) {
-		this.maKM = maKM;
-	}
+    public String getTenChuongTrinh() {
+        return tenChuongTrinh;
+    }
 
-	public String getTenChuongTrinh() {
-		return tenChuongTrinh;
-	}
+    // [SỬA] Bổ sung getter cho moTa
+    public String getMoTa() {
+        return moTa;
+    }
 
-	public void setTenChuongTrinh(String tenChuongTrinh) {
-		this.tenChuongTrinh = tenChuongTrinh;
-	}
+    public String getLoaiKhuyenMai() {
+        return loaiKhuyenMai;
+    }
 
-	public String getLoaiKhuyenMai() {
-		return loaiKhuyenMai;
-	}
+    public double getGiaTri() {
+        return giaTri;
+    }
 
-	public void setLoaiKhuyenMai(String loaiKhuyenMai) {
-		this.loaiKhuyenMai = loaiKhuyenMai;
-	}
+    public LocalDate getNgayBatDau() {
+        return ngayBatDau;
+    }
 
-	public double getGiaTri() {
-		return giaTri;
-	}
+    public LocalDate getNgayKetThuc() {
+        return ngayKetThuc;
+    }
 
-	public void setGiaTri(double giaTri) {
-		this.giaTri = giaTri;
-	}
+    public String getTrangThai() {
+        return trangThai;
+    }
 
-	public LocalDate getNgayBatDau() {
-		return ngayBatDau;
-	}
+    public void setTrangThai(String trangThai) {
+        this.trangThai = trangThai;
+    }
 
-	public void setNgayBatDau(LocalDate ngayBatDau) {
-		this.ngayBatDau = ngayBatDau;
-	}
+    public void setTenChuongTrinh(String tenChuongTrinh) {
+        this.tenChuongTrinh = tenChuongTrinh;
+    }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        KhuyenMai that = (KhuyenMai) o;
+        return Objects.equals(maKM, that.maKM);
+    }
 
-	public LocalDate getNgayKetThuc() {
-		return ngayKetThuc;
-	}
-
-	public void setNgayKetThuc(LocalDate ngayKetThuc) {
-		this.ngayKetThuc = ngayKetThuc;
-	}
-
-	public String getTrangThai() {
-		return trangThai;
-	}
-
-	public void setTrangThai(String trangThai) {
-		this.trangThai = trangThai;
-	}
-    
-
+    @Override
+    public int hashCode() {
+        return Objects.hash(maKM);
+    }
 }
