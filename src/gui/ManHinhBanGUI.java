@@ -596,11 +596,14 @@ public class ManHinhBanGUI extends JPanel {
     }
 
     private void populateLeftPanel(String khuVucFilter) {
+        System.out.println("populateLeftPanel: Bắt đầu xóa components..."); // DEBUG
         leftTableContainer.removeAll();
         leftBanPanelList.clear();
-
+        System.out.println("populateLeftPanel: Đã xóa. Bắt đầu thêm lại..."); // DEBUG
+        int countAdded = 0; // Đếm số panel đã thêm
         for (Ban ban : allTablesFromDB) {
             if (khuVucFilter.equals("Tất cả") || ban.getKhuVuc().equals(khuVucFilter)) {
+                System.out.println("  -> Tạo BanPanel cho: " + ban.getMaBan() + " - Trạng thái: " + ban.getTrangThai());
                 BanPanel banPanel = new BanPanel(ban);
                 if (ban.equals(selectedTable)) {
                     banPanel.setSelected(true);
@@ -615,10 +618,14 @@ public class ManHinhBanGUI extends JPanel {
                 });
                 leftTableContainer.add(banPanel);
                 leftBanPanelList.add(banPanel);
+                countAdded++;
             }
         }
+        System.out.println("populateLeftPanel: Đã thêm " + countAdded + " BanPanel."); // DEBUG
+        System.out.println("populateLeftPanel: Gọi revalidate/repaint..."); // DEBUG
         leftTableContainer.revalidate();
         leftTableContainer.repaint();
+        System.out.println("populateLeftPanel: Kết thúc."); // DEBUG
     }
 
     private void toggleSelection(Ban clickedBan, BanPanel clickedPanel) {
@@ -639,26 +646,30 @@ public class ManHinhBanGUI extends JPanel {
             clickedPanel.setSelected(false);
         }
         updateRightPanelDetails(selectedTable);
-        if (selectedTable != null) {
-            System.out.println("Bàn được chọn để gọi món: " + selectedTable.getTenBan());
-            // Gọi hàm của panel cha để xử lý việc chuyển màn hình
-            parentDanhSachBanGUI.chuyenSangManHinhGoiMon(selectedTable); // <-- GỌI HÀM CỦA DANHSACHBANGUI
-        } else {
-            System.out.println("Không có bàn nào được chọn.");
-        }
 
     }
     public Ban getSelectedTable() {
         return selectedTable; // Trả về biến thành viên selectedTable
     }
     public void refreshTableList() {
-        System.out.println("ManHinhBanGUI: Refreshing table list..."); // Debug
+        System.out.println("Bắt đầu refreshTableList...");
         try {
+            List<Ban> oldData = this.allTablesFromDB;
             // 1. Tải lại dữ liệu mới nhất
             this.allTablesFromDB = banDAO.getAllBan();
-
+            System.out.println("ManHinhBanGUI: Dữ liệu bàn mới đã tải. Size: " + allTablesFromDB.size()); // DEBUG
+            if (selectedTable != null) { // Giả sử selectedTable là bàn vừa thanh toán
+                for(Ban b : allTablesFromDB) {
+                    if (b.getMaBan().equals(selectedTable.getMaBan())) {
+                        System.out.println("DEBUG: Trạng thái bàn " + b.getMaBan() + " sau khi tải lại: " + b.getTrangThai());
+                        break;
+                    }
+                }
+            }
             // 2. Vẽ lại panel bàn (dùng lại hàm populateLeftPanel)
-            populateLeftPanel(currentLeftFilter); // Vẽ lại với bộ lọc hiện tại
+            System.out.println("ManHinhBanGUI: Đang gọi populateLeftPanel..."); // DEBUG
+            populateLeftPanel(currentLeftFilter);
+            System.out.println("ManHinhBanGUI: populateLeftPanel đã chạy xong."); // DEBUG
 
             updateStatsPanel();
 
@@ -688,5 +699,6 @@ public class ManHinhBanGUI extends JPanel {
                     "Lỗi CSDL",
                     JOptionPane.ERROR_MESSAGE);
         }
+        System.out.println("ManHinhBanGUI: Kết thúc refreshTableList.");
     }
 }

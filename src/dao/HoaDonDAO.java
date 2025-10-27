@@ -3,6 +3,7 @@ package dao;
 import connectDB.SQLConnection;
 import entity.ChiTietHoaDon;
 import entity.HoaDon;
+import java.sql.SQLException;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,6 +13,8 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.sql.*;
+import java.sql.Types;
 
 public class HoaDonDAO {
     private ChiTietHoaDonDAO chiTietDAO;
@@ -49,6 +52,64 @@ public class HoaDonDAO {
             e.printStackTrace();
         }
         return hoaDon; // Trả về null nếu không tìm thấy
+    }
+    public boolean thanhToanHoaDon(String maHD, float tienKhachDua, String hinhThucThanhToan) {
+        String sql = "UPDATE HoaDon SET trangThai = N'Đã thanh toán', tienKhachDua = ?, hinhThucThanhToan = ? " +
+                "WHERE maHD = ? AND trangThai = N'Chưa thanh toán'"; // Chỉ cập nhật HĐ chưa thanh toán
+        Connection conn = null; // Khai báo ngoài try để dùng cho transaction (nếu cần)
+        PreparedStatement ps = null;
+        boolean success = false;
+
+        try {
+            conn = SQLConnection.getConnection();
+            // --- Bắt đầu Transaction (Tùy chọn nhưng nên có nếu cập nhật nhiều bảng) ---
+            // conn.setAutoCommit(false);
+
+            ps = conn.prepareStatement(sql);
+            ps.setFloat(1, tienKhachDua);
+            ps.setString(2, hinhThucThanhToan);
+            ps.setString(3, maHD);
+
+            int rowsAffected = ps.executeUpdate();
+            success = (rowsAffected > 0);
+
+            // --- Kết thúc Transaction (nếu dùng) ---
+            // if (success) {
+            //     conn.commit();
+            // } else {
+            //     conn.rollback();
+            // }
+
+        } catch (SQLException e) {
+            System.err.println("Lỗi SQL khi thanh toán hóa đơn " + maHD + ": " + e.getMessage());
+            e.printStackTrace();
+            // --- Rollback nếu lỗi (nếu dùng transaction) ---
+            // try { if (conn != null) conn.rollback(); } catch (SQLException ex) {}
+            success = false;
+        } finally {
+            // Đóng PreparedStatement
+            try { if (ps != null) ps.close(); } catch (SQLException ex) {}
+            // --- Reset AutoCommit và đóng Connection (nếu dùng transaction) ---
+            // try { if (conn != null) conn.setAutoCommit(true); } catch (SQLException ex) {}
+            // Không đóng connection nếu nó được quản lý bởi Singleton
+        }
+        return success;
+    }
+    public boolean capNhatTongTien(String maHD, float tongTienMoi) {
+        // Giả sử cột tổng tiền trong bảng HoaDon tên là tongTien
+        String sql = "UPDATE HoaDon SET tongTien = ? WHERE maHD = ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setFloat(1, tongTienMoi);
+            ps.setString(2, maHD);
+
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            System.err.println("Lỗi khi cập nhật tổng tiền cho hóa đơn " + maHD + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false;
     }
     /**
      * Chuyển ResultSet thành đối tượng HoaDon (ĐÃ LOẠI BỎ KHÓA NGOẠI).
@@ -114,17 +175,13 @@ public class HoaDonDAO {
             ps.setString(4, hd.getTrangThai());
             ps.setString(5, hd.getHinhThucThanhToan());
             ps.setFloat(6, hd.getTienKhachDua());
-// --- ADDED REQUIRED FOREIGN KEYS ---
-            // You need to get these values from the HoaDon object
-            // For example:
-            // ps.setString(7, hd.getMaNV()); // Replace with your actual getter
-            // ps.setString(8, hd.getMaKM()); // Replace with your actual getter, handle nulls
-            // ps.setString(9, hd.getMaDon()); // Replace with your actual getter
-
-            // Placeholder - Replace with actual FK getters from your HoaDon entity
-            ps.setNull(7, java.sql.Types.NVARCHAR); // Placeholder for maNV
-            ps.setNull(8, java.sql.Types.NVARCHAR); // Placeholder for maKM
-            ps.setNull(9, java.sql.Types.NVARCHAR); // Placeholder for maDon
+            ps.setString(7, hd.getMaNV());
+            if (hd.getMaKM() != null) {
+                ps.setString(8, hd.getMaKM());
+            } else {
+                ps.setNull(8, java.sql.Types.NVARCHAR); // Nếu maKM là null
+            } // Placeholder for maKM
+            ps.setString(9, hd.getMaDon()); // Placeholder for maDon
 
             return ps.executeUpdate() > 0;
         } catch (java.sql.SQLIntegrityConstraintViolationException e) {
@@ -160,5 +217,32 @@ public class HoaDonDAO {
             e.printStackTrace();
         }
         return dsKetQua;
+    }
+    public HoaDon getHoaDonTheoMaDon(String maDon) {
+        HoaDon hoaDon = null;
+        // Tìm hóa đơn có maDon khớp
+        String sql = "SELECT * FROM HoaDon WHERE maDon = ?";
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maDon);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    // Dùng lại hàm helper để tạo object
+                    hoaDon = createHoaDonFromResultSet(rs);
+
+                    // Lấy luôn chi tiết hóa đơn nếu có (tùy chọn, nhưng hữu ích)
+                    // Vì hóa đơn mới tạo thường chưa có chi tiết ngay
+                    // List<ChiTietHoaDon> dsChiTiet = chiTietDAO.getChiTietTheoMaDon(hoaDon.getMaDon());
+                    // hoaDon.setDsChiTiet(dsChiTiet);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi khi tìm hóa đơn theo mã đơn " + maDon + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+        return hoaDon; // Trả về null nếu không tìm thấy
     }
 }
