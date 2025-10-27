@@ -22,7 +22,6 @@ public class NhanVienGUI extends JPanel {
         setBackground(new Color(244, 247, 252));
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        // LỖI XẢY RA Ở ĐÂY NẾU PHƯƠNG THỨC BỊ THIẾU
         JPanel headerPanel = createHeaderPanel();
         add(headerPanel, BorderLayout.NORTH);
 
@@ -32,7 +31,6 @@ public class NhanVienGUI extends JPanel {
         loadDataToTable();
     }
 
-    // PHƯƠNG THỨC THIẾU 1: Tạo Header (Tiêu đề và nút Thêm NV)
     private JPanel createHeaderPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
@@ -57,7 +55,6 @@ public class NhanVienGUI extends JPanel {
         return panel;
     }
 
-    // PHƯƠNG THỨC THIẾU 2: Tạo Nội dung chính (Thanh tìm kiếm và Bảng)
     private JPanel createMainContentPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 10));
         panel.setOpaque(false);
@@ -99,7 +96,7 @@ public class NhanVienGUI extends JPanel {
                     nv.getVaiTro().name(),
                     "195", // Giả lập Tổng số giờ làm
                     "0",   // Giả lập Nhắc nhở
-                    nv.getManv()
+                    nv.getManv() // Lưu mã NV vào cột Xem chi tiết
             };
             model.addRow(row);
         }
@@ -135,6 +132,7 @@ public class NhanVienGUI extends JPanel {
         private final JButton button;
         private final JTable table;
         private boolean isPushed;
+        private int editingRow;
 
         public ButtonEditor(JCheckBox checkBox, JTable table) {
             super(checkBox);
@@ -150,23 +148,22 @@ public class NhanVienGUI extends JPanel {
         public Component getTableCellEditorComponent(JTable table, Object value,
                                                      boolean isSelected, int row, int column) {
             isPushed = true;
+            this.editingRow = row;
             return button;
         }
 
         @Override
         public Object getCellEditorValue() {
             if (isPushed) {
-                int selectedRow = table.getSelectedRow();
-                // LẤY MÃ NV (đã lưu ở bước loadDataToTable vào cột này)
-                String maNV = (String) table.getValueAt(selectedRow, table.getColumn("Xem chi tiết").getModelIndex());
+                int maNVColumnIndex = table.getColumn("Xem chi tiết").getModelIndex();
+                String maNV = (String) table.getValueAt(editingRow, maNVColumnIndex);
 
-                // MỞ HỘP THOẠI CHI TIẾT
+                // Mở dialog ChiTietNhanVienDialog
                 ChiTietNhanVienDialog dialog = new ChiTietNhanVienDialog(NhanVienGUI.this, maNV);
                 dialog.setVisible(true);
             }
             isPushed = false;
-            // Trả về giá trị đã click (mã NV)
-            return table.getValueAt(table.getSelectedRow(), table.getColumn("Xem chi tiết").getModelIndex());
+            return table.getValueAt(editingRow, table.getColumn("Xem chi tiết").getModelIndex());
         }
     }
 }

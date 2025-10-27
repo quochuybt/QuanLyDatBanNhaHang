@@ -19,9 +19,11 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
     private JToggleButton btnTabBan;
     private JToggleButton btnTabGoiMon;
     private JToggleButton btnTabDatBan;
+    private MainGUI mainGUI_Parent;
 
     // Constructor của DanhSachBanGUI
-    public DanhSachBanGUI() {
+    public DanhSachBanGUI(MainGUI main) {
+        this.mainGUI_Parent = main;
         setLayout(new BorderLayout());
         setBorder(new EmptyBorder(20, 10, 0, 0)); // Lề trên 20, trái 10
         setBackground(Color.WHITE);
@@ -135,7 +137,7 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
         // Truyền 'this' (DanhSachBanGUI) vào ManHinhBanGUI
         manHinhBanGUI = new ManHinhBanGUI(this);
         manHinhGoiMonGUI = new ManHinhGoiMonGUI();
-        manHinhDatBanGUI = new ManHinhDatBanGUI(this);
+        manHinhDatBanGUI = new ManHinhDatBanGUI(this, mainGUI_Parent);
 
         // --- Thêm các màn hình con vào CardLayout ---
         contentCardPanel.add(manHinhBanGUI, "MAN_HINH_BAN");

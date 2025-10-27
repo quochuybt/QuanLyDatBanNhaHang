@@ -3,7 +3,6 @@ package gui;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
-
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -26,8 +25,12 @@ public class MainGUI extends JFrame {
     private final String userRole;
     private final String userName;
 
+    private DanhSachBanGUI danhSachBanGUI; // Để truyền 'this' vào constructor của nó
+    private KhachHangGUI khachHangGUI;
+
     public MainGUI(String userRole, String userName) {
         this.userRole = userRole;
+
         this.userName = userName;
         setTitle("Phần mềm quản lý cửa hàng tiện lợi");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -150,7 +153,7 @@ public class MainGUI extends JFrame {
         // --- Các nút chức năng ---
         // Sử dụng LinkedHashMap để duy trì thứ tự thêm vào
         LinkedHashMap<String, String> menuItems = new LinkedHashMap<>();
-        if ("QuanLy".equals(this.userRole)) {
+        if ("QUANLY".equals(this.userRole)) {
             // Quản lý: Hiển thị tất cả các mục như cũ
             menuItems.put("Màn hình chính", "⌂"); // Icon Unicode
             menuItems.put("Danh mục món ăn", "🍽️");
@@ -158,7 +161,7 @@ public class MainGUI extends JFrame {
             menuItems.put("Khuyến mãi", "🏷️");
             menuItems.put("Hóa đơn", "🧾");
             menuItems.put("Nhân viên", "👤");
-        } else if ("NhanVien".equals(this.userRole)) {
+        } else if ("NHANVIEN".equals(this.userRole)) {
             // Nhân viên: Hiển thị các mục bạn yêu cầu
             menuItems.put("Màn hình chính", "⌂");
             menuItems.put("Danh sách bàn", "🪑"); // (Icon ví dụ)
@@ -261,10 +264,20 @@ public class MainGUI extends JFrame {
         mainContentPanel.add(new NhanVienGUI(), "Nhân viên");
 
         // Chỉ Nhân viên
-        mainContentPanel.add(new DanhSachBanGUI(), "Danh sách bàn");
-        mainContentPanel.add(new KhachHangGUI(), "Thành viên");
+        mainContentPanel.add(new DanhSachBanGUI(this), "Danh sách bàn");
+        this.khachHangGUI = new KhachHangGUI(); // <-- LƯU INSTANCE
+        mainContentPanel.add(this.khachHangGUI, "Thành viên");
     }
 
+    public void refreshKhachHangScreen() {
+        // Kiểm tra xem KhachHangGUI đã được tạo chưa (cho trường hợp Quản lý không có màn hình này)
+        if (khachHangGUI != null) {
+            khachHangGUI.refreshKhachHangTable(); // Gọi hàm refresh bạn đã tạo trong KhachHangGUI
+            System.out.println("MainGUI: Đã yêu cầu KhachHangGUI làm mới."); // Debug
+        } else {
+            System.err.println("MainGUI: KhachHangGUI chưa được khởi tạo (có thể do vai trò không phải Nhân viên?).");
+        }
+    }
     private JPanel createPlaceholderPanel(String name) {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBackground(new Color(244, 247, 252)); // Màu nền chính

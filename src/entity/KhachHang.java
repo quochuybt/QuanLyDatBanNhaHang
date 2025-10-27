@@ -38,7 +38,7 @@ public class KhachHang {
         this.ngaySinh = LocalDate.of(2000, 1, 1); // Giá trị mặc định
         this.diaChi = "";
         this.ngayThamGia = LocalDate.now(); // Ngày tạo tài khoản
-        this.email = "";
+        this.email = null;
     }
 
     // Constructor 3.2: Có đầy đủ tham số (sử dụng các thuộc tính cơ bản trong yêu cầu)
