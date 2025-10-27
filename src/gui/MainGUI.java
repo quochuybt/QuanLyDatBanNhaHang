@@ -1,5 +1,8 @@
 package gui;
 
+import entity.NhanVien;
+import entity.VaiTro;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
@@ -28,13 +31,13 @@ public class MainGUI extends JFrame {
     private DanhSachBanGUI danhSachBanGUI; // Để truyền 'this' vào constructor của nó
     private KhachHangGUI khachHangGUI;
 
+
     public MainGUI(String userRole, String userName) {
         this.userRole = userRole;
-
         this.userName = userName;
         setTitle("Phần mềm quản lý cửa hàng tiện lợi");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1300, 800);
+        //setSize(1300, 800);
         setLocationRelativeTo(null);
         getRootPane().setBorder(BorderFactory.createEmptyBorder());
         setLayout(new BorderLayout(0, 0));
@@ -49,6 +52,7 @@ public class MainGUI extends JFrame {
         add(menuPanel, BorderLayout.WEST); // Menu bên trái
         add(contentWrapperPanel, BorderLayout.CENTER); // Nội dung chính bên phải
 
+        this.setExtendedState(JFrame.MAXIMIZED_BOTH);
         // Mặc định hiển thị màn hình đầu tiên ("Màn hình chính")
         showCard("Màn hình chính");
     }
@@ -225,7 +229,9 @@ public class MainGUI extends JFrame {
             	        // Mở lại cửa sổ đăng nhập
             	        SwingUtilities.invokeLater(() -> {
             	            new TaiKhoanGUI().setVisible(true);
-            	        });
+//                            TaiKhoanGUI loginWindow = new TaiKhoanGUI();
+//                            loginWindow.setExtendedState(JFrame.MAXIMIZED_BOTH);
+                        });
             	    }
                 } else {
                     showCard(text);
@@ -255,7 +261,13 @@ public class MainGUI extends JFrame {
     private void setupMainContentPanel() {
         // Chung
         mainContentPanel.add(createPlaceholderPanel("Màn hình chính"), "Màn hình chính");
-        mainContentPanel.add(createPlaceholderPanel("Lịch làm việc"), "Lịch làm việc");
+        VaiTro vaiTroEnum;
+        if (this.userRole != null && this.userRole.equalsIgnoreCase("QUANLY")) {
+            vaiTroEnum = VaiTro.QUANLY;
+        } else {
+            vaiTroEnum = VaiTro.NHANVIEN; // Mặc định là nhân viên
+        }
+        mainContentPanel.add(new LichLamViecGUI(vaiTroEnum), "Lịch làm việc");
         mainContentPanel.add(new HoaDonGUI(), "Hóa đơn");
 
         // Chỉ Quản lý

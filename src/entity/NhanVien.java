@@ -84,6 +84,11 @@ public class NhanVien {
         this.tenTK = other.tenTK;
     }
 
+    public NhanVien(String maNV, String hoTen) {
+        this.manv = maNV;
+        this.hoten = hoTen;
+    }
+
     // Logic phát sinh mã NV
     private String phatSinhMaNV(VaiTro vaiTro) {
         String maVaiTro;

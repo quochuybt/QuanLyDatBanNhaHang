@@ -42,6 +42,7 @@ public class Main {
             // --- 3. Khởi tạo và hiển thị cửa sổ Đăng nhập (TaiKhoanGUI) ---
             TaiKhoanGUI loginWindow = new TaiKhoanGUI(); // Sửa ở đây
             loginWindow.setVisible(true);
+//            loginWindow.setExtendedState(JFrame.MAXIMIZED_BOTH);
 
         });
     }
