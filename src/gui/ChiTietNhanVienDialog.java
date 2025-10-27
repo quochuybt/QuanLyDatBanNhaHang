@@ -14,7 +14,7 @@ public class ChiTietNhanVienDialog extends JDialog {
 
     private final NhanVienDAO nhanVienDAO = new NhanVienDAO();
     private final NhanVienGUI parentPanel;
-    private final NhanVien nhanVienGoc; // Lưu nhân viên gốc để so sánh tên TK cũ
+    private final NhanVien nhanVienGoc;
 
     private final JTextField txtHoTen = new JTextField(15);
     private final JTextField txtNgaySinh = new JTextField(8);
@@ -24,14 +24,13 @@ public class ChiTietNhanVienDialog extends JDialog {
     private final JTextField txtLuong = new JTextField(8);
     private final JComboBox<VaiTro> cmbVaiTro = new JComboBox<>(VaiTro.values());
     private final JTextField txtTenTK = new JTextField(10);
-    private final JPasswordField txtMatKhauMoi = new JPasswordField(10); // Mật khẩu mới
+    private final JPasswordField txtMatKhauMoi = new JPasswordField(10);
 
     public ChiTietNhanVienDialog(NhanVienGUI parentPanel, String maNV) {
         super(SwingUtilities.getWindowAncestor(parentPanel) instanceof Frame ? (Frame) SwingUtilities.getWindowAncestor(parentPanel) : null,
                 "Chi Tiết Nhân Viên", true);
         this.parentPanel = parentPanel;
 
-        // Lấy dữ liệu chi tiết từ CSDL
         this.nhanVienGoc = nhanVienDAO.getChiTietNhanVien(maNV);
 
         if (nhanVienGoc == null) {
@@ -39,9 +38,6 @@ public class ChiTietNhanVienDialog extends JDialog {
             dispose();
             return;
         }
-
-        // LƯU Ý: Nếu entity NhanVien không có tenTK, bạn cần sửa DAO để lấy thêm tên TK
-        // và lưu vào một biến String riêng ở đây. Giả sử NhanVien đã có tenTK.
 
         setupUI();
         loadData();
@@ -57,8 +53,9 @@ public class ChiTietNhanVienDialog extends JDialog {
         txtDiaChi.setText(nhanVienGoc.getDiachi());
         txtLuong.setText(String.valueOf(nhanVienGoc.getLuong()));
         cmbVaiTro.setSelectedItem(nhanVienGoc.getVaiTro());
-        // LƯU Ý: Giả sử getTenTK() tồn tại trong NhanVien
+
         txtTenTK.setText(nhanVienGoc.getTenTK());
+        txtMatKhauMoi.setText("");
     }
 
     private void setupUI() {
@@ -69,7 +66,7 @@ public class ChiTietNhanVienDialog extends JDialog {
         gbc.insets = new Insets(5, 10, 5, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // Hiển thị mã NV (Không cho sửa)
+        // Hiển thị mã NV
         JLabel lblMaNV = new JLabel("Mã NV: " + nhanVienGoc.getManv());
         lblMaNV.setFont(new Font("Arial", Font.BOLD, 14));
         gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 4; gbc.anchor = GridBagConstraints.WEST; mainPanel.add(lblMaNV, gbc);
@@ -84,7 +81,7 @@ public class ChiTietNhanVienDialog extends JDialog {
 
         // Hàng 3: Tên Tài khoản | Mật khẩu mới
         addComponent(mainPanel, new JLabel("Tên Tài khoản:"), txtTenTK, gbc, 3, 0);
-        addComponent(mainPanel, new JLabel("Mật Khẩu MỚI (để trống nếu không đổi):"), txtMatKhauMoi, gbc, 3, 1);
+        addComponent(mainPanel, new JLabel("Nhập Mật khẩu MỚI (để trống nếu không đổi):"), txtMatKhauMoi, gbc, 3, 1);
 
         // Hàng 4: Lương | Vai Trò
         addComponent(mainPanel, new JLabel("Lương:"), txtLuong, gbc, 4, 0);
@@ -96,12 +93,21 @@ public class ChiTietNhanVienDialog extends JDialog {
         mainPanel.add(txtDiaChi, gbc);
 
 
+        // --- PANEL NÚT BẤM ---
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+
         JButton btnLuu = new JButton("Lưu Thay Đổi");
         btnLuu.addActionListener(e -> capNhatNhanVien());
+
+        JButton btnXoa = new JButton("Xóa Nhân Viên");
+        btnXoa.setBackground(Color.RED);
+        btnXoa.setForeground(Color.WHITE);
+        btnXoa.addActionListener(e -> xoaNhanVien());
+
         JButton btnHuy = new JButton("Đóng");
         btnHuy.addActionListener(e -> dispose());
 
+        buttonPanel.add(btnXoa);
         buttonPanel.add(btnLuu);
         buttonPanel.add(btnHuy);
 
@@ -135,9 +141,14 @@ public class ChiTietNhanVienDialog extends JDialog {
             String newTenTK = txtTenTK.getText().trim();
             String newMatKhau = new String(txtMatKhauMoi.getPassword());
 
+            if(newTenTK.isEmpty()){
+                JOptionPane.showMessageDialog(this, "Tên tài khoản không được rỗng.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             // 2. Tạo đối tượng NhanVien mới (dùng validation)
             NhanVien nvUpdate = new NhanVien(
-                    nhanVienGoc.getManv(), // Giữ nguyên mã NV
+                    nhanVienGoc.getManv(),
                     hoTen, ngaySinh, gioiTinh, sdt, diaChi, nhanVienGoc.getNgayvaolam(), luong, vaiTro
             );
 
@@ -159,6 +170,36 @@ public class ChiTietNhanVienDialog extends JDialog {
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Đã xảy ra lỗi hệ thống: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
+        }
+    }
+
+    private void xoaNhanVien() {
+        int choice = JOptionPane.showConfirmDialog(
+                this,
+                "Bạn có chắc chắn muốn XÓA vĩnh viễn nhân viên này và tài khoản liên quan?\n\nHành động này không thể hoàn tác.",
+                "Xác nhận Xóa",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+        );
+
+        if (choice == JOptionPane.YES_OPTION) {
+            String maNV = nhanVienGoc.getManv();
+            String tenTK = nhanVienGoc.getTenTK();
+
+            try {
+                boolean success = nhanVienDAO.deleteNhanVienAndAccount(maNV, tenTK);
+
+                if (success) {
+                    JOptionPane.showMessageDialog(this, "Đã xóa nhân viên và tài khoản thành công.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                    parentPanel.refreshTable();
+                    dispose();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Xóa thất bại. Vui lòng kiểm tra các ràng buộc khác (như Hóa đơn, Đơn đặt món, PhanCongCa) hoặc lỗi CSDL.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Lỗi hệ thống khi xóa: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
+            }
         }
     }
 }
