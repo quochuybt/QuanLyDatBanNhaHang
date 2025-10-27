@@ -175,6 +175,7 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
         navButton.addActionListener(e -> {
             if (navButton.isSelected()) {
                 contentCardLayout.show(contentCardPanel, cardName);
+                updateTopNavButtonStyles();
             }
         });
         navButton.setSelected(selected);
