@@ -1,12 +1,13 @@
 package dao;
+
 import connectDB.SQLConnection;
-import entity.KhuyenMai; // Đảm bảo entity KhuyenMai của bạn có đủ các trường này
+import entity.KhuyenMai;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.sql.Date; // Dùng java.sql.Date cho PreparedStatement
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,12 +15,34 @@ import java.util.List;
 public class KhuyenMaiDAO {
 
     /**
+     * [MỚI] - Tự động cập nhật trạng thái các KM đã hết hạn
+     * Chuyển "Đang áp dụng" -> "Ngưng áp dụng" nếu ngayKetThuc < hôm nay
+     */
+    public void autoUpdateExpiredStatuses() {
+        String sql = "UPDATE KhuyenMai SET trangThai = N'Ngưng áp dụng' " +
+                "WHERE ngayKetThuc < ? AND trangThai = N'Đang áp dụng'";
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setDate(1, Date.valueOf(LocalDate.now())); // Ngày hôm nay
+            ps.executeUpdate();
+
+        } catch (Exception e) {
+            System.err.println("Lỗi khi tự động cập nhật trạng thái khuyến mãi: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+
+    /**
      * Lấy danh sách tất cả khuyến mãi.
-     * ĐÃ SỬA: Tên bảng và tên cột khớp với SQL INSERT.
      */
     public List<KhuyenMai> getAllKhuyenMai() {
+        // [CẬP NHẬT] Gọi hàm tự động cập nhật trước khi lấy danh sách
+        autoUpdateExpiredStatuses();
+
         List<KhuyenMai> dsKhuyenMai = new ArrayList<>();
-        // SỬA 1: Đổi tên bảng thành MaKhuyenMai
         String sql = "SELECT maKM, tenKM, moTa, ngayBatDau, ngayKetThuc, loaiGiam, giaTriGiam, trangThai FROM KhuyenMai";
 
         try (Connection conn = SQLConnection.getConnection();
@@ -28,70 +51,168 @@ public class KhuyenMaiDAO {
 
             while (rs.next()) {
                 try {
-                    // SỬA 2: Đọc đúng tên cột từ SQL INSERT
                     String maKM = rs.getString("maKM");
-                    String tenKM = rs.getString("tenKM"); // Đọc tenKM
-                    String moTa = rs.getString("moTa");   // Đọc moTa (Bạn có thể cần thêm trường này vào Entity KhuyenMai)
+                    String tenKM = rs.getString("tenKM");
+                    String moTa = rs.getString("moTa");
                     LocalDate ngayBD = rs.getDate("ngayBatDau").toLocalDate();
                     LocalDate ngayKT = null;
                     if (rs.getDate("ngayKetThuc") != null) {
                         ngayKT = rs.getDate("ngayKetThuc").toLocalDate();
                     }
-                    String loaiGiam = rs.getString("loaiGiam"); // Đọc loaiGiam
-                    double giaTriGiam = rs.getDouble("giaTriGiam"); // Đọc giaTriGiam
+                    String loaiGiam = rs.getString("loaiGiam");
+                    double giaTriGiam = rs.getDouble("giaTriGiam");
                     String trangThai = rs.getString("trangThai");
 
-                    // SỬA 3: Gọi Constructor của KhuyenMai với các trường đã đọc
-                    // **QUAN TRỌNG:** Đảm bảo Constructor trong entity/KhuyenMai.java khớp với thứ tự và kiểu dữ liệu này!
-                    // Ví dụ: public KhuyenMai(String maKM, String tenKM, String loaiGiam, double giaTriGiam, LocalDate ngayBD, LocalDate ngayKT, String trangThai /*, String moTa */)
-                    KhuyenMai km = new KhuyenMai(maKM, tenKM, loaiGiam, giaTriGiam, ngayBD, ngayKT, trangThai /*, moTa */); // Cập nhật Constructor nếu cần
+                    KhuyenMai km = new KhuyenMai(maKM, tenKM, moTa, loaiGiam, giaTriGiam, ngayBD, ngayKT, trangThai);
                     dsKhuyenMai.add(km);
                 } catch (Exception e) {
+                    System.err.println("Lỗi khi đọc dữ liệu khuyến mãi: " + e.getMessage());
                     e.printStackTrace();
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace(); // In ra lỗi để dễ debug hơn
+            e.printStackTrace();
         }
-
         return dsKhuyenMai;
     }
 
     /**
      * [UPDATE] - Cập nhật (Sửa) một chương trình khuyến mãi.
-     * ĐÃ SỬA: Tên bảng và tên cột khớp với SQL INSERT.
      */
     public boolean updateKhuyenMai(KhuyenMai km) {
-        // SỬA 4: Đổi tên bảng và tên cột trong câu UPDATE
         String sql = "UPDATE KhuyenMai SET tenKM = ?, moTa = ?, loaiGiam = ?, giaTriGiam = ?, " +
-                     "ngayBatDau = ?, ngayKetThuc = ?, trangThai = ? WHERE maKM = ?";
+                "ngayBatDau = ?, ngayKetThuc = ?, trangThai = ? WHERE maKM = ?";
 
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            // SỬA 5: Set giá trị cho các cột tương ứng
-            ps.setString(1, km.getTenChuongTrinh()); // Giả sử getTenChuongTrinh() trả về tenKM
-            ps.setString(2, "Mô tả cập nhật"); // Bạn cần thêm getter cho moTa vào KhuyenMai entity
-            ps.setString(3, km.getLoaiKhuyenMai()); // Giả sử getLoaiKhuyenMai() trả về loaiGiam
-            ps.setDouble(4, km.getGiaTri()); // Giả sử getGiaTri() trả về giaTriGiam
-            ps.setDate(5, Date.valueOf(km.getNgayBatDau())); // Dùng java.sql.Date
+            ps.setString(1, km.getTenChuongTrinh());
+            ps.setString(2, km.getMoTa());
+            ps.setString(3, km.getLoaiKhuyenMai());
+            ps.setDouble(4, km.getGiaTri());
+            ps.setDate(5, Date.valueOf(km.getNgayBatDau()));
 
             if (km.getNgayKetThuc() != null) {
                 ps.setDate(6, Date.valueOf(km.getNgayKetThuc()));
             } else {
                 ps.setNull(6, java.sql.Types.DATE);
             }
-
             ps.setString(7, km.getTrangThai());
-            ps.setString(8, km.getMaKM()); // Điều kiện WHERE
+            ps.setString(8, km.getMaKM());
 
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-             System.err.println("Lỗi khi cập nhật khuyến mãi " + km.getMaKM() + ": " + e.getMessage());
+            System.err.println("Lỗi khi cập nhật khuyến mãi " + km.getMaKM() + ": " + e.getMessage());
             e.printStackTrace();
         }
         return false;
     }
 
-    // Bạn có thể cần thêm các hàm khác như: themKhuyenMai, xoaKhuyenMai, timKhuyenMai...
+    /**
+     * [CREATE] - Thêm một khuyến mãi mới.
+     */
+    public boolean themKhuyenMai(KhuyenMai km) {
+        String sql = "INSERT INTO KhuyenMai (maKM, tenKM, moTa, loaiGiam, giaTriGiam, ngayBatDau, ngayKetThuc, trangThai) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, km.getMaKM());
+            ps.setString(2, km.getTenChuongTrinh());
+            ps.setString(3, km.getMoTa());
+            ps.setString(4, km.getLoaiKhuyenMai());
+            ps.setDouble(5, km.getGiaTri());
+            ps.setDate(6, Date.valueOf(km.getNgayBatDau()));
+
+            if (km.getNgayKetThuc() != null) {
+                ps.setDate(7, Date.valueOf(km.getNgayKetThuc()));
+            } else {
+                ps.setNull(7, java.sql.Types.DATE);
+            }
+            ps.setString(8, km.getTrangThai());
+
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            System.err.println("Lỗi khi thêm khuyến mãi " + km.getMaKM() + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * [DELETE] - Xóa một khuyến mãi dựa trên mã.
+     */
+    public boolean xoaKhuyenMai(String maKM) {
+        String sql = "DELETE FROM KhuyenMai WHERE maKM = ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, maKM);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            System.err.println("Lỗi khi xóa khuyến mãi " + maKM + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false;
+    }
+    /**
+     * [ĐÃ SỬA] Hàm này bây giờ sẽ cập nhật trạng thái thành "Ngưng áp dụng"
+     * thay vì XÓA vĩnh viễn
+     */
+
+    /**
+     * [SEARCH & FILTER] - Tìm kiếm và lọc khuyến mãi.
+     */
+    public List<KhuyenMai> timKiemVaLoc(String tuKhoa, String trangThai) {
+        // [CẬP NHẬT] Gọi hàm tự động cập nhật trước khi tìm
+        autoUpdateExpiredStatuses();
+
+        List<KhuyenMai> dsKhuyenMai = new ArrayList<>();
+        String sql = "SELECT maKM, tenKM, moTa, ngayBatDau, ngayKetThuc, loaiGiam, giaTriGiam, trangThai FROM KhuyenMai WHERE 1=1";
+
+        boolean coTuKhoa = tuKhoa != null && !tuKhoa.trim().isEmpty() && !tuKhoa.equals("Tìm kiếm khuyến mãi");
+        boolean coTrangThai = trangThai != null && !trangThai.equals("Lọc khuyến mãi");
+
+        if (coTuKhoa) {
+            sql += " AND (maKM LIKE ? OR tenKM LIKE ?)";
+        }
+        if (coTrangThai) {
+            sql += " AND trangThai = ?";
+        }
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            int paramIndex = 1;
+            if (coTuKhoa) {
+                String searchTerm = "%" + tuKhoa + "%";
+                ps.setString(paramIndex++, searchTerm);
+                ps.setString(paramIndex++, searchTerm);
+            }
+            if (coTrangThai) {
+                ps.setString(paramIndex++, trangThai);
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String maKM = rs.getString("maKM");
+                    String tenKM = rs.getString("tenKM");
+                    String moTa = rs.getString("moTa");
+                    LocalDate ngayBD = rs.getDate("ngayBatDau").toLocalDate();
+                    LocalDate ngayKT = null;
+                    if (rs.getDate("ngayKetThuc") != null) {
+                        ngayKT = rs.getDate("ngayKetThuc").toLocalDate();
+                    }
+                    String loaiGiam = rs.getString("loaiGiam");
+                    double giaTriGiam = rs.getDouble("giaTriGiam");
+                    String trangThaiDB = rs.getString("trangThai");
+
+                    KhuyenMai km = new KhuyenMai(maKM, tenKM, moTa, loaiGiam, giaTriGiam, ngayBD, ngayKT, trangThaiDB);
+                    dsKhuyenMai.add(km);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return dsKhuyenMai;
+    }
 }
