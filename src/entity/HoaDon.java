@@ -230,20 +230,7 @@ public class HoaDon {
         int randomPart = ThreadLocalRandom.current().nextInt(1000, 10000);
         return "HD" + datePart + randomPart;
     }
-    public void setTongTienTuDB(float tongTien) {
-        this.tongTien = tongTien;
-    }
 
-    public int tinhTienThoi() {
-        if (this.tienKhachDua >= this.tongTien) {
-            return (int) (this.tienKhachDua - this.tongTien);
-        }
-        return 0;
-    }
-
-    public int getTienThoi() {
-        return tinhTienThoi();
-    }
 
     @Override
     public String toString() {
