@@ -53,6 +53,22 @@ public class HoaDonDAO {
         }
         return hoaDon; // Trả về null nếu không tìm thấy
     }
+    // NOTE SỬA: Thêm hàm cập nhật maNV khi thanh toán
+    public boolean capNhatNhanVien(String maHD, String maNV) {
+        String sql = "UPDATE HoaDon SET maNV = ? WHERE maHD = ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maNV);
+            ps.setString(2, maHD);
+
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi cập nhật NV cho hóa đơn " + maHD + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false;
+    }
     public boolean thanhToanHoaDon(String maHD, float tienKhachDua, String hinhThucThanhToan) {
         String sql = "UPDATE HoaDon SET trangThai = N'Đã thanh toán', tienKhachDua = ?, hinhThucThanhToan = ? " +
                 "WHERE maHD = ? AND trangThai = N'Chưa thanh toán'"; // Chỉ cập nhật HĐ chưa thanh toán

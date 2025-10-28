@@ -5,7 +5,7 @@ import java.awt.event.ActionListener;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import entity.Ban; // Thêm import Ban
+import entity.Ban;
 
 public class DanhSachBanGUI extends JPanel implements ActionListener {
     private static final Color COLOR_ACCENT_BLUE = new Color(56, 118, 243);
@@ -21,63 +21,62 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
     private JToggleButton btnTabDatBan;
     private MainGUI mainGUI_Parent;
 
-    // Constructor của DanhSachBanGUI
-    public DanhSachBanGUI(MainGUI main) {
+    // 🌟 BIẾN MỚI ĐỂ LƯU MÃ NV
+    private final String maNVDangNhap;
+
+    // 🌟 SỬA CONSTRUCTOR: THÊM THAM SỐ maNVDangNhap
+    // Đây là phần sửa để khớp với lệnh gọi từ MainGUI: DanhSachBanGUI(this, this.maNVDangNhap)
+    public DanhSachBanGUI(MainGUI main, String maNVDangNhap) {
         this.mainGUI_Parent = main;
+        this.maNVDangNhap = maNVDangNhap; // 🌟 LƯU MÃ NV
+
         setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(20, 10, 0, 0)); // Lề trên 20, trái 10
+        setBorder(new EmptyBorder(20, 10, 0, 0));
         setBackground(Color.WHITE);
 
         // --- Panel Thanh Điều Hướng Trên Cùng ---
         JPanel topNavPanel = new JPanel(new BorderLayout());
         topNavPanel.setOpaque(true);
-        topNavPanel.setBackground(COLOR_ACCENT_BLUE); // Màu nền xanh
+        topNavPanel.setBackground(COLOR_ACCENT_BLUE);
 
         // Panel chứa các nút tab bên trái
-        JPanel leftButtonsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0)); // Sát trái, không gap
-        leftButtonsPanel.setOpaque(false); // Nền trong suốt
+        JPanel leftButtonsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        leftButtonsPanel.setOpaque(false);
 
-        // --- Tạo các nút tab (sử dụng hàm createTopNavButton đã sửa) ---
-        // Nút "Bàn" được chọn mặc định ban đầu
+        // --- Tạo các nút tab ---
         btnTabBan = createTopNavButton("Bàn", "MAN_HINH_BAN", true);
         btnTabGoiMon = createTopNavButton("Gọi Món", "MAN_HINH_GOI_MON", false);
         btnTabDatBan = createTopNavButton("Đặt Bàn", "MAN_HINH_DAT_BAN", false);
 
         // --- XỬ LÝ RIÊNG CHO NÚT "GỌI MÓN" ---
-        // 1. Xóa ActionListener mặc định (chỉ chuyển card) mà createTopNavButton đã thêm
-        // Cách xóa listener dựa trên lambda có thể không ổn định, đây là cách an toàn hơn:
         ActionListener[] defaultGoiMonListeners = btnTabGoiMon.getActionListeners();
         for (ActionListener al : defaultGoiMonListeners) {
-            btnTabGoiMon.removeActionListener(al); // Xóa hết listener cũ (nếu có)
+            btnTabGoiMon.removeActionListener(al);
         }
 
-        // 2. Thêm ActionListener mới, đặc biệt cho nút "Gọi Món"
         btnTabGoiMon.addActionListener(e -> {
-            // Lấy bàn đang được chọn từ màn hình Bàn
             if (btnTabGoiMon.isSelected()) {
                 Ban banDangChon = manHinhBanGUI.getSelectedTable();
 
                 if (banDangChon != null) {
+                    // 🌟 TRUYỀN MA_NV VÀO CONSTRUCTOR CỦA ManHinhGoiMonGUI (SỬA Ở BƯỚC KHỞI TẠO DƯỚI)
                     boolean shouldShowGoiMon = manHinhGoiMonGUI.loadDuLieuBan(banDangChon);
                     if (shouldShowGoiMon) {
                         contentCardLayout.show(contentCardPanel, "MAN_HINH_GOI_MON");
                         updateTopNavButtonStyles();
                     }else {
-                        System.out.println("loadDuLieuBan trả về false, quay lại tab Bàn."); // Debug
+                        System.out.println("loadDuLieuBan trả về false, quay lại tab Bàn.");
                         SwingUtilities.invokeLater(() -> {
                             btnTabBan.setSelected(true);
                         });
                     }
                 } else {
-                    // Nếu chưa chọn bàn:
-                    // a. Hiển thị thông báo lỗi
                     JOptionPane.showMessageDialog(this,
                             "Vui lòng chọn một bàn từ tab 'Bàn' trước khi chuyển sang 'Gọi Món'.",
                             "Chưa chọn bàn",
                             JOptionPane.WARNING_MESSAGE);
                     SwingUtilities.invokeLater(() -> {
-                        btnTabBan.setSelected(true); // Chọn lại nút Bàn
-                        // Không cần gọi show card lại vì setSelected sẽ trigger listener của btnTabBan
+                        btnTabBan.setSelected(true);
                     });
                 }
             }
@@ -93,12 +92,11 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
         leftButtonsPanel.add(btnTabGoiMon);
         leftButtonsPanel.add(btnTabDatBan);
 
-        // --- Panel chứa nút "..." bên phải (Code giữ nguyên như của bạn) ---
+        // --- Panel chứa nút "..." bên phải ---
         JPanel rightButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         rightButtonPanel.setOpaque(false);
         rightButtonPanel.setBorder(new EmptyBorder(0, 0, 0, 5));
         JButton menuButton = new JButton("...");
-        // ... (Cài đặt style và ActionListener cho menuButton như cũ) ...
         menuButton.setFocusPainted(false);
         menuButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         menuButton.setBackground(COLOR_ACCENT_BLUE);
@@ -107,14 +105,12 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
         menuButton.setBorder(new EmptyBorder(10, 15, 10, 15));
         menuButton.addActionListener(e -> {
             JPopupMenu popupMenu = new JPopupMenu();
-            // ... (Code tạo và hiển thị JPopupMenu như cũ) ...
             popupMenu.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
             JMenuItem itemInLaiHoaDon = new JMenuItem("In lại hóa đơn");
-            // ... (Thêm các menu item khác và action listener) ...
             JMenuItem itemGhepBan = new JMenuItem("Ghép bàn");
             JMenuItem itemChuyenBan = new JMenuItem("Chuyển bàn");
             Font menuFont = new Font("Segoe UI", Font.PLAIN, 13);
-            itemInLaiHoaDon.setFont(menuFont); // ... (Set font, border)
+            itemInLaiHoaDon.setFont(menuFont);
             itemGhepBan.setFont(menuFont);
             itemChuyenBan.setFont(menuFont);
             itemInLaiHoaDon.setBorder(new EmptyBorder(5, 15, 5, 15));
@@ -140,12 +136,12 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
 
         // --- Panel Nội Dung Chính (CardLayout) ---
         contentCardPanel = new JPanel(contentCardLayout);
-        contentCardPanel.setOpaque(false); // Nền trong suốt
+        contentCardPanel.setOpaque(false);
 
         // --- Khởi tạo các màn hình con ---
-        // Truyền 'this' (DanhSachBanGUI) vào ManHinhBanGUI
+        // 🌟 SỬA: TRUYỀN maNVDangNhap cho ManHinhGoiMonGUI
         manHinhBanGUI = new ManHinhBanGUI(this);
-        manHinhGoiMonGUI = new ManHinhGoiMonGUI(this);
+        manHinhGoiMonGUI = new ManHinhGoiMonGUI(this, this.maNVDangNhap);
         manHinhDatBanGUI = new ManHinhDatBanGUI(this, mainGUI_Parent);
 
         // --- Thêm các màn hình con vào CardLayout ---
@@ -160,18 +156,23 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
         // --- Hiển thị màn hình Bàn mặc định ---
         contentCardLayout.show(contentCardPanel, "MAN_HINH_BAN");
 
-        // --- Cập nhật màu sắc nút tab lần đầu tiên (quan trọng) ---
-        // Dùng invokeLater để đảm bảo UI đã sẵn sàng
+        // --- Cập nhật màu sắc nút tab lần đầu tiên ---
         SwingUtilities.invokeLater(this::updateTopNavButtonStyles);
     } // Kết thúc constructor
+
+    // 🌟 GETTER MỚI (nếu cần)
+    public String getMaNVDangNhap() {
+        return maNVDangNhap;
+    }
+
     private JToggleButton createTopNavButton(String text, String cardName, boolean selected) {
         JToggleButton navButton = new JToggleButton(text);
         navButton.setFocusPainted(false);
-        navButton.setBorderPainted(false); // Bỏ viền mặc định
-        navButton.setBorder(new EmptyBorder(10, 20, 10, 20)); // Padding
-        navButton.setPreferredSize(new Dimension(120, 40)); // Kích thước nút
+        navButton.setBorderPainted(false);
+        navButton.setBorder(new EmptyBorder(10, 20, 10, 20));
+        navButton.setPreferredSize(new Dimension(120, 40));
         navButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        navButton.setFont(new Font("Segoe UI", Font.BOLD, 14)); // Font chữ
+        navButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
         navButton.addActionListener(e -> {
             if (navButton.isSelected()) {
                 contentCardLayout.show(contentCardPanel, cardName);
@@ -226,8 +227,9 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
     }
     private void showChuyenBanDiaLog() {
         Window parentFrame = SwingUtilities.getWindowAncestor(this);
-        ChuyenBanDialog dialog = new ChuyenBanDialog(parentFrame);
-        dialog.setVisible(true);
+        // Giả định ChuyenBanDialog và GhepBanDialog đã được định nghĩa
+         ChuyenBanDialog dialog = new ChuyenBanDialog(parentFrame);
+         dialog.setVisible(true);
     }
 
     private void InLaiHoaDon() {
@@ -235,8 +237,8 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
 
     private void showGhepBanSplitDialog() {
         Window parentFrame = SwingUtilities.getWindowAncestor(this);
-        GhepBanDialog dialog = new GhepBanDialog(parentFrame);
-        dialog.setVisible(true);
+         GhepBanDialog dialog = new GhepBanDialog(parentFrame);
+         dialog.setVisible(true);
     }
 
     @Override

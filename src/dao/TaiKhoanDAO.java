@@ -1,12 +1,12 @@
-package dao; // Hoặc package DAO của bạn
+package dao;
 
-import connectDB.SQLConnection; // <-- Dùng lớp kết nối của bạn
+import connectDB.SQLConnection;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap; // <-- Thêm import này
-import java.util.Map;    // <-- Thêm import này
+import java.util.HashMap;
+import java.util.Map;
 
 public class TaiKhoanDAO {
 
@@ -16,8 +16,8 @@ public class TaiKhoanDAO {
         String cleanTenTK = tenTK.trim();
         String inputHashedPassword = "hashed_" + cleanPassword.hashCode();
 
-        // --- SỬA 2: Thêm N.hoTen vào câu SELECT ---
-        String sql = "SELECT T.matKhau, N.vaiTro, N.hoTen FROM TaiKhoan T " +
+        // 🌟 SỬA: Thêm N.maNV vào câu SELECT
+        String sql = "SELECT T.matKhau, N.vaiTro, N.hoTen, N.maNV FROM TaiKhoan T " +
                 "JOIN NhanVien N ON T.tenTK = N.tenTK " +
                 "WHERE T.tenTK = ? AND T.trangThai = 1";
 
@@ -29,15 +29,17 @@ public class TaiKhoanDAO {
                     if (rs.next()) {
                         String dbHashedPassword = rs.getString("matKhau").trim();
                         String vaiTro = rs.getString("vaiTro");
-                        String hoTen = rs.getString("hoTen"); // <-- Lấy họ tên
+                        String hoTen = rs.getString("hoTen");
+                        String maNV = rs.getString("maNV"); // 🌟 LẤY MÃ NV
 
                         // So sánh mật khẩu
                         if (inputHashedPassword.equals(dbHashedPassword)) {
-                            // --- SỬA 3: Tạo Map và trả về ---
+                            // 🌟 SỬA: Tạo Map và trả về
                             Map<String, String> userInfo = new HashMap<>();
                             userInfo.put("role", vaiTro);
                             userInfo.put("name", hoTen);
-                            return userInfo; // Trả về Map chứa role và name
+                            userInfo.put("maNV", maNV); // 🌟 TRẢ VỀ MÃ NV
+                            return userInfo; // Trả về Map chứa role, name, và maNV
                         }
                     }
                 }

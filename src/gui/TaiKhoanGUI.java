@@ -10,8 +10,8 @@ import java.awt.geom.RoundRectangle2D;
 import java.util.Map;
 
 public class TaiKhoanGUI extends JFrame {
-    private static final Color COLOR_ACCENT_BLUE = new Color(40, 28, 244); // Màu xanh nút
-    private static final Color COLOR_INPUT_BORDER = new Color(220, 220, 220); // Màu viền input (xám nhạt)
+    private static final Color COLOR_ACCENT_BLUE = new Color(40, 28, 244);
+    private static final Color COLOR_INPUT_BORDER = new Color(220, 220, 220);
 
     private JTextField txtTenDangNhap;
     private JPasswordField txtMatKhau;
@@ -21,10 +21,10 @@ public class TaiKhoanGUI extends JFrame {
         setTitle("Đăng nhập - StarGuardian Restaurant");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1300, 800);
-        setLocationRelativeTo(null); // Căn giữa màn hình
+        setLocationRelativeTo(null);
 
         BackgroundPanel backgroundPanel = new BackgroundPanel("/img/DangNhap+Logo/DangNhap.jpg");
-        backgroundPanel.setLayout(new GridBagLayout()); // Dùng GridBagLayout để căn giữa
+        backgroundPanel.setLayout(new GridBagLayout());
         setContentPane(backgroundPanel);
 
         JPanel loginFormPanel = new JPanel(new BorderLayout());
@@ -85,7 +85,7 @@ public class TaiKhoanGUI extends JFrame {
         contentPanel.add(Box.createRigidArea(new Dimension(0, 25)));
 
         JPanel formInputPanel = new JPanel();
-        formInputPanel.setOpaque(false); // Nền trong suốt
+        formInputPanel.setOpaque(false);
         formInputPanel.setLayout(new BoxLayout(formInputPanel, BoxLayout.Y_AXIS));
 
         formInputPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -106,7 +106,7 @@ public class TaiKhoanGUI extends JFrame {
 
         btnDangNhap.setFocusPainted(false);
         btnDangNhap.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnDangNhap.setMaximumSize(new Dimension(Integer.MAX_VALUE, btnDangNhap.getPreferredSize().height + 15)); // Cộng 15 vào chiều cao max
+        btnDangNhap.setMaximumSize(new Dimension(Integer.MAX_VALUE, btnDangNhap.getPreferredSize().height + 15));
 
         btnDangNhap.addMouseListener(new MouseAdapter() {
             @Override
@@ -147,27 +147,35 @@ public class TaiKhoanGUI extends JFrame {
                     return; // Dừng lại không làm gì nữa
                 }
 
-// --- Logic xử lý kết quả (GIỮ NGUYÊN) ---
-                if (loginResult != null) { // Nếu đăng nhập thành công (userRole không null)
-
+// --- Logic xử lý kết quả ---
+                if (loginResult != null) {
                     String userRole = loginResult.get("role");
                     String userName = loginResult.get("name");
+                    // 🌟 LẤY MÃ NV
+                    String maNV = loginResult.get("maNV");
+                    if (maNV == null) {
+                        // Fallback (chỉ dùng nếu TaiKhoanDAO không trả về maNV)
+                        maNV = tenDangNhap;
+                    }
+
                     JOptionPane.showMessageDialog(TaiKhoanGUI.this,
-                            "Đăng nhập thành công!\nTên: " + userName + "\nVai trò: " + userRole, // <-- Hiển thị cả tên
+                            "Đăng nhập thành công!\nTên: " + userName + "\nVai trò: " + userRole,
                             "Thành công", JOptionPane.INFORMATION_MESSAGE);
 
                     dispose();
 
-                    // Truyền vai trò (userRole) vào MainGUI
+                    // Truyền vai trò (userRole) và TÊN, MÃ NV vào MainGUI
                     final String finalUserRole = userRole;
-                    final String finalUserName = userName; // <-- Tạo biến final cho tên
+                    final String finalUserName = userName;
+                    final String finalMaNV = maNV; // <--- 🌟 TRUYỀN MÃ NV
+
                     SwingUtilities.invokeLater(() -> {
-                        // Gọi constructor mới của MainGUI (sẽ tạo ở bước sau)
-                        MainGUI mainGUI = new MainGUI(finalUserRole, finalUserName);
+                        // Gọi constructor mới của MainGUI (Đã thêm maNV)
+                        MainGUI mainGUI = new MainGUI(finalUserRole, finalUserName, finalMaNV);
                         mainGUI.setVisible(true);
                     });
 
-                } else { // Nếu loginResult là null (đăng nhập thất bại)
+                } else {
                     JOptionPane.showMessageDialog(TaiKhoanGUI.this, "Sai tên tài khoản hoặc mật khẩu!",
                             "Lỗi Đăng nhập", JOptionPane.ERROR_MESSAGE);
                 }
@@ -211,7 +219,7 @@ public class TaiKhoanGUI extends JFrame {
         rowPanel.setOpaque(false);
         rowPanel.setLayout(new BoxLayout(rowPanel, BoxLayout.Y_AXIS));
         rowPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        rowPanel.setBorder(new EmptyBorder(0, 0, 15, 0)); // Khoảng cách dưới
+        rowPanel.setBorder(new EmptyBorder(0, 0, 15, 0));
 
         JLabel label = new JLabel(labelText);
         label.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -321,7 +329,7 @@ public class TaiKhoanGUI extends JFrame {
                 if (new String(pf.getPassword()).equals(placeholder)) {
                     pf.setText("");
                     pf.setForeground(Color.BLACK);
-                    pf.setEchoChar('•'); // Bật lại echo char khi người dùng nhập
+                    pf.setEchoChar('•');
                 }
             }
             @Override
@@ -329,7 +337,7 @@ public class TaiKhoanGUI extends JFrame {
                 if (new String(pf.getPassword()).isEmpty()) {
                     pf.setText(placeholder);
                     pf.setForeground(Color.GRAY);
-                    pf.setEchoChar((char)0); // Tắt echo char khi mất focus và rỗng
+                    pf.setEchoChar((char)0);
                 }
             }
         });

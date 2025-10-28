@@ -365,40 +365,82 @@ public class KhachHangGUI extends JPanel {
         ));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.fill = GridBagConstraints.HORIZONTAL; // Các ô nhập liệu sẽ lấp đầy chiều ngang
         gbc.insets = new Insets(5, 5, 5, 5);
 
-        // --- Cột 1: Labels & TextFields ---
-        gbc.gridx = 0; gbc.gridy = 0; formContainer.add(new JLabel("Mã khách hàng:"), gbc);
-        gbc.gridx = 1; gbc.gridy = 0; txtMaKH = new JTextField(20); txtMaKH.setEditable(false); formContainer.add(txtMaKH, gbc);
+        int row = 0;
 
-        gbc.gridx = 0; gbc.gridy = 1; formContainer.add(new JLabel("Tên khách hàng:"), gbc);
-        gbc.gridx = 1; gbc.gridy = 1; txtTenKH = new JTextField(); formContainer.add(txtTenKH, gbc);
+        // --- Thiết lập trọng số MỚI ---
+        // Cột Labels (0 và 2) sẽ có trọng số nhỏ để chia đều không gian thừa Label
+        final double WEIGHT_LABEL = 0.01; // Trọng số nhỏ, chỉ để cân bằng chiều rộng 2 cột Label
+        // Cột Input Fields (1 và 3) sẽ có trọng số lớn để chia đều không gian Input
+        final double WEIGHT_INPUT = 1.0;
 
-        gbc.gridx = 0; gbc.gridy = 2; formContainer.add(new JLabel("Giới tính:"), gbc);
-        gbc.gridx = 1; gbc.gridy = 2; cbGioiTinh = new JComboBox<>(new String[]{"Nam", "Nữ", "Khác"}); cbGioiTinh.setPreferredSize(new Dimension(0, 30)); formContainer.add(cbGioiTinh, gbc);
+        // Hàng 0: Mã khách hàng / Ngày sinh
+        gbc.gridx = 0; gbc.gridy = row; gbc.weightx = WEIGHT_LABEL;
+        formContainer.add(new JLabel("Mã khách hàng:"), gbc);
 
-        gbc.gridx = 0; gbc.gridy = 3; formContainer.add(new JLabel("Số điện thoại:"), gbc);
-        gbc.gridx = 1; gbc.gridy = 3; txtSDT = new JTextField(); formContainer.add(txtSDT, gbc);
+        gbc.gridx = 1; gbc.gridy = row; gbc.weightx = WEIGHT_INPUT;
+        txtMaKH = new JTextField(20); txtMaKH.setEditable(false); formContainer.add(txtMaKH, gbc);
 
-        gbc.gridx = 0; gbc.gridy = 4; formContainer.add(new JLabel("Email:"), gbc);
-        gbc.gridx = 1; gbc.gridy = 4; txtEmail = new JTextField(); formContainer.add(txtEmail, gbc);
+        gbc.gridx = 2; gbc.gridy = row; gbc.weightx = WEIGHT_LABEL;
+        formContainer.add(new JLabel("Ngày sinh (dd/MM/yyyy):"), gbc);
 
-        // --- Cột 2: Labels & TextFields ---
-        gbc.gridx = 2; gbc.gridy = 0; formContainer.add(new JLabel("Ngày sinh (dd/MM/yyyy):"), gbc);
-        gbc.gridx = 3; gbc.gridy = 0; txtNgaySinh = new JTextField(); formContainer.add(txtNgaySinh, gbc);
+        gbc.gridx = 3; gbc.gridy = row; gbc.weightx = WEIGHT_INPUT;
+        txtNgaySinh = new JTextField(); formContainer.add(txtNgaySinh, gbc);
 
-        gbc.gridx = 2; gbc.gridy = 1; formContainer.add(new JLabel("Địa chỉ:"), gbc);
-        gbc.gridx = 3; gbc.gridy = 1; txtDiaChi = new JTextField(); formContainer.add(txtDiaChi, gbc);
+        // Hàng 1: Tên khách hàng / Địa chỉ
+        row++;
+        gbc.gridx = 0; gbc.gridy = row; gbc.weightx = WEIGHT_LABEL;
+        formContainer.add(new JLabel("Tên khách hàng:"), gbc);
+        gbc.gridx = 1; gbc.gridy = row; gbc.weightx = WEIGHT_INPUT;
+        txtTenKH = new JTextField(); formContainer.add(txtTenKH, gbc);
 
-        gbc.gridx = 2; gbc.gridy = 2; formContainer.add(new JLabel("Ngày tham gia (dd/MM/yyyy):"), gbc);
-        gbc.gridx = 3; gbc.gridy = 2; txtNgayThamGia = new JTextField(); txtNgayThamGia.setEditable(false); formContainer.add(txtNgayThamGia, gbc);
+        gbc.gridx = 2; gbc.gridy = row; gbc.weightx = WEIGHT_LABEL;
+        formContainer.add(new JLabel("Địa chỉ:"), gbc);
+        gbc.gridx = 3; gbc.gridy = row; gbc.weightx = WEIGHT_INPUT;
+        txtDiaChi = new JTextField(); formContainer.add(txtDiaChi, gbc);
 
-        gbc.gridx = 2; gbc.gridy = 3; formContainer.add(new JLabel("Tổng chi tiêu:"), gbc);
-        gbc.gridx = 3; gbc.gridy = 3; txtTongChiTieu = new JTextField(); txtTongChiTieu.setEditable(false); formContainer.add(txtTongChiTieu, gbc);
+        // Hàng 2: Giới tính / Ngày tham gia
+        row++;
+        gbc.gridx = 0; gbc.gridy = row; gbc.weightx = WEIGHT_LABEL;
+        formContainer.add(new JLabel("Giới tính:"), gbc);
+        gbc.gridx = 1; gbc.gridy = row; gbc.weightx = WEIGHT_INPUT;
+        cbGioiTinh = new JComboBox<>(new String[]{"Nam", "Nữ", "Khác"});
+        cbGioiTinh.setPreferredSize(new Dimension(0, 30));
+        formContainer.add(cbGioiTinh, gbc);
 
-        gbc.gridx = 2; gbc.gridy = 4; formContainer.add(new JLabel("Hạng thành viên:"), gbc);
-        gbc.gridx = 3; gbc.gridy = 4; cbHangTV = new JComboBox<>(getHangThanhVienOptions()); cbHangTV.setEnabled(false); cbHangTV.setPreferredSize(new Dimension(0, 30)); formContainer.add(cbHangTV, gbc);
+        gbc.gridx = 2; gbc.gridy = row; gbc.weightx = WEIGHT_LABEL;
+        formContainer.add(new JLabel("Ngày tham gia (dd/MM/yyyy):"), gbc);
+        gbc.gridx = 3; gbc.gridy = row; gbc.weightx = WEIGHT_INPUT;
+        txtNgayThamGia = new JTextField(); txtNgayThamGia.setEditable(false); formContainer.add(txtNgayThamGia, gbc);
+
+        // Hàng 3: Số điện thoại / Tổng chi tiêu
+        row++;
+        gbc.gridx = 0; gbc.gridy = row; gbc.weightx = WEIGHT_LABEL;
+        formContainer.add(new JLabel("Số điện thoại:"), gbc);
+        gbc.gridx = 1; gbc.gridy = row; gbc.weightx = WEIGHT_INPUT;
+        txtSDT = new JTextField(); formContainer.add(txtSDT, gbc);
+
+        gbc.gridx = 2; gbc.gridy = row; gbc.weightx = WEIGHT_LABEL;
+        formContainer.add(new JLabel("Tổng chi tiêu:"), gbc);
+        gbc.gridx = 3; gbc.gridy = row; gbc.weightx = WEIGHT_INPUT;
+        txtTongChiTieu = new JTextField(); txtTongChiTieu.setEditable(false); formContainer.add(txtTongChiTieu, gbc);
+
+        // Hàng 4: Email / Hạng thành viên
+        row++;
+        gbc.gridx = 0; gbc.gridy = row; gbc.weightx = WEIGHT_LABEL;
+        formContainer.add(new JLabel("Email:"), gbc);
+        gbc.gridx = 1; gbc.gridy = row; gbc.weightx = WEIGHT_INPUT;
+        txtEmail = new JTextField(); formContainer.add(txtEmail, gbc);
+
+        gbc.gridx = 2; gbc.gridy = row; gbc.weightx = WEIGHT_LABEL;
+        formContainer.add(new JLabel("Hạng thành viên:"), gbc);
+        gbc.gridx = 3; gbc.gridy = row; gbc.weightx = WEIGHT_INPUT;
+        cbHangTV = new JComboBox<>(getHangThanhVienOptions());
+        cbHangTV.setEnabled(false);
+        cbHangTV.setPreferredSize(new Dimension(0, 30));
+        formContainer.add(cbHangTV, gbc);
 
         return formContainer;
     }

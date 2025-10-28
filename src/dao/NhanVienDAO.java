@@ -301,4 +301,33 @@ public class NhanVienDAO {
             }
         }
     }
+    public String getTenNhanVienByMa(String maNV) {
+        // Giả sử tên cột trong bảng NhanVien là 'maNV' và 'hoTen'
+        String sql = "SELECT hoTen FROM NhanVien WHERE maNV = ?";
+        String tenNV = "N/A (Lỗi CSDL)";
+
+        // Nếu mã NV là null, trả về lỗi ngay
+        if (maNV == null || maNV.trim().isEmpty()) {
+            return "N/A (Thiếu Mã NV)";
+        }
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maNV);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    tenNV = rs.getString("hoTen"); // Lấy giá trị cột hoTen
+                } else {
+                    tenNV = "N/A (" + maNV + ")"; // Không tìm thấy mã NV này
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi SQL khi lấy tên NV " + maNV + ": " + e.getMessage());
+            e.printStackTrace();
+            // tenNV vẫn là "N/A (Lỗi CSDL)"
+        }
+        return tenNV;
+    }
 }
