@@ -5,22 +5,22 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import entity.ChiTietHoaDon; // Thêm
-import entity.HoaDon; // Thêm
-import java.text.NumberFormat; // Thêm
-import java.util.Locale; // Thêm
-import dao.ChiTietHoaDonDAO; // Thêm
-import dao.HoaDonDAO;      // Thêm
+import entity.ChiTietHoaDon;
+import entity.HoaDon;
+import java.text.NumberFormat;
+import java.util.Locale;
+import dao.ChiTietHoaDonDAO;
+import dao.HoaDonDAO;
 import java.time.format.DateTimeFormatter;
 import entity.Ban;
 import entity.TrangThaiBan;
 
-import javax.swing.table.DefaultTableModel; // Thêm
-import java.util.ArrayList; // Thêm
-import java.util.List;    // Thêm
-import java.util.HashMap; // Thêm
-import java.util.Map;     // Thêm
-import java.awt.event.ActionEvent; // Thêm import
+import javax.swing.table.DefaultTableModel;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 /**
  * Panel này hiển thị chi tiết hóa đơn (JTable) VÀ BẢNG ĐIỀU KHIỂN THANH TOÁN.
@@ -133,9 +133,18 @@ public class BillPanel extends JPanel {
             return;
         }
 
+        // 🌟 BƯỚC SỬA: GỌI LƯU MÓN để đảm bảo TỔNG TIỀN được tính và lưu vào CSDL/currentTotal
+        xuLyLuuMon();
+
+        // 🌟 Tải lại activeHoaDon để có maHD cập nhật (nếu logic lưu món thay đổi maHD, tuy không mong muốn nhưng nên kiểm tra)
+        // và đảm bảo các bước dưới đây sử dụng currentTotal chính xác.
+        // Dù xuLyLuuMon() đã cập nhật CSDL, chúng ta vẫn dùng this.currentTotal đã được cập nhật bởi loadBillTotals
+
         // 2. Validate Tiền Khách Trả
         long tienKhachTraLong = 0;
-        long tongPhaiTraLong = currentTotal; // Lấy tổng tiền đã lưu
+        // Lấy tổng tiền đã được cập nhật từ xuLyLuuMon() -> loadBillTotals() -> updateSuggestedCash()
+        long tongPhaiTraLong = currentTotal;
+
         try {
             String khachTraStr = txtKhachTra.getText().replace(",", "").replace(".", "");
             tienKhachTraLong = Long.parseLong(khachTraStr);
@@ -175,6 +184,7 @@ public class BillPanel extends JPanel {
             String hinhThucTT = "Tiền mặt"; // TODO: Lấy hình thức TT đúng
 
             // Gọi DAO cập nhật Hóa đơn
+            // Lưu ý: activeHoaDon.getMaHD() vẫn là mã hóa đơn gốc, tổng tiền đã được cập nhật trong CSDL ở bước 1.
             thanhToanOK = hoaDonDAO.thanhToanHoaDon(activeHoaDon.getMaHD(), tienKhachTraLong, hinhThucTT);
             if (thanhToanOK) {
                 // Đổi trạng thái object Ban thành Trống
@@ -343,6 +353,14 @@ public class BillPanel extends JPanel {
                     coLoi = true;
                     System.err.println("Lỗi khi cập nhật tổng tiền hóa đơn!");
                 }
+
+                // 🌟 BỔ SUNG: Cập nhật lại tổng tiền trên giao diện sau khi CSDL được cập nhật
+                // (Chức năng này đã được thực hiện gián tiếp qua updateBillPanelTotals nếu được gọi sau khi tính toán tongTienMoiGUI)
+                // Tuy nhiên, ta cần gọi loadBillTotals để cập nhật currentTotal chính xác
+                // Phải tính toán lại các thành phần khác (VAT, KM) nếu cần, nhưng tạm thời dùng tongTienMoiGUI cho tổng thanh toán (tạm thời không có VAT/KM)
+                long tongThanhToanMoi = Math.round(tongTienMoiGUI); // Giả sử Tổng TT = Tổng Cộng
+                loadBillTotals(tongThanhToanMoi, 0, 0, tongThanhToanMoi, model.getRowCount());
+
             }
 
         } catch (Exception ex) {

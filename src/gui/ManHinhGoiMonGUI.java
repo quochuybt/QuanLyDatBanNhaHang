@@ -7,8 +7,8 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.*;
 import java.awt.*;
-import java.awt.event.ActionListener; // Thêm
-import java.awt.event.MouseAdapter;  // Thêm
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
@@ -20,15 +20,18 @@ import java.util.Locale;
 import javax.swing.table.TableColumn;
 
 public class ManHinhGoiMonGUI extends JPanel {
-    private Ban banHienTai; // Thêm biến để lưu bàn đang được hiển thị
-    private HoaDonDAO hoaDonDAO_GoiMon; // Dùng instance DAO riêng nếu cần
+    private Ban banHienTai;
+    private HoaDonDAO hoaDonDAO_GoiMon;
     private final NumberFormat nf = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+
+    // 🌟 BIẾN MỚI: LƯU MÃ NV ĐANG ĐĂNG NHẬP
+    private final String maNVDangNhap;
 
     private DanhSachBanGUI parentDanhSachBanGUI_GoiMon;
     // Panel bên trái
     private MonAnDAO monAnDAO;
-    private List<MonAn> dsMonAnFull; // Danh sách TẤT CẢ món ăn (để lọc)
-    private List<MonAnItemPanel> dsMonAnPanel; // Thêm: Danh sách các panel item
+    private List<MonAn> dsMonAnFull;
+    private List<MonAnItemPanel> dsMonAnPanel;
     private JPanel pnlMenuItemContainer;
     private JTextField txtTimKiem;
     private String currentCategoryFilter = "Tất cả";
@@ -42,17 +45,22 @@ public class ManHinhGoiMonGUI extends JPanel {
     private JLabel lblTenBanHeader;
     private JTable tblChiTietHoaDon;
     private DefaultTableModel modelChiTietHoaDon;
-    private BillPanel billPanel; // TÁI SỬ DỤNG BILLPANEL CỦA BẠN
+    private BillPanel billPanel;
 
     public ManHinhGoiMonGUI(DanhSachBanGUI parent) {
+        this(parent, "NV_UNKNOWN"); // Dùng giá trị mặc định nếu không truyền
+    }
+
+    public ManHinhGoiMonGUI(DanhSachBanGUI parent, String maNVDangNhap) { // 🌟 CONSTRUCTOR MỚI
         super(new BorderLayout());
         this.parentDanhSachBanGUI_GoiMon = parent;
+        this.maNVDangNhap = maNVDangNhap; // 🌟 LƯU MÃ NV
         this.monAnDAO = new MonAnDAO();
-        this.dsMonAnFull = new ArrayList<>(); // Khởi tạo list
+        this.dsMonAnFull = new ArrayList<>();
         this.hoaDonDAO_GoiMon = new HoaDonDAO();
         this.donDatMonDAO = new DonDatMonDAO();
         this.banDAO = new BanDAO();
-        this.dsMonAnPanel = new ArrayList<>(); // Khởi tạo list
+        this.dsMonAnPanel = new ArrayList<>();
         this.chiTietDAO = new ChiTietHoaDonDAO();
         this.khachHangDAO = new KhachHangDAO();
 
@@ -63,8 +71,8 @@ public class ManHinhGoiMonGUI extends JPanel {
     private String phatSinhMaHD() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyy");
         String datePart = LocalDateTime.now().format(formatter);
-        // Dùng ThreadLocalRandom cho đơn giản
-        int randomPart = java.util.concurrent.ThreadLocalRandom.current().nextInt(1000, 10000);
+        java.util.concurrent.ThreadLocalRandom current = java.util.concurrent.ThreadLocalRandom.current();
+        int randomPart = current.nextInt(1000, 10000); // 4 chữ số ngẫu nhiên
         return "HD" + datePart + randomPart;
     }
     public DanhSachBanGUI getParentDanhSachBanGUI() {
@@ -72,9 +80,9 @@ public class ManHinhGoiMonGUI extends JPanel {
     }
     public boolean loadDuLieuBan(Ban banDuocChon) {
         System.out.println("loadDuLieuBan được gọi cho: " + banDuocChon.getTenBan() + " - Trạng thái: " + banDuocChon.getTrangThai());
-        this.banHienTai = banDuocChon; // Lưu lại bàn hiện tại
+        this.banHienTai = banDuocChon;
 
-        // 1. Cập nhật Header và Màu sắc (luôn thực hiện)
+        // 1. Cập nhật Header và Màu sắc
         lblTenBanHeader.setText(banDuocChon.getTenBan() + " - " + banDuocChon.getKhuVuc());
         Color statusColor;
         switch (banDuocChon.getTrangThai()) {
@@ -84,21 +92,21 @@ public class ManHinhGoiMonGUI extends JPanel {
         }
         statusColorBox.setBackground(statusColor);
 
-        // 2. Xóa chi tiết đơn hàng cũ trên bảng (luôn thực hiện)
+        // 2. Xóa chi tiết đơn hàng cũ trên bảng
         modelChiTietHoaDon.setRowCount(0);
 
-        HoaDon activeHoaDon = null;     // Hóa đơn sẽ hiển thị
-        boolean requireBanRefresh = false; // Cờ kiểm tra có cần refresh ManHinhBanGUI không
+        HoaDon activeHoaDon = null;
+        boolean requireBanRefresh = false;
 
-        try { // Bọc trong try-catch để xử lý lỗi CSDL
+        try {
             if (banDuocChon.getTrangThai() == TrangThaiBan.DANG_PHUC_VU) {
                 // --- BÀN ĐANG PHỤC VỤ: Tải hóa đơn hiện có ---
                 activeHoaDon = hoaDonDAO_GoiMon.getHoaDonChuaThanhToan(banDuocChon.getMaBan());
                 if (activeHoaDon == null) {
                     System.err.println("Lỗi logic: Bàn ĐPV nhưng không có HĐ!");
                     JOptionPane.showMessageDialog(this, "Lỗi: Không tìm thấy hóa đơn hiện tại.", "Lỗi Dữ Liệu", JOptionPane.ERROR_MESSAGE);
-                    updateBillPanelTotals(); // Reset bill
-                    return false; // Báo lỗi và yêu cầu quay lại màn Bàn
+                    updateBillPanelTotals();
+                    return false;
                 }
                 System.out.println("Đang tải hóa đơn: " + activeHoaDon.getMaHD());
 
@@ -110,31 +118,36 @@ public class ManHinhGoiMonGUI extends JPanel {
 
                 if (confirm == JOptionPane.YES_OPTION) {
                     // --- Code xử lý MỞ BÀN (update Ban, them DDM, them HD) ---
-                    // ... (Giữ nguyên code gọi DAO của bạn ở đây) ...
+                    // 🌟 SỬA: Dùng maNVDangNhap đã lưu
+                    String maNV_LoggedIn = this.maNVDangNhap;
+
                     banDuocChon.setTrangThai(TrangThaiBan.DANG_PHUC_VU);
                     banDuocChon.setGioMoBan(LocalDateTime.now());
                     if (!banDAO.updateBan(banDuocChon)) throw new Exception("Lỗi cập nhật trạng thái bàn!");
                     requireBanRefresh = true;
-                    String maNV_LoggedIn = "NV01102";
+
                     DonDatMon ddmMoi = new DonDatMon();
                     ddmMoi.setNgayKhoiTao(LocalDateTime.now());
-                    ddmMoi.setMaNV(maNV_LoggedIn);
+                    ddmMoi.setMaNV(maNV_LoggedIn); // 🌟 GÁN MA NV ĐANG ĐĂNG NHẬP
                     ddmMoi.setMaBan(banDuocChon.getMaBan());
                     if (!donDatMonDAO.themDonDatMon(ddmMoi)) throw new Exception("Lỗi tạo đơn đặt món mới!");
+
                     String newMaHD = phatSinhMaHD();
-                    // ... (Tạo hdMoi dùng constructor đầy đủ) ...
+
+                    // 🌟 GÁN MA NV ĐANG ĐĂNG NHẬP
                     HoaDon hdMoi = new HoaDon(newMaHD, LocalDateTime.now(), "Chưa thanh toán", "Tiền mặt", ddmMoi.getMaDon(), maNV_LoggedIn, null);
+
                     hdMoi.setMaKH(null);
                     hdMoi.setTongTienTuDB(0);
                     if (!hoaDonDAO_GoiMon.themHoaDon(hdMoi)) throw new Exception("Lỗi tạo hóa đơn mới!");
 
                     activeHoaDon = hoaDonDAO_GoiMon.getHoaDonTheoMaDon(ddmMoi.getMaDon());
                     if(activeHoaDon == null){ activeHoaDon = hdMoi; }
-                    statusColorBox.setBackground(ManHinhBanGUI.COLOR_STATUS_OCCUPIED); // Đổi màu ngay
-                } else { // Chọn NO hoặc CANCEL
+                    statusColorBox.setBackground(ManHinhBanGUI.COLOR_STATUS_OCCUPIED);
+                } else {
                     System.out.println("Người dùng không muốn mở bàn.");
-                    updateBillPanelTotals(); // Reset bill
-                    return false; // Báo cho DanhSachBanGUI không chuyển tab
+                    updateBillPanelTotals();
+                    return false;
                 }
 
             } else if (banDuocChon.getTrangThai() == TrangThaiBan.DA_DAT_TRUOC) {
@@ -142,27 +155,25 @@ public class ManHinhGoiMonGUI extends JPanel {
                 DonDatMon ddmDaDat = donDatMonDAO.getDonDatMonDatTruoc(banDuocChon.getMaBan());
                 String tenKH = "Khách vãng lai";
                 String gioDenStr = "chưa rõ";
-                if (ddmDaDat != null) { // Lấy thông tin nếu tìm thấy đơn đặt
-                    if (ddmDaDat.getMaKH() != null && khachHangDAO != null) { // Kiểm tra khachHangDAO null
+                if (ddmDaDat != null) {
+                    if (ddmDaDat.getMaKH() != null && khachHangDAO != null) {
                         KhachHang kh = khachHangDAO.timTheoMaKH(ddmDaDat.getMaKH());
                         if (kh != null) {
                             tenKH = kh.getTenKH();
                         }
                     }
-                    // Lấy giờ đặt từ bàn (vì DonDatMon không lưu giờ hẹn)
                     if (banDuocChon.getGioMoBan() != null) {
                         gioDenStr = banDuocChon.getGioMoBan().format(DateTimeFormatter.ofPattern("HH:mm dd/MM"));
                     }
                 } else {
-                    // Nếu không tìm thấy đơn đặt tương ứng -> Lỗi logic
                     System.err.println("Lỗi: Bàn " + banDuocChon.getMaBan() + " DA_DAT_TRUOC nhưng không tìm thấy DonDatMon tương ứng!");
                     JOptionPane.showMessageDialog(this, "Lỗi: Không tìm thấy thông tin đặt bàn!", "Lỗi Dữ Liệu", JOptionPane.ERROR_MESSAGE);
                     updateBillPanelTotals();
-                    return false; // Báo lỗi, yêu cầu quay lại
+                    return false;
                 }
                 int confirm = JOptionPane.showConfirmDialog(this,
-                        "Bàn '" + banDuocChon.getTenBan() + "' đã được đặt trước lúc " + gioDenStr + ".\nBạn có muốn nhận bàn này không?", // Câu hỏi
-                        "Xác nhận nhận bàn", // Tiêu đề
+                        "Bàn '" + banDuocChon.getTenBan() + "' đã được đặt trước lúc " + gioDenStr + ".\nBạn có muốn nhận bàn này không?",
+                        "Xác nhận nhận bàn",
                         JOptionPane.YES_NO_OPTION,
                         JOptionPane.QUESTION_MESSAGE);
                 if (confirm == JOptionPane.YES_OPTION) {
@@ -172,7 +183,8 @@ public class ManHinhGoiMonGUI extends JPanel {
                     if (!banDAO.updateBan(banDuocChon)) throw new Exception("Lỗi cập nhật trạng thái bàn!");
                     requireBanRefresh = true;
                     String newMaHD = phatSinhMaHD();
-                    // ... (Tạo hdMoi dùng constructor đầy đủ, liên kết ddmDaDat) ...
+
+                    // Logic này dùng maNV của người tạo đơn đặt (ddmDaDat.getMaNV()), giữ nguyên vì hợp lý
                     HoaDon hdMoi = new HoaDon(newMaHD, LocalDateTime.now(), "Chưa thanh toán", "Tiền mặt", ddmDaDat.getMaDon(), ddmDaDat.getMaNV(), null);
                     hdMoi.setMaKH(ddmDaDat.getMaKH());
                     hdMoi.setTongTienTuDB(0);
@@ -180,17 +192,16 @@ public class ManHinhGoiMonGUI extends JPanel {
 
                     activeHoaDon = hoaDonDAO_GoiMon.getHoaDonTheoMaDon(ddmDaDat.getMaDon());
                     if(activeHoaDon == null){ activeHoaDon = hdMoi;}
-                    statusColorBox.setBackground(ManHinhBanGUI.COLOR_STATUS_OCCUPIED); // Đổi màu ngay
-                } else { // Chọn NO hoặc CANCEL
+                    statusColorBox.setBackground(ManHinhBanGUI.COLOR_STATUS_OCCUPIED);
+                } else {
                     System.out.println("Người dùng không muốn nhận bàn đặt.");
-                    updateBillPanelTotals(); // Reset bill
-                    return false; // Báo cho DanhSachBanGUI không chuyển tab
+                    updateBillPanelTotals();
+                    return false;
                 }
-            } // Kết thúc if/else if trạng thái
+            }
 
             // 4. Tải chi tiết món ăn nếu có activeHoaDon
             if (activeHoaDon != null) {
-                // ... (Code tải ChiTietHoaDon vào modelChiTietHoaDon như cũ) ...
                 List<ChiTietHoaDon> dsChiTiet = chiTietDAO.getChiTietTheoMaDon(activeHoaDon.getMaDon());
                 if (dsChiTiet != null && !dsChiTiet.isEmpty()) {
                     activeHoaDon.setDsChiTiet(dsChiTiet);
@@ -209,25 +220,22 @@ public class ManHinhGoiMonGUI extends JPanel {
                 activeHoaDon = null;
             }
 
-        } catch (Exception ex) { // Xử lý lỗi chung
+        } catch (Exception ex) {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "Đã xảy ra lỗi:\n" + ex.getMessage(), "Lỗi Hệ Thống", JOptionPane.ERROR_MESSAGE);
-            xoaThongTinGoiMon();    // Xóa trắng màn gọi món
-            requireBanRefresh = true; // Refresh lại màn Bàn
-            updateBillPanelTotals(); // Reset bill
-            return false; // Báo lỗi và yêu cầu quay lại màn Bàn
+            xoaThongTinGoiMon();
+            requireBanRefresh = true;
+            updateBillPanelTotals();
+            return false;
         } finally {
             // Cập nhật BillPanel cuối cùng
             updateBillPanelTotals();
         }
 
-        // Nếu mọi thứ chạy thành công và không return false ở trên
-        // -> cho phép hiển thị màn hình Gọi Món
-        // Refresh màn hình Bàn nếu trạng thái đã thay đổi
         if (requireBanRefresh && parentDanhSachBanGUI_GoiMon != null) {
             parentDanhSachBanGUI_GoiMon.refreshManHinhBan();
         }
-        return true; // Báo cho DanhSachBanGUI là xử lý OK, có thể chuyển tab
+        return true;
     }
 
     public void xoaThongTinGoiMon() {
@@ -235,7 +243,7 @@ public class ManHinhGoiMonGUI extends JPanel {
         modelChiTietHoaDon.setRowCount(0);
         billPanel.clearBill();
         this.banHienTai = null;
-        if (statusColorBox != null) { // Kiểm tra null phòng trường hợp gọi trước khi buildUI xong
+        if (statusColorBox != null) {
             statusColorBox.setBackground(ManHinhBanGUI.COLOR_STATUS_FREE);
         }
     }
@@ -245,11 +253,6 @@ public class ManHinhGoiMonGUI extends JPanel {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn bàn trước khi gọi món!", "Chưa chọn bàn", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        // Chỉ cho phép thêm món nếu bàn đang phục vụ (hoặc trạng thái hợp lệ khác)
-        // if (banHienTai.getTrangThai() != TrangThaiBan.DANG_PHUC_VU) {
-        //    JOptionPane.showMessageDialog(this, "Không thể thêm món cho bàn ở trạng thái này!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-        //    return;
-        // }
 
         String maMon = monAn.getMaMonAn();
         String tenMon = monAn.getTenMon();
@@ -262,7 +265,7 @@ public class ManHinhGoiMonGUI extends JPanel {
                 int soLuongMoi = soLuongHienTai + 1;
                 modelChiTietHoaDon.setValueAt(soLuongMoi, i, 3);
                 float thanhTienMoi = soLuongMoi * donGia;
-                modelChiTietHoaDon.setValueAt(thanhTienMoi, i, 5); // Cập nhật thành tiền
+                modelChiTietHoaDon.setValueAt(thanhTienMoi, i, 5);
                 updateBillPanelTotals();
                 return;
             }
@@ -278,20 +281,16 @@ public class ManHinhGoiMonGUI extends JPanel {
         };
         modelChiTietHoaDon.addRow(rowData);
         updateBillPanelTotals();
-
-        // TODO: Sau khi thêm món, cần LƯU thay đổi vào CSDL
-        // (Tạo ChiTietHoaDon mới hoặc cập nhật số lượng)
     }
     private void updateBillPanelTotals() {
         long tongCong = 0;
         int tongSoLuong = 0;
 
         for (int i = 0; i < modelChiTietHoaDon.getRowCount(); i++) {
-            // Lấy Số lượng từ cột 3
-            Object slObj = modelChiTietHoaDon.getValueAt(i, 3);
-            int soLuong = (slObj instanceof Integer) ? (Integer) slObj : 0; // Chuyển đổi cẩn thận
 
-            // Lấy Thành tiền từ cột 5
+            Object slObj = modelChiTietHoaDon.getValueAt(i, 3);
+            int soLuong = (slObj instanceof Integer) ? (Integer) slObj : 0;
+
             Object ttObj = modelChiTietHoaDon.getValueAt(i, 5);
             float thanhTien = 0;
             if (ttObj instanceof Float) {
@@ -309,8 +308,8 @@ public class ManHinhGoiMonGUI extends JPanel {
             tongSoLuong += soLuong;
         }
 
-        long khuyenMai = 0; // TODO: Lấy từ HoaDon nếu có
-        long vat = 0;       // TODO: Tính VAT
+        long khuyenMai = 0;
+        long vat = 0;
         long tongThanhToan = tongCong - khuyenMai + vat;
 
         billPanel.loadBillTotals(tongCong, khuyenMai, vat, tongThanhToan, tongSoLuong);
@@ -332,21 +331,19 @@ public class ManHinhGoiMonGUI extends JPanel {
                 pnlLeft,
                 pnlRight
         );
-        splitPane.setDividerLocation(520); // Sửa lại vị trí chia nếu cần
+        splitPane.setDividerLocation(520);
         splitPane.setBorder(null);
 
         this.add(splitPane, BorderLayout.CENTER);
-
-        // Bỏ loadDataFromDB() ở đây, chuyển lên constructor
     }
     private void loadDataFromDB() {
         // 1. Tải danh sách từ DAO
         this.dsMonAnFull = monAnDAO.getAllMonAn();
-        System.out.println("Đã tải " + dsMonAnFull.size() + " món ăn từ CSDL."); // Debug
+        System.out.println("Đã tải " + dsMonAnFull.size() + " món ăn từ CSDL.");
 
         // 2. Tạo các Panel Item và thêm vào container
-        pnlMenuItemContainer.removeAll(); // Xóa các item cũ (nếu có)
-        dsMonAnPanel.clear(); // Xóa list panel cũ
+        pnlMenuItemContainer.removeAll();
+        dsMonAnPanel.clear();
 
         if (dsMonAnFull.isEmpty()) {
             pnlMenuItemContainer.add(new JLabel("Không có món ăn nào trong CSDL."));
@@ -360,15 +357,15 @@ public class ManHinhGoiMonGUI extends JPanel {
                     public void mouseClicked(MouseEvent e) {
                         // Chỉ xử lý click chuột trái
                         if (e.getButton() == MouseEvent.BUTTON1) {
-                            System.out.println("Clicked on: " + itemPanel.getMonAn().getTenMon()); // Debug
-                             addMonAnToOrder(itemPanel.getMonAn()); // Sẽ thêm hàm này ở bước sau
+                            System.out.println("Clicked on: " + itemPanel.getMonAn().getTenMon());
+                            addMonAnToOrder(itemPanel.getMonAn());
                         }
                     }
                 });
                 // ----------------------------------------
 
-                dsMonAnPanel.add(itemPanel); // Thêm vào list để quản lý filter
-                pnlMenuItemContainer.add(itemPanel); // Thêm vào panel để hiển thị
+                dsMonAnPanel.add(itemPanel);
+                pnlMenuItemContainer.add(itemPanel);
             }
         }
 
@@ -381,15 +378,14 @@ public class ManHinhGoiMonGUI extends JPanel {
     }
     private void filterMonAn() {
         String tuKhoa = txtTimKiem.getText().trim().toLowerCase();
-        System.out.println("Filtering: Category='" + currentCategoryFilter + "', Keyword='" + tuKhoa + "'"); // Debug
+        System.out.println("Filtering: Category='" + currentCategoryFilter + "', Keyword='" + tuKhoa + "'");
 
         for (MonAnItemPanel itemPanel : dsMonAnPanel) {
             MonAn mon = itemPanel.getMonAn();
-            boolean show = true; // Mặc định là hiển thị
+            boolean show = true;
 
             // 1. Lọc theo Danh mục (currentCategoryFilter là mã DM)
             if (!currentCategoryFilter.equals("Tất cả")) {
-                // Nếu mã DM của món không khớp với filter đang chọn -> ẩn
                 if (mon.getMaDM() == null || !mon.getMaDM().equals(currentCategoryFilter)) {
                     show = false;
                 }
@@ -397,13 +393,12 @@ public class ManHinhGoiMonGUI extends JPanel {
 
             // 2. Lọc theo Từ khóa (chỉ lọc nếu show vẫn là true)
             if (show && !tuKhoa.isEmpty()) {
-                // Nếu tên món không chứa từ khóa -> ẩn
                 if (!mon.getTenMon().toLowerCase().contains(tuKhoa)) {
                     show = false;
                 }
             }
 
-            itemPanel.setVisible(show); // Ẩn/Hiện panel tương ứng
+            itemPanel.setVisible(show);
         }
         // Cập nhật lại layout sau khi ẩn/hiện
         pnlMenuItemContainer.revalidate();
@@ -414,33 +409,28 @@ public class ManHinhGoiMonGUI extends JPanel {
      * Tạo Panel Menu bên trái
      */
     private JPanel createMenuPanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10)); // Giảm khoảng cách dọc
-//        panel.setBorder(new EmptyBorder(10, 10, 10, 5)); // Lề xung quanh
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBackground(Color.WHITE);
 
         // 1. NORTH: Bộ lọc (Category + Search)
-        JPanel pnlFilter = new JPanel(new BorderLayout(0, 5)); // Khoảng cách giữa category và search
+        JPanel pnlFilter = new JPanel(new BorderLayout(0, 5));
         pnlFilter.setOpaque(false);
-        pnlFilter.add(createCategoryFilterPanel(), BorderLayout.NORTH); // Các nút category
-        pnlFilter.add(createSearchPanel(), BorderLayout.SOUTH); // Ô tìm kiếm
+        pnlFilter.add(createCategoryFilterPanel(), BorderLayout.NORTH);
+        pnlFilter.add(createSearchPanel(), BorderLayout.SOUTH);
         panel.add(pnlFilter, BorderLayout.NORTH);
 
         // 2. CENTER: Danh sách món ăn
-        pnlMenuItemContainer = new VerticallyWrappingFlowPanel(new FlowLayout(FlowLayout.LEFT, 15, 15)); // Khoảng cách giữa các món
+        pnlMenuItemContainer = new VerticallyWrappingFlowPanel(new FlowLayout(FlowLayout.LEFT, 15, 15));
         pnlMenuItemContainer.setBackground(Color.WHITE);
-        pnlMenuItemContainer.setBorder(new EmptyBorder(10, 10, 10, 10)); // Lề trong panel món ăn
+        pnlMenuItemContainer.setBorder(new EmptyBorder(10, 10, 10, 10));
 
         JScrollPane scrollPane = new JScrollPane(pnlMenuItemContainer);
         scrollPane.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
         scrollPane.getViewport().setBackground(Color.WHITE);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        // Tăng tốc độ cuộn chuột
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
         panel.add(scrollPane, BorderLayout.CENTER);
-
-        // Bỏ item giả ở đây, sẽ được load từ DB
-        // pnlMenuItemContainer.add(new JLabel("Món ăn 1 (placeholder)"));
 
         return panel;
     }
@@ -449,11 +439,11 @@ public class ManHinhGoiMonGUI extends JPanel {
      * Tạo Panel Hóa đơn bên phải
      */
     private JPanel createOrderPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 10)); // Giảm khoảng cách dọc
-        panel.setBorder(new EmptyBorder(10, 5, 10, 10)); // Lề xung quanh
+        JPanel panel = new JPanel(new BorderLayout(0, 10));
+        panel.setBorder(new EmptyBorder(10, 5, 10, 10));
         panel.setBackground(Color.WHITE);
 
-        // 1. NORTH: Header (Tên bàn) - Đã bỏ nút "..."
+        // 1. NORTH: Header (Tên bàn)
         panel.add(createOrderHeaderPanel(), BorderLayout.NORTH);
 
         // 2. SOUTH: Panel thanh toán (Tái sử dụng BillPanel)
@@ -461,60 +451,55 @@ public class ManHinhGoiMonGUI extends JPanel {
         panel.add(billPanel, BorderLayout.SOUTH);
 
         // 3. CENTER: Bảng chi tiết hóa đơn
-        String[] cols = {"X", "Mã Món", "Tên món", "SL", "Đơn giá", "Thành tiền"}; // Giữ nguyên 6 cột
+        String[] cols = {"X", "Mã Món", "Tên món", "SL", "Đơn giá", "Thành tiền"};
         modelChiTietHoaDon = new DefaultTableModel(cols, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                // Cho sửa cột SL (giờ là cột 3)
                 return column == 0|| column == 3;
             }
-            // ... (getColumnClass giữ nguyên)
             @Override
             public Class<?> getColumnClass(int columnIndex) {
                 switch (columnIndex) {
-                    case 0: return String.class;     // X
-                    case 1: return String.class;     // Mã Món (ẩn)
-                    case 2: return String.class;     // Tên Món
-                    case 3: return Integer.class;    // SL
-                    case 4: return Float.class;      // Đơn giá
-                    case 5: return Float.class;      // Thành tiền
+                    case 0: return String.class;
+                    case 1: return String.class;
+                    case 2: return String.class;
+                    case 3: return Integer.class;
+                    case 4: return Float.class;
+                    case 5: return Float.class;
                     default: return Object.class;
                 }
             }
         };
         tblChiTietHoaDon = new JTable(modelChiTietHoaDon);
         TableColumn columnX = tblChiTietHoaDon.getColumnModel().getColumn(0);
-        columnX.setCellRenderer(new ButtonRenderer()); // Gọi inner class
-        // Sửa: Không cần truyền callback vào ButtonEditor
+        columnX.setCellRenderer(new ButtonRenderer());
         columnX.setCellEditor(new ButtonEditor(new JCheckBox()));
 
         TableColumn columnSL = tblChiTietHoaDon.getColumnModel().getColumn(3);
-        columnSL.setCellRenderer(new SpinnerRenderer()); // Gọi inner class
-        // Sửa: Không cần truyền callback vào SpinnerEditor
+        columnSL.setCellRenderer(new SpinnerRenderer());
         columnSL.setCellEditor(new SpinnerEditor());
 
-        // Cấu hình cột (Giữ nguyên)
+        // Cấu hình cột
         tblChiTietHoaDon.setRowHeight(30);
-        // ... (Code ẩn cột Mã Món và set chiều rộng giữ nguyên)
+
         TableColumn colMaMon = tblChiTietHoaDon.getColumnModel().getColumn(1);
         colMaMon.setMinWidth(0);
         colMaMon.setMaxWidth(0);
         colMaMon.setPreferredWidth(0);
 
-        tblChiTietHoaDon.getColumnModel().getColumn(0).setPreferredWidth(30);  // X
-        tblChiTietHoaDon.getColumnModel().getColumn(2).setPreferredWidth(150); // Tên món
-        tblChiTietHoaDon.getColumnModel().getColumn(3).setPreferredWidth(50);  // SL
-        tblChiTietHoaDon.getColumnModel().getColumn(4).setPreferredWidth(80);  // Đơn giá
-        tblChiTietHoaDon.getColumnModel().getColumn(5).setPreferredWidth(90);  // Thành tiền
+        tblChiTietHoaDon.getColumnModel().getColumn(0).setPreferredWidth(30);
+        tblChiTietHoaDon.getColumnModel().getColumn(2).setPreferredWidth(150);
+        tblChiTietHoaDon.getColumnModel().getColumn(3).setPreferredWidth(50);
+        tblChiTietHoaDon.getColumnModel().getColumn(4).setPreferredWidth(80);
+        tblChiTietHoaDon.getColumnModel().getColumn(5).setPreferredWidth(90);
 
         DefaultTableCellRenderer currencyRenderer = new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 if (value instanceof Number) {
-                    // Định dạng số thành tiền tệ Việt Nam
                     value = nf.format(((Number) value).doubleValue());
                 }
-                setHorizontalAlignment(JLabel.RIGHT); // Căn phải
+                setHorizontalAlignment(JLabel.RIGHT);
                 return super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             }
         };
@@ -529,8 +514,6 @@ public class ManHinhGoiMonGUI extends JPanel {
         return panel;
     }
 
-    // --- CÁC HÀM HELPER (Tạm thời) ---
-
     public DefaultTableModel getModelChiTietHoaDon() {
         return modelChiTietHoaDon;
     }
@@ -540,20 +523,23 @@ public class ManHinhGoiMonGUI extends JPanel {
     }
     public HoaDon getActiveHoaDon() {
         if (banHienTai != null && banHienTai.getTrangThai() == TrangThaiBan.DANG_PHUC_VU) {
-            // Gọi lại DAO để đảm bảo lấy Hóa đơn mới nhất
             return hoaDonDAO_GoiMon.getHoaDonChuaThanhToan(banHienTai.getMaBan());
         }
         return null;
     }
+
+    // 🌟 HÀM GETTER MỚI CHO MA_NV
+    public String getMaNVDangNhap() {
+        return maNVDangNhap;
+    }
+
     private JPanel createCategoryFilterPanel() {
-        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0)); // Khoảng cách giữa các nút
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         filterPanel.setOpaque(false);
         ButtonGroup group = new ButtonGroup();
 
-        // Dữ liệu Danh mục (lấy từ CSDL của bạn)
-        // Cần thêm "Tất cả" vào đầu
         String[][] categories = {
-                {"Tất cả", "Tất cả"}, // Thêm "Tất cả"
+                {"Tất cả", "Tất cả"},
                 {"DM0001", "Món ăn"},
                 {"DM0002", "Giải khát"},
                 {"DM0003", "Rượu vang"}
@@ -562,16 +548,15 @@ public class ManHinhGoiMonGUI extends JPanel {
         ActionListener filterListener = e -> {
             String selectedCategory = e.getActionCommand();
             currentCategoryFilter = selectedCategory;
-            filterMonAn(); // Gọi hàm lọc khi chọn category
+            filterMonAn();
         };
 
         for (int i = 0; i < categories.length; i++) {
             String maDM = categories[i][0];
             String tenDM = categories[i][1];
 
-            // Nút đầu tiên ("Tất cả") được chọn mặc định
-            JToggleButton button = createFilterButton(tenDM, i == 0); // Sửa: Chọn nút đầu tiên
-            button.setActionCommand(maDM); // Action command là Mã DM
+            JToggleButton button = createFilterButton(tenDM, i == 0);
+            button.setActionCommand(maDM);
             button.addActionListener(filterListener);
             group.add(button);
             filterPanel.add(button);
@@ -583,28 +568,25 @@ public class ManHinhGoiMonGUI extends JPanel {
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        button.setBorder(new EmptyBorder(5, 15, 5, 15)); // Padding
+        button.setBorder(new EmptyBorder(5, 15, 5, 15));
         button.setContentAreaFilled(false);
-        button.setOpaque(true); // Để thấy màu nền
-        // Style nút ban đầu
+        button.setOpaque(true);
         if (selected) {
             button.setBackground(BanPanel.COLOR_ACCENT_BLUE);
             button.setForeground(Color.WHITE);
         } else {
             button.setBackground(Color.WHITE);
             button.setForeground(Color.BLACK);
-            // Thêm viền xám nhạt cho nút không được chọn
             button.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(Color.LIGHT_GRAY),
-                    new EmptyBorder(4, 14, 4, 14) // Padding nhỏ hơn 1px vì có viền
+                    new EmptyBorder(4, 14, 4, 14)
             ));
         }
-        // Style khi trạng thái selected thay đổi
         button.addChangeListener(e -> {
             if (button.isSelected()) {
                 button.setBackground(BanPanel.COLOR_ACCENT_BLUE);
                 button.setForeground(Color.WHITE);
-                button.setBorder(new EmptyBorder(5, 15, 5, 15)); // Bỏ viền khi chọn
+                button.setBorder(new EmptyBorder(5, 15, 5, 15));
             } else {
                 button.setBackground(Color.WHITE);
                 button.setForeground(Color.BLACK);
@@ -614,29 +596,27 @@ public class ManHinhGoiMonGUI extends JPanel {
                 ));
             }
         });
-        // Set trạng thái ban đầu (quan trọng)
         button.setSelected(selected);
         return button;
     }
 
     private JPanel createSearchPanel() {
-        JPanel panel = new JPanel(new BorderLayout(5, 0)); // Khoảng cách icon và textfield
+        JPanel panel = new JPanel(new BorderLayout(5, 0));
         panel.setOpaque(false);
-        panel.setBorder(new EmptyBorder(5, 0, 0, 0)); // Lề trên
+        panel.setBorder(new EmptyBorder(5, 0, 0, 0));
 
-        // Icon tìm kiếm (dùng ký tự Unicode)
         JLabel searchIcon = new JLabel("🔎");
-        searchIcon.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 16)); // Font hỗ trợ ký tự đặc biệt
+        searchIcon.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 16));
         panel.add(searchIcon, BorderLayout.WEST);
 
         txtTimKiem = new JTextField();
         txtTimKiem.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtTimKiem.setPreferredSize(new Dimension(0, 35)); // Chiều cao ô tìm kiếm
+        txtTimKiem.setPreferredSize(new Dimension(0, 35));
 
         // Thêm sự kiện gõ phím để lọc
         txtTimKiem.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyReleased(java.awt.event.KeyEvent evt) {
-                filterMonAn(); // Lọc mỗi khi gõ phím
+                filterMonAn();
             }
         });
 
@@ -645,27 +625,22 @@ public class ManHinhGoiMonGUI extends JPanel {
     }
 
     private JPanel createOrderHeaderPanel() {
-        // Sử dụng BorderLayout để đặt ô màu bên trái, tên bàn ở giữa
-        JPanel panel = new JPanel(new BorderLayout(15, 0)); // Thêm khoảng cách ngang 15px
+        JPanel panel = new JPanel(new BorderLayout(15, 0));
         panel.setOpaque(false);
-        // Lề dưới cho header
         panel.setBorder(new EmptyBorder(0, 0, 10, 0));
 
         // --- TẠO Ô MÀU ---
         statusColorBox = new JLabel();
-        statusColorBox.setPreferredSize(new Dimension(48, 48)); // Kích thước giống bên ManHinhBanGUI
-        // Đặt màu mặc định (ví dụ: màu trống)
+        statusColorBox.setPreferredSize(new Dimension(48, 48));
         statusColorBox.setBackground(ManHinhBanGUI.COLOR_STATUS_FREE);
         statusColorBox.setOpaque(true);
         // --- KẾT THÚC TẠO Ô MÀU ---
 
-        // Tên bàn (giữ nguyên)
+        // Tên bàn
         lblTenBanHeader = new JLabel("Chưa chọn bàn");
-        lblTenBanHeader.setFont(new Font("Segoe UI", Font.BOLD, 24)); // Có thể tăng font size
+        lblTenBanHeader.setFont(new Font("Segoe UI", Font.BOLD, 24));
 
-        // Thêm ô màu vào bên TRÁI
         panel.add(statusColorBox, BorderLayout.WEST);
-        // Thêm tên bàn vào GIỮA
         panel.add(lblTenBanHeader, BorderLayout.CENTER);
 
         return panel;
@@ -693,12 +668,10 @@ public class ManHinhGoiMonGUI extends JPanel {
         private boolean isPushed;
         private int editingRow;
         private JTable table;
-        // Không cần callback vì có thể gọi trực tiếp updateBillPanelTotals()
-        // private Runnable updateBillCallback;
 
-        public ButtonEditor(JCheckBox checkBox) { // Bỏ callback khỏi constructor
+
+        public ButtonEditor(JCheckBox checkBox) {
             super(checkBox);
-            // this.updateBillCallback = updateBillCallback; // Bỏ dòng này
             button = new JButton();
             button.setOpaque(true);
             button.setForeground(Color.RED);
@@ -724,27 +697,27 @@ public class ManHinhGoiMonGUI extends JPanel {
             if (isPushed && table != null) {
                 final DefaultTableModel finalModel = (DefaultTableModel) table.getModel();
                 final int rowToRemove = editingRow;
-                // Kiểm tra dòng hợp lệ trước khi xóa
+
                 SwingUtilities.invokeLater(() -> {
-                    // Kiểm tra lại index một lần nữa trước khi xóa (phòng ngừa)
+
                     if (rowToRemove >= 0 && rowToRemove < finalModel.getRowCount()) {
                         finalModel.removeRow(rowToRemove);
-                        updateBillPanelTotals(); // Gọi cập nhật sau khi xóa
+                        updateBillPanelTotals();
                     } else {
                         System.err.println("ButtonEditor (invokeLater): Lỗi index dòng khi xóa: " + rowToRemove);
                     }
                 });
             }
             isPushed = false;
-            editingRow = -1; // Reset dòng ngay sau khi xử lý
+            editingRow = -1;
             return label;
         }
 
         @Override
         public boolean stopCellEditing() {
-            isPushed = false; // Đặt lại flag
-            boolean stopped = super.stopCellEditing(); // Gọi hàm gốc
-            editingRow = -1; // Reset dòng đang sửa SAU KHI dừng
+            isPushed = false;
+            boolean stopped = super.stopCellEditing();
+            editingRow = -1;
             return stopped;
         }
 
@@ -779,13 +752,12 @@ public class ManHinhGoiMonGUI extends JPanel {
         JSpinner.DefaultEditor editor;
         JTextField textField;
         boolean valueSet;
-        private int editingRow = -1; // Khởi tạo -1
+        private int editingRow = -1;
         private JTable table;
-        // private Runnable updateBillCallback; // Bỏ callback
 
-        public SpinnerEditor() { // Bỏ callback
+
+        public SpinnerEditor() {
             super(new JTextField());
-            // this.updateBillCallback = updateBillCallback; // Bỏ dòng này
 
             spinner = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
             editor = ((JSpinner.DefaultEditor) spinner.getEditor());
@@ -797,21 +769,21 @@ public class ManHinhGoiMonGUI extends JPanel {
             spinner.addChangeListener(e -> {
                 if (table != null && editingRow != -1) {
                     DefaultTableModel model = (DefaultTableModel) table.getModel();
-                    // Đảm bảo row index còn hợp lệ sau khi có thể đã xóa dòng khác
+
                     if (editingRow < model.getRowCount()) {
                         int currentQuantity = (Integer) spinner.getValue();
                         float donGia = (Float) model.getValueAt(editingRow, 4);
                         float thanhTienMoi = currentQuantity * donGia;
 
                         SwingUtilities.invokeLater(() -> {
-                            // Kiểm tra lại row index trước khi set
+
                             if (editingRow < model.getRowCount()) {
                                 model.setValueAt(thanhTienMoi, editingRow, 5);
-                                updateBillPanelTotals(); // Gọi trực tiếp
+                                updateBillPanelTotals();
                             }
                         });
                     }
-                    fireEditingStopped(); // Gọi sau khi tính toán xong
+                    fireEditingStopped();
                 }
             });
         }
@@ -821,8 +793,8 @@ public class ManHinhGoiMonGUI extends JPanel {
                                                      boolean isSelected, int row, int column) {
             this.table = table;
             this.editingRow = row;
-            // valueSet = false; // Có thể không cần flag này
-            spinner.setValue(value); // Luôn đặt giá trị khi bắt đầu edit
+
+            spinner.setValue(value);
             return spinner;
         }
 
@@ -834,19 +806,16 @@ public class ManHinhGoiMonGUI extends JPanel {
         @Override
         public boolean stopCellEditing() {
             try {
-                // Cố gắng commit giá trị cuối cùng người dùng nhập (nếu họ gõ tay)
+
                 editor.commitEdit();
-                spinner.commitEdit(); // Đảm bảo giá trị spinner được cập nhật
+                spinner.commitEdit();
             } catch (java.text.ParseException e) {
-                // Xử lý lỗi nếu nhập không phải số - ví dụ: reset về giá trị cũ
-                // Hoặc hiển thị thông báo lỗi
-                Object oldValue = spinner.getValue(); // Lấy giá trị hợp lệ cuối cùng
-                spinner.setValue(oldValue); // Đặt lại giá trị cũ
-                // JOptionPane.showMessageDialog(spinner, "Vui lòng nhập số.", "Lỗi nhập liệu", JOptionPane.ERROR_MESSAGE);
-                // return false; // Ngăn không cho dừng edit nếu giá trị sai
+
+                Object oldValue = spinner.getValue();
+                spinner.setValue(oldValue);
+
             }
-            editingRow = -1; // Reset dòng đang sửa khi dừng edit
-            // valueSet = false; // Reset flag nếu dùng
+            editingRow = -1;
             return super.stopCellEditing();
         }
     }
