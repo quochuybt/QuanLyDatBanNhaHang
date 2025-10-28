@@ -16,6 +16,12 @@ import java.util.List;
 import java.sql.*;
 import java.sql.Types;
 
+// Thêm các import cần thiết cho Dashboard
+import java.time.LocalDate;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+
 public class HoaDonDAO {
     private ChiTietHoaDonDAO chiTietDAO;
     public HoaDonDAO() {
@@ -38,7 +44,6 @@ public class HoaDonDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     // 1. Lấy thông tin Hóa Đơn
-                    // (Hàm createHoaDonFromResultSet sẽ được sửa ở bước 2.2)
                     hoaDon = createHoaDonFromResultSet(rs);
 
                     String maKH = rs.getString("maKH");
@@ -101,9 +106,6 @@ public class HoaDonDAO {
 
         try {
             conn = SQLConnection.getConnection();
-            // --- Bắt đầu Transaction (Tùy chọn nhưng nên có nếu cập nhật nhiều bảng) ---
-            // conn.setAutoCommit(false);
-
             ps = conn.prepareStatement(sql);
             ps.setFloat(1, tienKhachDua);
             ps.setString(2, hinhThucThanhToan);
@@ -112,24 +114,13 @@ public class HoaDonDAO {
             int rowsAffected = ps.executeUpdate();
             success = (rowsAffected > 0);
 
-            // --- Kết thúc Transaction (nếu dùng) ---
-            // if (success) {
-            //     conn.commit();
-            // } else {
-            //     conn.rollback();
-            // }
-
         } catch (SQLException e) {
             System.err.println("Lỗi SQL khi thanh toán hóa đơn " + maHD + ": " + e.getMessage());
             e.printStackTrace();
-            // --- Rollback nếu lỗi (nếu dùng transaction) ---
-            // try { if (conn != null) conn.rollback(); } catch (SQLException ex) {}
             success = false;
         } finally {
             // Đóng PreparedStatement
             try { if (ps != null) ps.close(); } catch (SQLException ex) {}
-            // --- Reset AutoCommit và đóng Connection (nếu dùng transaction) ---
-            // try { if (conn != null) conn.setAutoCommit(true); } catch (SQLException ex) {}
             // Không đóng connection nếu nó được quản lý bởi Singleton
         }
         return success;
@@ -151,7 +142,7 @@ public class HoaDonDAO {
         return false;
     }
     /**
-     * Chuyển ResultSet thành đối tượng HoaDon (ĐÃ LOẠI BỎ KHÓA NGOẠI).
+     * Chuyển ResultSet thành đối tượng HoaDon.
      */
     private HoaDon createHoaDonFromResultSet(ResultSet rs) throws Exception {
         String maHD = rs.getString("maHD");
@@ -160,54 +151,55 @@ public class HoaDonDAO {
         String trangThai = rs.getString("trangThai");
         String hinhThucThanhToan = rs.getString("hinhThucThanhToan");
 
-        // --- CÁC CỘT NÀY TỒN TẠI TRONG HOADON (ĐÚNG) ---
         String maDon = rs.getString("maDon");
         String maNV = rs.getString("maNV");
         String maKM = rs.getString("maKM");
 
-        float tongTien = rs.getFloat("tongTien");
+        float tongTien = rs.getFloat("tongTien"); // Đây là tổng tiền GỐC (trước giảm giá)
 
-        // 🌟 BỔ SUNG: LẤY TIỀN KHÁCH ĐƯA TỪ CSDL
         float tienKhachDua = rs.getFloat("tienKhachDua");
 
-        // Dùng Constructor mới của HoaDon (đã bỏ maBan)
         HoaDon hd = new HoaDon(maHD, ngayLap, trangThai, hinhThucThanhToan, maDon, maNV, maKM);
 
-        // 🌟 BỔ SUNG: GÁN GIÁ TRỊ VỪA LẤY
         hd.setTienKhachDua(tienKhachDua);
-        hd.setTongTienTuDB(tongTien);
+        hd.setTongTienTuDB(tongTien); // Gán tổng tiền gốc
+
+        // Cần tính toán lại tổng thanh toán thực tế nếu DB không lưu
+        // Hoặc nếu DB có cột tongThanhToan, hãy lấy ở đây
+        // float tongThanhToan = rs.getFloat("tongThanhToan");
+        // hd.setTongThanhToan(tongThanhToan); // Cần setter trong entity HoaDon
+
         return hd;
     }
-
-    // --------------------------------------------------------------------------------------------------------------------------
 
     /**
      * [SELECT] - Lấy toàn bộ danh sách hóa đơn từ CSDL.
      */
     public List<HoaDon> getAllHoaDon() {
         List<HoaDon> dsHoaDon = new ArrayList<>();
-        // Cập nhật câu lệnh SQL: BỎ maKH, maNV, maBan, THÊM tienThoi
         String sql = "SELECT * FROM HoaDon ORDER BY ngayLap DESC";
         try (Connection conn = SQLConnection.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                dsHoaDon.add(createHoaDonFromResultSet(rs));
+                try {
+                    dsHoaDon.add(createHoaDonFromResultSet(rs));
+                } catch (Exception e) {
+                    System.err.println("Lỗi khi tạo HoaDon từ ResultSet (getAll): " + e.getMessage());
+                }
             }
-        } catch (Exception e) {
+        } catch (SQLException e) {
+            System.err.println("Lỗi SQL khi lấy tất cả hóa đơn: " + e.getMessage());
             e.printStackTrace();
         }
         return dsHoaDon;
     }
 
-    // --------------------------------------------------------------------------------------------------------------------------
-
     /**
      * [INSERT] - Thêm một hóa đơn mới vào CSDL.
      */
     public boolean themHoaDon(HoaDon hd) {
-        // Cập nhật câu lệnh SQL: BỎ maKH, maNV, maBan, THÊM tienThoi
         String sql = "INSERT INTO HoaDon (maHD, ngayLap, tongTien, trangThai, hinhThucThanhToan, tienKhachDua,maNV, maKM, maDon) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
@@ -216,7 +208,7 @@ public class HoaDonDAO {
 
             ps.setString(1, hd.getMaHD());
             ps.setTimestamp(2, Timestamp.valueOf(hd.getNgayLap()));
-            ps.setFloat(3, hd.getTongTien());
+            ps.setFloat(3, hd.getTongTien()); // Tổng tiền gốc
             ps.setString(4, hd.getTrangThai());
             ps.setString(5, hd.getHinhThucThanhToan());
             ps.setFloat(6, hd.getTienKhachDua());
@@ -224,13 +216,17 @@ public class HoaDonDAO {
             if (hd.getMaKM() != null) {
                 ps.setString(8, hd.getMaKM());
             } else {
-                ps.setNull(8, java.sql.Types.NVARCHAR); // Nếu maKM là null
-            } // Placeholder for maKM
-            ps.setString(9, hd.getMaDon()); // Placeholder for maDon
+                ps.setNull(8, java.sql.Types.NVARCHAR);
+            }
+            ps.setString(9, hd.getMaDon());
+
+            // Nếu CSDL của bạn có cột tongThanhToan, bạn cần thêm 1 tham số ? vào SQL
+            // và thêm dòng này:
+            // ps.setFloat(10, hd.getTongThanhToan());
 
             return ps.executeUpdate() > 0;
         } catch (java.sql.SQLIntegrityConstraintViolationException e) {
-            System.err.println("Lỗi ràng buộc: Mã HD đã tồn tại.");
+            System.err.println("Lỗi ràng buộc: Mã HD đã tồn tại: " + hd.getMaHD());
             e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
@@ -238,14 +234,11 @@ public class HoaDonDAO {
         return false;
     }
 
-    // --------------------------------------------------------------------------------------------------------------------------
-
     /**
      * [SEARCH] - Tìm kiếm hóa đơn theo Mã HD.
      */
     public List<HoaDon> timHoaDon(String tuKhoa) {
         List<HoaDon> dsKetQua = new ArrayList<>();
-        // Chỉ tìm kiếm theo Mã HD (Không còn Mã NV/Bàn)
         String sql = "SELECT * FROM HoaDon WHERE maHD LIKE ? ORDER BY ngayLap DESC";
 
         try (Connection conn = SQLConnection.getConnection();
@@ -255,7 +248,11 @@ public class HoaDonDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    dsKetQua.add(createHoaDonFromResultSet(rs));
+                    try {
+                        dsKetQua.add(createHoaDonFromResultSet(rs));
+                    } catch (Exception e) {
+                        System.err.println("Lỗi khi tạo HoaDon từ ResultSet (tìm kiếm): " + e.getMessage());
+                    }
                 }
             }
         } catch (Exception e) {
@@ -265,29 +262,149 @@ public class HoaDonDAO {
     }
     public HoaDon getHoaDonTheoMaDon(String maDon) {
         HoaDon hoaDon = null;
-        // Tìm hóa đơn có maDon khớp
         String sql = "SELECT * FROM HoaDon WHERE maDon = ?";
-
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, maDon);
-
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    // Dùng lại hàm helper để tạo object
-                    hoaDon = createHoaDonFromResultSet(rs);
-
-                    // Lấy luôn chi tiết hóa đơn nếu có (tùy chọn, nhưng hữu ích)
-                    // Vì hóa đơn mới tạo thường chưa có chi tiết ngay
-                    // List<ChiTietHoaDon> dsChiTiet = chiTietDAO.getChiTietTheoMaDon(hoaDon.getMaDon());
-                    // hoaDon.setDsChiTiet(dsChiTiet);
+                    try {
+                        hoaDon = createHoaDonFromResultSet(rs);
+                    } catch (Exception e) {
+                        System.err.println("Lỗi khi tạo HoaDon từ ResultSet (theo mã đơn): " + e.getMessage());
+                    }
                 }
             }
         } catch (Exception e) {
             System.err.println("Lỗi khi tìm hóa đơn theo mã đơn " + maDon + ": " + e.getMessage());
             e.printStackTrace();
         }
-        return hoaDon; // Trả về null nếu không tìm thấy
+        return hoaDon;
     }
-}
+
+    // --- CÁC HÀM MỚI CHO DASHBOARD ---
+
+    /**
+     * Lấy tổng doanh thu theo từng ngày trong khoảng thời gian.
+     * Chỉ tính các hóa đơn đã thanh toán.
+     * @param startDate Ngày bắt đầu (bao gồm)
+     * @param endDate Ngày kết thúc (bao gồm)
+     * @return Map với Key là LocalDate, Value là tổng doanh thu ngày đó.
+     */
+    public Map<LocalDate, Double> getDailyRevenue(LocalDate startDate, LocalDate endDate) {
+        Map<LocalDate, Double> dailyRevenue = new LinkedHashMap<>();
+        // Giả sử cột 'tongTien' trong DB LÀ tổng tiền cuối cùng khách trả (đã bao gồm giảm giá,...)
+        // Nếu 'tongTien' trong DB là tổng tiền gốc (trước giảm giá), bạn cần tính toán lại
+        // hoặc (tốt nhất) là lưu một cột 'tongThanhToan' trong bảng HoaDon và SUM cột đó.
+        // Ví dụ này giả định 'tongTien' là tổng cuối cùng.
+        String sql = "SELECT CAST(ngayLap AS DATE) AS Ngay, SUM(tongTien) AS DoanhThuNgay " +
+                "FROM HoaDon " +
+                "WHERE trangThai = N'Đã thanh toán' " +
+                "AND ngayLap >= ? AND ngayLap < ? " +
+                "GROUP BY CAST(ngayLap AS DATE) " +
+                "ORDER BY Ngay";
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setTimestamp(1, Timestamp.valueOf(startDate.atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(endDate.plusDays(1).atStartOfDay()));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    LocalDate ngay = rs.getDate("Ngay").toLocalDate();
+                    double doanhThu = rs.getDouble("DoanhThuNgay");
+                    dailyRevenue.put(ngay, doanhThu);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("SQL Error while fetching daily revenue: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Lỗi truy vấn doanh thu hàng ngày", e);
+        } catch (Exception e) {
+            System.err.println("Unexpected error while fetching daily revenue: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Lỗi không xác định khi lấy doanh thu", e);
+        }
+        return dailyRevenue;
+    }
+
+    /**
+     * Đếm số lượng hóa đơn đã thanh toán trong khoảng thời gian.
+     * @param startDate Ngày bắt đầu (bao gồm)
+     * @param endDate Ngày kết thúc (bao gồm)
+     * @return Số lượng hóa đơn.
+     */
+    public int getOrderCount(LocalDate startDate, LocalDate endDate) {
+        int count = 0;
+        String sql = "SELECT COUNT(maHD) FROM HoaDon " +
+                "WHERE trangThai = N'Đã thanh toán' " +
+                "AND ngayLap >= ? AND ngayLap < ?";
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setTimestamp(1, Timestamp.valueOf(startDate.atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(endDate.plusDays(1).atStartOfDay()));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    count = rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("SQL Error while counting orders: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Lỗi truy vấn số lượng hóa đơn", e);
+        } catch (Exception e) {
+            System.err.println("Unexpected error while counting orders: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Lỗi không xác định khi đếm hóa đơn", e);
+        }
+        return count;
+    }
+
+    /**
+     * (MỚI) Lấy top nhân viên theo doanh thu trong khoảng thời gian.
+     * @param startDate Ngày bắt đầu
+     * @param endDate Ngày kết thúc
+     * @param limit Số lượng nhân viên top (ví dụ: 5)
+     * @return Map<String, Double> (Key: Tên Nhân viên, Value: Tổng doanh thu)
+     */
+    public Map<String, Double> getTopStaffByRevenue(LocalDate startDate, LocalDate endDate, int limit) {
+        Map<String, Double> topStaff = new LinkedHashMap<>(); // Giữ thứ tự
+
+        // Dùng cột maNV từ bảng HoaDon để tính doanh thu
+        // Giả định 'tongTien' là tổng tiền cuối cùng
+        String sql = "SELECT TOP (?) nv.hoTen, SUM(hd.tongTien) AS TongDoanhThu " +
+                "FROM HoaDon hd " +
+                "JOIN NhanVien nv ON hd.maNV = nv.maNV " + // Join với NhanVien để lấy hoTen
+                "WHERE hd.trangThai = N'Đã thanh toán' " +
+                "AND hd.ngayLap >= ? AND hd.ngayLap < ? " +
+                "GROUP BY nv.hoTen " + // Nhóm theo tên (hoặc mã NV nếu muốn)
+                "ORDER BY TongDoanhThu DESC";
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, limit); // Đặt tham số TOP
+            ps.setTimestamp(2, Timestamp.valueOf(startDate.atStartOfDay()));
+            ps.setTimestamp(3, Timestamp.valueOf(endDate.plusDays(1).atStartOfDay()));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String tenNV = rs.getString("hoTen");
+                    double tongDoanhThu = rs.getDouble("TongDoanhThu");
+                    topStaff.put(tenNV, tongDoanhThu);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("SQL Error while fetching top staff: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Lỗi truy vấn top nhân viên", e);
+        }
+        return topStaff;
+    }
+
+} // Kết thúc class HoaDonDAO
