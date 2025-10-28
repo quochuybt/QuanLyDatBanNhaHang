@@ -38,7 +38,7 @@ public class KhuyenMai {
         return tenChuongTrinh;
     }
 
-    // [SỬA] Bổ sung getter cho moTa
+    // Bổ sung getter cho moTa
     public String getMoTa() {
         return moTa;
     }

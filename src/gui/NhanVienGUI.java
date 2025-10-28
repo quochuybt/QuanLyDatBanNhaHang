@@ -23,7 +23,7 @@ public class NhanVienGUI extends JPanel {
     private final DecimalFormat hourFormat = new DecimalFormat("#,##0.0"); // [5] Định dạng giờ làm (ví dụ: 195.5)
 
     public NhanVienGUI() {
-        // ... (Hàm khởi tạo giữ nguyên) ...
+
         setLayout(new BorderLayout(10, 10));
         setBackground(new Color(244, 247, 252));
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
@@ -35,7 +35,7 @@ public class NhanVienGUI extends JPanel {
     }
 
     private JPanel createHeaderPanel() {
-        // ... (Hàm này giữ nguyên) ...
+
         JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
         JLabel lblTitle = new JLabel("Nhân viên");
@@ -56,7 +56,7 @@ public class NhanVienGUI extends JPanel {
     }
 
     private JPanel createMainContentPanel() {
-        // ... (Hàm này giữ nguyên) ...
+
         JPanel panel = new JPanel(new BorderLayout(0, 10));
         panel.setOpaque(false);
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
@@ -109,7 +109,7 @@ public class NhanVienGUI extends JPanel {
         loadDataToTable();
     }
 
-    // --- (Các lớp ButtonRenderer và ButtonEditor giữ nguyên) ---
+    // --- (Các lớp ButtonRenderer và ButtonEditor ) ---
     private static class ButtonRenderer extends JButton implements TableCellRenderer {
         // ... (code giữ nguyên) ...
         public ButtonRenderer() {

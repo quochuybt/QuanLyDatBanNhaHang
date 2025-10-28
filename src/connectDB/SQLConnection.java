@@ -6,17 +6,17 @@ import java.sql.SQLException;
 
 public class SQLConnection {
 
-    // --- (Giữ nguyên các hằng số SERVER_NAME, DB_NAME, PORT, USER, PASS, URL...) ---
+    // --- ( các hằng số SERVER_NAME, DB_NAME, PORT, USER, PASS, URL...) ---
     private static final String SERVER_NAME = "localhost";
     private static final String DB_NAME = "StarGuardianDB";
     private static final String PORT = "1433";
     private static final String SQL_USER = "sa";
-    private static final String SQL_PASSWORD = "sapassword"; // ⚠️ THAY MẬT KHẨU CỦA BẠN VÀO ĐÂY
+    private static final String SQL_PASSWORD = "sapassword";
     private static final String URL_SQL_AUTH =
             String.format("jdbc:sqlserver://%s:%s;databaseName=%s;user=%s;password=%s;encrypt=true;trustServerCertificate=true;",
                     SERVER_NAME, PORT, DB_NAME, SQL_USER, SQL_PASSWORD);
 
-    // --- THAY ĐỔI 1: Thêm một biến static để lưu kết nối ---
+    // Thêm một biến static để lưu kết nối ---
     private static Connection connection = null;
 
     /**
@@ -26,7 +26,7 @@ public class SQLConnection {
      */
     public static Connection getConnection() {
         try {
-            // --- THAY ĐỔI 2: Kiểm tra xem kết nối đã tồn tại chưa ---
+            // ---: Kiểm tra xem kết nối ---
             if (connection == null || connection.isClosed()) {
                 // 1. Nạp driver JDBC của SQL Server
                 Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
@@ -65,7 +65,7 @@ public class SQLConnection {
 //        try {
 //            Connection conn = SQLConnection.getConnection();
 //            if (conn != null && !conn.isClosed()) {
-//                System.out.println("✅ Kết nối CSDL SQL Server THÀNH CÔNG!");
+//                System.out.println(" Kết nối CSDL SQL Server THÀNH CÔNG!");
 //                System.out.println("Đã kết nối tới database: " + conn.getCatalog());
 //
 //                // Thử kết nối lần 2
@@ -80,7 +80,7 @@ public class SQLConnection {
 //
 //            }
 //        } catch (Exception e) {
-//            System.err.println("❌ Kết nối CSDL THẤT BẠI!");
+//            System.err.println(" Kết nối CSDL THẤT BẠI!");
 //            e.printStackTrace();
 //        } finally {
 //            SQLConnection.closeConnection(); // Đóng kết nối khi test xong

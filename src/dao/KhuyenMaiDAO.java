@@ -11,13 +11,13 @@ import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.sql.Timestamp; // Thêm import này
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 public class KhuyenMaiDAO {
 
     /**
-     * [MỚI] - Tự động cập nhật trạng thái các KM đã hết hạn
+     * - Tự động cập nhật trạng thái các KM đã hết hạn
      * Chuyển "Đang áp dụng" -> "Ngưng áp dụng" nếu ngayKetThuc < hôm nay
      */
     public void autoUpdateExpiredStatuses() {
@@ -80,7 +80,7 @@ public class KhuyenMaiDAO {
     }
 
     /**
-     * [UPDATE] - Cập nhật (Sửa) một chương trình khuyến mãi.
+     * Cập nhật  một chương trình khuyến mãi.
      */
     public boolean updateKhuyenMai(KhuyenMai km) {
         String sql = "UPDATE KhuyenMai SET tenKM = ?, moTa = ?, loaiGiam = ?, giaTriGiam = ?, " +
@@ -113,7 +113,7 @@ public class KhuyenMaiDAO {
     }
 
     /**
-     * [CREATE] - Thêm một khuyến mãi mới.
+     * - Thêm một khuyến mãi mới.
      */
     public boolean themKhuyenMai(KhuyenMai km) {
         String sql = "INSERT INTO KhuyenMai (maKM, tenKM, moTa, loaiGiam, giaTriGiam, ngayBatDau, ngayKetThuc, trangThai, dieuKienApDung) " +
@@ -160,15 +160,14 @@ public class KhuyenMaiDAO {
         return false;
     }
     /**
-     * [ĐÃ SỬA] Hàm này bây giờ sẽ cập nhật trạng thái thành "Ngưng áp dụng"
-     * thay vì XÓA vĩnh viễn
+     * Hàm này sẽ cập nhật trạng thái thành "Ngưng áp dụng" thay vì XÓA vĩnh viễn
      */
 
     /**
      * [SEARCH & FILTER] - Tìm kiếm và lọc khuyến mãi.
      */
     public List<KhuyenMai> timKiemVaLoc(String tuKhoa, String trangThai) {
-        // [CẬP NHẬT] Gọi hàm tự động cập nhật trước khi tìm
+        // Gọi hàm tự động cập nhật trước khi tìm
         autoUpdateExpiredStatuses();
 
         List<KhuyenMai> dsKhuyenMai = new ArrayList<>();

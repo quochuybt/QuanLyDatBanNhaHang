@@ -1,6 +1,6 @@
 package gui;
 
-// [MỚI] Thêm các import cho JDateChooser và xử lý Date/LocalDate
+
 import com.toedter.calendar.JDateChooser;
 import dao.KhuyenMaiDAO;
 import entity.KhuyenMai;
@@ -11,16 +11,16 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
-import java.sql.Date; // Dùng java.sql.Date để set cho JDateChooser
+import java.sql.Date;
 import java.time.LocalDate;
-import java.time.ZoneId; // Dùng để chuyển đổi
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
 public class KhuyenMaiGUI extends JPanel {
 
-    // --- (Các hằng số màu sắc giữ nguyên) ---
+    // --- (Các hằng số màu sắc ) ---
     private static final Color COLOR_BACKGROUND = new Color(244, 247, 252);
     private static final Color COLOR_BUTTON_BLUE = new Color(40, 28, 244);
     private static final Color COLOR_BUTTON_RED = new Color(220, 53, 69);
@@ -52,7 +52,6 @@ public class KhuyenMaiGUI extends JPanel {
         add(createMainPanel(), BorderLayout.CENTER);
         add(createFooterPanel(), BorderLayout.SOUTH);
 
-        // [CẬP NHẬT] Tự động cập nhật trạng thái khi khởi động GUI
         // khuyenMaiDAO.autoUpdateExpiredStatuses(); // Đã chuyển vào bên trong getAllKhuyenMai() của DAO
 
         loadDataToTable(); // Nạp dữ liệu ban đầu
@@ -69,10 +68,10 @@ public class KhuyenMaiGUI extends JPanel {
     }
 
     /**
-     * [MỚI] - Hàm chung để cập nhật bảng từ một danh sách
+     * cập nhật bảng từ một danh sách
      */
     private void updateTable(List<KhuyenMai> ds) {
-        // ... (Giữ nguyên code) ...
+
         modelKhuyenMai.setRowCount(0);
         this.dsKhuyenMai = ds;
 
@@ -99,7 +98,7 @@ public class KhuyenMaiGUI extends JPanel {
      * Helper tạo mô tả khuyến mãi dựa trên loại và giá trị
      */
     private String generateMoTaGiaTri(KhuyenMai km) {
-        // ... (Giữ nguyên code) ...
+
         switch (km.getLoaiKhuyenMai()) {
             case "Giảm theo phần trăm":
                 return String.format("Giảm %.0f%% cho hóa đơn", km.getGiaTri());
@@ -116,7 +115,7 @@ public class KhuyenMaiGUI extends JPanel {
      * Tạo Panel Header (Tiêu đề và Nút Thêm, Xóa)
      */
     private JPanel createHeaderPanel() {
-        // ... (Giữ nguyên code) ...
+
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
 
@@ -153,7 +152,7 @@ public class KhuyenMaiGUI extends JPanel {
      * Tạo Panel Chính (Tìm kiếm và Bảng)
      */
     private JPanel createMainPanel() {
-        // ... (Giữ nguyên code) ...
+
         JPanel mainPanel = new JPanel(new BorderLayout(0, 10));
         mainPanel.setOpaque(false);
         mainPanel.add(createSearchPanel(), BorderLayout.NORTH);
@@ -165,7 +164,7 @@ public class KhuyenMaiGUI extends JPanel {
      * Tạo Panel Tìm kiếm và Lọc
      */
     private JPanel createSearchPanel() {
-        // ... (Giữ nguyên code) ...
+
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         searchPanel.setOpaque(false);
 
@@ -198,7 +197,7 @@ public class KhuyenMaiGUI extends JPanel {
      * Tạo Panel Bảng (JTable)
      */
     private JScrollPane createTablePanel() {
-        // ... (Giữ nguyên code) ...
+
         String[] columnNames = {"Chương trình khuyến mãi", "Loại khuyến mãi", "Ngày bắt đầu", "Ngày kết thúc", "Trạng thái"};
 
         modelKhuyenMai = new DefaultTableModel(columnNames, 0) {
@@ -236,7 +235,7 @@ public class KhuyenMaiGUI extends JPanel {
      * Tạo Panel Chân trang (Phân trang) - Tạm thời giữ nguyên
      */
     private JPanel createFooterPanel() {
-        // ... (Giữ nguyên code) ...
+
         JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         footerPanel.setOpaque(false);
         JButton btnPrev = new JButton("<");
@@ -254,7 +253,7 @@ public class KhuyenMaiGUI extends JPanel {
     }
 
     private void stylePaginationButton(JButton btn) {
-        // ... (Giữ nguyên code) ...
+
         btn.setFocusPainted(false);
         btn.setPreferredSize(new Dimension(35, 35));
         btn.setFont(new Font("Arial", Font.BOLD, 12));
@@ -265,7 +264,7 @@ public class KhuyenMaiGUI extends JPanel {
     }
 
     private void addPlaceholder(JTextField tf, String placeholder) {
-        // ... (Giữ nguyên code) ...
+
         tf.setText(placeholder);
         tf.setForeground(Color.GRAY);
         tf.addFocusListener(new FocusAdapter() {
@@ -290,7 +289,7 @@ public class KhuyenMaiGUI extends JPanel {
      * Gắn sự kiện cho các nút Thêm, Xóa
      */
     private void addEventListeners() {
-        // ... (Giữ nguyên code) ...
+
         btnThemKhuyenMai.addActionListener(e -> {
             showKhuyenMaiDialog(null);
         });
@@ -303,7 +302,7 @@ public class KhuyenMaiGUI extends JPanel {
      * Gắn sự kiện cho Tìm kiếm và Lọc
      */
     private void addSearchAndFilterListeners() {
-        // ... (Giữ nguyên code) ...
+
         txtTimKiem.addActionListener(e -> thucHienTimKiemVaLoc());
         cbxLoc.addActionListener(e -> thucHienTimKiemVaLoc());
     }
@@ -323,40 +322,37 @@ public class KhuyenMaiGUI extends JPanel {
      * Hàm xử lý logic xóa
      */
     /**
-     * [ĐÃ SỬA] Hàm này bây giờ sẽ cập nhật trạng thái thành "Ngưng áp dụng"
-     * thay vì XÓA vĩnh viễn
+     *  Hàm này sẽ cập nhật trạng thái thành "Ngưng áp dụng" thay vì XÓA vĩnh viễn
      */
     private void xoaKhuyenMai() {
         int selectedRow = tblKhuyenMai.getSelectedRow();
         if (selectedRow == -1) {
-            // Sửa lại nội dung thông báo
+
             JOptionPane.showMessageDialog(this, "Vui lòng chọn khuyến mãi cần cập nhật trạng thái.", "Chưa chọn", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        // Sửa lại nội dung hộp thoại xác nhận
+        //  nội dung hộp thoại xác nhận
         int confirm = JOptionPane.showConfirmDialog(this,
                 "Bạn có chắc chắn muốn 'Ngưng áp dụng' khuyến mãi này không?\n(Các hóa đơn cũ vẫn sẽ được giữ lại)", "Xác nhận cập nhật",
                 JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
 
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                // 1. Lấy đối tượng KhuyenMai từ danh sách
-                // (Phải dùng convertRowIndexToModel để đảm bảo an toàn nếu bảng có sắp xếp)
+                // Lấy đối tượng KhuyenMai từ danh sách
                 int modelRow = tblKhuyenMai.convertRowIndexToModel(selectedRow);
                 KhuyenMai kmCanCapNhat = dsKhuyenMai.get(modelRow);
 
-                // 2. Kiểm tra nếu nó đã "Ngưng áp dụng" rồi
+                //  Kiểm tra nếu nó đã "Ngưng áp dụng" rồi
                 if (kmCanCapNhat.getTrangThai().equals("Ngưng áp dụng")) {
                     JOptionPane.showMessageDialog(this, "Khuyến mãi này đã ở trạng thái 'Ngưng áp dụng'.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
                     return;
                 }
 
-                // 3. [QUAN TRỌNG] Cập nhật trạng thái của đối tượng
-                // (Sử dụng setter chúng ta vừa thêm ở Bước 1)
+                // Cập nhật trạng thái của đối tượng
                 kmCanCapNhat.setTrangThai("Ngưng áp dụng");
 
-                // 4. [QUAN TRỌNG] Gọi hàm UPDATE thay vì DELETE
+                //Gọi hàm UPDATE thay vì DELETE
                 boolean success = khuyenMaiDAO.updateKhuyenMai(kmCanCapNhat);
 
                 if (success) {
@@ -376,7 +372,7 @@ public class KhuyenMaiGUI extends JPanel {
      * Thêm sự kiện click vào JTable (để Sửa)
      */
     private void addTableClickListener() {
-        // ... (Gĩư nguyên code) ...
+
         tblKhuyenMai.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -472,20 +468,20 @@ public class KhuyenMaiGUI extends JPanel {
                 String giaTriStr = txtGiaTri.getText().trim();
                 String dieuKienStr = txtDieuKienApDung.getText().trim();
 
-                // [SỬA] Lấy ngày từ JDateChooser
+                // Lấy ngày từ JDateChooser
                 java.util.Date utilNgayBD = dcNgayBD.getDate();
                 if (utilNgayBD == null) {
                     JOptionPane.showMessageDialog(dialog, "Ngày bắt đầu không được để trống.", "Lỗi", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
-                // Chuyển java.util.Date -> LocalDate
+
                 LocalDate ngayBD = utilNgayBD.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 
 
                 java.util.Date utilNgayKT = dcNgayKT.getDate();
                 LocalDate ngayKT = null;
                 if (utilNgayKT != null) {
-                    // Chuyển java.util.Date -> LocalDate
+
                     ngayKT = utilNgayKT.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
                 }
 
@@ -554,7 +550,7 @@ public class KhuyenMaiGUI extends JPanel {
 
     // --- LỚP CON (INNER CLASS) ĐỂ VẼ CỘT TRẠNG THÁI ---
     private class TrangThaiRenderer extends DefaultTableCellRenderer {
-        // ... (Giữ nguyên code) ...
+
         private final Color COLOR_GREEN_BG = new Color(220, 250, 230);
         private final Color COLOR_GREEN_FG = new Color(0, 150, 50);
         private final Color COLOR_RED_BG = new Color(255, 230, 230);
