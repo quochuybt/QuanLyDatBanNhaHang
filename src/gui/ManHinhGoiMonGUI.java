@@ -40,6 +40,7 @@ public class ManHinhGoiMonGUI extends JPanel {
     private BanDAO banDAO;
     private ChiTietHoaDonDAO chiTietDAO;
     private KhachHangDAO khachHangDAO;
+    private KhuyenMaiDAO maKhuyenMaiDAO;
 
     // Panel bên phải
     private JLabel lblTenBanHeader;
@@ -63,6 +64,7 @@ public class ManHinhGoiMonGUI extends JPanel {
         this.dsMonAnPanel = new ArrayList<>();
         this.chiTietDAO = new ChiTietHoaDonDAO();
         this.khachHangDAO = new KhachHangDAO();
+        this.maKhuyenMaiDAO = new KhuyenMaiDAO();
 
         buildUI();
         loadDataFromDB();
@@ -282,37 +284,82 @@ public class ManHinhGoiMonGUI extends JPanel {
         modelChiTietHoaDon.addRow(rowData);
         updateBillPanelTotals();
     }
-    private void updateBillPanelTotals() {
-        long tongCong = 0;
-        int tongSoLuong = 0;
+    private List<ChiTietHoaDon> layChiTietTuTable() {
+        List<ChiTietHoaDon> dsChiTiet = new ArrayList<>();
+        HoaDon currentHD = getActiveHoaDon(); // Lấy HĐ hiện tại để lấy maDon
 
-        for (int i = 0; i < modelChiTietHoaDon.getRowCount(); i++) {
-
-            Object slObj = modelChiTietHoaDon.getValueAt(i, 3);
-            int soLuong = (slObj instanceof Integer) ? (Integer) slObj : 0;
-
-            Object ttObj = modelChiTietHoaDon.getValueAt(i, 5);
-            float thanhTien = 0;
-            if (ttObj instanceof Float) {
-                thanhTien = (Float) ttObj;
-            } else if (ttObj instanceof Double) {
-                thanhTien = ((Double) ttObj).floatValue();
-            } else if (ttObj instanceof Number) {
-                thanhTien = ((Number) ttObj).floatValue();
-            } else {
-                System.err.println("Lỗi kiểu dữ liệu cột thành tiền ở hàng " + i + ": " + (ttObj != null ? ttObj.getClass().getName() : "null"));
-            }
-
-
-            tongCong += Math.round(thanhTien);
-            tongSoLuong += soLuong;
+        String maDon = null;
+        if (currentHD != null) {
+            maDon = currentHD.getMaDon();
         }
 
-        long khuyenMai = 0;
-        long vat = 0;
-        long tongThanhToan = tongCong - khuyenMai + vat;
+        // Nếu không có mã đơn (ví dụ: bàn chưa mở), không thể tạo chi tiết
+        if (maDon == null) {
+            System.err.println("layChiTietTuTable: Không tìm thấy maDon, không thể tạo List ChiTietHoaDon.");
+            return dsChiTiet; // Trả về danh sách rỗng
+        }
 
-        billPanel.loadBillTotals(tongCong, khuyenMai, vat, tongThanhToan, tongSoLuong);
+        // Lặp qua các dòng trong JTable
+        for (int i = 0; i < modelChiTietHoaDon.getRowCount(); i++) {
+            try {
+                // Lấy dữ liệu từ các cột (dựa trên thứ tự bạn đã định nghĩa)
+                // 0: "X"
+                String maMon = (String) modelChiTietHoaDon.getValueAt(i, 1);    // Cột 1: Mã Món
+                String tenMon = (String) modelChiTietHoaDon.getValueAt(i, 2);   // Cột 2: Tên Món
+                Integer soLuong = (Integer) modelChiTietHoaDon.getValueAt(i, 3); // Cột 3: SL
+                Float donGia = (Float) modelChiTietHoaDon.getValueAt(i, 4);   // Cột 4: Đơn Giá
+
+                // Kiểm tra null (dù getColumnClass đã định nghĩa)
+                if (maMon != null && tenMon != null && soLuong != null && donGia != null) {
+                    // Tạo đối tượng ChiTietHoaDon
+                    // Giả sử ChiTietHoaDon có constructor (maDon, maMon, tenMon, soLuong, donGia)
+                    // (Vì ChiTietHoaDonDAO của bạn cũng dùng constructor này)
+                    ChiTietHoaDon ct = new ChiTietHoaDon(maDon, maMon, tenMon, soLuong.intValue(), donGia.floatValue());
+
+                    // Hàm tạo ChiTietHoaDon đã tự động gọi tinhThanhTien() bên trong
+
+                    dsChiTiet.add(ct);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.err.println("Lỗi khi đọc dữ liệu từ JTable hàng " + i + ": " + e.getMessage());
+                // Có thể bỏ qua hàng này hoặc ném lỗi
+            }
+        }
+        System.out.println("layChiTietTuTable: Đã tạo được list " + dsChiTiet.size() + " chi tiết."); // Debug
+        return dsChiTiet;
+    }
+    private void updateBillPanelTotals() {
+        // Lấy hóa đơn hiện tại
+        HoaDon currentHD = getActiveHoaDon(); // Dùng hàm getter đã có
+
+        if (currentHD != null) {
+            // 1. Cập nhật danh sách chi tiết trong HĐ từ bảng
+            currentHD.setDsChiTiet(layChiTietTuTable()); // Hàm này lấy dữ liệu từ modelChiTietHoaDon
+
+            // 2. Gọi hàm tính toán mới trong HoaDon (truyền DAO vào)
+            currentHD.tinhLaiGiamGiaVaTongTien(khachHangDAO, maKhuyenMaiDAO);
+
+            // 3. Lấy tổng số lượng từ dsChiTiet đã cập nhật
+            int tongSoLuong = 0;
+            if(currentHD.getDsChiTiet() != null){
+                for(ChiTietHoaDon ct : currentHD.getDsChiTiet()) {
+                    tongSoLuong += ct.getSoluong();
+                }
+            }
+
+            // 4. Cập nhật BillPanel với các giá trị đã tính toán từ HoaDon
+            billPanel.loadBillTotals(
+                    (long) currentHD.getTongTien(),
+                    (long) currentHD.getGiamGia(),
+                    (long) currentHD.getVat(),
+                    (long) currentHD.getTongThanhToan(),
+                    tongSoLuong
+            );
+        } else {
+            // Không có hóa đơn -> Xóa trắng BillPanel
+            billPanel.clearBill();
+        }
     }
 
     private void buildUI() {

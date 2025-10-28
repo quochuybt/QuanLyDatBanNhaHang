@@ -418,7 +418,7 @@ public class KhuyenMaiGUI extends JPanel {
         if (km != null) cbLoaiKM.setSelectedItem(km.getLoaiKhuyenMai());
 
         JTextField txtGiaTri = new JTextField(km != null ? String.valueOf(km.getGiaTri()) : "0");
-
+        JTextField txtDieuKienApDung = new JTextField(km != null ? String.valueOf(km.getDieuKienApDung()) : "0");
         // [SỬA] Thay thế JTextField bằng JDateChooser
         JDateChooser dcNgayBD = new JDateChooser();
         dcNgayBD.setDateFormatString("dd/MM/yyyy");
@@ -447,6 +447,8 @@ public class KhuyenMaiGUI extends JPanel {
         formPanel.add(cbLoaiKM);
         formPanel.add(new JLabel("Giá trị:"));
         formPanel.add(txtGiaTri);
+        formPanel.add(new JLabel("Điều kiện áp dụng (VNĐ):"));
+        formPanel.add(txtDieuKienApDung);
         formPanel.add(new JLabel("Ngày Bắt đầu:")); // Sửa label
         formPanel.add(dcNgayBD); // Thêm JDateChooser
         formPanel.add(new JLabel("Ngày Kết thúc:")); // Sửa label
@@ -467,7 +469,8 @@ public class KhuyenMaiGUI extends JPanel {
                 String ten = txtTenCT.getText().trim();
                 String moTa = txtMoTa.getText().trim();
                 String loai = (String) cbLoaiKM.getSelectedItem();
-                double giaTri = Double.parseDouble(txtGiaTri.getText().trim());
+                String giaTriStr = txtGiaTri.getText().trim();
+                String dieuKienStr = txtDieuKienApDung.getText().trim();
 
                 // [SỬA] Lấy ngày từ JDateChooser
                 java.util.Date utilNgayBD = dcNgayBD.getDate();
@@ -493,13 +496,25 @@ public class KhuyenMaiGUI extends JPanel {
                     JOptionPane.showMessageDialog(dialog, "Mã và Tên không được để trống.", "Lỗi", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
+
+                double giaTri;
+                double dieuKienApDung = 0;
+                try {
+                    giaTri = Double.parseDouble(giaTriStr);
+                    if (!dieuKienStr.isEmpty()) { // Chỉ parse nếu có nhập
+                        dieuKienApDung = Double.parseDouble(dieuKienStr);
+                    }
+                    if (giaTri < 0 || dieuKienApDung < 0) throw new NumberFormatException("Giá trị không được âm.");
+                } catch (NumberFormatException exNum) {
+                    throw new Exception("Giá trị giảm hoặc Điều kiện áp dụng phải là số hợp lệ.");
+                }
                 if(ngayKT != null && ngayKT.isBefore(ngayBD)) {
                     JOptionPane.showMessageDialog(dialog, "Ngày kết thúc không được trước ngày bắt đầu.", "Lỗi", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
                 // 2. Tạo đối tượng KhuyenMai
-                KhuyenMai kmMoi = new KhuyenMai(ma, ten, moTa, loai, giaTri, ngayBD, ngayKT, trangThai);
+                KhuyenMai kmMoi = new KhuyenMai(ma, ten, moTa, loai, giaTri,dieuKienApDung, ngayBD, ngayKT, trangThai);
 
                 // 3. Gọi DAO
                 boolean success;

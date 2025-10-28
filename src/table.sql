@@ -52,6 +52,7 @@ CREATE TABLE KhuyenMai (
     loaiGiam NVARCHAR(50) NOT NULL,
     giaTriGiam DECIMAL(18, 2) NOT NULL,
     trangThai NVARCHAR(50) NOT NULL
+    dieuKienApDung DECIMAL(18, 2) NULL DEFAULT 0;
 );
 
 CREATE TABLE KhachHang (

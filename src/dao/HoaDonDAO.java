@@ -26,7 +26,7 @@ public class HoaDonDAO {
 
         // --- SỬA CÂU SQL ---
         // Liên kết HoaDon với DonDatMon (để lấy maBan)
-        String sql = "SELECT hd.* FROM HoaDon hd " +
+        String sql = "SELECT hd.*, ddm.maKH FROM HoaDon hd " +
                 "JOIN DonDatMon ddm ON hd.maDon = ddm.maDon " +
                 "WHERE ddm.maBan = ? AND hd.trangThai = N'Chưa thanh toán'";
 
@@ -41,11 +41,14 @@ public class HoaDonDAO {
                     // (Hàm createHoaDonFromResultSet sẽ được sửa ở bước 2.2)
                     hoaDon = createHoaDonFromResultSet(rs);
 
+                    String maKH = rs.getString("maKH");
+                    hoaDon.setMaKH(maKH);
                     // 2. Lấy thông tin Chi Tiết Hóa Đơn
                     List<ChiTietHoaDon> dsChiTiet = chiTietDAO.getChiTietTheoMaDon(hoaDon.getMaDon());
 
                     // 3. Gán chi tiết vào hóa đơn
                     hoaDon.setDsChiTiet(dsChiTiet);
+                    hoaDon.tinhLaiTongTienTuChiTiet();
                 }
             }
         } catch (Exception e) {
@@ -65,6 +68,26 @@ public class HoaDonDAO {
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi khi cập nhật NV cho hóa đơn " + maHD + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false;
+    }
+    public boolean capNhatMaKM(String maHD, String maKM) {
+        // Cập nhật cột maKM trong bảng HoaDon
+        String sql = "UPDATE HoaDon SET maKM = ? WHERE maHD = ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            if (maKM != null && !maKM.isEmpty()) {
+                ps.setString(1, maKM); // Đặt mã KM
+            } else {
+                ps.setNull(1, java.sql.Types.NVARCHAR); // Đặt là NULL nếu maKM rỗng hoặc null
+            }
+            ps.setString(2, maHD); // Điều kiện WHERE
+
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            System.err.println("Lỗi khi cập nhật maKM cho Hóa đơn " + maHD + ": " + e.getMessage());
             e.printStackTrace();
         }
         return false;

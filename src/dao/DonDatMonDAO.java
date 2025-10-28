@@ -73,6 +73,27 @@ public class DonDatMonDAO {
         }
         return false;
     }
+
+    public boolean capNhatMaKH(String maDon, String maKH) {
+        // Cập nhật bảng DonDatMon
+        String sql = "UPDATE DonDatMon SET maKH = ? WHERE maDon = ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            if (maKH != null && !maKH.isEmpty()) {
+                ps.setString(1, maKH); // Đặt mã KH
+            } else {
+                ps.setNull(1, java.sql.Types.NVARCHAR); // Đặt là NULL
+            }
+            ps.setString(2, maDon); // Điều kiện WHERE là maDon
+
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            System.err.println("Lỗi khi cập nhật maKH cho Đơn Đặt Món " + maDon + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false;
+    }
     public boolean xoaDonDatMon(String maDon) {
         // Cẩn thận: Nếu ChiTietHoaDon có khóa ngoại tới DonDatMon, bạn cần xóa chi tiết trước
         // Hoặc cài đặt ON DELETE CASCADE trong CSDL.
