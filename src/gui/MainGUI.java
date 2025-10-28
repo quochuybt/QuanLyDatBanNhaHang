@@ -239,8 +239,7 @@ public class MainGUI extends JFrame {
         buttonPanel.setBackground(COLOR_ACCENT_BLUE);
         buttonPanel.setMaximumSize(new Dimension(220, 50)); // Chiều cao cố định
         buttonPanel.setCursor(new Cursor(Cursor.HAND_CURSOR)); // Đổi con trỏ khi rê chuột
-        // Bỏ border dưới cùng (MatteBorder) nếu muốn giao diện liền mạch hơn
-        // buttonPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.WHITE));
+        // buttonPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.WHITE)); // Bỏ border
 
         // Icon
         if (iconChar != null && !iconChar.isEmpty()) {
@@ -272,6 +271,11 @@ public class MainGUI extends JFrame {
                     );
                     // Nếu người dùng chọn Yes
                     if (choice == JOptionPane.YES_OPTION) {
+
+                        // --- SỬA: Gọi hàm đóng kết nối CSDL ---
+                        connectDB.SQLConnection.closeConnection(); // Đóng kết nối Singleton
+                        // --- KẾT THÚC SỬA ---
+
                         dispose(); // Đóng cửa sổ MainGUI hiện tại
                         // Mở lại cửa sổ đăng nhập (TaiKhoanGUI)
                         SwingUtilities.invokeLater(() -> {
@@ -324,7 +328,11 @@ public class MainGUI extends JFrame {
 
         // --- Panels chỉ dành cho Quản lý ---
         if (VaiTro.QUANLY == vaiTroEnum) {
-            mainContentPanel.add(createPlaceholderPanel("Danh mục món ăn"), "Danh mục món ăn"); // Placeholder
+            // <<< --- SỬA Ở ĐÂY --- >>>
+            // Thay thế placeholder bằng class GUI thật
+            mainContentPanel.add(new DanhMucMonGUI(), "Danh mục món ăn");
+            // <<< --- KẾT THÚC SỬA --- >>>
+
             mainContentPanel.add(new KhuyenMaiGUI(), "Khuyến mãi");
             mainContentPanel.add(new NhanVienGUI(), "Nhân viên");
         }
