@@ -54,8 +54,9 @@ public class KhachHang {
         setDiaChi(diaChi);
         setEmail(email);
         setNgayThamGia(ngayThamGia);
-        setTongChiTieu(tongChiTieu);
         setHangThanhVien(hangThanhVien);
+        setTongChiTieu(tongChiTieu);
+
     }
 
     // Constructor 3.3: Copy Constructor
@@ -172,10 +173,8 @@ public class KhachHang {
 
     // 4.2 Viết phương thức cập nhật hạng thành viên
     public void capNhatHangThanhVien() {
-        if (this.tongChiTieu < 100000 || this.hangThanhVien == HangThanhVien.NONE) {
-            // Giả định nếu đã là thành viên (MEMBER trở lên) thì không tự động giáng về NONE.
-            // Trừ khi setThanhVien(false) được gọi, hoặc chi tiêu < 100k và chưa bao giờ là thành viên.
-            return;
+        if (this.hangThanhVien == HangThanhVien.NONE) {
+            return; // Không tự động nâng cấp từ NONE chỉ dựa vào hàm này
         }
 
         if (tongChiTieu > 5500000) {
@@ -186,8 +185,10 @@ public class KhachHang {
             hangThanhVien = HangThanhVien.SILVER;
         } else if (tongChiTieu > 800000) {
             hangThanhVien = HangThanhVien.BRONZE;
-        } else if (tongChiTieu > 100000) {
-            hangThanhVien = HangThanhVien.MEMBER;
+        } else {
+            if (hangThanhVien.ordinal() < HangThanhVien.MEMBER.ordinal()) {
+                hangThanhVien = HangThanhVien.MEMBER;
+            }
         }
     }
 

@@ -1,13 +1,9 @@
 package gui;
 
-import dao.DonDatMonDAO;
-import dao.HoaDonDAO;
-import dao.KhachHangDAO;
-import entity.Ban;
-import entity.TrangThaiBan;
-import dao.BanDAO;
+import dao.*;
 
-import entity.HoaDon;
+import entity.*;
+
 import java.time.format.DateTimeFormatter;
 
 import javax.swing.*;
@@ -34,9 +30,12 @@ public class ManHinhBanGUI extends JPanel {
     private Ban selectedTable = null;
     private JPanel leftTableContainer;
     private JPanel statsPanel;
+    private JTextField txtMaKhuyenMai;
+    private JButton btnApDungKM;
     private String currentLeftFilter = "Tất cả";
     private List<BanPanel> leftBanPanelList = new ArrayList<>();
     private DanhSachBanGUI parentDanhSachBanGUI;
+    private KhuyenMaiDAO maKhuyenMaiDAO;
 
     // --- THÊM CÁC BIẾN CHO PANEL BÊN PHẢI ---
     private JPanel rightPanel; // Panel chính bên phải
@@ -70,8 +69,85 @@ public class ManHinhBanGUI extends JPanel {
         this.hoaDonDAO = new HoaDonDAO();
         this.khachHangDAO = new KhachHangDAO();
         this.donDatMonDAO = new DonDatMonDAO();
+        this.maKhuyenMaiDAO = new KhuyenMaiDAO();
         buildUI();
     }
+    private void xuLyApDungKhuyenMai() {
+        String maKM_input = txtMaKhuyenMai.getText().trim().toUpperCase(); // Lấy mã nhập vào, chuẩn hóa
+        HoaDon activeHoaDon = getActiveHoaDon(); // Lấy HĐ hiện tại (cần hàm này)
+
+        if (activeHoaDon == null) {
+            JOptionPane.showMessageDialog(this, "Chưa có hóa đơn nào đang hoạt động!", "Lỗi", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        entity.KhuyenMai km = null;
+        String maKMLuuVaoDB = null;
+        if (!maKM_input.isEmpty()) {
+            // Gọi DAO để kiểm tra mã
+            km = maKhuyenMaiDAO.getKhuyenMaiHopLeByMa(maKM_input);
+            if (km == null) {
+                JOptionPane.showMessageDialog(this, "Mã khuyến mãi không hợp lệ, đã hết hạn hoặc không tồn tại!", "Lỗi Mã KM", JOptionPane.WARNING_MESSAGE);
+                // Xóa mã KM khỏi Hóa đơn nếu trước đó đã áp dụng mã khác
+                if (activeHoaDon.getMaKM() != null) {
+                    activeHoaDon.setMaKM(null); // Reset mã KM
+                    maKMLuuVaoDB = null;
+                }else {
+                    txtMaKhuyenMai.requestFocus();
+                    return;
+                }
+                txtMaKhuyenMai.requestFocus(); // Focus lại ô nhập
+                return; // Dừng lại
+            } else {
+                // Tìm thấy mã hợp lệ, gán vào Hóa đơn
+                activeHoaDon.setMaKM(maKM_input); // Lưu mã đã áp dụng
+                maKMLuuVaoDB = maKM_input;
+                JOptionPane.showMessageDialog(this, "Đã áp dụng mã: " + km.getTenChuongTrinh(), "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            }
+        } else {
+            // Nếu người dùng xóa trống ô -> Hủy áp dụng mã
+            activeHoaDon.setMaKM(null);
+            maKMLuuVaoDB = null;
+        }
+        boolean updateDAOK = hoaDonDAO.capNhatMaKM(activeHoaDon.getMaHD(), maKMLuuVaoDB);
+        if (!updateDAOK) {
+            System.err.println("LỖI: Không thể cập nhật maKM vào CSDL!");
+            // Có thể báo lỗi cho người dùng, nhưng vẫn tiếp tục tính toán tạm thời
+        } else {
+            System.out.println("Đã cập nhật maKM '" + maKMLuuVaoDB + "' vào CSDL.");
+        }
+        // --- Tính toán lại tổng giảm giá và cập nhật HĐ, BillPanel ---
+        activeHoaDon.tinhLaiGiamGiaVaTongTien(khachHangDAO, maKhuyenMaiDAO);
+        updateBillPanelFromHoaDon(activeHoaDon);
+    }
+
+    public HoaDon getActiveHoaDon() {
+        if (selectedTable != null && selectedTable.getTrangThai() == TrangThaiBan.DANG_PHUC_VU) {
+            // Chỉ tìm hóa đơn nếu bàn đang phục vụ
+            return hoaDonDAO.getHoaDonChuaThanhToan(selectedTable.getMaBan());
+        }
+        return null; // Trả về null nếu bàn trống, đã đặt, hoặc chưa chọn
+    }
+    private void updateBillPanelFromHoaDon(HoaDon hoaDon) {
+        if (billPanel != null && hoaDon != null) {
+            int tongSoLuong = 0;
+            if(hoaDon.getDsChiTiet() != null){
+                for(ChiTietHoaDon ct : hoaDon.getDsChiTiet()) {
+                    tongSoLuong += ct.getSoluong();
+                }
+            }
+            billPanel.loadBillTotals(
+                    (long) hoaDon.getTongTien(),
+                    (long) hoaDon.getGiamGia(),
+                    (long) hoaDon.getVat(), // Giả sử có getVat()
+                    (long) hoaDon.getTongThanhToan(),
+                    tongSoLuong
+            );
+        } else if (billPanel != null) {
+            billPanel.clearBill(); // Xóa bill nếu không có HĐ
+        }
+    }
+
     private JTextField createStyledTextField(boolean isEditable) {
         JTextField tf = new JTextField();
         tf.setColumns(1);
@@ -188,7 +264,7 @@ public class ManHinhBanGUI extends JPanel {
         JPanel infoPanel = new JPanel(new GridBagLayout());
         infoPanel.setOpaque(false);
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 8, 10, 8);
+        gbc.insets = new Insets(5, 8, 10, 8);
         gbc.fill = GridBagConstraints.BOTH;
 
         // (Khởi tạo các trường - giữ nguyên)
@@ -234,13 +310,32 @@ public class ManHinhBanGUI extends JPanel {
 
         // --- SỬA DÒNG 3 (ĐỂ NGĂN NÓ CO GIÃN DỌC) ---
         gbc.gridy = 2;
-        gbc.gridx = 0; gbc.gridwidth = 1;
-        gbc.weighty = 0.0; // <-- SỬA: Không cho co giãn dọc
+        gbc.weighty = 0.0;
+        gbc.gridx = 0; gbc.gridwidth = 1; gbc.weightx = 0.3;
         gbc.fill = GridBagConstraints.HORIZONTAL; // <-- SỬA: Chỉ co giãn ngang
         infoPanel.add(createInfoBox("Số lượng khách", txtSoLuongKhach), gbc);
 
-        gbc.gridx = 1; gbc.gridwidth = 3;
-        gbc.fill = GridBagConstraints.BOTH; // Ghi chú thì co giãn cả 2 chiều
+        txtMaKhuyenMai = createStyledTextField(true); // Tạo ô nhập
+        gbc.gridx = 1; gbc.gridwidth = 1; gbc.weightx = 0.5; // Chiếm nhiều không gian hơn
+        infoPanel.add(createInfoBox("Mã khuyến mãi", txtMaKhuyenMai), gbc);
+        btnApDungKM = new JButton("Áp dụng");
+        // Style nút (có thể tạo hàm helper)
+        btnApDungKM.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnApDungKM.setBackground(ManHinhBanGUI.COLOR_STATUS_RESERVED); // Màu xanh lá
+        btnApDungKM.setForeground(Color.DARK_GRAY);
+        btnApDungKM.setFocusPainted(false);
+        btnApDungKM.setPreferredSize(new Dimension(80, 35)); // Kích thước nút
+        gbc.gridx = 2; gbc.gridwidth = 1; gbc.weightx = 0.2; // Chiếm ít không gian
+        gbc.fill = GridBagConstraints.NONE; // Không co giãn nút
+        gbc.anchor = GridBagConstraints.SOUTHWEST; // Đặt nút ở dưới, bên trái ô Mã KM
+        gbc.insets = new Insets(20, 0, 10, 8); // Chỉnh lề (trên 20 để xuống dưới label)
+        infoPanel.add(btnApDungKM, gbc);
+
+        gbc.gridy = 3; // Hàng thứ 4
+        gbc.gridx = 0; gbc.gridwidth = 3; gbc.weightx = 1.0; // Kéo dài cả 3 cột
+        gbc.fill = GridBagConstraints.HORIZONTAL; // Chỉ co giãn ngang
+        gbc.anchor = GridBagConstraints.CENTER; // Reset anchor
+        gbc.insets = new Insets(0, 8, 10, 8); // Reset lề
         infoPanel.add(createInfoBox("Ghi chú", txtGhiChu), gbc);
 
         // 5. Panel Bill (Nửa dưới)
@@ -261,29 +356,135 @@ public class ManHinhBanGUI extends JPanel {
 
         // 6. Thêm JSplitPane vào GIỮA panel chính
         panel.add(verticalSplitPane, BorderLayout.CENTER);
+        btnApDungKM.addActionListener(e -> xuLyApDungKhuyenMai());
 
         return panel;
     }
     private void timKiemThanhVienTuSDT() {
         String sdt = txtSDTKhach.getText().trim();
-        if (sdt.isEmpty()) {
-            txtHoTenKhach.setText("");
-            txtThanhVien.setText("");
-            return;
+        entity.KhachHang kh = null; // Khách hàng tìm được
+        String maKH_LuuVaoDB = null; // Mã KH để cập nhật CSDL
+
+        // 1. Tìm khách hàng
+        if (!sdt.isEmpty() && sdt.matches("\\d{10}")) { // Chỉ tìm nếu SĐT hợp lệ
+            kh = khachHangDAO.timTheoSDT(sdt);
         }
 
-        // --- GỌI KHÁCH HÀNG DAO (Hàm mới ở Bước 1) ---
-        entity.KhachHang kh = khachHangDAO.timTheoSDT(sdt);
-
+        // 2. Cập nhật các ô JTextField
         if (kh != null) {
             // Nếu tìm thấy
             txtHoTenKhach.setText(kh.getTenKH());
-            // Chuyển Enum (VD: HangThanhVien.GOLD) thành String ("GOLD")
             txtThanhVien.setText(kh.getHangThanhVien().toString());
+            maKH_LuuVaoDB = kh.getMaKH(); // Sẽ lưu mã này
         } else {
-            // Nếu không tìm thấy
-            txtHoTenKhach.setText("");
-            txtThanhVien.setText("Chưa là thành viên");
+            // Nếu không tìm thấy (hoặc SĐT rỗng/không hợp lệ)
+            txtHoTenKhach.setText(""); // Xóa tên
+            txtThanhVien.setText("Chưa là thành viên"); // Hoặc "Vãng lai"
+            maKH_LuuVaoDB = null; // Sẽ lưu NULL
+        }
+
+        // 3. Lấy Hóa đơn đang hoạt động
+        HoaDon activeHoaDon = getActiveHoaDon();
+
+        // 4. Cập nhật Hóa đơn (nếu có HĐ)
+        if (activeHoaDon != null) {
+            // 4a. Cập nhật maKH trong CSDL
+            // (Chỉ cập nhật nếu mã KH thay đổi so với HĐ hiện tại để tránh gọi DB thừa)
+            String maKHHienTai = activeHoaDon.getMaKH();
+            boolean needDBUpdate = (maKHHienTai == null && maKH_LuuVaoDB != null) ||
+                    (maKHHienTai != null && !maKHHienTai.equals(maKH_LuuVaoDB));
+
+            if (needDBUpdate) {
+                System.out.println("Cập nhật maKH trong CSDL: " + maKH_LuuVaoDB);
+                boolean updateOK = donDatMonDAO.capNhatMaKH(activeHoaDon.getMaDon(), maKH_LuuVaoDB);
+                if (!updateOK) {
+                    System.err.println("LỖI: Không thể cập nhật maKH vào CSDL!");
+                    // Vẫn tiếp tục để tính toán tạm thời
+                }
+            }
+
+            // 4b. Cập nhật maKH trên object trong bộ nhớ
+            activeHoaDon.setMaKH(maKH_LuuVaoDB);
+
+            // 4c. Tính toán lại giảm giá
+            tinhVaCapNhatGiamGia(activeHoaDon);
+
+            // 4d. Cập nhật BillPanel
+            updateBillPanelFromHoaDon(activeHoaDon);
+
+        } else {
+            System.out.println("timKiemThanhVienTuSDT: Không có hóa đơn hoạt động để áp dụng giảm giá TV.");
+        }
+    }
+    private void tinhVaCapNhatGiamGia(HoaDon hoaDon) {
+        if (hoaDon == null) return;
+
+        // Lấy tổng tiền món ăn (chưa giảm) từ Hóa đơn
+        // Đảm bảo HĐ đã được cập nhật list chi tiết và tính tổng tiền
+        // (Giả sử getTongTien() trả về tổng tiền món ăn)
+        float tongCong = hoaDon.getTongTien();
+        float giamGiaTV = 0;
+        float giamGiaMa = 0;
+
+        // 1. Tính giảm giá thành viên
+        if (hoaDon.getMaKH() != null) {
+            KhachHang kh = khachHangDAO.timTheoMaKH(hoaDon.getMaKH());
+            if (kh != null) {
+                // Lấy % giảm giá theo hạng (từ hàm helper bên dưới)
+                float phanTramGiamTV = getPhanTramGiamTheoHang(kh.getHangThanhVien());
+                giamGiaTV = tongCong * phanTramGiamTV / 100;
+            }
+        }
+
+        // 2. Tính giảm giá theo Mã KM (nếu có)
+        if (hoaDon.getMaKM() != null && !hoaDon.getMaKM().isEmpty()) {
+            entity.KhuyenMai km = maKhuyenMaiDAO.getKhuyenMaiHopLeByMa(hoaDon.getMaKM());
+            if (km != null) {
+                // Kiểm tra điều kiện (tổng tiền tối thiểu)
+                if (tongCong >= km.getDieuKienApDung()) {
+                    if ("Phần trăm".equalsIgnoreCase(km.getLoaiKhuyenMai()) || "Giảm theo phần trăm".equalsIgnoreCase(km.getLoaiKhuyenMai())) {
+                        giamGiaMa = tongCong * (float)km.getGiaTri() / 100;
+                    } else if ("Số tiền".equalsIgnoreCase(km.getLoaiKhuyenMai()) || "Giảm giá số tiền".equalsIgnoreCase(km.getLoaiKhuyenMai())){
+                        giamGiaMa = (float)km.getGiaTri();
+                    }
+                } else {
+                    // Không đủ điều kiện -> Báo lỗi và tự động hủy mã
+                    JOptionPane.showMessageDialog(this, "Hóa đơn không đủ điều kiện (cần " + km.getDieuKienApDung() + "đ) để áp dụng mã " + hoaDon.getMaKM(), "Không đủ điều kiện", JOptionPane.WARNING_MESSAGE);
+                    hoaDon.setMaKM(null); // Reset mã KM trên HĐ
+                    txtMaKhuyenMai.setText(""); // Xóa ô nhập
+                    hoaDonDAO.capNhatMaKM(hoaDon.getMaHD(), null); // Cập nhật CSDL
+                }
+            } else {
+                // Mã KM trên HĐ không còn hợp lệ (hết hạn,...) -> Reset
+                System.out.println("Mã KM " + hoaDon.getMaKM() + " không còn hợp lệ.");
+                hoaDon.setMaKM(null);
+                txtMaKhuyenMai.setText(""); // Xóa ô nhập
+                hoaDonDAO.capNhatMaKM(hoaDon.getMaHD(), null); // Cập nhật CSDL
+            }
+        }
+
+        // 3. Tính tổng giảm giá (Cộng dồn)
+        float tongGiamGia = giamGiaTV + giamGiaMa;
+
+        // 4. Cập nhật vào đối tượng HoaDon
+        hoaDon.setGiamGia(tongGiamGia);
+        hoaDon.setVat(0); // Tạm thời VAT = 0
+        hoaDon.tinhLaiTongThanhToan(); // Gọi hàm tính tổng cuối cùng
+    }
+
+    /**
+     * HELPER: Lấy % giảm giá thanh toán dựa trên hạng thành viên.
+     * (Dựa theo ảnh image_7a8bd0.png bạn gửi)
+     */
+    private float getPhanTramGiamTheoHang(HangThanhVien hang) {
+        if (hang == null) return 0.0f;
+        switch (hang) {
+            case DIAMOND: return 10.0f; // Kim Cương -10%
+            case GOLD:    return 5.0f;  // Vàng -5%
+            case SILVER:  return 3.0f;  // Bạc -3%
+            case BRONZE:  return 2.0f;  // Đồng -2%
+            case MEMBER:  return 0.0f;  // Thành viên member 0%
+            case NONE: default: return 0.0f;
         }
     }
     private JPanel createInfoBox(String labelText, Component field) {
@@ -409,7 +610,7 @@ public class ManHinhBanGUI extends JPanel {
                         txtThanhVien.setText("Vãng lai");
                     }
                     // --- KẾT THÚC THAY THẾ ---
-
+                    txtMaKhuyenMai.setText(activeHoaDon.getMaKM() != null ? activeHoaDon.getMaKM() : "");
                     // (Để trống 2 ô này, chúng sẽ được nhập tay)
                     txtSoLuongKhach.setText("");
                     txtGhiChu.setText("");
@@ -425,18 +626,16 @@ public class ManHinhBanGUI extends JPanel {
             txtSDTKhach.setText("");
             txtHoTenKhach.setText("");
             txtThanhVien.setText("");
+            txtMaKhuyenMai.setText("");
             txtSoLuongKhach.setText("");
             txtGhiChu.setText("");
             txtNgayVao.setText("");
             txtGioVao.setText("");
         }
         if (activeHoaDon != null) {
-            // Tải hóa đơn thật vào BillPanel
-            billPanel.loadBill(activeHoaDon);
-        } else {
-            // Xóa BillPanel nếu không có hóa đơn
-            billPanel.clearBill();
+            activeHoaDon.tinhLaiGiamGiaVaTongTien(khachHangDAO, maKhuyenMaiDAO);
         }
+        updateBillPanelFromHoaDon(activeHoaDon);
     }
 
     // 4. Chuyển tất cả các hàm helper liên quan đến "Bàn" vào đây

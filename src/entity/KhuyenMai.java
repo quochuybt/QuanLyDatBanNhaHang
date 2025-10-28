@@ -9,6 +9,7 @@ public class KhuyenMai {
     private String moTa;
     private String loaiKhuyenMai; // loaiGiam trong CSDL
     private double giaTri;        // giaTriGiam trong CSDL
+    private double dieuKienApDung;
     private LocalDate ngayBatDau;
     private LocalDate ngayKetThuc;
     private String trangThai;
@@ -16,12 +17,13 @@ public class KhuyenMai {
     /**
      * Constructor này dùng để tạo đối tượng từ GUI (Dialog)
      */
-    public KhuyenMai(String maKM, String tenChuongTrinh, String moTa, String loaiKhuyenMai, double giaTri, LocalDate ngayBatDau, LocalDate ngayKetThuc, String trangThai) {
+    public KhuyenMai(String maKM, String tenChuongTrinh, String moTa, String loaiKhuyenMai, double giaTri, double dieuKienApDung,LocalDate ngayBatDau, LocalDate ngayKetThuc, String trangThai) {
         this.maKM = maKM;
         this.tenChuongTrinh = tenChuongTrinh;
         this.moTa = moTa;
         this.loaiKhuyenMai = loaiKhuyenMai;
         this.giaTri = giaTri;
+        this.dieuKienApDung = dieuKienApDung;
         this.ngayBatDau = ngayBatDau;
         this.ngayKetThuc = ngayKetThuc;
         this.trangThai = trangThai;
@@ -49,6 +51,8 @@ public class KhuyenMai {
         return giaTri;
     }
 
+    public double getDieuKienApDung() { return dieuKienApDung; }
+
     public LocalDate getNgayBatDau() {
         return ngayBatDau;
     }
@@ -68,6 +72,8 @@ public class KhuyenMai {
     public void setTenChuongTrinh(String tenChuongTrinh) {
         this.tenChuongTrinh = tenChuongTrinh;
     }
+
+    public void setDieuKienApDung(double dieuKienApDung) { this.dieuKienApDung = dieuKienApDung >= 0 ? dieuKienApDung : 0; }
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

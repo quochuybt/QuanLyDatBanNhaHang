@@ -31,7 +31,7 @@ public class ChiTietHoaDon {
         this.thanhtien = other.thanhtien;
     }
 
-    private void tinhThanhTien() {
+    public void tinhThanhTien() {
         this.thanhtien = this.soluong * this.dongia;
     }
 
