@@ -167,8 +167,14 @@ public class HoaDonDAO {
 
         float tongTien = rs.getFloat("tongTien");
 
+        // 🌟 BỔ SUNG: LẤY TIỀN KHÁCH ĐƯA TỪ CSDL
+        float tienKhachDua = rs.getFloat("tienKhachDua");
+
         // Dùng Constructor mới của HoaDon (đã bỏ maBan)
         HoaDon hd = new HoaDon(maHD, ngayLap, trangThai, hinhThucThanhToan, maDon, maNV, maKM);
+
+        // 🌟 BỔ SUNG: GÁN GIÁ TRỊ VỪA LẤY
+        hd.setTienKhachDua(tienKhachDua);
         hd.setTongTienTuDB(tongTien);
         return hd;
     }

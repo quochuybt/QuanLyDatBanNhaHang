@@ -109,9 +109,6 @@ public class CaLam {
     }
 
 
-    // --- [THÊM MỚI] ---
-    // Thêm 2 hàm này vào để logic gộp nhóm (groupingBy) hoạt động
-
     /**
      * So sánh 2 CaLam dựa trên maCa.
      */
