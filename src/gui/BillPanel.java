@@ -134,7 +134,7 @@ public class BillPanel extends JPanel {
         }
 
         // 🌟 BƯỚC SỬA: GỌI LƯU MÓN để đảm bảo TỔNG TIỀN được tính và lưu vào CSDL/currentTotal
-//        xuLyLuuMon();
+        xuLyLuuMon();
 
         parentGoiMonGUI.updateBillPanelTotals();
         System.out.println("Đã cập nhật totals trước khi thanh toán.");
