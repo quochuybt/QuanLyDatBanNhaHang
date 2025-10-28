@@ -5,59 +5,32 @@ import entity.CaLam;
 import entity.NhanVien;
 import entity.PhanCong;
 
-import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.sql.*; // Sửa: Import java.sql.*
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashMap; // Thêm import HashMap
 import java.util.List;
+import java.util.Map; // Thêm import Map
 
 public class PhanCongDAO {
 
-    /**
-     * [ĐÃ SỬA]
-     * Lấy danh sách phân công, nhưng tạo NhanVien
-     * theo đúng tên setter của file NhanVien.java mới
-     */
+    // ... (Các hàm getPhanCongChiTiet, themPhanCong, xoaPhanCong giữ nguyên) ...
     public List<PhanCong> getPhanCongChiTiet(LocalDate tuNgay, LocalDate denNgay) {
         List<PhanCong> dsPhanCong = new ArrayList<>();
-
-        String sql = "SELECT " +
-                "  pc.ngayLam, " +
-                "  c.maCa, c.tenCa, c.gioBatDau, c.gioKetThuc, " +
-                "  nv.maNV, nv.hoTen " + // Tên cột trong CSDL
-                "FROM PhanCongCa pc " +
-                "JOIN CaLam c ON pc.maCa = c.maCa " +
-                "JOIN NhanVien nv ON pc.maNV = nv.maNV " +
-                "WHERE pc.ngayLam BETWEEN ? AND ? " +
-                "ORDER BY pc.ngayLam, c.gioBatDau";
-
-        try (Connection conn = SQLConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
+        String sql = "SELECT pc.ngayLam, c.maCa, c.tenCa, c.gioBatDau, c.gioKetThuc, nv.maNV, nv.hoTen " +
+                "FROM PhanCongCa pc JOIN CaLam c ON pc.maCa = c.maCa JOIN NhanVien nv ON pc.maNV = nv.maNV " +
+                "WHERE pc.ngayLam BETWEEN ? AND ? ORDER BY pc.ngayLam, c.gioBatDau";
+        try (Connection conn = SQLConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setDate(1, Date.valueOf(tuNgay));
             ps.setDate(2, Date.valueOf(denNgay));
-
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    // 1. Lấy thông tin CaLam (Giữ nguyên)
-                    String maCa = rs.getString("maCa");
-                    String tenCa = rs.getString("tenCa");
-                    LocalTime gioBatDau = rs.getTime("gioBatDau").toLocalTime();
-                    LocalTime gioKetThuc = rs.getTime("gioKetThuc").toLocalTime();
-                    CaLam ca = new CaLam(maCa, tenCa, gioBatDau, gioKetThuc);
-
-                    // 2. [SỬA] Lấy thông tin NhanVien (dùng đúng setter)
-                    NhanVien nv = new NhanVien(); // Dùng constructor rỗng
-                    nv.setManv(rs.getString("maNV")); // Dùng setManv
-                    nv.setHoten(rs.getString("hoTen")); // Dùng setHoten
-
-                    // 3. Lấy thông tin PhanCong (Giữ nguyên)
+                    CaLam ca = new CaLam(rs.getString("maCa"), rs.getString("tenCa"), rs.getTime("gioBatDau").toLocalTime(), rs.getTime("gioKetThuc").toLocalTime());
+                    NhanVien nv = new NhanVien();
+                    nv.setManv(rs.getString("maNV"));
+                    nv.setHoten(rs.getString("hoTen"));
                     LocalDate ngayLam = rs.getDate("ngayLam").toLocalDate();
-
-                    // 4. Tạo đối tượng PhanCong (Giữ nguyên)
                     PhanCong pc = new PhanCong(ca, nv, ngayLam);
                     dsPhanCong.add(pc);
                 }
@@ -68,38 +41,67 @@ public class PhanCongDAO {
         }
         return dsPhanCong;
     }
-
-    // --- (Các hàm themPhanCong và xoaPhanCong giữ nguyên) ---
-
     public boolean themPhanCong(String maNV, String maCa, LocalDate ngayLam) {
         String sql = "INSERT INTO PhanCongCa (maNV, maCa, ngayLam) VALUES (?, ?, ?)";
-        try (Connection conn = SQLConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
+        try (Connection conn = SQLConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, maNV);
             ps.setString(2, maCa);
             ps.setDate(3, Date.valueOf(ngayLam));
             return ps.executeUpdate() > 0;
-
         } catch (Exception e) {
             System.err.println("Lỗi khi thêm phân công: " + e.getMessage());
             return false;
         }
     }
-
     public boolean xoaPhanCong(String maNV, String maCa, LocalDate ngayLam) {
         String sql = "DELETE FROM PhanCongCa WHERE maNV = ? AND maCa = ? AND ngayLam = ?";
-        try (Connection conn = SQLConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
+        try (Connection conn = SQLConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, maNV);
             ps.setString(2, maCa);
             ps.setDate(3, Date.valueOf(ngayLam));
             return ps.executeUpdate() > 0;
-
         } catch (Exception e) {
             System.err.println("Lỗi khi xóa phân công: " + e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * [THÊM MỚI] Tính tổng số giờ làm cho tất cả nhân viên.
+     * Tính toán dựa trên thời lượng các ca đã được phân công.
+     * Lưu ý: Hàm này tính tổng giờ làm TỪ TRƯỚC ĐẾN NAY.
+     * Để tính theo tháng/năm, cần thêm điều kiện WHERE cho pc.ngayLam.
+     *
+     * @return Map<String, Double> trong đó Key là maNV, Value là tổng số giờ làm.
+     */
+    public Map<String, Double> getTongGioLamChoTatCaNV() {
+        Map<String, Double> tongGioLamMap = new HashMap<>();
+        // Câu SQL tính tổng số phút làm việc của mỗi nhân viên
+        // DATEDIFF(MINUTE, c.gioBatDau, c.gioKetThuc) tính số phút của 1 ca
+        // SUM(...) tính tổng số phút
+        // GROUP BY pc.maNV, nv.hoTen để tính riêng cho mỗi nhân viên
+        String sql = "SELECT pc.maNV, SUM(DATEDIFF(MINUTE, c.gioBatDau, c.gioKetThuc)) AS TongSoPhut " +
+                "FROM PhanCongCa pc " +
+                "JOIN CaLam c ON pc.maCa = c.maCa " +
+                "GROUP BY pc.maNV";
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                String maNV = rs.getString("maNV");
+                int tongSoPhut = rs.getInt("TongSoPhut");
+                // Chuyển tổng số phút sang tổng số giờ (dạng Double)
+                double tongSoGio = tongSoPhut / 60.0;
+                tongGioLamMap.put(maNV, tongSoGio);
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi tính tổng giờ làm: " + e.getMessage());
+            e.printStackTrace();
+            // Trả về map rỗng nếu có lỗi
+            return new HashMap<>();
+        }
+        return tongGioLamMap;
     }
 }
