@@ -329,7 +329,7 @@ public class ManHinhGoiMonGUI extends JPanel {
         System.out.println("layChiTietTuTable: Đã tạo được list " + dsChiTiet.size() + " chi tiết."); // Debug
         return dsChiTiet;
     }
-    private void updateBillPanelTotals() {
+    public void updateBillPanelTotals() {
         // Lấy hóa đơn hiện tại
         HoaDon currentHD = getActiveHoaDon(); // Dùng hàm getter đã có
 

@@ -134,11 +134,10 @@ public class BillPanel extends JPanel {
         }
 
         // 🌟 BƯỚC SỬA: GỌI LƯU MÓN để đảm bảo TỔNG TIỀN được tính và lưu vào CSDL/currentTotal
-        xuLyLuuMon();
+//        xuLyLuuMon();
 
-        // 🌟 Tải lại activeHoaDon để có maHD cập nhật (nếu logic lưu món thay đổi maHD, tuy không mong muốn nhưng nên kiểm tra)
-        // và đảm bảo các bước dưới đây sử dụng currentTotal chính xác.
-        // Dù xuLyLuuMon() đã cập nhật CSDL, chúng ta vẫn dùng this.currentTotal đã được cập nhật bởi loadBillTotals
+        parentGoiMonGUI.updateBillPanelTotals();
+        System.out.println("Đã cập nhật totals trước khi thanh toán.");
 
         // 2. Validate Tiền Khách Trả
         long tienKhachTraLong = 0;
@@ -242,6 +241,7 @@ public class BillPanel extends JPanel {
         System.out.println("Xử lý Lưu Món..."); // Debug
 
         // 1. Lấy thông tin cần thiết từ parent
+        if (parentGoiMonGUI == null) return;
         Ban banHienTai = parentGoiMonGUI.getBanHienTai();
         HoaDon activeHoaDon = parentGoiMonGUI.getActiveHoaDon();
         DefaultTableModel model = parentGoiMonGUI.getModelChiTietHoaDon();
@@ -348,19 +348,15 @@ public class BillPanel extends JPanel {
 
             // 5. Cập nhật Tổng tiền Hóa đơn
             if (!coLoi) {
-                System.out.println("Cập nhật tổng tiền Hóa đơn " + activeHoaDon.getMaHD() + " thành: " + tongTienMoiGUI);
-                if (!hoaDonDAO.capNhatTongTien(activeHoaDon.getMaHD(), tongTienMoiGUI)) {
+                float tongTienGoc = 0; // Tính lại tổng tiền gốc từ bảng
+                for (int i = 0; i < model.getRowCount(); i++) {
+                    tongTienGoc += (Float) model.getValueAt(i, 4) * (Integer) model.getValueAt(i, 3); // Đơn giá * SL
+                }
+                System.out.println("Cập nhật tổng tiền GỐC Hóa đơn " + activeHoaDon.getMaHD() + " thành: " + tongTienGoc);
+                if (!hoaDonDAO.capNhatTongTien(activeHoaDon.getMaHD(), tongTienGoc)) { // Cập nhật TONG TIEN GOC
                     coLoi = true;
                     System.err.println("Lỗi khi cập nhật tổng tiền hóa đơn!");
                 }
-
-                // 🌟 BỔ SUNG: Cập nhật lại tổng tiền trên giao diện sau khi CSDL được cập nhật
-                // (Chức năng này đã được thực hiện gián tiếp qua updateBillPanelTotals nếu được gọi sau khi tính toán tongTienMoiGUI)
-                // Tuy nhiên, ta cần gọi loadBillTotals để cập nhật currentTotal chính xác
-                // Phải tính toán lại các thành phần khác (VAT, KM) nếu cần, nhưng tạm thời dùng tongTienMoiGUI cho tổng thanh toán (tạm thời không có VAT/KM)
-                long tongThanhToanMoi = Math.round(tongTienMoiGUI); // Giả sử Tổng TT = Tổng Cộng
-                loadBillTotals(tongThanhToanMoi, 0, 0, tongThanhToanMoi, model.getRowCount());
-
             }
 
         } catch (Exception ex) {
@@ -369,6 +365,10 @@ public class BillPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Đã xảy ra lỗi khi lưu món ăn:\n" + ex.getMessage(), "Lỗi Hệ Thống", JOptionPane.ERROR_MESSAGE);
         }
 
+        if (parentGoiMonGUI != null) {
+            System.out.println("xuLyLuuMon: Đang gọi updateBillPanelTotals để tính lại giảm giá...");
+            parentGoiMonGUI.updateBillPanelTotals();
+        }
         // 6. Thông báo kết quả
         if (!coLoi) {
             JOptionPane.showMessageDialog(this, "Đã lưu các thay đổi món ăn thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
