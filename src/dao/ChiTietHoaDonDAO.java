@@ -5,8 +5,13 @@ import entity.ChiTietHoaDon;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException; // Thêm import này
+import java.sql.Timestamp;  // Thêm import này
+import java.time.LocalDate; // Thêm import này
 import java.util.ArrayList;
+import java.util.LinkedHashMap; // Thêm import này
 import java.util.List;
+import java.util.Map; // Thêm import này
 
 public class ChiTietHoaDonDAO {
 
@@ -100,4 +105,55 @@ public class ChiTietHoaDonDAO {
         }
         return false;
     }
-}
+
+    // --- HÀM MỚI CHO DASHBOARD ---
+    /**
+     * (MỚI) Lấy danh sách các món bán chạy nhất trong khoảng thời gian.
+     * @param startDate Ngày bắt đầu
+     * @param endDate Ngày kết thúc
+     * @param limit Số lượng món ăn hàng đầu cần lấy (ví dụ: 5)
+     * @return Map<String, Integer> (Key: Tên món, Value: Tổng số lượng bán)
+     */
+    public Map<String, Integer> getTopSellingItems(LocalDate startDate, LocalDate endDate, int limit) {
+        // Dùng LinkedHashMap để giữ thứ tự top bán chạy
+        Map<String, Integer> topItems = new LinkedHashMap<>();
+
+        // Câu SQL này JOIN 4 bảng:
+        // 1. ChiTietHoaDon (ct) - để lấy soLuong
+        // 2. MonAn (m) - để lấy tenMon
+        // 3. DonDatMon (ddm) - để liên kết ct với hd
+        // 4. HoaDon (hd) - để lọc theo trangThai = 'Đã thanh toán' và ngayLap
+        String sqlTop = "SELECT TOP (?) m.tenMon, SUM(ct.soLuong) AS TongSoLuong " +
+                "FROM ChiTietHoaDon ct " +
+                "JOIN MonAn m ON ct.maMonAn = m.maMonAn " +
+                "JOIN DonDatMon ddm ON ct.maDon = ddm.maDon " +
+                "JOIN HoaDon hd ON ddm.maDon = hd.maDon " +
+                "WHERE hd.trangThai = N'Đã thanh toán' " +
+                "AND hd.ngayLap >= ? AND hd.ngayLap < ? " +
+                "GROUP BY m.tenMon " +
+                "ORDER BY TongSoLuong DESC";
+
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sqlTop)) {
+
+            ps.setInt(1, limit); // Tham số cho TOP (?)
+            ps.setTimestamp(2, Timestamp.valueOf(startDate.atStartOfDay()));
+            ps.setTimestamp(3, Timestamp.valueOf(endDate.plusDays(1).atStartOfDay()));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String tenMon = rs.getString("tenMon");
+                    int tongSoLuong = rs.getInt("TongSoLuong");
+                    topItems.put(tenMon, tongSoLuong);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("SQL Error while fetching top selling items: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Lỗi truy vấn món bán chạy", e);
+        }
+        return topItems;
+    }
+
+} // Kết thúc class ChiTietHoaDonDAO

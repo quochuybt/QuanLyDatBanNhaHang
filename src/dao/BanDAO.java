@@ -7,7 +7,9 @@ import entity.TrangThaiBan;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap; // Thêm import này
 import java.util.List;
+import java.util.Map; // Thêm import này
 
 public class BanDAO {
 
@@ -171,8 +173,6 @@ public class BanDAO {
                     gioMoBan = gioMoBanTS.toLocalDateTime();
                 }
 
-                // Sử dụng constructor mới (sẽ được thêm ở Bước 2)
-                // để tạo đối tượng Ban từ dữ liệu DB
                 Ban ban = new Ban(maBan, tenBan, soGhe, trangThai, gioMoBan, khuVuc);
                 dsBan.add(ban);
             }
@@ -198,8 +198,6 @@ public class BanDAO {
     public int getSoThuTuBanLonNhat() {
         int maxSoThuTu = 0;
         Connection con = SQLConnection.getConnection();
-        // Câu lệnh này có thể cần điều chỉnh tùy theo hệ CSDL (VD: MSSQL, MySQL)
-        // Đây là cho MSSQL (giống cú pháp T-SQL bạn cung cấp)
         String sql = "SELECT MAX(CAST(SUBSTRING(maBan, 4, LEN(maBan) - 3) AS INT)) FROM Ban WHERE maBan LIKE 'BAN[0-9]%'";
         Statement stmt = null;
         ResultSet rs = null;
@@ -222,4 +220,41 @@ public class BanDAO {
         }
         return maxSoThuTu;
     }
-}
+
+    // --- HÀM MỚI CHO DASHBOARD ---
+    /**
+     * (MỚI) Đếm số lượng bàn theo từng trạng thái (real-time).
+     * @return Map<String, Integer> (Key: Tên trạng thái, Value: Số lượng)
+     */
+    public Map<String, Integer> getTableStatusCounts() {
+        Map<String, Integer> counts = new HashMap<>();
+        // Khởi tạo các giá trị mặc định dựa trên CSDL của bạn
+        counts.put("Trống", 0);
+        counts.put("Đang có khách", 0);
+        counts.put("Đã đặt trước", 0);
+
+        String sql = "SELECT trangThai, COUNT(maBan) AS SoLuong FROM Ban GROUP BY trangThai";
+
+        try (Connection conn = SQLConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                String trangThai = rs.getString("trangThai");
+                int soLuong = rs.getInt("SoLuong");
+                if (trangThai != null) {
+                    // Ghi đè giá trị 0 nếu tìm thấy
+                    // Cần đảm bảo key khớp chính xác với CSDL (ví dụ: "Đang có khách")
+                    counts.put(trangThai, soLuong);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("SQL Error while counting table status: " + e.getMessage());
+            e.printStackTrace();
+            // Ném lỗi để báo cho SwingWorker biết
+            throw new RuntimeException("Lỗi truy vấn trạng thái bàn", e);
+        }
+        return counts;
+    }
+
+} // Kết thúc class BanDAO
