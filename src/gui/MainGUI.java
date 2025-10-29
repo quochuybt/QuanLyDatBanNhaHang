@@ -33,12 +33,6 @@ public class MainGUI extends JFrame {
     private KhachHangGUI khachHangGUI;   // Panel quản lý khách hàng (cho nhân viên)
     // Khai báo các panel khác nếu cần truy cập từ MainGUI
 
-    /**
-     * Constructor chính, nhận vai trò, tên và mã nhân viên.
-     * @param userRole String đại diện vai trò ("QUANLY" hoặc "NHANVIEN")
-     * @param userName Tên hiển thị của người dùng
-     * @param maNVDangNhap Mã nhân viên đăng nhập
-     */
     public MainGUI(String userRole, String userName, String maNVDangNhap) {
         this.userRole = userRole;
         this.userName = userName;
@@ -65,7 +59,7 @@ public class MainGUI extends JFrame {
         // --- Mở rộng cửa sổ ra toàn màn hình ---
         this.setExtendedState(JFrame.MAXIMIZED_BOTH);
         // Hiển thị màn hình chính (Dashboard) mặc định
-        showCard("Màn hình chính");
+        showCard("Dashboard");
     }
 
     /**
@@ -78,10 +72,6 @@ public class MainGUI extends JFrame {
     }
 
 
-    /**
-     * Tạo panel header hiển thị thông tin người dùng.
-     * @return JPanel header
-     */
     private JPanel createHeaderPanel() {
         JPanel headerContainer = new JPanel(new BorderLayout());
         headerContainer.setBackground(Color.WHITE);
@@ -199,14 +189,14 @@ public class MainGUI extends JFrame {
         LinkedHashMap<String, String> menuItems = new LinkedHashMap<>();
         // Xác định các mục menu dựa trên vai trò người dùng
         if ("QUANLY".equalsIgnoreCase(this.userRole)) { // Dùng equalsIgnoreCase cho an toàn
-            menuItems.put("Màn hình chính", "⌂");      // Ký tự Home
+            menuItems.put("Dashboard", "⌂");      // Ký tự Home
             menuItems.put("Danh mục món ăn", "🍽️"); // Ký tự dao nĩa
             menuItems.put("Lịch làm việc", "📅");   // Ký tự lịch
             menuItems.put("Khuyến mãi", "🏷️");     // Ký tự tag
             menuItems.put("Hóa đơn", "🧾");        // Ký tự hóa đơn
             menuItems.put("Nhân viên", "👥");      // Ký tự nhóm người (thay vì 1 người)
         } else if ("NHANVIEN".equalsIgnoreCase(this.userRole)) {
-            menuItems.put("Màn hình chính", "⌂");
+            menuItems.put("Dashboard", "⌂");
             menuItems.put("Danh sách bàn", "🪑");    // Ký tự ghế
             menuItems.put("Thành viên", "🧑");       // Ký tự người lớn
             menuItems.put("Lịch làm việc", "📅");
@@ -228,12 +218,6 @@ public class MainGUI extends JFrame {
         return menuPanel;
     }
 
-    /**
-     * Tạo một nút bấm cho menu bên trái.
-     * @param text Tên chức năng hiển thị
-     * @param iconChar Ký tự icon (có thể là Emoji hoặc ký tự đặc biệt)
-     * @return JPanel hoạt động như một nút bấm
-     */
     private JPanel createMenuButton(String text, String iconChar) {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 12)); // Căn trái, padding
         buttonPanel.setBackground(COLOR_ACCENT_BLUE);
@@ -313,7 +297,7 @@ public class MainGUI extends JFrame {
      */
     private void setupMainContentPanel() {
         // --- Panel chung cho mọi vai trò ---
-        mainContentPanel.add(new DashboardGUI(), "Màn hình chính"); // Panel Dashboard
+        mainContentPanel.add(new DashboardGUI(), "Dashboard"); // Panel Dashboard
 
         VaiTro vaiTroEnum; // Chuyển String role thành Enum VaiTro
         if (this.userRole != null && this.userRole.equalsIgnoreCase("QUANLY")) {

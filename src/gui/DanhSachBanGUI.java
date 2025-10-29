@@ -20,15 +20,11 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
     private JToggleButton btnTabGoiMon;
     private JToggleButton btnTabDatBan;
     private MainGUI mainGUI_Parent;
-
-    // 🌟 BIẾN MỚI ĐỂ LƯU MÃ NV
     private final String maNVDangNhap;
 
-    // 🌟 SỬA CONSTRUCTOR: THÊM THAM SỐ maNVDangNhap
-    // Đây là phần sửa để khớp với lệnh gọi từ MainGUI: DanhSachBanGUI(this, this.maNVDangNhap)
     public DanhSachBanGUI(MainGUI main, String maNVDangNhap) {
         this.mainGUI_Parent = main;
-        this.maNVDangNhap = maNVDangNhap; // 🌟 LƯU MÃ NV
+        this.maNVDangNhap = maNVDangNhap;
 
         setLayout(new BorderLayout());
         setBorder(new EmptyBorder(20, 10, 0, 0));
@@ -59,7 +55,6 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
                 Ban banDangChon = manHinhBanGUI.getSelectedTable();
 
                 if (banDangChon != null) {
-                    // 🌟 TRUYỀN MA_NV VÀO CONSTRUCTOR CỦA ManHinhGoiMonGUI (SỬA Ở BƯỚC KHỞI TẠO DƯỚI)
                     boolean shouldShowGoiMon = manHinhGoiMonGUI.loadDuLieuBan(banDangChon);
                     if (shouldShowGoiMon) {
                         contentCardLayout.show(contentCardPanel, "MAN_HINH_GOI_MON");
@@ -81,8 +76,6 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
                 }
             }
         });
-        // --- KẾT THÚC XỬ LÝ RIÊNG CHO "GỌI MÓN" ---
-
         // --- Thêm các nút tab vào ButtonGroup và Panel ---
         topNavGroup.add(btnTabBan);
         topNavGroup.add(btnTabGoiMon);
@@ -139,7 +132,6 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
         contentCardPanel.setOpaque(false);
 
         // --- Khởi tạo các màn hình con ---
-        // 🌟 SỬA: TRUYỀN maNVDangNhap cho ManHinhGoiMonGUI
         manHinhBanGUI = new ManHinhBanGUI(this);
         manHinhGoiMonGUI = new ManHinhGoiMonGUI(this, this.maNVDangNhap);
         manHinhDatBanGUI = new ManHinhDatBanGUI(this, mainGUI_Parent);
@@ -158,9 +150,7 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
 
         // --- Cập nhật màu sắc nút tab lần đầu tiên ---
         SwingUtilities.invokeLater(this::updateTopNavButtonStyles);
-    } // Kết thúc constructor
-
-    // 🌟 GETTER MỚI (nếu cần)
+    }
     public String getMaNVDangNhap() {
         return maNVDangNhap;
     }
@@ -185,16 +175,13 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
         return navButton;
     }
     private void updateTopNavButtonStyles() {
-        // Mảng chứa các nút tab để dễ lặp qua
         JToggleButton[] buttons = {btnTabBan, btnTabGoiMon, btnTabDatBan};
         for (JToggleButton btn : buttons) {
-            if (btn != null) { // Kiểm tra null cho an toàn
+            if (btn != null) {
                 if (btn.isSelected()) {
-                    // Style cho nút đang được chọn
                     btn.setBackground(Color.WHITE);
                     btn.setForeground(Color.BLACK);
                 } else {
-                    // Style cho các nút không được chọn
                     btn.setBackground(COLOR_ACCENT_BLUE);
                     btn.setForeground(Color.WHITE);
                 }
@@ -219,15 +206,11 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
         } else if ("MAN_HINH_DAT_BAN".equals(cardName) && btnTabDatBan != null) {
             btnTabDatBan.setSelected(true);
         }
-        // ButtonGroup sẽ tự động bỏ chọn các nút khác
-
-        // 3. Cập nhật lại style của tất cả các nút tab
         updateTopNavButtonStyles();
-        System.out.println("Đã chuyển sang tab: " + cardName); // Debug
+        System.out.println("Đã chuyển sang tab: " + cardName);
     }
     private void showChuyenBanDiaLog() {
         Window parentFrame = SwingUtilities.getWindowAncestor(this);
-        // Giả định ChuyenBanDialog và GhepBanDialog đã được định nghĩa
          ChuyenBanDialog dialog = new ChuyenBanDialog(parentFrame);
          dialog.setVisible(true);
     }
