@@ -51,7 +51,8 @@ CREATE TABLE KhuyenMai (
     ngayKetThuc DATETIME NOT NULL,
     loaiGiam NVARCHAR(50) NOT NULL,
     giaTriGiam DECIMAL(18, 2) NOT NULL,
-    trangThai NVARCHAR(50) NOT NULL
+    trangThai NVARCHAR(50) NOT NULL,
+    dieuKienApDung DECIMAL(18, 2) NULL DEFAULT 0
 );
 
 CREATE TABLE KhachHang (
@@ -152,4 +153,22 @@ GO
 
 ALTER TABLE DanhMucMon
 ADD CONSTRAINT FK_DanhMucMon_NhanVien FOREIGN KEY (maNV) REFERENCES NhanVien(maNV);
+GO
+//mấy bạn thêm đoạn này cập nhật Km nha
+USE StarGuardianDB;
+GO
+ALTER TABLE KhuyenMai
+    ADD soLuongGioiHan INT DEFAULT NULL,
+    soLuotDaDung INT DEFAULT 0 NOT NULL;
+GO
+
+CREATE TABLE LichSuSuDungKM (
+                                maLichSu INT IDENTITY(1,1) PRIMARY KEY,
+                                maKH NVARCHAR(20) NOT NULL,
+                                maKM NVARCHAR(20) NOT NULL,
+                                ngaySuDung DATETIME DEFAULT GETDATE(),
+
+                                CONSTRAINT FK_LichSu_KhachHang FOREIGN KEY (maKH) REFERENCES KhachHang(maKH),
+                                CONSTRAINT FK_LichSu_KhuyenMai FOREIGN KEY (maKM) REFERENCES KhuyenMai(maKM)
+);
 GO

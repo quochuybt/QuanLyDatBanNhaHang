@@ -5,17 +5,16 @@ import entity.CaLam;
 import entity.NhanVien;
 import entity.PhanCong;
 
-import java.sql.*; // Sửa: Import java.sql.*
+import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.HashMap; // Thêm import HashMap
+import java.util.HashMap;
 import java.util.List;
-import java.util.Map; // Thêm import Map
+import java.util.Map;
 
 public class PhanCongDAO {
 
-    // ... (Các hàm getPhanCongChiTiet, themPhanCong, xoaPhanCong giữ nguyên) ...
     public List<PhanCong> getPhanCongChiTiet(LocalDate tuNgay, LocalDate denNgay) {
         List<PhanCong> dsPhanCong = new ArrayList<>();
         String sql = "SELECT pc.ngayLam, c.maCa, c.tenCa, c.gioBatDau, c.gioKetThuc, nv.maNV, nv.hoTen " +
@@ -66,14 +65,7 @@ public class PhanCongDAO {
         }
     }
 
-    /**
-     * [THÊM MỚI] Tính tổng số giờ làm cho tất cả nhân viên.
-     * Tính toán dựa trên thời lượng các ca đã được phân công.
-     * Lưu ý: Hàm này tính tổng giờ làm TỪ TRƯỚC ĐẾN NAY.
-     * Để tính theo tháng/năm, cần thêm điều kiện WHERE cho pc.ngayLam.
-     *
-     * @return Map<String, Double> trong đó Key là maNV, Value là tổng số giờ làm.
-     */
+
     public Map<String, Double> getTongGioLamChoTatCaNV() {
         Map<String, Double> tongGioLamMap = new HashMap<>();
         // Câu SQL tính tổng số phút làm việc của mỗi nhân viên

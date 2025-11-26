@@ -10,22 +10,21 @@ import entity.VaiTro;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent; // [SỬA] Nhập ActionEvent
-import java.awt.event.ActionListener; // [SỬA] Nhập ActionListener
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
-import java.time.temporal.WeekFields; // [SỬA] Nhập WeekFields
+import java.time.temporal.WeekFields;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class LichLamViecGUI extends JPanel {
 
-    // --- (Các hằng số không đổi) ---
     private static final Color COLOR_MAIN_BACKGROUND = Color.WHITE;
     private static final Color COLOR_DAY_HEADER_BG = new Color(220, 222, 226);
     private static final Color COLOR_COLUMN_BG = new Color(244, 245, 247);
@@ -48,12 +47,12 @@ public class LichLamViecGUI extends JPanel {
     private final NhanVienDAO nhanVienDAO;
     private final VaiTro currentUserRole;
 
-    // [SỬA] Trạng thái cho tuần hiện tại
+    // Trạng thái cho tuần hiện tại
     private LocalDate currentWeekStartDate; // Ngày Thứ Hai của tuần đang hiển thị
     private final DateTimeFormatter weekRangeFormatter = DateTimeFormatter.ofPattern("dd/MM");
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM"); // Cho hiển thị ngày
 
-    // [SỬA] Thành phần UI cho Điều hướng
+    //  Thành phần UI cho Điều hướng
     private JLabel lblWeekRange;
     private JButton btnPrevWeek;
     private JButton btnNextWeek;
@@ -65,7 +64,7 @@ public class LichLamViecGUI extends JPanel {
         this.nhanVienDAO = new NhanVienDAO();
         this.currentUserRole = role;
 
-        // [SỬA] Khởi tạo tuần hiện tại là Thứ Hai của tuần này
+        // Khởi tạo tuần hiện tại là Thứ Hai của tuần này
         this.currentWeekStartDate = LocalDate.now().with(DayOfWeek.MONDAY);
 
         this.setLayout(new BorderLayout(0, 15)); // Tăng khoảng cách dọc
@@ -86,7 +85,7 @@ public class LichLamViecGUI extends JPanel {
     }
 
     /**
-     * [SỬA] Phương thức hỗ trợ tạo panel trên cùng (Tiêu đề, Điều hướng, Nút Giao việc)
+     *  Phương thức hỗ trợ tạo panel trên cùng (Tiêu đề, Điều hướng, Nút Giao việc)
      */
     private JPanel createTopPanel() {
         JPanel topPanel = new JPanel(new BorderLayout(10, 0)); // Thêm khoảng cách ngang
@@ -132,7 +131,7 @@ public class LichLamViecGUI extends JPanel {
             topPanel.add(buttonContainer, BorderLayout.EAST);
         }
 
-        // Thêm Trình lắng nghe Sự kiện cho Nút Điều hướng
+        // Trình lắng nghe Sự kiện cho Nút Điều hướng
         btnPrevWeek.addActionListener(e -> navigateWeek(-1));
         btnNextWeek.addActionListener(e -> navigateWeek(1));
 
@@ -140,7 +139,7 @@ public class LichLamViecGUI extends JPanel {
     }
 
     /**
-     * [SỬA] Phương thức hỗ trợ định dạng nút điều hướng
+     *Phương thức hỗ trợ định dạng nút điều hướng
      */
     private void styleNavigationButton(JButton button) {
         button.setFont(FONT_NAVIGATION);
@@ -150,7 +149,7 @@ public class LichLamViecGUI extends JPanel {
     }
 
     /**
-     * [SỬA] Logic xử lý điều hướng tuần
+     *  Logic xử lý điều hướng tuần
      */
     private void navigateWeek(int weeksToAdd) {
         currentWeekStartDate = currentWeekStartDate.plusWeeks(weeksToAdd);
@@ -158,7 +157,7 @@ public class LichLamViecGUI extends JPanel {
     }
 
     /**
-     * [SỬA] Cập nhật nhãn hiển thị phạm vi tuần hiện tại
+     * Cập nhật nhãn hiển thị phạm vi tuần hiện tại
      */
     private void updateWeekRangeLabel() {
         LocalDate weekEndDate = currentWeekStartDate.plusDays(6);
@@ -169,7 +168,7 @@ public class LichLamViecGUI extends JPanel {
 
 
     /**
-     * [SỬA] Tạo panel tuần chính dựa trên currentWeekStartDate
+     * Tạo panel tuần chính dựa trên currentWeekStartDate
      */
     private JPanel createWeekPanel() {
         JPanel weekPanel = new JPanel(new GridLayout(1, 7, 15, 15));
@@ -208,7 +207,7 @@ public class LichLamViecGUI extends JPanel {
     }
 
     /**
-     * [SỬA] Sửa đổi tiêu đề ngày để bao gồm ngày
+     *  tiêu đề ngày để bao gồm ngày
      */
     private JPanel createDayColumn(String dayTitle, Map<CaLam, List<NhanVien>> caLamTheoNgay, LocalDate ngayLam) {
         JPanel columnPanel = new JPanel(new BorderLayout(0, 10));
@@ -240,12 +239,12 @@ public class LichLamViecGUI extends JPanel {
 
         columnPanel.add(dayHeaderPanel, BorderLayout.NORTH); // Thêm tiêu đề kết hợp
 
-        // Panel cho thẻ ca làm (giữ nguyên)
+        // Panel cho thẻ ca làm
         RoundedPanel pnlCardsContainer = new RoundedPanel(12, COLOR_COLUMN_BG);
         pnlCardsContainer.setLayout(new BoxLayout(pnlCardsContainer, BoxLayout.Y_AXIS));
         pnlCardsContainer.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        // Logic thêm thẻ ca làm (giữ nguyên)
+        // Logic thêm thẻ ca làm
         if (caLamTheoNgay != null && !caLamTheoNgay.isEmpty()) {
             List<CaLam> caLamSorted = caLamTheoNgay.keySet().stream()
                     .sorted(Comparator.comparing(CaLam::getGioBatDau))
@@ -275,10 +274,10 @@ public class LichLamViecGUI extends JPanel {
         return columnPanel;
     }
 
-    // --- (createShiftCard, showPhanCongDialog giữ nguyên) ---
+    // --- (createShiftCard, showPhanCongDialog ) ---
     private JPanel createShiftCard(String time, String[] employees,
                                    CaLam ca, List<NhanVien> nhanVienList, LocalDate ngayLam) {
-        // ... (code giữ nguyên) ...
+
         RoundedPanel card = new RoundedPanel(12, COLOR_CARD_BG);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBorder(new EmptyBorder(12, 15, 12, 15));
@@ -329,7 +328,7 @@ public class LichLamViecGUI extends JPanel {
         return card;
     }
     private void showPhanCongDialog(CaLam ca, LocalDate ngayLam, List<NhanVien> dsDaPhanCong) {
-        // ... (code giữ nguyên) ...
+
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Phân công nhân viên", true);
         dialog.setSize(600, 400);
         dialog.setLocationRelativeTo(this);
@@ -455,7 +454,7 @@ public class LichLamViecGUI extends JPanel {
         weekDisplayPanel.repaint();
     }
 
-    // --- [SỬA] Thêm phương thức mới cho nút phân ca ---
+    //  phương thức mới cho nút phân ca
     /**
      * Hiển thị Dialog Phân công ca làm (Chọn ngày, ca, nhân viên).
      * Hiện tại chỉ hiển thị thông báo placeholder.
@@ -469,10 +468,10 @@ public class LichLamViecGUI extends JPanel {
         // tải lại lịch làm việc để cập nhật thay đổi (nếu có)
         refreshWeekPanel();
     }
-    // --- Kết thúc phương thức mới ---
 
 
-    // --- (RoundedPanel, RoundedLabel giữ nguyên) ---
+
+    // --- (RoundedPanel, RoundedLabel ) ---
     class RoundedPanel extends JPanel {
         private Color backgroundColor;
         private int cornerRadius;
@@ -514,6 +513,6 @@ public class LichLamViecGUI extends JPanel {
         }
     }
 
-    // --- (phương thức main giữ nguyên) ---
+
 
 }

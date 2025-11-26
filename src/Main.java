@@ -39,10 +39,12 @@ public class Main {
             UIManager.put("Button.font", new Font("Arial", Font.BOLD, 16));
             UIManager.put("Label.font", new Font("Arial", Font.PLAIN, 14));
 
+
             // --- 3. Khởi tạo và hiển thị cửa sổ Đăng nhập (TaiKhoanGUI) ---
             TaiKhoanGUI loginWindow = new TaiKhoanGUI(); // Sửa ở đây
             loginWindow.setVisible(true);
             loginWindow.setExtendedState(JFrame.MAXIMIZED_BOTH);
+
 
         });
     }

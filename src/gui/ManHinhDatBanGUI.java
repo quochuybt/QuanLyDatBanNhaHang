@@ -43,7 +43,7 @@ public class ManHinhDatBanGUI extends JPanel {
     private JTextField txtGhiChu;
     private JPanel pnlBanContainer; // Đổi tên từ leftTableContainer
     private List<Ban> dsBanTrongFull; // Danh sách TẤT CẢ bàn trống
-    private Ban banDaChon = null;
+    private List<Ban> dsBanDaChon = new ArrayList<>();
     private List<BanPanel> dsBanPanelHienThi = new ArrayList<>();
     private JTextField txtSDTKhach;
     private JTextField txtHoTenKhach;
@@ -69,7 +69,7 @@ public class ManHinhDatBanGUI extends JPanel {
         // --- Cấu trúc Layout chính ---
         setLayout(new BorderLayout()); // JPanel chính dùng BorderLayout
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        splitPane.setDividerLocation(520); // Điều chỉnh vị trí chia
+        splitPane.setDividerLocation(610); // Điều chỉnh vị trí chia
         splitPane.setBorder(null);
         setBackground(Color.WHITE);
         setBorder(new EmptyBorder(10, 0, 10, 10));
@@ -153,7 +153,75 @@ public class ManHinhDatBanGUI extends JPanel {
 
         return panel;
     }
+    private List<List<Ban>> timGoiYGhepBan(int soLuongKhach) {
+        List<List<Ban>> dsGoiY = new ArrayList<>();
 
+        // 1. Phân loại bàn theo khu vực
+        java.util.Map<String, List<Ban>> banTheoKhuVuc = new java.util.HashMap<>();
+        for (Ban ban : dsBanTrongFull) {
+            if (ban.getTrangThai() == TrangThaiBan.TRONG) {
+                banTheoKhuVuc.computeIfAbsent(ban.getKhuVuc(), k -> new ArrayList<>()).add(ban);
+            }
+        }
+
+        // 2. Duyệt từng khu vực
+        for (String khuVuc : banTheoKhuVuc.keySet()) {
+            List<Ban> bansInZone = banTheoKhuVuc.get(khuVuc);
+
+            // --- LOGIC MỚI: Kiểm tra tổng sức chứa trước ---
+            int tongSucChuaKhuVuc = bansInZone.stream().mapToInt(Ban::getSoGhe).sum();
+
+            if (tongSucChuaKhuVuc < soLuongKhach) {
+                // Nếu cả khu vực cộng lại không đủ chỗ, bỏ qua khu vực này
+                // Hoặc có thể thêm một gợi ý đặc biệt: "Lấy hết bàn khu vực này (vẫn thiếu ... ghế)"
+                continue;
+            }
+
+            // Nếu đủ chỗ, bắt đầu tìm tổ hợp
+            // Sắp xếp bàn từ lớn đến nhỏ để ưu tiên lấy bàn to trước -> ghép ít bàn hơn
+            bansInZone.sort((b1, b2) -> Integer.compare(b2.getSoGhe(), b1.getSoGhe()));
+
+            timToHopBan(bansInZone, soLuongKhach, 0, new ArrayList<>(), dsGoiY);
+        }
+
+        // 3. Sắp xếp kết quả: Ưu tiên ít bàn nhất
+        dsGoiY.sort((list1, list2) -> Integer.compare(list1.size(), list2.size()));
+
+        // Chỉ lấy tối đa 3 gợi ý tốt nhất
+        if (dsGoiY.size() > 3) {
+            return dsGoiY.subList(0, 3);
+        }
+        return dsGoiY;
+    }
+    private void timToHopBan(List<Ban> bans, int target, int index, List<Ban> current, List<List<Ban>> results) {
+        // Đã tìm thấy đủ số lượng gợi ý thì dừng cho đỡ tốn tài nguyên
+        if (results.size() >= 50) return;
+
+        int currentSeats = current.stream().mapToInt(Ban::getSoGhe).sum();
+
+        // Điều kiện dừng: Đủ chỗ
+        if (currentSeats >= target) {
+            // Logic tối ưu: Không quá dư thừa (ví dụ dư tối đa 6 ghế)
+            if (currentSeats - target <= 8) {
+                results.add(new ArrayList<>(current));
+            }
+            return;
+        }
+
+        // --- SỬA: Tăng giới hạn số bàn hoặc bỏ giới hạn ---
+        // Cho phép ghép tối đa 10 bàn (hoặc bỏ luôn dòng này nếu muốn ghép bao nhiêu cũng được)
+        if (current.size() >= 10) {
+            return;
+        }
+        // --------------------------------------------------
+
+        // Duyệt tiếp
+        for (int i = index; i < bans.size(); i++) {
+            current.add(bans.get(i));
+            timToHopBan(bans, target, i + 1, current, results);
+            current.remove(current.size() - 1);
+        }
+    }
     private JPanel createInputNorthPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setOpaque(false); // Nền trong suốt
@@ -187,7 +255,7 @@ public class ManHinhDatBanGUI extends JPanel {
         gbc.insets = new Insets(0, 5, 10, 5); // Khoảng cách: trên=0, trái, dưới=10, phải
 
         // Input Số lượng khách (JSpinner)
-        spinnerSoLuongKhach = new JSpinner(new SpinnerNumberModel(1, 1, 20, 1));
+        spinnerSoLuongKhach = new JSpinner(new SpinnerNumberModel(1, 1, 50, 1));
         spinnerSoLuongKhach.addChangeListener(e -> hienThiBanPhuHop());
         applySpinnerStyle(spinnerSoLuongKhach); // Áp dụng style
         gbc.gridx = 0;
@@ -536,57 +604,155 @@ public class ManHinhDatBanGUI extends JPanel {
 
         pnlBanContainer.removeAll(); // Xóa các panel bàn cũ
         dsBanPanelHienThi.clear();   // Xóa list panel cũ
-        banDaChon = null;          // Bỏ chọn bàn cũ khi lọc lại
+        dsBanDaChon.clear();        // Bỏ chọn bàn cũ khi lọc lại
 
-        boolean foundTable = false;
+        boolean coBanDon = false;
         if (dsBanTrongFull != null) {
             for (Ban ban : dsBanTrongFull) {
                 // Chỉ hiển thị bàn TRỐNG và ĐỦ CHỖ
                 if (ban.getTrangThai() == TrangThaiBan.TRONG && ban.getSoGhe() >= soLuongKhach) {
-                    foundTable = true;
+                    coBanDon = true;
 
-                    // --- SỬA: Tạo BanPanel thay vì JToggleButton ---
-                    BanPanel banPanel = new BanPanel(ban); // Tạo BanPanel
-                    dsBanPanelHienThi.add(banPanel);      // Thêm vào list quản lý
-                    pnlBanContainer.add(banPanel);        // Thêm vào panel hiển thị
-
-                    // --- THÊM MouseListener cho BanPanel ---
-                    banPanel.addMouseListener(new MouseAdapter() {
-                        @Override
-                        public void mouseClicked(MouseEvent e) {
-                            if (e.getButton() == MouseEvent.BUTTON1) {
-                                // Xử lý logic chọn bàn
-                                if (ban.equals(banDaChon)) {
-                                    // Bấm lại bàn đã chọn -> Bỏ chọn
-                                    banDaChon = null;
-                                } else {
-                                    // Chọn bàn mới
-                                    banDaChon = ban;
-                                }
-                                // Cập nhật trạng thái selected cho tất cả BanPanel
-                                updateBanPanelSelection();
-                                System.out.println("Bàn được chọn để đặt: " + (banDaChon != null ? banDaChon.getTenBan() : "Không có"));
-                            }
-                        }
-                    });
-                    // --- KẾT THÚC THÊM ---
+                    addBanPanelToView(ban);
                 }
             }
-            if (!foundTable) {
-                pnlBanContainer.add(new JLabel("Không có bàn trống nào đủ chỗ cho " + soLuongKhach + " khách."));
+        }
+        if (!coBanDon) {
+            List<List<Ban>> dsGoiY = timGoiYGhepBan(soLuongKhach);
+
+            if (!dsGoiY.isEmpty()) {
+                JLabel lblGoiY = new JLabel("<html>Không có bàn đơn đủ chỗ với số lượng khách. Gợi ý ghép bàn:</html>");
+                lblGoiY.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+                lblGoiY.setForeground(Color.BLUE);
+                // Thêm label vào đầu (cần layout phù hợp hoặc add vào panel riêng, ở đây add tạm)
+                pnlBanContainer.add(lblGoiY);
+
+                for (List<Ban> capBan : dsGoiY) {
+                    createNutGhepBan(capBan); // Hàm tạo nút ghép
+                }
+            } else {
+                JLabel lblThongBao = new JLabel("<html><center>Không có bàn đơn hoặc nhóm bàn nào<br>đủ chỗ cho " + soLuongKhach + " khách trong cùng một khu vực.</center></html>");
+                lblThongBao.setForeground(Color.RED);
+                lblThongBao.setFont(new Font("Segoe UI", Font.BOLD, 14));
+                lblThongBao.setHorizontalAlignment(SwingConstants.CENTER);
+                pnlBanContainer.add(lblThongBao);
             }
-        } else {
-            pnlBanContainer.add(new JLabel("Lỗi tải danh sách bàn trống."));
         }
 
         // Vẽ lại giao diện panel chứa bàn
         pnlBanContainer.revalidate();
         pnlBanContainer.repaint();
     }
+    private void addBanPanelToView(Ban ban) {
+        BanPanel banPanel = new BanPanel(ban);
+        dsBanPanelHienThi.add(banPanel);
+        pnlBanContainer.add(banPanel);
+
+        banPanel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getButton() == MouseEvent.BUTTON1) {
+                    // Logic chọn bàn đơn: Xóa hết chọn cũ, thêm bàn này
+                    dsBanDaChon.clear();
+                    dsBanDaChon.add(ban);
+                    updateBanPanelSelection(); // Cập nhật giao diện
+                    System.out.println("Chọn bàn đơn: " + ban.getTenBan());
+                }
+            }
+        });
+    }
+
+    // HÀM MỚI: Tạo nút cho Bàn Ghép
+    private void createNutGhepBan(List<Ban> groupBan) {
+        int tongGhe = groupBan.stream().mapToInt(Ban::getSoGhe).sum();
+        String khuVuc = groupBan.get(0).getKhuVuc();
+
+        StringBuilder sb = new StringBuilder("<html><center>");
+        sb.append("Ghép ").append(groupBan.size()).append(" bàn:<br><b>");
+        for (int i = 0; i < groupBan.size(); i++) {
+            sb.append(groupBan.get(i).getTenBan());
+            if (i < groupBan.size() - 1) sb.append(", ");
+            // Xuống dòng sau mỗi 3 bàn để không bị tràn nút
+            if ((i + 1) % 2 == 0 && i < groupBan.size() - 1) sb.append("<br>");
+        }
+        sb.append("</b><br><i>(Tổng ").append(tongGhe).append(" ghế)</i></center></html>");
+
+        JToggleButton btnGhep = new JToggleButton();
+        btnGhep.setLayout(new BorderLayout());
+
+        btnGhep.setPreferredSize(new Dimension(180, 100));
+        btnGhep.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnGhep.setBackground(Color.WHITE);
+        btnGhep.setForeground(Color.BLACK);
+
+        JLabel lblIcon = new JLabel("🔗", SwingConstants.CENTER); // Icon liên kết
+        lblIcon.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 24));
+
+        JLabel lblInfo = new JLabel(sb.toString(), SwingConstants.CENTER);
+
+        btnGhep.add(lblIcon, BorderLayout.WEST);
+        btnGhep.add(lblInfo, BorderLayout.CENTER);
+
+        // Sự kiện click
+        btnGhep.addActionListener(e -> {
+            // Logic chọn bàn ghép
+            dsBanDaChon.clear();
+            dsBanDaChon.addAll(groupBan); // Thêm cả 2 bàn vào danh sách chọn
+
+            // Reset các BanPanel đơn (nếu có)
+            for (BanPanel bp : dsBanPanelHienThi) bp.setSelected(false);
+
+            // Reset các nút ghép khác (thủ công vì không dùng ButtonGroup chung với BanPanel)
+            Component[] comps = pnlBanContainer.getComponents();
+            for (Component c : comps) {
+                if (c instanceof JToggleButton && c != btnGhep) {
+                    ((JToggleButton)c).setSelected(false);
+                    c.setForeground(Color.BLACK);
+                    c.setBackground(Color.WHITE);
+                    updateLabelsColor((JToggleButton)c, Color.BLACK);
+                }
+            }
+
+            if (btnGhep.isSelected()) {
+                btnGhep.setBackground(new Color(56, 118, 243)); // Màu cam nhạt
+                btnGhep.setForeground(Color.WHITE);
+                updateLabelsColor(btnGhep, Color.WHITE);
+            } else {
+                dsBanDaChon.clear(); // Bỏ chọn
+                btnGhep.setBackground(Color.WHITE);
+                btnGhep.setForeground(Color.BLACK);
+                updateLabelsColor(btnGhep, Color.BLACK);
+            }
+        });
+
+        pnlBanContainer.add(btnGhep);
+    }
+    private void updateLabelsColor(JToggleButton button, Color color) {
+        for (Component c : button.getComponents()) {
+            if (c instanceof JLabel) {
+                c.setForeground(color);
+            }
+        }
+    }
     private void updateBanPanelSelection() {
         for (BanPanel panel : dsBanPanelHienThi) {
-            // Nếu panel này tương ứng với bàn đang được chọn (banDaChon) thì set selected = true
-            panel.setSelected(panel.getBan().equals(banDaChon));
+            boolean isSelected = false;
+            for (Ban b : dsBanDaChon) {
+                if (panel.getBan().equals(b)) {
+                    isSelected = true;
+                    break;
+                }
+            }
+            panel.setSelected(isSelected);
+        }
+        if (!dsBanDaChon.isEmpty() && dsBanDaChon.size() == 1) {
+            Component[] comps = pnlBanContainer.getComponents();
+            for (Component c : comps) {
+                if (c instanceof JToggleButton) {
+                    ((JToggleButton)c).setSelected(false);
+                    c.setBackground(Color.WHITE);
+                }
+            }
         }
     }
     /**
@@ -621,7 +787,7 @@ public class ManHinhDatBanGUI extends JPanel {
      */
     private void xuLyDatBan() {
         // 1. Validate dữ liệu
-        if (banDaChon == null) {
+        if (dsBanDaChon.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn một bàn!", "Chưa chọn bàn", JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -753,52 +919,73 @@ public class ManHinhDatBanGUI extends JPanel {
         }
 
 
-        // 3. Tạo đối tượng DonDatMon
-        // Cần mã nhân viên đang đăng nhập (tạm dùng mã cố định)
-        String maNV_LoggedIn = "NV01102"; // Lấy từ session hoặc nơi lưu trữ thông tin đăng nhập
-        entity.DonDatMon ddm = new entity.DonDatMon(); // Dùng constructor mặc định tự sinh mã
-        ddm.setNgayKhoiTao(LocalDateTime.now()); // Thời điểm bấm nút
-        ddm.setMaNV(maNV_LoggedIn);
-        ddm.setMaKH(maKHCanDung);
-        ddm.setMaBan(banDaChon.getMaBan());
-        String ghiChu = txtGhiChu.getText().trim();
-        ddm.setGhiChu(ghiChu);
+        // 3 & 4. Tạo Đơn và Gọi DAO cho TỪNG BÀN
+        boolean tatCaThanhCong = true;
 
-        // 4. Gọi DAO để lưu
-        boolean datThanhCong = donDatMonDAO.themDonDatMon(ddm); // Giả sử có hàm này
+        for (Ban ban : dsBanDaChon) {
+            // Tạo đơn cho bàn này
+            entity.DonDatMon ddm = new entity.DonDatMon();
+            ddm.setNgayKhoiTao(LocalDateTime.now());
+            ddm.setMaNV("NV01102");
+            ddm.setMaKH(maKHCanDung);
+            ddm.setMaBan(ban.getMaBan()); // Set từng bàn
 
-        if (datThanhCong) {
-            // 5. Cập nhật trạng thái bàn
-            banDaChon.setTrangThai(TrangThaiBan.DA_DAT_TRUOC);
-            banDaChon.setGioMoBan(thoiGianDat); // Giờ khách hẹn đến
-            boolean capNhatBanOK = banDAO.updateBan(banDaChon); // Giả sử có hàm này
-
-            if (capNhatBanOK) {
-                // 6. Cập nhật giao diện
-                taiDanhSachBanTrong(); // Tải lại list bàn trống
-                hienThiBanPhuHop();     // Hiển thị lại bàn (bàn vừa đặt sẽ mất)
-                loadDanhSachDatTruoc(); // Cập nhật list bên phải
-                // Xóa input
-                spinnerSoLuongKhach.setValue(1);
-                Calendar calReset = Calendar.getInstance();
-                calReset.add(Calendar.HOUR_OF_DAY, 1);
-                calReset.set(Calendar.MINUTE, 0);
-                timeSpinner.setValue(calReset.getTime());
-                txtGhiChu.setText("");
-                txtSDTKhach.setText("");
-                txtHoTenKhach.setText("");
-                banDaChon = null; // Bỏ chọn bàn
-
-                if (parentDanhSachBanGUI_DatBan != null) {
-                    parentDanhSachBanGUI_DatBan.refreshManHinhBan(); // <-- GỌI LÀM MỚI Ở ĐÂY
+            // Với bàn ghép, nên ghi chú thêm vào
+            if (dsBanDaChon.size() > 1) {
+                String ghiChuGhep = "Ghép với ";
+                for (Ban bKhac : dsBanDaChon) {
+                    if (!bKhac.equals(ban)) ghiChuGhep += bKhac.getTenBan() + " ";
                 }
-                JOptionPane.showMessageDialog(this, "Đặt bàn thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                ddm.setGhiChu(txtGhiChu.getText() + " (" + ghiChuGhep.trim() + ")");
             } else {
-                JOptionPane.showMessageDialog(this, "Đặt đơn thành công nhưng lỗi cập nhật trạng thái bàn!", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
-                // TODO: Cân nhắc xóa DonDatMon vừa thêm để đồng bộ?
+                ddm.setGhiChu(txtGhiChu.getText());
             }
+
+            // Lưu đơn
+            if (donDatMonDAO.themDonDatMon(ddm)) {
+                // Cập nhật bàn
+                ban.setTrangThai(TrangThaiBan.DA_DAT_TRUOC);
+                ban.setGioMoBan(thoiGianDat);
+                if (!banDAO.updateBan(ban)) {
+                    tatCaThanhCong = false;
+                }
+            } else {
+                tatCaThanhCong = false;
+            }
+        }
+
+        if (tatCaThanhCong) {
+            // Tải lại list bàn trống
+            taiDanhSachBanTrong();
+            // Hiển thị lại bàn (các bàn vừa đặt sẽ mất khỏi panel trái)
+            hienThiBanPhuHop();
+            // Cập nhật list bên phải
+            loadDanhSachDatTruoc();
+
+            // Xóa input
+            spinnerSoLuongKhach.setValue(1);
+            Calendar calReset = Calendar.getInstance();
+            calReset.add(Calendar.HOUR_OF_DAY, 1);
+            calReset.set(Calendar.MINUTE, 0);
+            timeSpinner.setValue(calReset.getTime());
+            dateSpinner.setValue(new java.util.Date()); // Reset ngày về hôm nay
+
+            txtGhiChu.setText("");
+            txtSDTKhach.setText("");
+            txtHoTenKhach.setText("");
+
+            // Reset biến chọn
+            dsBanDaChon.clear();
+
+            // Gọi làm mới màn hình Bàn (ManHinhBanGUI)
+            if (parentDanhSachBanGUI_DatBan != null) {
+                parentDanhSachBanGUI_DatBan.refreshManHinhBan();
+            }
+
+            JOptionPane.showMessageDialog(this, "Đặt bàn thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
         } else {
-            JOptionPane.showMessageDialog(this, "Đặt bàn thất bại! Vui lòng thử lại.", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Có lỗi xảy ra khi đặt bàn! Vui lòng kiểm tra lại.", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
+            // TODO: Có thể cần logic Rollback (xóa các đơn đã tạo lỡ dở) ở đây nếu muốn hoàn hảo
         }
     }
 

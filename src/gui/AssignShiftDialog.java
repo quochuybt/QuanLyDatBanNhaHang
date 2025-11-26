@@ -1,6 +1,6 @@
 package gui;
 
-import com.toedter.calendar.JDateChooser; // Cần thư viện JCalendar
+import com.toedter.calendar.JDateChooser;
 import dao.CaLamDAO;
 import dao.NhanVienDAO;
 import dao.PhanCongDAO;
@@ -14,12 +14,11 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date; // Dùng java.util.Date cho JDateChooser
+import java.util.Date;
 import java.util.List;
 
 public class AssignShiftDialog extends JDialog {
 
-    // Màu sắc và Font (Có thể lấy từ LichLamViecGUI hoặc định nghĩa riêng)
     private static final Color COLOR_BUTTON_BLUE = new Color(40, 28, 244);
     private static final Font FONT_LABEL = new Font("Arial", Font.BOLD, 14);
     private static final Font FONT_COMPONENT = new Font("Arial", Font.PLAIN, 14);
@@ -59,7 +58,6 @@ public class AssignShiftDialog extends JDialog {
         loadCaLam();
         loadNhanVien();
 
-        // --- Thêm sự kiện ---
         addEventHandlers();
     }
 
@@ -100,7 +98,6 @@ public class AssignShiftDialog extends JDialog {
 
         cbCaLam = new JComboBox<>();
         cbCaLam.setFont(FONT_COMPONENT);
-        // Custom renderer để hiển thị tên ca thay vì object.toString()
         cbCaLam.setRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
@@ -130,8 +127,7 @@ public class AssignShiftDialog extends JDialog {
         modelNhanVien = new DefaultListModel<>();
         listNhanVien = new JList<>(modelNhanVien);
         listNhanVien.setFont(FONT_COMPONENT);
-        listNhanVien.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION); // Cho phép chọn nhiều
-        // Custom renderer để hiển thị tên NV
+        listNhanVien.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         listNhanVien.setCellRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
@@ -158,7 +154,7 @@ public class AssignShiftDialog extends JDialog {
      * Tạo panel chứa nút "Phân công" và "Hủy"
      */
     private JPanel createButtonPanel() {
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0)); // Căn phải
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
 
         btnAssign = new JButton("Phân công");
         btnAssign.setBackground(COLOR_BUTTON_BLUE);
@@ -227,11 +223,11 @@ public class AssignShiftDialog extends JDialog {
             return;
         }
 
-        // Chuyển java.util.Date sang LocalDate
+
         LocalDate selectedDate = selectedUtilDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
         String maCa = selectedCaLam.getMaCa();
 
-        // 3. Thực hiện phân công cho từng nhân viên được chọn
+        // Thực hiện phân công cho từng nhân viên được chọn
         int successCount = 0;
         int failCount = 0;
         List<String> failedNames = new ArrayList<>();
@@ -246,7 +242,7 @@ public class AssignShiftDialog extends JDialog {
             }
         }
 
-        // 4. Hiển thị kết quả
+        //  Hiển thị kết quả
         StringBuilder message = new StringBuilder();
         if (successCount > 0) {
             message.append("Đã phân công thành công cho ").append(successCount).append(" nhân viên.\n");
@@ -259,7 +255,7 @@ public class AssignShiftDialog extends JDialog {
         JOptionPane.showMessageDialog(this, message.toString(), "Kết quả phân công",
                 (failCount == 0) ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.WARNING_MESSAGE);
 
-        // 5. Đóng dialog nếu không có lỗi nào nghiêm trọng
+        //  Đóng dialog nếu không có lỗi nào nghiêm trọng
         if (failCount < selectedNhanViens.size()) { // Nếu có ít nhất 1 thành công
             dispose(); // Đóng dialog
         }

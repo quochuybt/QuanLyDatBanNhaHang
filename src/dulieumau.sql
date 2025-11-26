@@ -10,7 +10,7 @@ INSERT INTO HangThanhVien (tenHang) VALUES (N'NONE'), (N'MEMBER'), (N'BRONZE'), 
 -- 3. Bảng Tài Khoản (Không phụ thuộc)
 INSERT INTO TaiKhoan (tenTK, matKhau, trangThai) VALUES
 -- Mật khẩu thô: 'admin12345' -> hashCode: -1657892252
-(N'admin', N'hashed_643610180', 1),
+(N'a dmin', N'hashed_643610180', 1),
 
 -- Mật khẩu thô: 'binh12345' -> hashCode: -1893320093
 (N'nv_binh', N'hashed_-860005230', 1),
@@ -50,11 +50,11 @@ GO
 
 -- 6. Bảng Nhân Viên (Phụ thuộc TaiKhoan, VaiTro)
 INSERT INTO NhanVien (maNV, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, tenTK, vaiTro) VALUES
-(N'NV02101', N'Nguyễn Văn An', '1990-01-15', N'Nam', '0988888888', N'1 Nguyễn Huệ, Q1', '2023-01-01', 15000000.00, N'admin', N'QuanLy'),
-(N'NV01102', N'Trần Thị Bình', '1998-04-20', N'Nữ', '0977777777', N'2 Võ Thị Sáu, Q3', '2023-03-15', 7500000.00, N'nv_binh', N'NhanVien'),
-(N'NV01103', N'Lê Văn Chí', '2000-07-10', N'Nam', '0966666666', N'3 Trần Hưng Đạo, Q5', '2023-03-15', 7000000.00, N'nv_chi', N'NhanVien'),
-(N'NV01104', N'Phạm Thị Dung', '1995-11-05', N'Nữ', '0955555555', N'4 Lê Lai, Q1', '2023-06-01', 8000000.00, N'nv_dung', N'NhanVien'),
-(N'NV01105', N'Hoàng Văn Duy', '1999-02-25', N'Nam', '0944444444', N'5 Pasteur, Q3', '2024-01-10', 6500000.00, N'nv_duy', N'NhanVien');
+(N'NV02101', N'Nguyễn Văn An', '1990-01-15', N'Nam', '0988888888', N'1 Nguyễn Huệ, Q1', '2023-01-01', 15000000.00, N'admin', N'QUANLY'),
+(N'NV01102', N'Trần Thị Bình', '1998-04-20', N'Nữ', '0977777777', N'2 Võ Thị Sáu, Q3', '2023-03-15', 7500000.00, N'nv_binh', N'NHANVIEN'),
+(N'NV01103', N'Lê Văn Chí', '2000-07-10', N'Nam', '0966666666', N'3 Trần Hưng Đạo, Q5', '2023-03-15', 7000000.00, N'nv_chi', N'NHANVIEN'),
+(N'NV01104', N'Phạm Thị Dung', '1995-11-05', N'Nữ', '0955555555', N'4 Lê Lai, Q1', '2023-06-01', 8000000.00, N'nv_dung', N'NHANVIEN'),
+(N'NV01105', N'Hoàng Văn Duy', '1999-02-25', N'Nam', '0944444444', N'5 Pasteur, Q3', '2024-01-10', 6500000.00, N'nv_duy', N'NHANVIEN');
 GO
 
 -- 7. Bảng Danh Mục Món (Phụ thuộc NhanVien)

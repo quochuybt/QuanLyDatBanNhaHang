@@ -17,7 +17,7 @@ public class CaLam {
     private LocalTime gioBatDau;  // Dùng LocalTime
     private LocalTime gioKetThuc; // Dùng LocalTime
 
-    // --- (Toàn bộ Constructor của bạn giữ nguyên) ---
+    // --- (Constructor) ---
 
     public CaLam() {
         this.maCa = "Chưa có mã";
@@ -41,7 +41,7 @@ public class CaLam {
         this.gioKetThuc = ca.gioKetThuc;
     }
 
-    // --- (Toàn bộ Getters và Setters của bạn giữ nguyên) ---
+    // --- ( Getters và Setters ) ---
 
     public String getMaCa() {
         return maCa;
@@ -85,7 +85,6 @@ public class CaLam {
             throw new IllegalArgumentException("Giờ kết thúc không được rỗng.");
         }
         if (this.gioBatDau != null && !gioKetThuc.isAfter(this.gioBatDau)) {
-            // (Tạm thời chấp nhận logic này, dù có thể sai với ca qua đêm)
         }
         this.gioKetThuc = gioKetThuc;
     }
