@@ -256,8 +256,6 @@ public class MainGUI extends JFrame {
                     // Nếu người dùng chọn Yes
                     if (choice == JOptionPane.YES_OPTION) {
 
-                        // --- SỬA: Gọi hàm đóng kết nối CSDL ---
-                        connectDB.SQLConnection.closeConnection(); // Đóng kết nối Singleton
                         // --- KẾT THÚC SỬA ---
 
                         dispose(); // Đóng cửa sổ MainGUI hiện tại
