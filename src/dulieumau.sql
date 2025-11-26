@@ -10,7 +10,7 @@ INSERT INTO HangThanhVien (tenHang) VALUES (N'NONE'), (N'MEMBER'), (N'BRONZE'), 
 -- 3. Bảng Tài Khoản (Không phụ thuộc)
 INSERT INTO TaiKhoan (tenTK, matKhau, trangThai) VALUES
 -- Mật khẩu thô: 'admin12345' -> hashCode: -1657892252
-(N'admin', N'hashed_643610180', 1),
+(N'a dmin', N'hashed_643610180', 1),
 
 -- Mật khẩu thô: 'binh12345' -> hashCode: -1893320093
 (N'nv_binh', N'hashed_-860005230', 1),
