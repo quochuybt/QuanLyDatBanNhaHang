@@ -164,8 +164,16 @@ public class ManHinhGoiMonGUI extends JPanel {
                             tenKH = kh.getTenKH();
                         }
                     }
-                    if (banDuocChon.getGioMoBan() != null) {
-                        gioDenStr = banDuocChon.getGioMoBan().format(DateTimeFormatter.ofPattern("HH:mm dd/MM"));
+                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm dd/MM");
+                    if (ddmDaDat.getThoiGianDen() != null) {
+                        // Lấy từ thoiGianDen (Chính xác nhất)
+                        gioDenStr = ddmDaDat.getThoiGianDen().format(dtf);
+                    } else if (ddmDaDat.getNgayKhoiTao() != null) {
+                        // Fallback dữ liệu cũ
+                        gioDenStr = ddmDaDat.getNgayKhoiTao().format(dtf);
+                    } else if (banDuocChon.getGioMoBan() != null) {
+                        // Fallback cuối cùng lấy từ Bàn
+                        gioDenStr = banDuocChon.getGioMoBan().format(dtf);
                     }
                 } else {
                     System.err.println("Lỗi: Bàn " + banDuocChon.getMaBan() + " DA_DAT_TRUOC nhưng không tìm thấy DonDatMon tương ứng!");

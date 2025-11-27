@@ -112,6 +112,8 @@ CREATE TABLE PhanCongCa (
 CREATE TABLE DonDatMon (
     maDon NVARCHAR(20) PRIMARY KEY,
     ngayKhoiTao DATETIME NOT NULL DEFAULT GETDATE(),
+    thoiGianDen DATETIME NULL,
+    trangThai NVARCHAR(50) NOT NULL DEFAULT N'Chưa thanh toán',
     maNV NVARCHAR(20) NOT NULL,
     maKH NVARCHAR(20) NULL,
     maBan NVARCHAR(10) NULL,
@@ -140,6 +142,7 @@ CREATE TABLE HoaDon (
     trangThai NVARCHAR(50) NOT NULL,
     hinhThucThanhToan NVARCHAR(50),
     tienKhachDua DECIMAL(18, 2),
+    giamGia DECIMAL(18, 2) NULL DEFAULT 0,
 
     maNV NVARCHAR(20) NOT NULL,
     maKM NVARCHAR(20) NULL,
