@@ -123,6 +123,7 @@ public class BillPanel extends JPanel {
         if (parentGoiMonGUI == null) return;
         Ban banHienTai = parentGoiMonGUI.getBanHienTai();
         HoaDon activeHoaDon = parentGoiMonGUI.getActiveHoaDon(); // Lấy HĐ mới nhất
+        String maHDCuoiCung = activeHoaDon.getMaHD();
         DefaultTableModel model = parentGoiMonGUI.getModelChiTietHoaDon();
 
         if (banHienTai == null || activeHoaDon == null) {
@@ -221,7 +222,7 @@ public class BillPanel extends JPanel {
         // 5. Cập nhật Giao Diện (Chỉ khi thanh toán HĐ thành công)
         if (thanhToanOK) {
             // Thông báo thành công
-            xuatPhieuIn("HÓA ĐƠN THANH TOÁN", true, tienKhachTraLong, tienThoiLong);
+            xuatPhieuIn("HÓA ĐƠN THANH TOÁN", true, tienKhachTraLong, tienThoiLong, maHDCuoiCung);
             // Xóa trắng màn hình gọi món
             parentGoiMonGUI.xoaThongTinGoiMon();
 
@@ -419,11 +420,11 @@ public class BillPanel extends JPanel {
 
         return mainPanel;
     }
-    private void xuatPhieuIn(String tieuDe, boolean daThanhToan, long tienKhachDua, long tienThoi) {
+    private void xuatPhieuIn(String tieuDe, boolean daThanhToan, long tienKhachDua, long tienThoi, String maHD) {
         // 1. Kiểm tra dữ liệu đầu vào
         if (parentGoiMonGUI == null) return;
         Ban banHienTai = parentGoiMonGUI.getBanHienTai();
-        HoaDon activeHoaDon = parentGoiMonGUI.getActiveHoaDon();
+//        HoaDon activeHoaDon = parentGoiMonGUI.getActiveHoaDon();
         DefaultTableModel model = parentGoiMonGUI.getModelChiTietHoaDon();
 
         if (banHienTai == null || model.getRowCount() == 0) {
@@ -439,7 +440,7 @@ public class BillPanel extends JPanel {
         billText.append("===================================================\n");
         billText.append("                   ").append(tieuDe).append("\n");
         billText.append("===================================================\n");
-        billText.append("Mã HĐ: ").append(activeHoaDon != null ? activeHoaDon.getMaHD() : "---").append("\n");
+        billText.append("Mã HĐ: ").append(maHD != null ? maHD : "---").append("\n");
         billText.append("Ngày:  ").append(LocalDateTime.now().format(dtf)).append("\n");
         billText.append("Bàn:   ").append(banHienTai.getTenBan()).append(" - ").append(banHienTai.getKhuVuc()).append("\n");
         // Nếu có khách hàng thì hiện tên
@@ -514,7 +515,9 @@ public class BillPanel extends JPanel {
     }
     private void hienThiXemTamTinh() {
         // Gọi hàm chung với cờ daThanhToan = false
-        xuatPhieuIn("PHIẾU TẠM TÍNH", false, 0, 0);
+        HoaDon hd = parentGoiMonGUI.getActiveHoaDon();
+        String maHD = (hd != null) ? hd.getMaHD() : "---";
+        xuatPhieuIn("PHIẾU TẠM TÍNH", false, 0, 0,maHD);
     }
     private long roundUpToNearest(long number, long nearest) {
         if (nearest <= 0) return number;
