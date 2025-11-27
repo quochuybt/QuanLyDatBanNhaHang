@@ -10,7 +10,7 @@ INSERT INTO HangThanhVien (tenHang) VALUES (N'NONE'), (N'MEMBER'), (N'BRONZE'), 
 -- 3. Bảng Tài Khoản (Không phụ thuộc)
 INSERT INTO TaiKhoan (tenTK, matKhau, trangThai) VALUES
 -- Mật khẩu thô: 'admin12345' -> hashCode: -1657892252
-(N'a dmin', N'hashed_643610180', 1),
+(N'admin', N'hashed_643610180', 1),
 
 -- Mật khẩu thô: 'binh12345' -> hashCode: -1893320093
 (N'nv_binh', N'hashed_-860005230', 1),
@@ -124,15 +124,14 @@ INSERT INTO PhanCongCa (maNV, maCa, ngayLam) VALUES
 GO
 
 -- 12. Bảng Đơn Đặt Món (Phụ thuộc NhanVien, KhachHang, Ban)
-INSERT INTO DonDatMon (maDon, ngayKhoiTao, maNV, maKH, maBan) VALUES
-(N'DON1001', '2025-10-24 13:00:00', N'NV01102', N'KH20251025003', N'BAN07'),
-(N'DON1002', '2025-10-24 14:00:00', N'NV01103', N'KH20251025004', N'BAN08'),
-(N'DON1003', '2025-10-24 14:05:00', N'NV01104', N'KH20251025001', NULL),
-(N'DON1004', '2025-10-24 14:10:00', N'NV01102', N'KH20251025005', N'BAN01'),
-(N'DON1005', '2025-10-24 14:15:00', N'NV01103', N'KH20251025006', N'BAN02'),
-(N'DON1007', '2025-10-30 19:00:00', N'NV01102', N'KH20251025002', N'BAN06'),
-(N'DON1006', '2025-10-24 16:15:00', N'NV01102', N'KH20251025003', N'BAN03');
-GO
+INSERT INTO DonDatMon (maDon, ngayKhoiTao, thoiGianDen,trangThai, maNV, maKH, maBan) VALUES
+(N'DON1001', '2025-10-24 13:00:00', '2025-10-24 13:00:00', N'Chưa thanh toán', N'NV01102', N'KH20251025003', N'BAN07'),
+(N'DON1002', '2025-10-24 14:00:00', '2025-10-24 14:00:00', N'Đã thanh toán',N'NV01103', N'KH20251025004', N'BAN08'),
+(N'DON1003', '2025-10-24 14:05:00', '2025-10-24 14:05:00', N'Đã thanh toán',N'NV01104', N'KH20251025001', NULL),
+(N'DON1004', '2025-10-24 14:10:00', '2025-10-24 14:10:00', N'Đã thanh toán',N'NV01102', N'KH20251025005', N'BAN01'),
+(N'DON1005', '2025-10-24 14:15:00', '2025-10-24 14:15:00', N'Đã thanh toán',N'NV01103', N'KH20251025006', N'BAN02'),
+(N'DON1007', '2025-10-30 10:00:00', '2025-10-30 19:00:00', N'Chưa thanh toán',N'NV01102', N'KH20251025002', N'BAN06'), -- Đặt trước: Tạo lúc 10h, Đến lúc 19h
+(N'DON1006', '2025-10-24 16:15:00', '2025-10-24 16:15:00', N'Chưa thanh toán',N'NV01102', N'KH20251025003', N'BAN03');
 
 -- 13. Bảng Chi Tiết Hóa Đơn (Phụ thuộc DonDatMon, MonAn)
 INSERT INTO ChiTietHoaDon (maDon, maMonAn, soLuong, donGia) VALUES

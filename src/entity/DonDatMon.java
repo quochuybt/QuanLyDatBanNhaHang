@@ -15,6 +15,8 @@ public class DonDatMon {
     private LocalDateTime ngayKhoiTao; // 1.2: Không được rỗng
     private String maNV; // <-- BỔ SUNG
     private String maKH; // <-- BỔ SUNG
+    private LocalDateTime thoiGianDen;
+    private String trangThai;
     private String maBan;
     private String ghiChu;
 
@@ -72,6 +74,20 @@ public class DonDatMon {
 
     public LocalDateTime getNgayKhoiTao() {
         return ngayKhoiTao;
+    }
+    public LocalDateTime getThoiGianDen() {
+        return thoiGianDen;
+    }
+
+    public void setThoiGianDen(LocalDateTime thoiGianDen) {
+        this.thoiGianDen = thoiGianDen;
+    }
+    public String getTrangThai() {
+        return trangThai;
+    }
+
+    public void setTrangThai(String trangThai) {
+        this.trangThai = trangThai;
     }
 
     public void setMaDon(String maDon) throws IllegalArgumentException {

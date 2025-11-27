@@ -73,44 +73,44 @@ public class ManHinhBanGUI extends JPanel {
         buildUI();
     }
     private void xuLyApDungKhuyenMai() {
-        String maKM_input = txtMaKhuyenMai.getText().trim().toUpperCase();
         HoaDon activeHoaDon = getActiveHoaDon();
-
         if (activeHoaDon == null) {
             JOptionPane.showMessageDialog(this, "Chưa có hóa đơn nào đang hoạt động!", "Lỗi", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        entity.KhuyenMai km = null;
+        String maKM_input = txtMaKhuyenMai.getText().trim().toUpperCase();
         String maKMLuuVaoDB = null;
         if (!maKM_input.isEmpty()) {
-            // Gọi DAO để kiểm tra mã
-            km = maKhuyenMaiDAO.getKhuyenMaiHopLeByMa(maKM_input);
+            // 1. Kiểm tra mã
+            entity.KhuyenMai km = maKhuyenMaiDAO.getKhuyenMaiHopLeByMa(maKM_input);
+
             if (km == null) {
-                JOptionPane.showMessageDialog(this, "Mã khuyến mãi không hợp lệ, đã hết hạn hoặc không tồn tại!", "Lỗi Mã KM", JOptionPane.WARNING_MESSAGE);
-                if (activeHoaDon.getMaKM() != null) {
-                    activeHoaDon.setMaKM(null);
-                }else {
-                    txtMaKhuyenMai.requestFocus();
-                    return;
-                }
+                JOptionPane.showMessageDialog(this, "Mã không hợp lệ hoặc đã hết hạn!", "Lỗi Mã KM", JOptionPane.WARNING_MESSAGE);
+                // Reset về rỗng nếu mã sai
+                activeHoaDon.setMaKM(null);
+                maKMLuuVaoDB = null;
                 txtMaKhuyenMai.requestFocus();
-                return;
             } else {
+                // Mã đúng -> Set vào object
                 activeHoaDon.setMaKM(maKM_input);
                 maKMLuuVaoDB = maKM_input;
                 JOptionPane.showMessageDialog(this, "Đã áp dụng mã: " + km.getTenChuongTrinh(), "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             }
         } else {
+            // Người dùng xóa mã -> Hủy áp dụng
             activeHoaDon.setMaKM(null);
             maKMLuuVaoDB = null;
         }
+
+        // 2. Cập nhật vào CSDL (Quan trọng)
         boolean updateDAOK = hoaDonDAO.capNhatMaKM(activeHoaDon.getMaHD(), maKMLuuVaoDB);
         if (!updateDAOK) {
             System.err.println("LỖI: Không thể cập nhật maKM vào CSDL!");
-        } else {
-            System.out.println("Đã cập nhật maKM '" + maKMLuuVaoDB + "' vào CSDL.");
         }
+
+        // 3. Tính toán lại tiền và cập nhật giao diện BillPanel
+        // Hàm này sẽ gọi loadBillTotals của BillPanel -> Cập nhật visual
         activeHoaDon.tinhLaiGiamGiaVaTongTien(khachHangDAO, maKhuyenMaiDAO);
         updateBillPanelFromHoaDon(activeHoaDon);
     }
@@ -317,7 +317,7 @@ public class ManHinhBanGUI extends JPanel {
         infoPanel.add(createInfoBox("Ghi chú", txtGhiChu), gbc);
 
         // 5. Panel Bill (Nửa dưới)
-        this.billPanel = new BillPanel();
+        this.billPanel = new BillPanel(this);
 
         // 6. Thêm 2 panel vào container
         JSplitPane verticalSplitPane = new JSplitPane(
@@ -337,58 +337,32 @@ public class ManHinhBanGUI extends JPanel {
     }
     private void timKiemThanhVienTuSDT() {
         String sdt = txtSDTKhach.getText().trim();
-        entity.KhachHang kh = null; // Khách hàng tìm được
-        String maKH_LuuVaoDB = null; // Mã KH để cập nhật CSDL
+        HoaDon activeHoaDon = getActiveHoaDon();
+        if (activeHoaDon == null) return;
 
         // 1. Tìm khách hàng
         if (!sdt.isEmpty() && sdt.matches("\\d{10}")) { // Chỉ tìm nếu SĐT hợp lệ
+            entity.KhachHang kh = khachHangDAO.timTheoSDT(sdt);
             kh = khachHangDAO.timTheoSDT(sdt);
-        }
+            // 2. Cập nhật các ô JTextField
+            if (kh != null) {
+                // Nếu tìm thấy
+                txtHoTenKhach.setText(kh.getTenKH());
+                txtThanhVien.setText(kh.getHangThanhVien().toString());
 
-        // 2. Cập nhật các ô JTextField
-        if (kh != null) {
-            // Nếu tìm thấy
-            txtHoTenKhach.setText(kh.getTenKH());
-            txtThanhVien.setText(kh.getHangThanhVien().toString());
-            maKH_LuuVaoDB = kh.getMaKH(); // Sẽ lưu mã này
-        } else {
-            // Nếu không tìm thấy (hoặc SĐT rỗng/không hợp lệ)
-            txtHoTenKhach.setText(""); // Xóa tên
-            txtThanhVien.setText("Chưa là thành viên"); // Hoặc "Vãng lai"
-            maKH_LuuVaoDB = null; // Sẽ lưu NULL
-        }
+                activeHoaDon.setMaKH(kh.getMaKH());
 
-        // 3. Lấy Hóa đơn đang hoạt động
-        HoaDon activeHoaDon = getActiveHoaDon();
+                donDatMonDAO.capNhatMaKH(activeHoaDon.getMaDon(), kh.getMaKH());
 
-        // 4. Cập nhật Hóa đơn (nếu có HĐ)
-        if (activeHoaDon != null) {
-            // 4a. Cập nhật maKH trong CSDL
-            // (Chỉ cập nhật nếu mã KH thay đổi so với HĐ hiện tại để tránh gọi DB thừa)
-            String maKHHienTai = activeHoaDon.getMaKH();
-            boolean needDBUpdate = (maKHHienTai == null && maKH_LuuVaoDB != null) ||
-                    (maKHHienTai != null && !maKHHienTai.equals(maKH_LuuVaoDB));
+                activeHoaDon.tinhLaiGiamGiaVaTongTien(khachHangDAO, maKhuyenMaiDAO);
 
-            if (needDBUpdate) {
-                System.out.println("Cập nhật maKH trong CSDL: " + maKH_LuuVaoDB);
-                boolean updateOK = donDatMonDAO.capNhatMaKH(activeHoaDon.getMaDon(), maKH_LuuVaoDB);
-                if (!updateOK) {
-                    System.err.println("LỖI: Không thể cập nhật maKH vào CSDL!");
-                    // Vẫn tiếp tục để tính toán tạm thời
-                }
+                updateBillPanelFromHoaDon(activeHoaDon);
+            } else {
+                txtHoTenKhach.setText("");
+                txtThanhVien.setText("Vãng lai");
+                activeHoaDon.setMaKH(null);
+                donDatMonDAO.capNhatMaKH(activeHoaDon.getMaDon(), null);
             }
-
-            // 4b. Cập nhật maKH trên object trong bộ nhớ
-            activeHoaDon.setMaKH(maKH_LuuVaoDB);
-
-            // 4c. Tính toán lại giảm giá
-            tinhVaCapNhatGiamGia(activeHoaDon);
-
-            // 4d. Cập nhật BillPanel
-            updateBillPanelFromHoaDon(activeHoaDon);
-
-        } else {
-            System.out.println("timKiemThanhVienTuSDT: Không có hóa đơn hoạt động để áp dụng giảm giá TV.");
         }
     }
     private void tinhVaCapNhatGiamGia(HoaDon hoaDon) {
@@ -523,14 +497,25 @@ public class ManHinhBanGUI extends JPanel {
                 txtGioVao.setText("");
             }
             else if (ban.getTrangThai() == TrangThaiBan.DA_DAT_TRUOC) {
+                entity.DonDatMon ddm = donDatMonDAO.getDonDatMonDatTruoc(ban.getMaBan());
+                LocalDateTime gioKhachHen = null;
+                if (ddm != null) {
+                    // Nếu tìm thấy đơn, lấy giờ hẹn từ đơn đó
+                    gioKhachHen = ddm.getThoiGianDen();
+
+                    // Fallback: Nếu thoiGianDen null thì lấy ngayKhoiTao (dữ liệu cũ)
+                    if (gioKhachHen == null) gioKhachHen = ddm.getNgayKhoiTao();
+                } else {
+                    // Nếu không tìm thấy đơn (lỗi logic), mới lấy tạm từ Bàn
+                    gioKhachHen = ban.getGioMoBan();
+                }
                 // Lấy thông tin từ Bàn (Giờ đặt)
-                txtNgayVao.setText(gioMoBan != null ? gioMoBan.format(dtfNgay) : "");
-                txtGioVao.setText(gioMoBan != null ? gioMoBan.format(dtfGio) : "");
+                txtNgayVao.setText(gioKhachHen != null ? gioKhachHen.format(dtfNgay) : "");
+                txtGioVao.setText(gioKhachHen != null ? gioKhachHen.format(dtfGio) : "");
                 // Lấy số ghế làm số lượng khách tạm thời
                 txtSoLuongKhach.setText(String.valueOf(ban.getSoGhe()));
 
                 // --- GỌI DAO ĐỂ LẤY THÔNG TIN ĐẶT BÀN ---
-                entity.DonDatMon ddm = donDatMonDAO.getDonDatMonDatTruoc(ban.getMaBan());
                 System.out.println("DEBUG: DonDatMon tìm thấy: " + ddm);
                 entity.KhachHang kh = null;
 
@@ -827,6 +812,9 @@ public class ManHinhBanGUI extends JPanel {
     }
     public void refreshTableList() {
         System.out.println("Bắt đầu refreshTableList...");
+        if (donDatMonDAO != null) {
+            donDatMonDAO.tuDongHuyDonQuaGio();
+        }
         try {
             List<Ban> oldData = this.allTablesFromDB;
             // 1. Tải lại dữ liệu mới nhất

@@ -42,7 +42,7 @@ public class ManHinhDatBanGUI extends JPanel {
     private JSpinner timeSpinner;
     private JTextField txtGhiChu;
     private JPanel pnlBanContainer; // Đổi tên từ leftTableContainer
-    private List<Ban> dsBanTrongFull; // Danh sách TẤT CẢ bàn trống
+    private List<Ban> dsTatCaBan;
     private List<Ban> dsBanDaChon = new ArrayList<>();
     private List<BanPanel> dsBanPanelHienThi = new ArrayList<>();
     private JTextField txtSDTKhach;
@@ -64,7 +64,7 @@ public class ManHinhDatBanGUI extends JPanel {
         banDAO = new BanDAO();
         khachHangDAO = new KhachHangDAO();
         donDatMonDAO = new DonDatMonDAO(); // Khởi tạo
-        dsBanTrongFull = new ArrayList<>();
+//        dsBanTrongFull = new ArrayList<>();
 
         // --- Cấu trúc Layout chính ---
         setLayout(new BorderLayout()); // JPanel chính dùng BorderLayout
@@ -153,15 +153,13 @@ public class ManHinhDatBanGUI extends JPanel {
 
         return panel;
     }
-    private List<List<Ban>> timGoiYGhepBan(int soLuongKhach) {
+    private List<List<Ban>> timGoiYGhepBan(int soLuongKhach,List<Ban> sourceList) {
         List<List<Ban>> dsGoiY = new ArrayList<>();
 
         // 1. Phân loại bàn theo khu vực
         java.util.Map<String, List<Ban>> banTheoKhuVuc = new java.util.HashMap<>();
-        for (Ban ban : dsBanTrongFull) {
-            if (ban.getTrangThai() == TrangThaiBan.TRONG) {
-                banTheoKhuVuc.computeIfAbsent(ban.getKhuVuc(), k -> new ArrayList<>()).add(ban);
-            }
+        for (Ban ban : sourceList) {
+            banTheoKhuVuc.computeIfAbsent(ban.getKhuVuc(), k -> new ArrayList<>()).add(ban);
         }
 
         // 2. Duyệt từng khu vực
@@ -271,6 +269,7 @@ public class ManHinhDatBanGUI extends JPanel {
         dateSpinner.setEditor(new JSpinner.DateEditor(dateSpinner, "dd/MM/yyyy"));
         applySpinnerStyle(dateSpinner); // Áp dụng style (có thể cần chỉnh hàm style)
         gbc.gridx = 1; panel.add(dateSpinner, gbc);
+        dateSpinner.addChangeListener(e -> hienThiBanPhuHop());
 
         // Spinner chọn Giờ
         SpinnerDateModel timeModel = new SpinnerDateModel();
@@ -285,6 +284,7 @@ public class ManHinhDatBanGUI extends JPanel {
         cal.set(Calendar.SECOND, 0);
         timeSpinner.setValue(cal.getTime());
         gbc.gridx = 2; panel.add(timeSpinner, gbc);
+        timeSpinner.addChangeListener(e -> hienThiBanPhuHop());
 
         // --- Hàng 3: Label Ghi chú ---
         gbc.gridy = 2; // Hàng mới cho label Ghi chú
@@ -585,11 +585,10 @@ public class ManHinhDatBanGUI extends JPanel {
      */
     private void taiDanhSachBanTrong() {
         try {
-            dsBanTrongFull = banDAO.getDanhSachBanTrong(); // Lấy tất cả bàn trống 1 lần
-            System.out.println("Đã tải " + dsBanTrongFull.size() + " bàn trống.");
+            dsTatCaBan = banDAO.getAllBan();
+            System.out.println("Đã tải " + dsTatCaBan.size() + " bàn trống.");
         } catch (Exception e) {
-            System.err.println("Lỗi khi tải danh sách bàn trống: " + e.getMessage());
-            // Hiển thị lỗi cho người dùng
+            e.printStackTrace();
         }
     }
 
@@ -597,69 +596,90 @@ public class ManHinhDatBanGUI extends JPanel {
      * Cập nhật hiển thị các nút bàn dựa trên số lượng khách.
      */
     private void hienThiBanPhuHop() {
-        int soLuongKhach = 1;
-        if (spinnerSoLuongKhach != null) {
-            soLuongKhach = (Integer) spinnerSoLuongKhach.getValue();
-        }
+        // 1. Lấy thông tin từ GUI
+        int soLuongKhach = (Integer) spinnerSoLuongKhach.getValue();
+        LocalDateTime thoiGianDat = null;
 
-        pnlBanContainer.removeAll(); // Xóa các panel bàn cũ
-        dsBanPanelHienThi.clear();   // Xóa list panel cũ
-        dsBanDaChon.clear();        // Bỏ chọn bàn cũ khi lọc lại
+        try {
+            Date d = (Date) dateSpinner.getValue();
+            Date t = (Date) timeSpinner.getValue();
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(d);
+            Calendar timeCal = Calendar.getInstance();
+            timeCal.setTime(t);
+            cal.set(Calendar.HOUR_OF_DAY, timeCal.get(Calendar.HOUR_OF_DAY));
+            cal.set(Calendar.MINUTE, timeCal.get(Calendar.MINUTE));
+            thoiGianDat = cal.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+        } catch (Exception e) { return; } // Chưa load xong UI
 
-        boolean coBanDon = false;
-        if (dsBanTrongFull != null) {
-            for (Ban ban : dsBanTrongFull) {
-                // Chỉ hiển thị bàn TRỐNG và ĐỦ CHỖ
-                if (ban.getTrangThai() == TrangThaiBan.TRONG && ban.getSoGhe() >= soLuongKhach) {
-                    coBanDon = true;
+        // 2. Xác định khoảng thời gian "Bận" (Trước và sau 2 tiếng)
+        LocalDateTime startCheck = thoiGianDat.minusHours(2);
+        LocalDateTime endCheck = thoiGianDat.plusHours(2);
 
-                    addBanPanelToView(ban);
+        // 3. Lấy danh sách các bàn ĐÃ CÓ ĐƠN trong khoảng này
+        List<String> maBanBan = donDatMonDAO.getMaBanDaDatTrongKhoang(startCheck, endCheck);
+
+        // Lưu ý thêm: Nếu thời gian đặt là "Hiện tại" (sai số nhỏ),
+        // thì các bàn đang DANG_PHUC_VU cũng phải tính là bận.
+        boolean isBookingNow = java.time.Duration.between(LocalDateTime.now(), thoiGianDat).abs().toMinutes() < 30;
+
+        pnlBanContainer.removeAll();
+        dsBanPanelHienThi.clear();
+        dsBanDaChon.clear();
+
+        // 4. Lọc danh sách bàn
+        List<Ban> dsBanKhaDung = new ArrayList<>();
+        if (dsTatCaBan != null) {
+            for (Ban ban : dsTatCaBan) {
+                boolean isBusy = false;
+
+                // Check 1: Có nằm trong danh sách đặt trước trùng giờ không?
+                if (maBanBan.contains(ban.getMaBan())) {
+                    isBusy = true;
+                }
+
+                // Check 2: Nếu đặt ngay bây giờ, bàn đang phục vụ cũng là bận
+                if (isBookingNow && ban.getTrangThai() == TrangThaiBan.DANG_PHUC_VU) {
+                    isBusy = true;
+                }
+
+                // Nếu không bận -> Thêm vào danh sách khả dụng
+                if (!isBusy) {
+                    dsBanKhaDung.add(ban);
                 }
             }
         }
+
+        // 5. Hiển thị (Logic cũ nhưng dùng dsBanKhaDung)
+        boolean coBanDon = false;
+        for (Ban ban : dsBanKhaDung) {
+            // Chỉ hiện bàn đủ số lượng ghế
+            if (ban.getSoGhe() >= soLuongKhach) {
+                coBanDon = true;
+                addBanPanelToView(ban); // Hiển thị bàn đơn
+            }
+        }
+
+        // 6. Gợi ý ghép bàn (Dùng dsBanKhaDung thay vì dsBanTrongFull)
         if (!coBanDon) {
-            List<List<Ban>> dsGoiY = timGoiYGhepBan(soLuongKhach);
+            // Bạn cần sửa hàm timGoiYGhepBan để nhận dsBanKhaDung làm tham số
+            List<List<Ban>> dsGoiY = timGoiYGhepBan(soLuongKhach, dsBanKhaDung);
 
             if (!dsGoiY.isEmpty()) {
-                JLabel lblGoiY = new JLabel("<html>Không có bàn đơn đủ chỗ với số lượng khách. Gợi ý ghép bàn:</html>");
-                lblGoiY.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+                JLabel lblGoiY = new JLabel("<html>Không có bàn đơn đủ chỗ. Gợi ý ghép bàn trống lúc " +
+                        thoiGianDat.format(DateTimeFormatter.ofPattern("HH:mm")) + ":</html>");
                 lblGoiY.setForeground(Color.BLUE);
-                // Thêm label vào đầu (cần layout phù hợp hoặc add vào panel riêng, ở đây add tạm)
                 pnlBanContainer.add(lblGoiY);
-
                 for (List<Ban> capBan : dsGoiY) {
-                    createNutGhepBan(capBan); // Hàm tạo nút ghép
+                    createNutGhepBan(capBan);
                 }
             } else {
-                JLabel lblThongBao = new JLabel("<html><center>Không có bàn đơn hoặc nhóm bàn nào<br>đủ chỗ cho " + soLuongKhach + " khách trong cùng một khu vực.</center></html>");
-                lblThongBao.setForeground(Color.RED);
-                lblThongBao.setFont(new Font("Segoe UI", Font.BOLD, 14));
-                lblThongBao.setHorizontalAlignment(SwingConstants.CENTER);
-                pnlBanContainer.add(lblThongBao);
+                pnlBanContainer.add(new JLabel("Không có bàn trống phù hợp vào giờ này."));
             }
         }
 
-        // Vẽ lại giao diện panel chứa bàn
         pnlBanContainer.revalidate();
         pnlBanContainer.repaint();
-    }
-    private void addBanPanelToView(Ban ban) {
-        BanPanel banPanel = new BanPanel(ban);
-        dsBanPanelHienThi.add(banPanel);
-        pnlBanContainer.add(banPanel);
-
-        banPanel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (e.getButton() == MouseEvent.BUTTON1) {
-                    // Logic chọn bàn đơn: Xóa hết chọn cũ, thêm bàn này
-                    dsBanDaChon.clear();
-                    dsBanDaChon.add(ban);
-                    updateBanPanelSelection(); // Cập nhật giao diện
-                    System.out.println("Chọn bàn đơn: " + ban.getTenBan());
-                }
-            }
-        });
     }
 
     // HÀM MỚI: Tạo nút cho Bàn Ghép
@@ -926,6 +946,7 @@ public class ManHinhDatBanGUI extends JPanel {
             // Tạo đơn cho bàn này
             entity.DonDatMon ddm = new entity.DonDatMon();
             ddm.setNgayKhoiTao(LocalDateTime.now());
+            ddm.setThoiGianDen(thoiGianDat);
             ddm.setMaNV("NV01102");
             ddm.setMaKH(maKHCanDung);
             ddm.setMaBan(ban.getMaBan()); // Set từng bàn
@@ -1015,6 +1036,19 @@ public class ManHinhDatBanGUI extends JPanel {
         listPhieuDat.setModel(modelListPhieuDat); // Đặt lại model để JList nhận biết thay đổi data type
         listPhieuDat.repaint();
     }
+    public void refreshData() {
+        donDatMonDAO.tuDongHuyDonQuaGio();
+        // 1. Tải lại danh sách bàn từ CSDL (để cập nhật trạng thái Trống/Đang phục vụ)
+        taiDanhSachBanTrong();
+
+        // 2. Vẽ lại giao diện bàn (dựa trên giờ đang chọn trong spinner)
+        hienThiBanPhuHop();
+
+        // 3. Cập nhật danh sách phiếu đặt bên phải
+        loadDanhSachDatTruoc();
+
+        System.out.println("ManHinhDatBanGUI: Đã làm mới dữ liệu!");
+    }
     private void xuLyHuyDatBan(DonDatMon ddmToCancel, int index) {
         // 1. Xác nhận
         int confirm = JOptionPane.showConfirmDialog(
@@ -1071,7 +1105,7 @@ public class ManHinhDatBanGUI extends JPanel {
         private final JButton btnDelete;
         private final JSeparator separator; // Đường kẻ phân cách
 
-        private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+        private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy");
         private final Font mainFont = new Font("Segoe UI", Font.BOLD, 14);
         private final Font subFont = new Font("Segoe UI", Font.PLAIN, 13); // Tăng size chữ phụ
         private final Color textColor = Color.DARK_GRAY;
@@ -1132,11 +1166,20 @@ public class ManHinhDatBanGUI extends JPanel {
                 KhachHang kh = (ddm.getMaKH() != null) ? khachHangDAO.timTheoMaKH(ddm.getMaKH()) : null;
                 String tenKH = (kh != null) ? kh.getTenKH() : "Vãng lai";
                 String sdtKH = (kh != null) ? kh.getSdt() : "--";
-                Ban banDat = banDAO.getBanByMa(ddm.getMaBan());
-                String gioDen = (banDat != null && banDat.getGioMoBan() != null) ? banDat.getGioMoBan().format(timeFormatter) : "N/A";
+//                Ban banDat = banDAO.getBanByMa(ddm.getMaBan());
+//                String gioDen = (banDat != null && banDat.getGioMoBan() != null) ? banDat.getGioMoBan().format(timeFormatter) : "N/A";
                 // Lấy số người từ spinner lúc đặt (Cần lưu vào DonDatMon)
+                String gioDen = "N/A";
+                if (ddm.getThoiGianDen() != null) {
+                    gioDen = ddm.getThoiGianDen().format(timeFormatter);
+                } else if (ddm.getNgayKhoiTao() != null) {
+                    // Fallback nếu thoiGianDen null (dữ liệu cũ)
+                    gioDen = ddm.getNgayKhoiTao().format(timeFormatter);
+                }
                 // Tạm thời vẫn dùng số ghế:
-                int soNguoi = (banDat != null) ? banDat.getSoGhe() : 0;
+                int soNguoi = 0;
+                Ban banDat = banDAO.getBanByMa(ddm.getMaBan());
+                if (banDat != null) soNguoi = banDat.getSoGhe();
 
                 lblLine1.setText(String.format("%s (%s)", tenBan, sdtKH));
                 lblLine2.setText(String.format("%s - %s - %d người", gioDen, tenKH, soNguoi));
@@ -1188,5 +1231,48 @@ public class ManHinhDatBanGUI extends JPanel {
             containerPanel.add(separator, BorderLayout.SOUTH);
             return containerPanel;
         }
+    }
+    private void addBanPanelToView(Ban ban) {
+        // Tạo panel giao diện cho bàn
+        BanPanel banPanel = new BanPanel(ban);
+
+        // Thêm vào danh sách quản lý để sau này đổi màu khi chọn
+        dsBanPanelHienThi.add(banPanel);
+
+        // Thêm vào giao diện chính
+        pnlBanContainer.add(banPanel);
+
+        // Thêm sự kiện Click chuột
+        banPanel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getButton() == MouseEvent.BUTTON1) {
+                    // Logic khi chọn bàn đơn:
+                    // 1. Xóa hết các bàn đã chọn trước đó (vì đang chọn đơn)
+                    dsBanDaChon.clear();
+
+                    // 2. Thêm bàn này vào danh sách chọn
+                    dsBanDaChon.add(ban);
+
+                    // 3. Reset các nút "Ghép bàn" (nếu có) về trạng thái không chọn
+                    Component[] comps = pnlBanContainer.getComponents();
+                    for (Component c : comps) {
+                        if (c instanceof JToggleButton) {
+                            ((JToggleButton)c).setSelected(false);
+                            c.setBackground(Color.WHITE);
+                            // Reset màu chữ nút ghép (nếu có hàm helper)
+                            if (c instanceof JToggleButton) {
+                                updateLabelsColor((JToggleButton)c, Color.BLACK);
+                            }
+                        }
+                    }
+
+                    // 4. Cập nhật giao diện (tô viền xanh cho bàn được chọn)
+                    updateBanPanelSelection();
+
+                    System.out.println("Đã chọn bàn đơn: " + ban.getTenBan());
+                }
+            }
+        });
     }
 }
