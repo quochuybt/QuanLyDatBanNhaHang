@@ -87,7 +87,7 @@ public class NhanVienGUI extends JPanel {
         btnSearch = new JButton("Tìm");
         searchPanel.add(btnSearch);
 
-        btnCancelSearch = new JButton("Hủy tìm kiếm");
+        btnCancelSearch = new JButton("Làm mới tìm kiếm");
         btnCancelSearch.setBackground(new Color(220, 220, 220));
         btnCancelSearch.setOpaque(true);
         btnCancelSearch.setBorderPainted(false);
@@ -134,9 +134,7 @@ public class NhanVienGUI extends JPanel {
                     searchResults = nhanVienDAO.searchNhanVienByName(keyword);
                     break;
                 case "SĐT":
-                    searchResults = nhanVienDAO.getAllNhanVien().stream()
-                            .filter(nv -> nv.getSdt().contains(keyword))
-                            .collect(Collectors.toList());
+                    searchResults = nhanVienDAO.searchNhanVienBySdt(keyword);
                     break;
             }
 
