@@ -157,7 +157,7 @@ GO
 ALTER TABLE DanhMucMon
 ADD CONSTRAINT FK_DanhMucMon_NhanVien FOREIGN KEY (maNV) REFERENCES NhanVien(maNV);
 GO
-//mấy bạn thêm đoạn này cập nhật Km nha
+
 USE StarGuardianDB;
 GO
 ALTER TABLE KhuyenMai
