@@ -21,7 +21,7 @@ public class Main {
                 e.printStackTrace();
             }
 
-            // --- 2. Tùy chỉnh giao diện (Lấy từ hàm main test của bạn) ---
+            // --- 2. Tùy chỉnh giao diện (Lấy từ hàm main test của bạn) --- 
             Color COLOR_INPUT_BORDER = new Color(150, 150, 150);
             Color COLOR_ACCENT_BLUE = new Color(56, 118, 243);
 

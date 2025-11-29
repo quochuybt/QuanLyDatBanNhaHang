@@ -1,3 +1,5 @@
+// File: BillPanel.java
+
 package gui;
 
 import dao.*;
@@ -15,6 +17,7 @@ import java.util.Locale;
 import java.time.format.DateTimeFormatter;
 import entity.Ban;
 import entity.TrangThaiBan;
+import entity.KhachHang; // Import KhachHang
 
 import javax.swing.table.DefaultTableModel;
 import java.util.ArrayList;
@@ -203,6 +206,8 @@ public class BillPanel extends JPanel {
             String hinhThucTT = "Tiền mặt"; // Nên lấy từ Combobox bên ManHinhBanGUI nếu có thể
             double tienGiamGia = activeHoaDon.getGiamGia();
             String maKM = activeHoaDon.getMaKM();
+            long tongThanhToanFinal = this.currentTotal;
+
             boolean thanhToanOK = hoaDonDAO.thanhToanHoaDon(
                     maHDCuoiCung,
                     tienKhachTraLong, // Tiền khách đưa (ví dụ 80k)
@@ -212,13 +217,39 @@ public class BillPanel extends JPanel {
             );
 
             if (thanhToanOK) {
+
+                // 🌟 THAY ĐỔI MỚI: CẬP NHẬT TỔNG CHI TIÊU KHÁCH HÀNG
+                String maKH = activeHoaDon.getMaKH();
+                if (maKH != null && !maKH.trim().isEmpty()) {
+                    KhachHang khachHang = khachHangDAO.timTheoMaKH(maKH);
+                    if (khachHang != null && khachHang.getHangThanhVien() != entity.HangThanhVien.NONE) {
+                        // Chỉ cập nhật nếu không phải là khách vãng lai (NONE)
+                        float soTienCongThem = (float) tongThanhToanFinal;
+
+                        // 1. Cập nhật Tổng chi tiêu và Hạng thành viên trong Object
+                        khachHang.capNhatTongChiTieu(soTienCongThem);
+
+                        // 2. Lưu cập nhật xuống CSDL
+                        if (khachHangDAO.updateKhachHang(khachHang)) {
+                            System.out.println("Cập nhật KH " + maKH + " thành công. Tổng chi tiêu mới: " + khachHang.getTongChiTieu());
+
+                            // ⭐ GỌI LỆNH LÀM MỚI BẢNG KHÁCH HÀNG ⭐
+                            KhachHangGUI.reloadKhachHangTableIfAvailable();
+                            // ----------------------------------------
+
+                        } else {
+                            System.err.println("Lỗi CSDL khi cập nhật Khách Hàng: " + maKH);
+                        }
+                    }
+                }
+                // ------------------------------------------------------------------
+
                 // Cập nhật Bàn
                 banHienTai.setTrangThai(TrangThaiBan.TRONG);
                 banHienTai.setGioMoBan(null);
                 banDAO.updateBan(banHienTai);
 
-                // Lấy danh sách món để in (Dùng hàm helper getCurrentDetailList() đã viết ở câu trước)
-                // Hoặc dùng activeHoaDon.getDsChiTiet() vì đã set ở trên
+                // Lấy danh sách món để in
                 List<ChiTietHoaDon> listToPrint = activeHoaDon.getDsChiTiet();
                 if (listToPrint == null || listToPrint.isEmpty()) {
                     // Fallback nếu null
