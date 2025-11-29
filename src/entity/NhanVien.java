@@ -16,7 +16,7 @@ public class NhanVien {
     private LocalDate ngayvaolam;
     private float luong;
     private VaiTro vaiTro;
-    private String tenTK; // THÊM: Thuộc tính Tên Tài khoản để dễ dàng cập nhật/truy vấn
+    private String tenTK;
 
     // Constructor mặc định
     public NhanVien() {
@@ -35,7 +35,6 @@ public class NhanVien {
     // Constructor đầy đủ (dành cho việc tạo mới)
     public NhanVien(String hoTen, LocalDate ngaySinh, String gioiTinh, String sdt,
                     String diaChi, LocalDate ngayVaoLam, float luong ,VaiTro vaiTro) {
-        // Tên TK sẽ được set sau hoặc lấy từ SĐT nếu cần mặc định
         this(hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, "");
     }
 
@@ -57,7 +56,6 @@ public class NhanVien {
     // Constructor dùng để truyền mã NV khi cập nhật hoặc đọc từ DB
     public NhanVien(String maNV, String hoTen, LocalDate ngaySinh, String gioiTinh, String sdt,
                     String diaChi, LocalDate ngayVaoLam, float luong ,VaiTro vaiTro) {
-        // Constructor này không gọi phatSinhMaNV
         this.manv = maNV;
         setVaiTro(vaiTro);
         setHoten(hoTen);
@@ -121,7 +119,16 @@ public class NhanVien {
         if (hoten == null || hoten.trim().isEmpty()) {
             throw new IllegalArgumentException("Họ tên không được rỗng");
         }
-        this.hoten = hoten;
+
+        // Regex: Chấp nhận chữ cái (bao gồm tiếng Việt có dấu, không dấu), khoảng trắng,
+        // dấu chấm, gạch ngang, nháy đơn. Loại bỏ số hoàn toàn.
+        String namePattern = "^[\\p{L} .'-]+$";
+
+        if (!hoten.trim().matches(namePattern)) {
+            throw new IllegalArgumentException("Họ tên không hợp lệ (Không được chứa số hoặc ký tự đặc biệt không được phép).");
+        }
+
+        this.hoten = hoten.trim();
     }
 
     public LocalDate getNgaysinh() {
@@ -195,7 +202,6 @@ public class NhanVien {
     }
 
     public void setTenTK(String tenTK) {
-        // Có thể thêm validation cho tenTK nếu cần (ví dụ: không chứa ký tự đặc biệt)
         this.tenTK = tenTK;
     }
 
