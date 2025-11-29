@@ -377,4 +377,25 @@ public class NhanVienDAO {
         }
         return tenNV;
     }
+    public List<NhanVien> searchNhanVienBySdt(String keyword) {
+        List<NhanVien> ds = new ArrayList<>();
+        // Sử dụng LIKE để tìm kiếm gần đúng, tìm kiếm chuỗi keyword trong cột sdt
+        String sql = "SELECT manv, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, tenTK FROM NhanVien WHERE sdt LIKE ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            // Đặt tham số cho LIKE, %keyword% cho phép tìm kiếm bất kỳ đâu trong SĐT
+            pstmt.setString(1, "%" + keyword.trim() + "%");
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    ds.add(mapResultSetToNhanVien(rs));
+                }
+            }
+        } catch (SQLException e) {
+            // Nên ném RuntimeException để xử lý ở tầng trên
+            throw new RuntimeException("Lỗi truy vấn tìm kiếm NhanVien theo SĐT: " + e.getMessage(), e);
+        }
+        return ds;
+    }
 }
