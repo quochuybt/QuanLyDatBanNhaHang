@@ -1,6 +1,5 @@
 package gui;
 
-import entity.NhanVien; // Cần import NhanVien
 import entity.VaiTro;
 
 import javax.swing.*;
@@ -31,7 +30,6 @@ public class MainGUI extends JFrame {
     // --- Child Panels ---
     private DanhSachBanGUI danhSachBanGUI; // Panel quản lý bàn (cho nhân viên)
     private KhachHangGUI khachHangGUI;   // Panel quản lý khách hàng (cho nhân viên)
-    // Khai báo các panel khác nếu cần truy cập từ MainGUI
 
     public MainGUI(String userRole, String userName, String maNVDangNhap) {
         this.userRole = userRole;
@@ -39,7 +37,7 @@ public class MainGUI extends JFrame {
         this.maNVDangNhap = maNVDangNhap; // Lưu mã NV
 
         // --- Cài đặt cửa sổ chính ---
-        setTitle("StarGuardian Restaurant - Quản lý Nhà hàng"); // Đổi tiêu đề nếu cần
+        setTitle("StarGuardian Restaurant - Quản lý Nhà hàng");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null); // Căn giữa màn hình khi mở
         getRootPane().setBorder(BorderFactory.createEmptyBorder()); // Bỏ viền mặc định của JFrame
@@ -64,21 +62,53 @@ public class MainGUI extends JFrame {
 
     /**
      * Constructor phụ (nếu không truyền mã NV, ví dụ cho mục đích test).
-     * @param userRole String đại diện vai trò
-     * @param userName Tên hiển thị
      */
     public MainGUI(String userRole, String userName) {
-        this(userRole, userName, null); // Gọi constructor chính với maNVDangNhap là null
+        this(userRole, userName, null);
     }
 
+    private JLabel createIconLabel(String iconPath, int width, int height) {
+        JLabel iconLabel = new JLabel();
+        try {
+            ImageIcon originalIcon = new ImageIcon(getClass().getResource(iconPath));
+            if (originalIcon.getImageLoadStatus() == MediaTracker.COMPLETE) {
+                Image scaledImage = originalIcon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
+                iconLabel.setIcon(new ImageIcon(scaledImage));
+            } else {
+                String fallbackChar = getFallbackIconChar(iconPath);
+                iconLabel.setText(fallbackChar);
+                iconLabel.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 18));
+                iconLabel.setForeground(Color.WHITE);
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi tải icon: " + iconPath + " - " + e.getMessage());
+            String fallbackChar = getFallbackIconChar(iconPath);
+            iconLabel.setText(fallbackChar);
+            iconLabel.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 18));
+            iconLabel.setForeground(Color.WHITE);
+        }
+        return iconLabel;
+    }
+
+    private String getFallbackIconChar(String iconPath) {
+        if (iconPath.contains("dashboard") || iconPath.contains("home")) return "⌂";
+        else if (iconPath.contains("menu") || iconPath.contains("food")) return "🍽️";
+        else if (iconPath.contains("schedule") || iconPath.contains("calendar")) return "📅";
+        else if (iconPath.contains("promotion") || iconPath.contains("discount")) return "🏷️";
+        else if (iconPath.contains("invoice") || iconPath.contains("bill")) return "🧾";
+        else if (iconPath.contains("employee") || iconPath.contains("staff")) return "👥";
+        else if (iconPath.contains("table") || iconPath.contains("chair")) return "🪑";
+        else if (iconPath.contains("customer") || iconPath.contains("member")) return "🧑";
+        else if (iconPath.contains("logout") || iconPath.contains("exit")) return "🚪";
+        return "⚪";
+    }
 
     private JPanel createHeaderPanel() {
         JPanel headerContainer = new JPanel(new BorderLayout());
         headerContainer.setBackground(Color.WHITE);
-        headerContainer.setBorder(new EmptyBorder(0, 10, 0, 0)); // Lề trái
-        headerContainer.setPreferredSize(new Dimension(0, 50)); // Chiều cao cố định
+        headerContainer.setBorder(new EmptyBorder(0, 10, 0, 0));
+        headerContainer.setPreferredSize(new Dimension(0, 50));
 
-        // Panel vẽ thanh màu xanh bo góc
         JPanel blueBarPanel = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -86,98 +116,67 @@ public class MainGUI extends JFrame {
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2d.setColor(COLOR_ACCENT_BLUE);
-                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20); // Bo góc 20px
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
             }
         };
-        blueBarPanel.setOpaque(false); // Để vẽ được bo góc
+        blueBarPanel.setOpaque(false);
 
-        // Panel thông tin người dùng (nền trắng, bo góc, viền xám)
-        JPanel userInfoPanel = new JPanel(new BorderLayout(10, 0)) { // Khoảng cách ngang 10px
+        JPanel userInfoPanel = new JPanel(new BorderLayout(10, 0)) {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                // Vẽ nền trắng bo góc
                 g2d.setColor(Color.WHITE);
                 g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
-                // Vẽ viền xám nhạt bo góc
                 g2d.setColor(new Color(220, 220, 220));
                 g2d.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
             }
         };
         userInfoPanel.setOpaque(false);
-        userInfoPanel.setBorder(new EmptyBorder(5, 10, 5, 15)); // Padding bên trong
-        userInfoPanel.setPreferredSize(new Dimension(210, 0)); // Chiều rộng cố định
+        userInfoPanel.setBorder(new EmptyBorder(5, 10, 5, 15));
+        userInfoPanel.setPreferredSize(new Dimension(210, 0));
 
-        // Icon người dùng
-        JLabel userIconLabel;
-        try {
-            // Cố gắng tải icon từ resources
-            ImageIcon userIcon = new ImageIcon(getClass().getResource("/img/user_icon.png")); // Đảm bảo có file này
-            // Kiểm tra xem icon có tải được không
-            if (userIcon.getImageLoadStatus() == MediaTracker.COMPLETE) {
-                Image scaledImage = userIcon.getImage().getScaledInstance(24, 24, Image.SCALE_SMOOTH);
-                userIconLabel = new JLabel(new ImageIcon(scaledImage));
-            } else {
-                throw new Exception("Icon not loaded"); // Ném lỗi nếu không tải được
-            }
-        } catch (Exception e) {
-            // Nếu lỗi, dùng ký tự thay thế
-            System.err.println("Không tìm thấy user_icon.png, dùng ký tự thay thế.");
-            userIconLabel = new JLabel("👤"); // Ký tự người dùng
-            userIconLabel.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 24)); // Font hỗ trợ ký tự
-        }
+        JLabel userIconLabel = createIconLabel("/img/icon/account_circle.png", 24, 24);
 
-        // Panel chứa Tên và Vai trò (xếp dọc)
         JPanel textPanel = new JPanel();
         textPanel.setOpaque(false);
-        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS)); // Xếp dọc
-        JLabel nameLabel = new JLabel(this.userName != null ? this.userName : "N/A"); // Hiển thị tên (có kiểm tra null)
+        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
+        JLabel nameLabel = new JLabel(this.userName != null ? this.userName : "N/A");
         nameLabel.setFont(new Font("Arial", Font.BOLD, 14));
         nameLabel.setForeground(Color.BLACK);
-        JLabel roleLabel = new JLabel(this.userRole != null ? this.userRole : "N/A"); // Hiển thị vai trò (có kiểm tra null)
-        roleLabel.setForeground(Color.DARK_GRAY); // Màu chữ xám đậm hơn
+        JLabel roleLabel = new JLabel(this.userRole != null ? this.userRole : "N/A");
+        roleLabel.setForeground(Color.DARK_GRAY);
         textPanel.add(nameLabel);
         textPanel.add(roleLabel);
 
-        // Gắn icon và text vào userInfoPanel
         userInfoPanel.add(userIconLabel, BorderLayout.WEST);
         userInfoPanel.add(textPanel, BorderLayout.CENTER);
 
-        // Gắn userInfoPanel vào blueBarPanel (căn phải)
         blueBarPanel.add(userInfoPanel, BorderLayout.EAST);
-        // Gắn blueBarPanel vào headerContainer
         headerContainer.add(blueBarPanel, BorderLayout.CENTER);
 
         return headerContainer;
     }
 
-    /**
-     * Tạo panel menu bên trái với logo và các nút chức năng.
-     * @return JPanel menu
-     */
     private JPanel createMenuPanel() {
         JPanel menuPanel = new JPanel();
-        menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS)); // Xếp dọc
+        menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
         menuPanel.setBackground(COLOR_ACCENT_BLUE);
-        menuPanel.setPreferredSize(new Dimension(220, 0)); // Chiều rộng cố định
-        menuPanel.setBorder(new EmptyBorder(10, 0, 10, 0)); // Padding trên dưới
+        menuPanel.setPreferredSize(new Dimension(220, 0));
+        menuPanel.setBorder(new EmptyBorder(10, 0, 10, 0));
 
-        // --- Logo ---
         try {
-            ImageIcon originalIcon = new ImageIcon(getClass().getResource("/img/DangNhap+Logo/Logo.jpg")); // Đường dẫn logo
+            ImageIcon originalIcon = new ImageIcon(getClass().getResource("/img/DangNhap+Logo/Logo.jpg"));
             Image originalImage = originalIcon.getImage();
-            // Thay đổi kích thước logo nếu cần
-            Image resizedImage = originalImage.getScaledInstance(180, 140, Image.SCALE_SMOOTH); // Ví dụ: 180x140
+            Image resizedImage = originalImage.getScaledInstance(180, 140, Image.SCALE_SMOOTH);
             ImageIcon resizedIcon = new ImageIcon(resizedImage);
             JLabel logoLabel = new JLabel(resizedIcon);
-            logoLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // Căn giữa logo
+            logoLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
             menuPanel.add(logoLabel);
-            menuPanel.add(Box.createRigidArea(new Dimension(0, 20))); // Khoảng cách dưới logo
+            menuPanel.add(Box.createRigidArea(new Dimension(0, 20)));
         } catch (Exception e) {
             System.err.println("Lỗi tải logo: " + e.getMessage());
-            // Có thể thêm JLabel hiển thị lỗi thay thế logo
             JLabel errorLabel = new JLabel("Lỗi tải logo");
             errorLabel.setForeground(Color.WHITE);
             errorLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -185,67 +184,52 @@ public class MainGUI extends JFrame {
             menuPanel.add(Box.createRigidArea(new Dimension(0, 20)));
         }
 
-        // --- Các nút chức năng ---
         LinkedHashMap<String, String> menuItems = new LinkedHashMap<>();
-        // Xác định các mục menu dựa trên vai trò người dùng
-        if ("QUANLY".equalsIgnoreCase(this.userRole)) { // Dùng equalsIgnoreCase cho an toàn
-            menuItems.put("Dashboard", "⌂");      // Ký tự Home
-            menuItems.put("Danh mục món ăn", "🍽️"); // Ký tự dao nĩa
-            menuItems.put("Lịch làm việc", "📅");   // Ký tự lịch
-            menuItems.put("Khuyến mãi", "🏷️");     // Ký tự tag
-            menuItems.put("Hóa đơn", "🧾");        // Ký tự hóa đơn
-            menuItems.put("Nhân viên", "👥");      // Ký tự nhóm người (thay vì 1 người)
+        if ("QUANLY".equalsIgnoreCase(this.userRole)) {
+            menuItems.put("Dashboard", "/img/icon/dashboard.png");
+            menuItems.put("Danh mục món ăn", "/img/icon/dining.png");
+            menuItems.put("Lịch làm việc", "/img/icon/calendar_month.png");
+            menuItems.put("Khuyến mãi", "/img/icon/percent_discount.png");
+            menuItems.put("Hóa đơn", "/img/icon/receipt_long.png");
+            menuItems.put("Nhân viên", "/img/icon/group.png");
         } else if ("NHANVIEN".equalsIgnoreCase(this.userRole)) {
-            menuItems.put("Dashboard", "⌂");
-            menuItems.put("Danh sách bàn", "🪑");    // Ký tự ghế
-            menuItems.put("Thành viên", "🧑");       // Ký tự người lớn
-            menuItems.put("Lịch làm việc", "📅");
-            menuItems.put("Hóa đơn", "🧾");
+            menuItems.put("Dashboard", "/img/icon/dashboard.png");
+            menuItems.put("Danh sách bàn", "/img/icon/dine_lamp.png");
+            menuItems.put("Thành viên", "/img/icon/diversity_3.png");
+            menuItems.put("Lịch làm việc", "/img/icon/calendar_month.png");
+            menuItems.put("Hóa đơn", "/img/icon/receipt_long.png");
         }
-        // Nút Đăng xuất luôn có
-        menuItems.put("Đăng xuất", "🚪"); // Ký tự cửa ra
+        menuItems.put("Đăng xuất", "/img/icon/logout.png");
 
-        // Tạo và thêm các nút vào menuPanel
         for (Map.Entry<String, String> entry : menuItems.entrySet()) {
             JPanel button = createMenuButton(entry.getKey(), entry.getValue());
-            menuButtons.put(entry.getKey(), button); // Lưu lại để quản lý trạng thái active
+            menuButtons.put(entry.getKey(), button);
             menuPanel.add(button);
-            menuPanel.add(Box.createRigidArea(new Dimension(0, 1))); // Khoảng cách nhỏ giữa các nút
+            menuPanel.add(Box.createRigidArea(new Dimension(0, 1)));
         }
 
-        menuPanel.add(Box.createVerticalGlue()); // Đẩy các nút lên trên nếu còn trống
-
+        menuPanel.add(Box.createVerticalGlue());
         return menuPanel;
     }
 
-    private JPanel createMenuButton(String text, String iconChar) {
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 12)); // Căn trái, padding
+    private JPanel createMenuButton(String text, String iconPath) {
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 12));
         buttonPanel.setBackground(COLOR_ACCENT_BLUE);
-        buttonPanel.setMaximumSize(new Dimension(220, 50)); // Chiều cao cố định
-        buttonPanel.setCursor(new Cursor(Cursor.HAND_CURSOR)); // Đổi con trỏ khi rê chuột
-        // buttonPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.WHITE)); // Bỏ border
+        buttonPanel.setMaximumSize(new Dimension(220, 50));
+        buttonPanel.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        // Icon
-        if (iconChar != null && !iconChar.isEmpty()) {
-            JLabel iconLabel = new JLabel(iconChar);
-            iconLabel.setForeground(Color.WHITE);
-            iconLabel.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 18)); // Font hỗ trợ ký tự đặc biệt
-            buttonPanel.add(iconLabel);
-        }
+        JLabel iconLabel = createIconLabel(iconPath, 20, 20);
+        buttonPanel.add(iconLabel);
 
-        // Text
         JLabel label = new JLabel(text);
         label.setForeground(Color.WHITE);
         label.setFont(new Font("Arial", Font.BOLD, 14));
         buttonPanel.add(label);
 
-        // --- Xử lý sự kiện Click và Hover ---
         buttonPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                // Xử lý khi bấm nút
                 if ("Đăng xuất".equals(text)) {
-                    // Hiển thị hộp thoại xác nhận đăng xuất
                     int choice = JOptionPane.showConfirmDialog(
                             MainGUI.this,
                             "Bạn có chắc chắn muốn đăng xuất?",
@@ -253,34 +237,26 @@ public class MainGUI extends JFrame {
                             JOptionPane.YES_NO_OPTION,
                             JOptionPane.QUESTION_MESSAGE
                     );
-                    // Nếu người dùng chọn Yes
                     if (choice == JOptionPane.YES_OPTION) {
-
-                        // --- KẾT THÚC SỬA ---
-
-                        dispose(); // Đóng cửa sổ MainGUI hiện tại
-                        // Mở lại cửa sổ đăng nhập (TaiKhoanGUI)
+                        dispose();
                         SwingUtilities.invokeLater(() -> {
                             new TaiKhoanGUI().setVisible(true);
                         });
                     }
                 } else {
-                    // Nếu không phải nút Đăng xuất, chuyển sang card tương ứng
                     showCard(text);
                 }
             }
 
             @Override
             public void mouseEntered(MouseEvent e) {
-                // Đổi màu nền khi rê chuột vào (nếu nút đó không phải là nút đang active)
                 if (buttonPanel != currentActiveButton) {
-                    buttonPanel.setBackground(COLOR_BUTTON_ACTIVE.brighter()); // Màu sáng hơn màu active
+                    buttonPanel.setBackground(COLOR_BUTTON_ACTIVE.brighter());
                 }
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                // Trả lại màu nền mặc định khi rê chuột ra (nếu nút đó không phải là nút đang active)
                 if (buttonPanel != currentActiveButton) {
                     buttonPanel.setBackground(COLOR_ACCENT_BLUE);
                 }
@@ -292,17 +268,26 @@ public class MainGUI extends JFrame {
 
     /**
      * Khởi tạo các panel con và thêm chúng vào CardLayout của mainContentPanel.
+     * Đã sửa để phân biệt Dashboard cho Quản lý và Nhân viên.
      */
     private void setupMainContentPanel() {
-        // --- Panel chung cho mọi vai trò ---
-        mainContentPanel.add(new DashboardGUI(), "Dashboard"); // Panel Dashboard
+        // [ĐÃ SỬA] Logic phân chia Dashboard dựa trên UserRole
+        if ("QUANLY".equalsIgnoreCase(this.userRole)) {
+            // Dashboard thống kê cho Quản Lý
+            mainContentPanel.add(new DashboardGUI(), "Dashboard");
+        } else {
+            // Dashboard cá nhân hóa cho Nhân Viên (Giao ca, Hiệu suất cá nhân)
+            // Truyền mã NV và Tên NV vào để xử lý logic
+            mainContentPanel.add(new EmployeeDashboardGUI(this.maNVDangNhap, this.userName), "Dashboard");
+        }
 
-        VaiTro vaiTroEnum; // Chuyển String role thành Enum VaiTro
+        VaiTro vaiTroEnum;
         if (this.userRole != null && this.userRole.equalsIgnoreCase("QUANLY")) {
             vaiTroEnum = VaiTro.QUANLY;
         } else {
-            vaiTroEnum = VaiTro.NHANVIEN; // Mặc định là nhân viên nếu không phải quản lý
+            vaiTroEnum = VaiTro.NHANVIEN;
         }
+
         // Panel Lịch làm việc (chung)
         mainContentPanel.add(new LichLamViecGUI(vaiTroEnum), "Lịch làm việc");
         // Panel Hóa đơn (chung)
@@ -310,73 +295,36 @@ public class MainGUI extends JFrame {
 
         // --- Panels chỉ dành cho Quản lý ---
         if (VaiTro.QUANLY == vaiTroEnum) {
-            // <<< --- SỬA Ở ĐÂY --- >>>
-            // Thay thế placeholder bằng class GUI thật
             mainContentPanel.add(new DanhMucMonGUI(), "Danh mục món ăn");
-            // <<< --- KẾT THÚC SỬA --- >>>
-
             mainContentPanel.add(new KhuyenMaiGUI(), "Khuyến mãi");
             mainContentPanel.add(new NhanVienGUI(), "Nhân viên");
         }
         // --- Panels chỉ dành cho Nhân viên ---
         else if (VaiTro.NHANVIEN == vaiTroEnum) {
-            // Khởi tạo và thêm DanhSachBanGUI (truyền mã NV)
             this.danhSachBanGUI = new DanhSachBanGUI(this, this.maNVDangNhap);
             mainContentPanel.add(danhSachBanGUI, "Danh sách bàn");
-            // Khởi tạo và thêm KhachHangGUI
             this.khachHangGUI = new KhachHangGUI();
             mainContentPanel.add(this.khachHangGUI, "Thành viên");
         }
     }
 
-
-    /**
-     * Làm mới dữ liệu trên màn hình quản lý khách hàng (Thành viên).
-     * Được gọi từ các panel con (ví dụ: ManHinhDatBanGUI) khi cần cập nhật.
-     */
     public void refreshKhachHangScreen() {
         if (khachHangGUI != null) {
-            khachHangGUI.refreshKhachHangTable(); // Gọi hàm làm mới của KhachHangGUI
-            System.out.println("MainGUI: Đã yêu cầu KhachHangGUI làm mới."); // Log
+            khachHangGUI.refreshKhachHangTable();
+            System.out.println("MainGUI: Đã yêu cầu KhachHangGUI làm mới.");
         } else {
-            // Ghi log nếu panel chưa được tạo (thường do vai trò không phù hợp)
-            System.err.println("MainGUI: KhachHangGUI chưa được khởi tạo (vai trò có thể không phải Nhân viên?).");
+            System.err.println("MainGUI: KhachHangGUI chưa được khởi tạo.");
         }
     }
 
-    /**
-     * Tạo một panel trống với tên chức năng (dùng làm placeholder).
-     * @param name Tên chức năng
-     * @return JPanel placeholder
-     */
-    private JPanel createPlaceholderPanel(String name) {
-        JPanel panel = new JPanel(new GridBagLayout()); // Dùng GridBagLayout để căn giữa dễ dàng
-        panel.setBackground(new Color(244, 247, 252)); // Màu nền nhạt
-        JLabel label = new JLabel("Giao diện chức năng: " + name); // Text hiển thị
-        label.setFont(new Font("Segoe UI", Font.BOLD, 24)); // Font chữ
-        panel.add(label); // Thêm label vào giữa panel
-        return panel;
-    }
-
-    /**
-     * Hiển thị panel con tương ứng với tên chức năng và cập nhật trạng thái active của nút menu.
-     * @param name Tên của card (phải khớp với tên đã dùng khi add vào CardLayout và tên nút menu)
-     */
     private void showCard(String name) {
-        // 1. Chuyển đổi panel hiển thị trong CardLayout
         cardLayout.show(mainContentPanel, name);
-
-        // 2. Cập nhật màu sắc nút menu
-        // Đặt lại màu nền cho nút đang active trước đó (nếu có)
         if (currentActiveButton != null) {
-            currentActiveButton.setBackground(COLOR_ACCENT_BLUE); // Màu nền mặc định
+            currentActiveButton.setBackground(COLOR_ACCENT_BLUE);
         }
-
-        // Tìm và đặt màu nền active cho nút mới được chọn
         currentActiveButton = menuButtons.get(name);
         if (currentActiveButton != null) {
-            currentActiveButton.setBackground(COLOR_BUTTON_ACTIVE); // Màu nền khi active
+            currentActiveButton.setBackground(COLOR_BUTTON_ACTIVE);
         }
     }
-
-} // Kết thúc class MainGUI
+}

@@ -122,7 +122,7 @@ public class HoaDonGUI extends JPanel {
         ImageIcon originalIcon = null;
         try {
             // Cố gắng tải icon từ resources
-            java.net.URL iconURL = getClass().getResource("/img/icon_excel/excel.png");
+            java.net.URL iconURL = getClass().getResource("/img/icon/excel.png");
             if (iconURL != null) {
                 originalIcon = new ImageIcon(iconURL);
             } else {

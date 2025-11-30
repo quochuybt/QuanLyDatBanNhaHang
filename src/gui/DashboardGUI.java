@@ -12,6 +12,7 @@ import org.knowm.xchart.style.markers.SeriesMarkers;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
@@ -143,7 +144,7 @@ public class DashboardGUI extends JPanel {
         btnRefreshData.setForeground(Color.WHITE);
         btnRefreshData.setFocusPainted(false);
         btnRefreshData.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnRefreshData.setIcon(createIcon("/img/icon_common/refresh.png", 16, 16));
+        btnRefreshData.setIcon(createIcon("/img/icon/refresh.png", 16, 16));
         btnRefreshData.addActionListener(e -> loadDashboardData());
         headerPanel.add(btnRefreshData);
 
@@ -531,7 +532,29 @@ public class DashboardGUI extends JPanel {
         pnlStaffPerformanceChart.add(chartPanelWrapper, BorderLayout.CENTER);
     }
 
+    // Thêm vào DashboardGUI của Manager
+    private void showShiftLogDialog() {
+        JDialog logDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Lịch sử Giao Ca & Kiểm tiền", true);
+        logDialog.setSize(800, 500);
+        logDialog.setLocationRelativeTo(this);
 
+        // Tạo bảng hiển thị LichSuGiaoCa
+        String[] columns = {"Mã Ca", "Nhân Viên", "Bắt đầu", "Kết thúc", "Đầu ca", "Cuối ca", "Hệ thống", "Chênh lệch", "Ghi chú"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0);
+        JTable table = new JTable(model);
+
+        // Load data từ DAO (Cần viết thêm hàm getAllGiaoCa trong GiaoCaDAO)
+        // List<GiaoCa> list = giaoCaDAO.getAllGiaoCa();
+        // for (GiaoCa gc : list) {
+        //     double chenhLech = gc.getTienCuoiCa() - gc.getTienDauCa() - gc.getTienHeThongTinh();
+        //     model.addRow(...);
+        // }
+
+        // Highlight dòng có chênh lệch khác 0 bằng CellRenderer (Màu đỏ)
+
+        logDialog.add(new JScrollPane(table));
+        logDialog.setVisible(true);
+    }
     // --- Helper tạo icon (Không đổi) ---
     private ImageIcon createIcon(String path, int width, int height) {
         try {
