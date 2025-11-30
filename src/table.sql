@@ -175,3 +175,17 @@ CREATE TABLE LichSuSuDungKM (
                                 CONSTRAINT FK_LichSu_KhuyenMai FOREIGN KEY (maKM) REFERENCES KhuyenMai(maKM)
 );
 GO
+
+
+CREATE TABLE LichSuGiaoCa (
+    maGiaoCa INT IDENTITY(1,1) PRIMARY KEY,
+    maNV NVARCHAR(20),
+    thoiGianBatDau DATETIME NOT NULL,
+    thoiGianKetThuc DATETIME NULL, -- Null nghĩa là chưa kết ca
+    tienDauCa DECIMAL(18,0) NOT NULL,
+    tienCuoiCa DECIMAL(18,0) NULL,
+    tienHeThongTinh DECIMAL(18,0) NULL, -- Tiền phần mềm tính được từ Hóa đơn
+    chenhLech DECIMAL(18,0) NULL, -- (Tiền cuối ca - Tiền đầu ca - Tiền hệ thống)
+    ghiChu NVARCHAR(255),
+    FOREIGN KEY (maNV) REFERENCES NhanVien(maNV)
+);

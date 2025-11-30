@@ -156,4 +156,27 @@ public class ChiTietHoaDonDAO {
         return topItems;
     }
 
+
+    // Trong ChiTietHoaDonDAO.java
+    public java.util.List<String> getTopMonBanChayTrongNgay() {
+        java.util.List<String> list = new java.util.ArrayList<>();
+        String sql = "SELECT TOP 3 m.tenMon, SUM(ct.soLuong) as SL " +
+                "FROM ChiTietHoaDon ct " +
+                "JOIN HoaDon hd ON ct.maDon = hd.maDon " +
+                "JOIN MonAn m ON ct.maMonAn = m.maMonAn " +
+                "WHERE CAST(hd.ngayLap AS DATE) = CAST(GETDATE() AS DATE) " +
+                "GROUP BY m.tenMon ORDER BY SL DESC";
+        try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
+             java.sql.Statement stmt = conn.createStatement();
+             java.sql.ResultSet rs = stmt.executeQuery(sql)) {
+            int rank = 1;
+            while (rs.next()) {
+                list.add("#" + rank + " " + rs.getString("tenMon") + " (" + rs.getInt("SL") + " suất)");
+                rank++;
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        if (list.isEmpty()) list.add("Chưa có dữ liệu hôm nay");
+        return list;
+    }
+
 } // Kết thúc class ChiTietHoaDonDAO

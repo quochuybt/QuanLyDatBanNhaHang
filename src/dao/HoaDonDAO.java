@@ -235,7 +235,25 @@ public class HoaDonDAO {
         }
         return false;
     }
+    // Thêm vào HoaDonDAO.java
+    public double getDoanhThuTienMatCaHienTai(String maNV, LocalDateTime thoiGianBatDauCa) {
+        double total = 0;
+        // Chỉ tính hóa đơn ĐÃ THANH TOÁN và hình thức là TIỀN MẶT
+        String sql = "SELECT SUM(tienKhachDua - tienThoi) FROM HoaDon " +
+                "WHERE maNV = ? AND ngayLap >= ? " +
+                "AND trangThai = N'Đã thanh toán' " +
+                "AND hinhThucThanhToan = N'Tiền mặt'";
 
+        try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, maNV);
+            ps.setTimestamp(2, java.sql.Timestamp.valueOf(thoiGianBatDauCa));
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) total = rs.getDouble(1);
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return total;
+    }
     /**
      * [SEARCH] - Tìm kiếm hóa đơn theo Mã HD.
      */
@@ -284,7 +302,28 @@ public class HoaDonDAO {
         }
         return hoaDon;
     }
+    // Trong HoaDonDAO.java
 
+    // [ĐÃ SỬA LỖI] Dùng tongTien thay vì (tienKhachDua - tienThoi)
+    public double getDoanhThuTheoHinhThuc(String maNV, LocalDateTime thoiGianBatDauCa, String hinhThuc) {
+        double total = 0;
+        // Sửa: Lấy tổng của cột tongTien
+        String sql = "SELECT SUM(tongTien) FROM HoaDon " +
+                "WHERE maNV = ? AND ngayLap >= ? " +
+                "AND trangThai = N'Đã thanh toán' " +
+                "AND hinhThucThanhToan = ?";
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, maNV);
+            ps.setTimestamp(2, java.sql.Timestamp.valueOf(thoiGianBatDauCa));
+            ps.setString(3, hinhThuc);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) total = rs.getDouble(1);
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return total;
+    }
     // --- CÁC HÀM MỚI CHO DASHBOARD ---
 
     /**
@@ -408,5 +447,6 @@ public class HoaDonDAO {
         }
         return topStaff;
     }
+
 
 } // Kết thúc class HoaDonDAO
