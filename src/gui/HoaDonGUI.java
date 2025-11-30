@@ -3,7 +3,10 @@ package gui;
 import dao.ChiTietHoaDonDAO;
 import dao.HoaDonDAO;
 import dao.MonAnDAO;
-import dao.NhanVienDAO; // <-- IMPORT MỚI
+import dao.NhanVienDAO;
+import dao.DonDatMonDAO; // Giữ nguyên import vì nó được khai báo ở đầu
+import dao.BanDAO;       // Giữ nguyên import vì nó được khai báo ở đầu
+import entity.Ban;       // Giữ nguyên import vì nó được khai báo ở đầu
 import entity.ChiTietHoaDon;
 import entity.HoaDon;
 
@@ -30,7 +33,9 @@ public class HoaDonGUI extends JPanel {
     private final HoaDonDAO hoaDonDAO;
     private final ChiTietHoaDonDAO chiTietHoaDonDAO;
     private final MonAnDAO monAnDAO;
-    private final NhanVienDAO nhanVienDAO; // <-- KHAI BÁO MỚI
+    private final NhanVienDAO nhanVienDAO;
+    private final DonDatMonDAO donDatMonDAO;
+    private final BanDAO banDAO;
 
     private final JTable tableHoaDon;
     private final DefaultTableModel tableModel;
@@ -40,18 +45,26 @@ public class HoaDonGUI extends JPanel {
     private DocumentListener searchListener;
     private Timer searchTimer; // Timer để trì hoãn tìm kiếm khi gõ
 
+    // ⭐ THÊM: Biến Phiên In ⭐
+    private static int printSessionCounter = 0;
+
     // --- Constants ---
     private static final Color COLOR_BG_LIGHT = new Color(244, 247, 252);
     private final String[] columnNames = {"Thời gian thanh toán", "Mã tham chiếu", "Nhân viên", "Ghi chú", "Thanh toán", "Tổng tiền"};
     private final DecimalFormat currencyFormatter = new DecimalFormat("#,##0 ₫"); // Format tiền tệ VNĐ
     private final DateTimeFormatter tableDateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"); // Format ngày giờ cho bảng
 
+    // ⭐ THÊM: Formatter cho Phiếu in (để khớp BillPanel) ⭐
+    private final DateTimeFormatter billDateFormatter = DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy");
+
     public HoaDonGUI() {
         // --- Khởi tạo DAO ---
         this.hoaDonDAO = new HoaDonDAO();
         this.chiTietHoaDonDAO = new ChiTietHoaDonDAO();
         this.monAnDAO = new MonAnDAO();
-        this.nhanVienDAO = new NhanVienDAO(); // Khởi tạo NhanVienDAO
+        this.nhanVienDAO = new NhanVienDAO();
+        this.donDatMonDAO = new DonDatMonDAO(); // Giữ nguyên khởi tạo DAO gốc
+        this.banDAO = new BanDAO();             // Giữ nguyên khởi tạo DAO gốc
         this.dsHoaDonDisplayed = new ArrayList<>(); // Khởi tạo danh sách trống
 
         // --- Cài đặt Layout và Giao diện cơ bản ---
@@ -117,6 +130,7 @@ public class HoaDonGUI extends JPanel {
 
     /**
      * Áp dụng style cho nút Xuất Excel (icon, màu sắc, font chữ).
+     * (GIỮ NGUYÊN CODE GỐC)
      */
     private void styleExportButton(JButton btnExport) {
         ImageIcon originalIcon = null;
@@ -329,7 +343,7 @@ public class HoaDonGUI extends JPanel {
                             tenNV_Thuc, // Hiển thị tên NV
                             ghiChu,
                             hd.getHinhThucThanhToan() != null ? hd.getHinhThucThanhToan() : "N/A",
-                            currencyFormatter.format(hd.getTongTien()) // Format tiền tệ
+                            currencyFormatter.format(hd.getTongThanhToan()) // Sửa để hiển thị tổng thanh toán
                     });
                 } catch (Exception e) {
                     // Ghi log lỗi nếu có vấn đề khi thêm dòng (ví dụ dữ liệu không hợp lệ)
@@ -488,7 +502,24 @@ public class HoaDonGUI extends JPanel {
     }
 
     /**
-     * Hiển thị JDialog chứa thông tin chi tiết của một hóa đơn.
+     * Helper: Truy vấn tên bàn và khu vực từ CSDL.
+     * LƯU Ý: Yêu cầu hàm getMaBanByMaDon(String maDon) phải tồn tại trong DonDatMonDAO.
+     */
+    private String getTenBanVaKhuVuc(String maDon) {
+        String maBan = donDatMonDAO.getMaBanByMaDon(maDon);
+        if (maBan == null) return "N/A";
+
+        // Sử dụng getBanByMa(maBan) từ BanDAO bạn đã cung cấp
+        Ban ban = banDAO.getBanByMa(maBan);
+        if (ban != null) {
+            return ban.getTenBan() + " - " + ban.getKhuVuc();
+        }
+        return maBan;
+    }
+
+
+    /**
+     * Hiển thị JDialog chi tiết và thêm nút In (có logic Phiên In).
      * @param hoaDon Hóa đơn cần hiển thị.
      * @param chiTietList Danh sách chi tiết món ăn của hóa đơn đó.
      */
@@ -501,7 +532,7 @@ public class HoaDonGUI extends JPanel {
             return;
         }
 
-        // --- Xây dựng nội dung HTML cho JEditorPane ---
+        // --- Bắt đầu tạo nội dung HTML cho Dialog Chi tiết ---
         StringBuilder detailsText = new StringBuilder();
         detailsText.append("<html><body style='font-family: Arial; font-size: 11pt;'>"); // Đặt font và size chữ
         detailsText.append("<h2>Chi Tiết Hóa Đơn: ").append(hoaDon.getMaHD()).append("</h2>");
@@ -512,7 +543,7 @@ public class HoaDonGUI extends JPanel {
         detailsText.append("<b>Nhân viên:</b> ").append(tenNV).append(" (").append(hoaDon.getMaNV()).append(")<br>"); // Hiển thị cả tên và mã
         detailsText.append("<br>");
 
-        // Bảng chi tiết món ăn
+        // Bảng chi tiết món ăn (HTML Table)
         detailsText.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse; width:100%; font-size: 10pt;'>"); // Giảm size chữ bảng
         detailsText.append("<tr style='background-color:#f0f0f0;'><th>Mã Món</th><th>Tên Món</th><th>Số Lượng</th><th>Đơn Giá</th><th>Thành Tiền</th></tr>");
 
@@ -557,21 +588,146 @@ public class HoaDonGUI extends JPanel {
         }
         detailsText.append("</body></html>");
 
-        // --- Hiển thị nội dung HTML trong JDialog ---
+        // --- Tạo JDialog Tùy chỉnh ---
         JEditorPane editorPane = new JEditorPane("text/html", detailsText.toString());
         editorPane.setEditable(false); // Không cho sửa
         editorPane.setBackground(COLOR_BG_LIGHT); // Màu nền nhạt
 
         JScrollPane scrollPane = new JScrollPane(editorPane);
-        scrollPane.setPreferredSize(new Dimension(550, 400)); // Kích thước dialog
+        scrollPane.setPreferredSize(new Dimension(650, 450)); // Kích thước dialog chi tiết
 
-        // Hiển thị dialog
-        JOptionPane.showMessageDialog(this, scrollPane, "Chi tiết hóa đơn " + hoaDon.getMaHD(), JOptionPane.INFORMATION_MESSAGE);
+        JDialog detailDialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Chi tiết hóa đơn " + hoaDon.getMaHD(), Dialog.ModalityType.APPLICATION_MODAL);
+        detailDialog.setLayout(new BorderLayout());
+        detailDialog.add(scrollPane, BorderLayout.CENTER);
+
+        // Panel Nút Bấm
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        buttonPanel.setBorder(new EmptyBorder(0, 10, 10, 10));
+
+        JButton btnClose = new JButton("Đóng");
+        btnClose.setFont(new Font("Arial", Font.BOLD, 14));
+        btnClose.addActionListener(e -> detailDialog.dispose());
+
+        // ⭐ THÊM NÚT IN (ÁP DỤNG PHIÊN IN) ⭐
+        JButton btnPrint = new JButton("In Hóa Đơn");
+        btnPrint.setFont(new Font("Arial", Font.BOLD, 14));
+        btnPrint.addActionListener(e -> {
+            printSessionCounter++;
+            showPrintPreviewDialog(
+                    "PHIẾU IN (PHIÊN " + printSessionCounter + ")",
+                    hoaDon,
+                    chiTietList
+            );
+        });
+
+        buttonPanel.add(btnPrint);
+        buttonPanel.add(btnClose);
+
+        detailDialog.add(buttonPanel, BorderLayout.SOUTH);
+        detailDialog.pack();
+        detailDialog.setLocationRelativeTo(this);
+        detailDialog.setVisible(true);
     }
 
     /**
-     * Xử lý sự kiện xuất dữ liệu đang hiển thị trên bảng ra file Excel.
+     * Hiển thị JDialog mô phỏng phiếu in theo cấu trúc BillPanel/xuatPhieuIn.
      */
+    private void showPrintPreviewDialog(String title, HoaDon hoaDon, List<ChiTietHoaDon> dsMon) {
+        if (hoaDon == null || dsMon == null || dsMon.isEmpty()) return;
+
+        // --- 1. Lấy và định dạng các giá trị tiền tệ từ đối tượng HoaDon
+        String tongTienGoc = currencyFormatter.format(hoaDon.getTongTien());
+        String giamGia = currencyFormatter.format(hoaDon.getGiamGia());
+        String vat = currencyFormatter.format(hoaDon.getVat());
+        String tongThanhToan = currencyFormatter.format(hoaDon.getTongThanhToan());
+
+        // Lấy các giá trị phụ
+        String tenNV = nhanVienDAO.getTenNhanVienByMa(hoaDon.getMaNV());
+        boolean daThanhToan = "Đã thanh toán".equalsIgnoreCase(hoaDon.getTrangThai());
+        String tenBanKhuVuc = getTenBanVaKhuVuc(hoaDon.getMaDon());
+
+        // --- 2. Xây dựng nội dung phiếu in (SỬ DỤNG CẤU TRÚC STRING.FORMAT) ---
+        StringBuilder billText = new StringBuilder();
+
+        // --- Header ---
+        billText.append("===================================================\n");
+        billText.append("                   PHIẾU HÓA ĐƠN\n");
+        billText.append("               ").append(title).append("\n");
+        billText.append("===================================================\n");
+        billText.append("Mã HĐ: ").append(hoaDon.getMaHD()).append("\n");
+        billText.append("Ngày:  ").append(hoaDon.getNgayLap().format(billDateFormatter)).append("\n");
+        billText.append("Nhân viên: ").append(tenNV).append("\n");
+        billText.append("Bàn:   ").append(tenBanKhuVuc).append("\n");
+        billText.append("---------------------------------------------------\n");
+
+        // --- Danh sách món ---
+        billText.append(String.format("%-20s %5s %10s %12s\n", "Tên món", "SL", "Đơn giá", "Thành tiền"));
+        billText.append("---------------------------------------------------\n");
+
+        for (ChiTietHoaDon ct : dsMon) {
+            String maMon = ct.getMaMon() != null ? ct.getMaMon() : "N/A";
+            String tenMon = ct.getTenMon() != null ? ct.getTenMon() : monAnDAO.getTenMonByMa(maMon);
+            String tenMonDisplay = tenMon.length() > 18 ? tenMon.substring(0, 17) + "." : tenMon;
+
+            billText.append(String.format("%-20s %5d %10s %12s\n",
+                    tenMonDisplay,
+                    ct.getSoluong(),
+                    currencyFormatter.format(ct.getDongia()),
+                    currencyFormatter.format(ct.getThanhtien())));
+        }
+        billText.append("---------------------------------------------------\n");
+
+        // --- Tổng kết ---
+        billText.append(String.format("%-28s %20s\n", "Tổng cộng (Gốc):", tongTienGoc));
+        if (hoaDon.getGiamGia() > 0) {
+            billText.append(String.format("%-28s %20s\n", "Giảm giá:", giamGia));
+        }
+        if (hoaDon.getVat() > 0) {
+            billText.append(String.format("%-28s %20s\n", "VAT:", vat));
+        }
+
+        billText.append("===================================================\n");
+        billText.append(String.format("%-28s %20s\n", "TỔNG THANH TOÁN:", tongThanhToan));
+
+        // --- Phần thêm cho Hóa đơn đã thanh toán ---
+        if (daThanhToan) {
+            String tienKhachDua = currencyFormatter.format(hoaDon.getTienKhachDua());
+            String tienThoi = currencyFormatter.format(hoaDon.getTienThoi());
+
+            billText.append(String.format("%-28s %20s\n", "Hình thức:", hoaDon.getHinhThucThanhToan()));
+            billText.append(String.format("%-28s %20s\n", "Tiền khách đưa:", tienKhachDua));
+            billText.append(String.format("%-28s %20s\n", "Tiền thối lại:", tienThoi));
+            billText.append("---------------------------------------------------\n");
+            billText.append("               XIN CẢM ƠN VÀ HẸN GẶP LẠI!       \n");
+        } else {
+            billText.append("\n(Phiếu này chỉ để kiểm tra, đã thanh toán)\n");
+        }
+        billText.append("===================================================\n");
+
+        // --- 2. Hiển thị JDialog ---
+        JDialog previewDialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Xem trước in: " + hoaDon.getMaHD(), Dialog.ModalityType.APPLICATION_MODAL);
+        previewDialog.setSize(420, 600);
+        previewDialog.setLocationRelativeTo(this);
+
+        JTextArea textArea = new JTextArea(billText.toString());
+        textArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        textArea.setEditable(false);
+        textArea.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        JScrollPane scrollPane = new JScrollPane(textArea);
+
+        JButton btnClose = new JButton("Đóng");
+        btnClose.addActionListener(e -> previewDialog.dispose());
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        buttonPanel.add(btnClose);
+
+        previewDialog.add(scrollPane, BorderLayout.CENTER);
+        previewDialog.add(buttonPanel, BorderLayout.SOUTH);
+
+        previewDialog.setVisible(true);
+    }
+
     private void exportDataToExcel() {
         // Lấy danh sách hóa đơn đang hiển thị trên bảng
         List<HoaDon> listToExport = this.dsHoaDonDisplayed;
