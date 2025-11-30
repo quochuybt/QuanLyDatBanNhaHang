@@ -5,7 +5,7 @@ import entity.DonDatMon;
 
 import java.sql.*;
 import java.time.LocalDateTime;
-import java.util.ArrayList; // Thêm import
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -30,6 +30,26 @@ public class DonDatMonDAO {
         ddm.setThoiGianDen(thoiGianDen);
         ddm.setTrangThai(trangThai);
         return ddm;
+    }
+    public String getMaBanByMaDon(String maDon) {
+        String maBan = null;
+        String sql = "SELECT maBan FROM DonDatMon WHERE maDon = ?";
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maDon);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    maBan = rs.getString("maBan");
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi khi lấy maBan theo maDon: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return maBan;
     }
 
     /**
