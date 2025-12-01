@@ -97,33 +97,37 @@ public class HoaDonDAO {
         }
         return false;
     }
-    public boolean thanhToanHoaDon(String maHD, float tienKhachDua, String hinhThucThanhToan) {
-        String sql = "UPDATE HoaDon SET trangThai = N'Đã thanh toán', tienKhachDua = ?, hinhThucThanhToan = ? " +
-                "WHERE maHD = ? AND trangThai = N'Chưa thanh toán'"; // Chỉ cập nhật HĐ chưa thanh toán
-        Connection conn = null; // Khai báo ngoài try để dùng cho transaction (nếu cần)
-        PreparedStatement ps = null;
-        boolean success = false;
+    public boolean thanhToanHoaDon(String maHD, double tienKhachDua, String hinhThucTT, double tienGiamGia, String maKM) {
+        // Câu lệnh SQL cần cập nhật thêm cột giamGia và maKM
+        String sql = "UPDATE HoaDon SET " +
+                "trangThai = N'Đã thanh toán', " +
+                "tienKhachDua = ?, " +
+                "hinhThucThanhToan = ?, " +
+                "giamGia = ?, " +   // <-- THÊM CỘT NÀY
+                "maKM = ? " +       // <-- THÊM CỘT NÀY
+                "WHERE maHD = ?";
 
-        try {
-            conn = SQLConnection.getConnection();
-            ps = conn.prepareStatement(sql);
-            ps.setFloat(1, tienKhachDua);
-            ps.setString(2, hinhThucThanhToan);
-            ps.setString(3, maHD);
+        try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            int rowsAffected = ps.executeUpdate();
-            success = (rowsAffected > 0);
+            ps.setDouble(1, tienKhachDua);
+            ps.setString(2, hinhThucTT);
+            ps.setDouble(3, tienGiamGia); // <-- Set giá trị giảm giá
 
-        } catch (SQLException e) {
-            System.err.println("Lỗi SQL khi thanh toán hóa đơn " + maHD + ": " + e.getMessage());
+            // Xử lý maKM (có thể null)
+            if (maKM != null && !maKM.isEmpty()) {
+                ps.setString(4, maKM);
+            } else {
+                ps.setNull(4, java.sql.Types.NVARCHAR);
+            }
+
+            ps.setString(5, maHD);
+
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
             e.printStackTrace();
-            success = false;
-        } finally {
-            // Đóng PreparedStatement
-            try { if (ps != null) ps.close(); } catch (SQLException ex) {}
-            // Không đóng connection nếu nó được quản lý bởi Singleton
+            return false;
         }
-        return success;
     }
     public boolean capNhatTongTien(String maHD, float tongTienMoi) {
         // Giả sử cột tổng tiền trong bảng HoaDon tên là tongTien
@@ -163,11 +167,9 @@ public class HoaDonDAO {
 
         hd.setTienKhachDua(tienKhachDua);
         hd.setTongTienTuDB(tongTien); // Gán tổng tiền gốc
-
-        // Cần tính toán lại tổng thanh toán thực tế nếu DB không lưu
-        // Hoặc nếu DB có cột tongThanhToan, hãy lấy ở đây
-        // float tongThanhToan = rs.getFloat("tongThanhToan");
-        // hd.setTongThanhToan(tongThanhToan); // Cần setter trong entity HoaDon
+        hd.setGiamGia(rs.getFloat("giamGia"));
+        hd.setVat(0);
+        hd.capNhatTongThanhToanTuCacThanhPhan();
 
         return hd;
     }
@@ -233,7 +235,25 @@ public class HoaDonDAO {
         }
         return false;
     }
+    // Thêm vào HoaDonDAO.java
+    public double getDoanhThuTienMatCaHienTai(String maNV, LocalDateTime thoiGianBatDauCa) {
+        double total = 0;
+        // Chỉ tính hóa đơn ĐÃ THANH TOÁN và hình thức là TIỀN MẶT
+        String sql = "SELECT SUM(tienKhachDua - tienThoi) FROM HoaDon " +
+                "WHERE maNV = ? AND ngayLap >= ? " +
+                "AND trangThai = N'Đã thanh toán' " +
+                "AND hinhThucThanhToan = N'Tiền mặt'";
 
+        try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, maNV);
+            ps.setTimestamp(2, java.sql.Timestamp.valueOf(thoiGianBatDauCa));
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) total = rs.getDouble(1);
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return total;
+    }
     /**
      * [SEARCH] - Tìm kiếm hóa đơn theo Mã HD.
      */
@@ -282,7 +302,28 @@ public class HoaDonDAO {
         }
         return hoaDon;
     }
+    // Trong HoaDonDAO.java
 
+    // [ĐÃ SỬA LỖI] Dùng tongTien thay vì (tienKhachDua - tienThoi)
+    public double getDoanhThuTheoHinhThuc(String maNV, LocalDateTime thoiGianBatDauCa, String hinhThuc) {
+        double total = 0;
+        // Sửa: Lấy tổng của cột tongTien
+        String sql = "SELECT SUM(tongTien) FROM HoaDon " +
+                "WHERE maNV = ? AND ngayLap >= ? " +
+                "AND trangThai = N'Đã thanh toán' " +
+                "AND hinhThucThanhToan = ?";
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, maNV);
+            ps.setTimestamp(2, java.sql.Timestamp.valueOf(thoiGianBatDauCa));
+            ps.setString(3, hinhThuc);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) total = rs.getDouble(1);
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return total;
+    }
     // --- CÁC HÀM MỚI CHO DASHBOARD ---
 
     /**
@@ -406,5 +447,6 @@ public class HoaDonDAO {
         }
         return topStaff;
     }
+
 
 } // Kết thúc class HoaDonDAO

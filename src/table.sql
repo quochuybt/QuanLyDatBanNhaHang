@@ -112,6 +112,8 @@ CREATE TABLE PhanCongCa (
 CREATE TABLE DonDatMon (
     maDon NVARCHAR(20) PRIMARY KEY,
     ngayKhoiTao DATETIME NOT NULL DEFAULT GETDATE(),
+    thoiGianDen DATETIME NULL,
+    trangThai NVARCHAR(50) NOT NULL DEFAULT N'Chưa thanh toán',
     maNV NVARCHAR(20) NOT NULL,
     maKH NVARCHAR(20) NULL,
     maBan NVARCHAR(10) NULL,
@@ -140,6 +142,7 @@ CREATE TABLE HoaDon (
     trangThai NVARCHAR(50) NOT NULL,
     hinhThucThanhToan NVARCHAR(50),
     tienKhachDua DECIMAL(18, 2),
+    giamGia DECIMAL(18, 2) NULL DEFAULT 0,
 
     maNV NVARCHAR(20) NOT NULL,
     maKM NVARCHAR(20) NULL,
@@ -154,7 +157,7 @@ GO
 ALTER TABLE DanhMucMon
 ADD CONSTRAINT FK_DanhMucMon_NhanVien FOREIGN KEY (maNV) REFERENCES NhanVien(maNV);
 GO
-//mấy bạn thêm đoạn này cập nhật Km nha
+
 USE StarGuardianDB;
 GO
 ALTER TABLE KhuyenMai
@@ -172,3 +175,17 @@ CREATE TABLE LichSuSuDungKM (
                                 CONSTRAINT FK_LichSu_KhuyenMai FOREIGN KEY (maKM) REFERENCES KhuyenMai(maKM)
 );
 GO
+
+
+CREATE TABLE LichSuGiaoCa (
+    maGiaoCa INT IDENTITY(1,1) PRIMARY KEY,
+    maNV NVARCHAR(20),
+    thoiGianBatDau DATETIME NOT NULL,
+    thoiGianKetThuc DATETIME NULL, -- Null nghĩa là chưa kết ca
+    tienDauCa DECIMAL(18,0) NOT NULL,
+    tienCuoiCa DECIMAL(18,0) NULL,
+    tienHeThongTinh DECIMAL(18,0) NULL, -- Tiền phần mềm tính được từ Hóa đơn
+    chenhLech DECIMAL(18,0) NULL, -- (Tiền cuối ca - Tiền đầu ca - Tiền hệ thống)
+    ghiChu NVARCHAR(255),
+    FOREIGN KEY (maNV) REFERENCES NhanVien(maNV)
+);

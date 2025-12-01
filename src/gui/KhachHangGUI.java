@@ -16,8 +16,10 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-// Đổi tên từ JPanel_ThanhVien thành KhachHangGUI
 public class KhachHangGUI extends JPanel {
+
+    // 🌟 THAY ĐỔI MỚI 1: Thêm biến static để lưu trữ đối tượng KhachHangGUI đang hoạt động
+    private static KhachHangGUI instance;
 
     // --- Định nghĩa màu sắc ---
     private static final Color COLOR_BACKGROUND = new Color(244, 247, 252);
@@ -46,6 +48,9 @@ public class KhachHangGUI extends JPanel {
     public KhachHangGUI() {
         this.khachHangDAO = new KhachHangDAO();
 
+        // 🌟 THAY ĐỔI MỚI 2: Lưu tham chiếu của chính nó khi tạo đối tượng
+        instance = this;
+
         setLayout(new BorderLayout(10, 15));
         setBackground(COLOR_BACKGROUND);
         setBorder(new EmptyBorder(15, 20, 15, 20));
@@ -66,6 +71,16 @@ public class KhachHangGUI extends JPanel {
         lamMoiForm();
     }
 
+    // 🌟 THAY ĐỔI MỚI 3: Phương thức static để các class khác gọi làm mới
+    public static void reloadKhachHangTableIfAvailable() {
+        if (instance != null) {
+            SwingUtilities.invokeLater(() -> {
+                instance.refreshKhachHangTable();
+            });
+        }
+    }
+
+
     // =========================================================================
     // I. LOGIC TẢI DỮ LIỆU & RENDER
     // =========================================================================
@@ -74,21 +89,15 @@ public class KhachHangGUI extends JPanel {
      * Tải dữ liệu từ danh sách (được lấy từ DAO) lên JTable
      */
     public void refreshKhachHangTable() {
-        System.out.println("KhachHangGUI: Yêu cầu làm mới bảng khách hàng..."); // Debug
+        System.out.println("KhachHangGUI: Yêu cầu làm mới bảng khách hàng...");
         try {
-            // 1. Gọi DAO để lấy danh sách khách hàng mới nhất
             List<KhachHang> dsKhachHangMoi = khachHangDAO.getAllKhachHang();
-
-            // 2. Gọi hàm loadDataToTable để cập nhật JTable
             loadDataToTable(dsKhachHangMoi);
-
-            // 3. (Tùy chọn) Có thể gọi làm mới form nếu muốn
-            // lamMoiForm(); // Bỏ comment nếu muốn form cũng reset
-
+            this.revalidate();
+            this.repaint();
         } catch (Exception e) {
             System.err.println("Lỗi khi làm mới bảng khách hàng: " + e.getMessage());
             e.printStackTrace();
-            // Có thể hiển thị thông báo lỗi cho người dùng
             JOptionPane.showMessageDialog(this,
                     "Lỗi khi làm mới danh sách khách hàng.",
                     "Lỗi CSDL",
@@ -116,7 +125,6 @@ public class KhachHangGUI extends JPanel {
         }
     }
 
-    // ... (Lớp HangThanhVienRenderer giữ nguyên) ...
     private class HangThanhVienRenderer extends DefaultTableCellRenderer {
 
         private Color getBackgroundColor(HangThanhVien hang) {
@@ -190,11 +198,20 @@ public class KhachHangGUI extends JPanel {
             @Override
             public void mouseClicked(MouseEvent e) {
                 int row = tblKhachHang.getSelectedRow();
+                if (row == -1 && tblKhachHang.getRowCount() > 0) {
+                    Point p = e.getPoint();
+                    row = tblKhachHang.rowAtPoint(p);
+                }
+
                 if (row == -1) return;
 
-                khachHangDangChon = dsKhachHang.get(row);
+                String maKHTuBang = (String) modelKhachHang.getValueAt(row, 1);
+
+                khachHangDangChon = dsKhachHang.stream()
+                        .filter(kh -> kh.getMaKH().equals(maKHTuBang))
+                        .findFirst().orElse(null);
+
                 hienThiChiTiet(khachHangDangChon);
-                tblKhachHang.clearSelection();
             }
         });
     }
@@ -244,7 +261,7 @@ public class KhachHangGUI extends JPanel {
 
             if (success) {
                 JOptionPane.showMessageDialog(this, "Thêm khách hàng thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                loadDataToTable(khachHangDAO.getAllKhachHang());
+                refreshKhachHangTable();
                 lamMoiForm();
             } else {
                 JOptionPane.showMessageDialog(this, "Thêm khách hàng thất bại (Mã KH có thể bị trùng hoặc lỗi CSDL)!", "Lỗi", JOptionPane.ERROR_MESSAGE);
@@ -274,7 +291,7 @@ public class KhachHangGUI extends JPanel {
 
             if (success) {
                 JOptionPane.showMessageDialog(this, "Cập nhật khách hàng thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                loadDataToTable(khachHangDAO.getAllKhachHang());
+                refreshKhachHangTable();
                 lamMoiForm();
             } else {
                 JOptionPane.showMessageDialog(this, "Cập nhật khách hàng thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
@@ -293,22 +310,25 @@ public class KhachHangGUI extends JPanel {
             return;
         }
 
+        String maKHToDelete = khachHangDangChon.getMaKH();
+
+        // Giữ lại logic cảnh báo ràng buộc khóa ngoại
         int confirm = JOptionPane.showConfirmDialog(this,
-                "Bạn có chắc chắn muốn xóa khách hàng " + khachHangDangChon.getTenKH() + " (Mã: " + khachHangDangChon.getMaKH() + ")?",
+                "Bạn có chắc chắn muốn xóa khách hàng " + khachHangDangChon.getTenKH() + " (Mã: " + maKHToDelete + ")?",
                 "Xác nhận xóa",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.QUESTION_MESSAGE);
 
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                boolean success = khachHangDAO.xoaKhachHang(khachHangDangChon.getMaKH());
+                boolean success = khachHangDAO.xoaKhachHang(maKHToDelete);
 
                 if (success) {
                     JOptionPane.showMessageDialog(this, "Xóa khách hàng thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                    loadDataToTable(khachHangDAO.getAllKhachHang());
+                    refreshKhachHangTable();
                     lamMoiForm();
                 } else {
-                    JOptionPane.showMessageDialog(this, "Xóa khách hàng thất bại (Có thể do ràng buộc khóa ngoại hoặc không tìm thấy mã)!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Xóa khách hàng thất bại! Khách hàng này đã phát sinh giao dịch (Hóa đơn/Đơn đặt món) nên không thể xóa.", "Lỗi Ràng Buộc Dữ Liệu", JOptionPane.ERROR_MESSAGE);
                 }
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Lỗi khi xóa: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
@@ -327,7 +347,6 @@ public class KhachHangGUI extends JPanel {
 
             if (ketQua.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Không tìm thấy khách hàng nào phù hợp.", "Kết quả tìm kiếm", JOptionPane.INFORMATION_MESSAGE);
-                loadDataToTable(khachHangDAO.getAllKhachHang());
             } else {
                 loadDataToTable(ketQua);
                 lamMoiForm();
@@ -365,15 +384,12 @@ public class KhachHangGUI extends JPanel {
         ));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL; // Các ô nhập liệu sẽ lấp đầy chiều ngang
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(5, 5, 5, 5);
 
         int row = 0;
 
-        // --- Thiết lập trọng số MỚI ---
-        // Cột Labels (0 và 2) sẽ có trọng số nhỏ để chia đều không gian thừa Label
-        final double WEIGHT_LABEL = 0.01; // Trọng số nhỏ, chỉ để cân bằng chiều rộng 2 cột Label
-        // Cột Input Fields (1 và 3) sẽ có trọng số lớn để chia đều không gian Input
+        final double WEIGHT_LABEL = 0.01;
         final double WEIGHT_INPUT = 1.0;
 
         // Hàng 0: Mã khách hàng / Ngày sinh

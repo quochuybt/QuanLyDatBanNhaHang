@@ -163,11 +163,12 @@ public class HoaDon {
     public void setTongTienTuDB(float tongTien) {
         // Khi load từ DB, cột tongTien thường là tổng cuối cùng
         this.tongTien = tongTien;
-
-        // 🌟 SỬA: Gán tongThanhToan bằng tongTien từ DB (giả định là tổng cuối)
-        this.tongThanhToan = tongTien;
+        this.tongThanhToan = this.tongTien - this.giamGia + this.vat;
     }
-
+    public void capNhatTongThanhToanTuCacThanhPhan() {
+        this.tongThanhToan = this.tongTien - this.giamGia + this.vat;
+        if (this.tongThanhToan < 0) this.tongThanhToan = 0;
+    }
     public void setMaKH(String maKH) {
         this.maKH = maKH;
     }
@@ -200,7 +201,7 @@ public class HoaDon {
     public float getTongTien() { return tongTien; } // Tổng món ăn
     public float getGiamGia() { return giamGia; }
     public float getVat() { return vat; }
-    public float getTongThanhToan() { return tongThanhToan; } // Tiền phải trả
+    public float getTongThanhToan() { return tongThanhToan;} // Tiền phải trả
 
     // (Bỏ các hàm set, validate, phatSinhMaHD... cũ để đơn giản hóa)
     public void setGiamGia(float giamGia) {

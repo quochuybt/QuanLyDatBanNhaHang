@@ -76,6 +76,24 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
                 }
             }
         });
+        ActionListener[] defaultDatBanListeners = btnTabDatBan.getActionListeners();
+        for (ActionListener al : defaultDatBanListeners) {
+            btnTabDatBan.removeActionListener(al);
+        }
+
+        // Thêm listener mới
+        btnTabDatBan.addActionListener(e -> {
+            if (btnTabDatBan.isSelected()) {
+                // 1. Chuyển màn hình
+                contentCardLayout.show(contentCardPanel, "MAN_HINH_DAT_BAN");
+                updateTopNavButtonStyles();
+
+                // 2. Yêu cầu ManHinhDatBanGUI tải lại dữ liệu mới nhất từ CSDL
+                if (manHinhDatBanGUI != null) {
+                    manHinhDatBanGUI.refreshData(); // <-- GỌI HÀM NÀY
+                }
+            }
+        });
         // --- Thêm các nút tab vào ButtonGroup và Panel ---
         topNavGroup.add(btnTabBan);
         topNavGroup.add(btnTabGoiMon);

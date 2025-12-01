@@ -13,7 +13,23 @@ import java.util.List;
 
 public class NhanVienDAO {
 
-    // LƯU Ý: Đã xóa toPascalCase. Ghi/Đọc Vai trò (trường hợp này là chữ hoa) được xử lý bằng name()/toUpperCase().
+    // Hàm tiện ích để ánh xạ ResultSet vào đối tượng NhanVien
+    private NhanVien mapResultSetToNhanVien(ResultSet rs) throws SQLException {
+        NhanVien nv = new NhanVien();
+        nv.setManv(rs.getString("manv"));
+        nv.setHoten(rs.getString("hoTen"));
+        // Lưu ý: Sử dụng LocalDate, cần dùng rs.getDate().toLocalDate()
+        nv.setNgaysinh(rs.getDate("ngaySinh").toLocalDate());
+        nv.setGioitinh(rs.getString("gioiTinh"));
+        nv.setSdt(rs.getString("sdt"));
+        nv.setDiachi(rs.getString("diaChi"));
+        nv.setNgayvaolam(rs.getDate("ngayVaoLam").toLocalDate());
+        nv.setLuong(rs.getFloat("luong"));
+        // Đọc enum từ chuỗi trong DB (cần TRIM để loại bỏ khoảng trắng dư thừa)
+        nv.setVaiTro(VaiTro.valueOf(rs.getString("vaiTro").toUpperCase().trim()));
+        nv.setTenTK(rs.getString("tenTK"));
+        return nv;
+    }
 
     // =================================================================
     // CÁC HÀM XỬ LÝ ĐỌC CSDL (SELECT)
@@ -30,18 +46,7 @@ public class NhanVienDAO {
              ResultSet rs = pstmt.executeQuery()) {
 
             while (rs.next()) {
-                NhanVien nv = new NhanVien();
-                nv.setManv(rs.getString("manv"));
-                nv.setHoten(rs.getString("hoTen"));
-                nv.setNgaysinh(rs.getDate("ngaySinh").toLocalDate());
-                nv.setGioitinh(rs.getString("gioiTinh"));
-                nv.setSdt(rs.getString("sdt"));
-                nv.setDiachi(rs.getString("diaChi"));
-                nv.setNgayvaolam(rs.getDate("ngayVaoLam").toLocalDate());
-                nv.setLuong(rs.getFloat("luong"));
-                nv.setVaiTro(VaiTro.valueOf(rs.getString("vaiTro").toUpperCase().trim()));
-                nv.setTenTK(rs.getString("tenTK"));
-                ds.add(nv);
+                ds.add(mapResultSetToNhanVien(rs)); // Tái sử dụng hàm ánh xạ
             }
         } catch (SQLException e) {
             throw new RuntimeException("Lỗi truy vấn CSDL NhanVien: " + e.getMessage(), e);
@@ -60,18 +65,7 @@ public class NhanVienDAO {
             pstmt.setString(1, maNV);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
-                    NhanVien nv = new NhanVien();
-                    nv.setManv(rs.getString("manv"));
-                    nv.setHoten(rs.getString("hoTen"));
-                    nv.setNgaysinh(rs.getDate("ngaySinh").toLocalDate());
-                    nv.setGioitinh(rs.getString("gioiTinh"));
-                    nv.setSdt(rs.getString("sdt"));
-                    nv.setDiachi(rs.getString("diaChi"));
-                    nv.setNgayvaolam(rs.getDate("ngayVaoLam").toLocalDate());
-                    nv.setLuong(rs.getFloat("luong"));
-                    nv.setVaiTro(VaiTro.valueOf(rs.getString("vaiTro").toUpperCase().trim()));
-                    nv.setTenTK(rs.getString("tenTK"));
-                    return nv;
+                    return mapResultSetToNhanVien(rs); // Tái sử dụng hàm ánh xạ
                 }
             }
         } catch (SQLException e) {
@@ -80,12 +74,57 @@ public class NhanVienDAO {
         return null;
     }
 
+    /**
+     * Tìm kiếm nhân viên theo Tên (Tìm kiếm tương đối - LIKE).
+     */
+    public List<NhanVien> searchNhanVienByName(String keyword) {
+        List<NhanVien> ds = new ArrayList<>();
+        // Sử dụng LIKE để tìm kiếm gần đúng, và LOWER() để không phân biệt chữ hoa/thường
+        String sql = "SELECT manv, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, tenTK FROM NhanVien WHERE LOWER(hoTen) LIKE ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, "%" + keyword.toLowerCase().trim() + "%"); // Đặt tham số cho LIKE
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    ds.add(mapResultSetToNhanVien(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Lỗi truy vấn tìm kiếm NhanVien theo Tên: " + e.getMessage(), e);
+        }
+        return ds;
+    }
+
+    /**
+     * Lấy danh sách nhân viên theo Vai trò (Chính xác).
+     */
+    public List<NhanVien> getNhanVienByRole(VaiTro vaiTro) {
+        List<NhanVien> ds = new ArrayList<>();
+        String sql = "SELECT manv, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, tenTK FROM NhanVien WHERE vaiTro = ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, vaiTro.name()); // Vai trò (Enum) được lưu bằng name()
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    ds.add(mapResultSetToNhanVien(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Lỗi truy vấn NhanVien theo Vai trò: " + e.getMessage(), e);
+        }
+        return ds;
+    }
+
     // =================================================================
     // CÁC HÀM XỬ LÝ GHI CSDL (INSERT/UPDATE/DELETE)
     // =================================================================
 
     /**
-     * THÊM NHÂN VIÊN VÀ TÀI KHOẢN (Đã sửa lỗi thứ tự INSERT Khóa ngoại)
+     * THÊM NHÂN VIÊN VÀ TÀI KHOẢN
      */
     public boolean addNhanVienAndAccount(NhanVien nv, String tenTK, String plainPassword) {
         Connection conn = null;
@@ -153,7 +192,8 @@ public class NhanVienDAO {
     }
 
     /**
-     * CẬP NHẬT THÔNG TIN NHÂN VIÊN VÀ TÀI KHOẢN (Đã sửa lỗi Khóa ngoại)
+     * CẬP NHẬT THÔNG TIN NHÂN VIÊN VÀ TÀI KHOẢN
+     * [ĐÃ SỬA LỖI]: Đảo ngược thứ tự update FK trước, PK sau để tránh lỗi REFERENCES constraint.
      */
     public boolean updateNhanVienAndAccount(NhanVien nv, String oldTenTK, String newTenTK, String newPlainPassword) {
         Connection conn = null;
@@ -165,25 +205,31 @@ public class NhanVienDAO {
             // BƯỚC 1: XỬ LÝ VIỆC ĐỔI TÊN TÀI KHOẢN (PK -> FK)
             if (!oldTenTK.equals(newTenTK)) {
 
-                // 1a. Cập nhật Khóa chính (TaiKhoan) TRƯỚC
+                // 1a. Cập nhật Khóa ngoại (NhanVien.tenTK) TRƯỚC (từ OLD_TK sang NEW_TK)
+                String sqlUpdateNhanVienFK = "UPDATE NhanVien SET tenTK = ? WHERE maNV = ? AND tenTK = ?";
+                try (PreparedStatement pstmtUpdateNhanVienFK = conn.prepareStatement(sqlUpdateNhanVienFK)) {
+                    pstmtUpdateNhanVienFK.setString(1, newTenTK);
+                    pstmtUpdateNhanVienFK.setString(2, nv.getManv());
+                    pstmtUpdateNhanVienFK.setString(3, oldTenTK);
+                    if (pstmtUpdateNhanVienFK.executeUpdate() == 0) {
+                        throw new SQLException("Update NhanVien FK failed: tenTK was NOT updated.");
+                    }
+                }
+
+                // 1b. Cập nhật Khóa chính (TaiKhoan.tenTK) SAU (từ OLD_TK sang NEW_TK)
                 String sqlUpdateTK = "UPDATE TaiKhoan SET tenTK = ? WHERE tenTK = ?";
                 try (PreparedStatement pstmtUpdateTK = conn.prepareStatement(sqlUpdateTK)) {
                     pstmtUpdateTK.setString(1, newTenTK);
                     pstmtUpdateTK.setString(2, oldTenTK);
-                    if (pstmtUpdateTK.executeUpdate() == 0) throw new SQLException("Update TaiKhoan failed: could not change tenTK.");
-                }
-
-                // 1b. Cập nhật Khóa ngoại (NhanVien) SAU
-                String sqlUpdateNhanVienFK = "UPDATE NhanVien SET tenTK = ? WHERE maNV = ?";
-                try (PreparedStatement pstmtUpdateNhanVienFK = conn.prepareStatement(sqlUpdateNhanVienFK)) {
-                    pstmtUpdateNhanVienFK.setString(1, newTenTK);
-                    pstmtUpdateNhanVienFK.setString(2, nv.getManv());
-                    if (pstmtUpdateNhanVienFK.executeUpdate() == 0) throw new SQLException("Update NhanVien FK failed: tenTK was changed in TaiKhoan but not NhanVien.");
+                    if (pstmtUpdateTK.executeUpdate() == 0) {
+                        throw new SQLException("Update TaiKhoan failed: could not change tenTK.");
+                    }
                 }
             }
 
             // BƯỚC 2: CẬP NHẬT THÔNG TIN CHUNG CỦA NHÂN VIÊN VÀ MẬT KHẨU
-            // 2a. Cập nhật NhanVien
+
+            // 2a. Cập nhật NhanVien (bao gồm các thông tin cá nhân và tenTK mới/cũ)
             String sqlNV = "UPDATE NhanVien SET hoTen=?, ngaySinh=?, gioiTinh=?, sdt=?, diaChi=?, luong=?, vaiTro=?, tenTK=? WHERE maNV=?";
             try (PreparedStatement pstmtNV = conn.prepareStatement(sqlNV)) {
                 pstmtNV.setString(1, nv.getHoten());
@@ -193,6 +239,7 @@ public class NhanVienDAO {
                 pstmtNV.setString(5, nv.getDiachi());
                 pstmtNV.setFloat(6, nv.getLuong());
                 pstmtNV.setString(7, nv.getVaiTro().name());
+                // Luôn sử dụng newTenTK (hoặc oldTenTK nếu không đổi tên)
                 pstmtNV.setString(8, newTenTK);
                 pstmtNV.setString(9, nv.getManv());
 
@@ -243,8 +290,7 @@ public class NhanVienDAO {
             conn = SQLConnection.getConnection();
             conn.setAutoCommit(false);
 
-            // BƯỚC 1: XÓA DỮ LIỆU LIÊN QUAN (BẮT BUỘC)
-            // (Giả sử bạn đã thiết lập ON DELETE CASCADE trong DB hoặc phải xóa thủ công tại đây)
+            // BƯỚC 1: XÓA DỮ LIỆU LIÊN QUAN (Giả định FK cần xóa thủ công)
 
             // 1a. Xóa PhanCongCa (FK_PhanCong_NhanVien)
             String sqlDeletePCC = "DELETE FROM PhanCongCa WHERE maNV = ?";
@@ -274,7 +320,7 @@ public class NhanVienDAO {
             try (PreparedStatement pstmtTK = conn.prepareStatement(sqlDeleteTK)) {
                 pstmtTK.setString(1, tenTK);
                 if (pstmtTK.executeUpdate() == 0) {
-                    // LƯU Ý: Không ném exception ở đây nếu tài khoản đã bị xóa do ON DELETE CASCADE, chỉ cần log
+                    // Log: Có thể tài khoản đã bị xóa nếu DB có ON DELETE CASCADE
                 }
             }
 
@@ -301,12 +347,14 @@ public class NhanVienDAO {
             }
         }
     }
+
+    /**
+     * Lấy tên nhân viên dựa trên mã NV (Không thay đổi)
+     */
     public String getTenNhanVienByMa(String maNV) {
-        // Giả sử tên cột trong bảng NhanVien là 'maNV' và 'hoTen'
         String sql = "SELECT hoTen FROM NhanVien WHERE maNV = ?";
         String tenNV = "N/A (Lỗi CSDL)";
 
-        // Nếu mã NV là null, trả về lỗi ngay
         if (maNV == null || maNV.trim().isEmpty()) {
             return "N/A (Thiếu Mã NV)";
         }
@@ -318,16 +366,36 @@ public class NhanVienDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    tenNV = rs.getString("hoTen"); // Lấy giá trị cột hoTen
+                    tenNV = rs.getString("hoTen");
                 } else {
-                    tenNV = "N/A (" + maNV + ")"; // Không tìm thấy mã NV này
+                    tenNV = "N/A (" + maNV + ")";
                 }
             }
         } catch (SQLException e) {
             System.err.println("Lỗi SQL khi lấy tên NV " + maNV + ": " + e.getMessage());
             e.printStackTrace();
-            // tenNV vẫn là "N/A (Lỗi CSDL)"
         }
         return tenNV;
+    }
+    public List<NhanVien> searchNhanVienBySdt(String keyword) {
+        List<NhanVien> ds = new ArrayList<>();
+        // Sử dụng LIKE để tìm kiếm gần đúng, tìm kiếm chuỗi keyword trong cột sdt
+        String sql = "SELECT manv, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, tenTK FROM NhanVien WHERE sdt LIKE ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            // Đặt tham số cho LIKE, %keyword% cho phép tìm kiếm bất kỳ đâu trong SĐT
+            pstmt.setString(1, "%" + keyword.trim() + "%");
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    ds.add(mapResultSetToNhanVien(rs));
+                }
+            }
+        } catch (SQLException e) {
+            // Nên ném RuntimeException để xử lý ở tầng trên
+            throw new RuntimeException("Lỗi truy vấn tìm kiếm NhanVien theo SĐT: " + e.getMessage(), e);
+        }
+        return ds;
     }
 }

@@ -1,20 +1,23 @@
+// File: BillPanel.java
+
 package gui;
 
-import dao.BanDAO;
+import dao.*;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+
 import entity.ChiTietHoaDon;
 import entity.HoaDon;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.util.Locale;
-import dao.ChiTietHoaDonDAO;
-import dao.HoaDonDAO;
 import java.time.format.DateTimeFormatter;
 import entity.Ban;
 import entity.TrangThaiBan;
+import entity.KhachHang; // Import KhachHang
 
 import javax.swing.table.DefaultTableModel;
 import java.util.ArrayList;
@@ -43,35 +46,56 @@ public class BillPanel extends JPanel {
     private JButton btnLuuMon, btnInTamTinh, btnThanhToan;
 
     private ManHinhGoiMonGUI parentGoiMonGUI;
+    private ManHinhBanGUI parentBanGUI;
     private ChiTietHoaDonDAO chiTietDAO;
     private HoaDonDAO hoaDonDAO;
     private BanDAO banDAO;
+
+    private KhachHangDAO khachHangDAO;
+    private KhuyenMaiDAO maKhuyenMaiDAO;
 
     private long currentTotal = 0; // Lưu tổng tiền (dạng số)
     private JPanel suggestedCashPanel; // Panel chứa 6 nút
     private final JButton[] suggestedCashButtons = new JButton[6];
     private final NumberFormat nf = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
-
     public BillPanel(ManHinhGoiMonGUI parent) {
-        super(new BorderLayout(0, 10)); // Gap 10px
-        this.parentGoiMonGUI = parent; // <-- Lưu lại parent
-        this.chiTietDAO = new ChiTietHoaDonDAO(); // Khởi tạo DAO
+        super(new BorderLayout(0, 10));
+        this.parentGoiMonGUI = parent;
+        initCommon();
+    }
+    public BillPanel(ManHinhBanGUI parent) {
+        super(new BorderLayout(0, 10));
+        this.parentBanGUI = parent;
+        initCommon();
+    }
+    public BillPanel() {
+        this((ManHinhGoiMonGUI) null);
+    }
+    private void initCommon() {
+        this.chiTietDAO = new ChiTietHoaDonDAO();
         this.hoaDonDAO = new HoaDonDAO();
         this.banDAO = new BanDAO();
+        this.khachHangDAO = new KhachHangDAO();
+        this.maKhuyenMaiDAO = new KhuyenMaiDAO();
 
         setBackground(Color.WHITE);
         JPanel checkoutPanel = createCheckoutPanel();
-        add(checkoutPanel, BorderLayout.SOUTH); // Thanh toán ở dưới
+        add(checkoutPanel, BorderLayout.SOUTH);
 
-        if (parent != null) {
-            btnLuuMon.addActionListener(e -> xuLyLuuMon_Clicked());
+        // SỬA ĐIỀU KIỆN: Nếu có 1 trong 2 parent thì bật nút
+        if (parentGoiMonGUI != null || parentBanGUI != null) {
             btnInTamTinh.addActionListener(e -> hienThiXemTamTinh());
             btnThanhToan.addActionListener(e -> xuLyThanhToan());
-            // Có thể thêm listener cho các nút khác ở đây nếu cần parent
+
+            // Nút Lưu Món chỉ bật ở màn hình Gọi Món
+            if (parentGoiMonGUI != null) {
+                btnLuuMon.addActionListener(e -> xuLyLuuMon_Clicked());
+            } else {
+                btnLuuMon.setEnabled(false); // Ở màn Bàn thì tắt nút Lưu
+            }
         } else {
-            // Vô hiệu hóa các nút không cần thiết nếu dùng trong ManHinhBanGUI
             btnLuuMon.setEnabled(false);
-            btnInTamTinh.setEnabled(false); // Hoặc viết logic riêng cho nút này
+            btnInTamTinh.setEnabled(false);
             btnThanhToan.setEnabled(false);
         }
 
@@ -119,126 +143,215 @@ public class BillPanel extends JPanel {
     private void xuLyThanhToan() {
         System.out.println("Xử lý Thanh Toán..."); // Debug
 
+        Ban banHienTai = null;
+        HoaDon activeHoaDon = null;
         // 1. Kiểm tra parent và lấy dữ liệu
-        if (parentGoiMonGUI == null) return;
-        Ban banHienTai = parentGoiMonGUI.getBanHienTai();
-        HoaDon activeHoaDon = parentGoiMonGUI.getActiveHoaDon(); // Lấy HĐ mới nhất
-        DefaultTableModel model = parentGoiMonGUI.getModelChiTietHoaDon();
-
+        if (parentGoiMonGUI != null) {
+            banHienTai = parentGoiMonGUI.getBanHienTai();
+            activeHoaDon = parentGoiMonGUI.getActiveHoaDon();
+        } else if (parentBanGUI != null) {
+            banHienTai = parentBanGUI.getSelectedTable();
+            activeHoaDon = parentBanGUI.getActiveHoaDon();
+        }
         if (banHienTai == null || activeHoaDon == null) {
-            JOptionPane.showMessageDialog(this, "Chưa có bàn hoặc hóa đơn hợp lệ để thanh toán!", "Lỗi Thanh Toán", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Chưa có bàn/hóa đơn hợp lệ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        if (model.getRowCount() == 0) {
-            JOptionPane.showMessageDialog(this, "Hóa đơn trống, không thể thanh toán!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-            return;
+        if (parentGoiMonGUI != null) {
+            // Nếu ở màn hình Gọi Món: Phải LƯU trước
+            if (parentGoiMonGUI.getModelChiTietHoaDon().getRowCount() == 0) return;
+            if (!luuMonAnVaoCSDL(false)) return; // Lưu thất bại thì dừng
+            parentGoiMonGUI.updateBillPanelTotals(); // Update lại tiền
+        } else if (parentBanGUI != null) {
+            List<ChiTietHoaDon> dsMon = chiTietDAO.getChiTietTheoMaDon(activeHoaDon.getMaDon());
+            activeHoaDon.setDsChiTiet(dsMon);
+            activeHoaDon.tinhLaiGiamGiaVaTongTien(khachHangDAO, maKhuyenMaiDAO);
+            this.currentTotal = (long) activeHoaDon.getTongThanhToan();
+            loadBillTotals((long)activeHoaDon.getTongTien(), (long)activeHoaDon.getGiamGia(),
+                    (long)activeHoaDon.getVat(), (long)activeHoaDon.getTongThanhToan(), 0);
         }
-
-        // 🌟 BƯỚC SỬA: GỌI LƯU MÓN để đảm bảo TỔNG TIỀN được tính và lưu vào CSDL/currentTotal
-        boolean luuThanhCong = luuMonAnVaoCSDL(false);
-        if (!luuThanhCong) {
-            return; // Dừng thanh toán nếu lưu thất bại
-        }
-
-        parentGoiMonGUI.updateBillPanelTotals();
-        System.out.println("Đã cập nhật totals trước khi thanh toán.");
 
         // 2. Validate Tiền Khách Trả
         long tienKhachTraLong = 0;
         // Lấy tổng tiền đã được cập nhật từ xuLyLuuMon() -> loadBillTotals() -> updateSuggestedCash()
+        String maHDCuoiCung = activeHoaDon.getMaHD();
         long tongPhaiTraLong = this.currentTotal;
 
         try {
             String khachTraStr = txtKhachTra.getText().replace(",", "").replace(".", "");
             tienKhachTraLong = Long.parseLong(khachTraStr);
             if (tienKhachTraLong < tongPhaiTraLong) {
-                JOptionPane.showMessageDialog(this, "Tiền khách đưa không đủ!\n(Cần ít nhất: " + nf.format(tongPhaiTraLong) + ")", "Lỗi Thanh Toán", JOptionPane.WARNING_MESSAGE);
-                txtKhachTra.requestFocus();
-                txtKhachTra.selectAll();
-                return; // Dừng lại
+                JOptionPane.showMessageDialog(this, "Tiền khách đưa không đủ!", "Lỗi", JOptionPane.WARNING_MESSAGE);
+                return;
             }
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Số tiền khách trả không hợp lệ!", "Lỗi Thanh Toán", JOptionPane.WARNING_MESSAGE);
-            txtKhachTra.requestFocus();
-            txtKhachTra.selectAll();
-            return; // Dừng lại
+            JOptionPane.showMessageDialog(this, "Số tiền không hợp lệ!", "Lỗi", JOptionPane.WARNING_MESSAGE);
+            return;
         }
 
         // 3. Xác nhận (Tùy chọn)
         long tienThoiLong = tienKhachTraLong - tongPhaiTraLong;
         int confirm = JOptionPane.showConfirmDialog(this,
-                String.format("Xác nhận thanh toán cho bàn %s?\n\nTổng cộng: %s\nTiền khách đưa: %s\nTiền thối: %s\n\nXác nhận thanh toán?",
+                String.format("Xác nhận thanh toán cho %s?\nTổng: %s\nKhách đưa: %s\nTiền thối: %s",
                         banHienTai.getTenBan(),
-                        lblTongThanhToan.getText(), // Lấy từ label đã format
+                        nf.format(tongPhaiTraLong),
                         nf.format(tienKhachTraLong),
                         nf.format(tienThoiLong)),
-                "Xác nhận thanh toán",
-                JOptionPane.YES_NO_OPTION);
+                "Xác nhận", JOptionPane.YES_NO_OPTION);
 
-        if (confirm != JOptionPane.YES_OPTION) {
-            return; // Người dùng không đồng ý
-        }
+        if (confirm != JOptionPane.YES_OPTION) return;
 
         // 4. Cập nhật CSDL
-        boolean thanhToanOK = false;
-        boolean updateBanOK = false;
         try {
-            // Lấy hình thức thanh toán (Cần lấy từ ManHinhBanGUI nếu combobox ở đó, tạm dùng Tiền mặt)
-            String hinhThucTT = "Tiền mặt"; // TODO: Lấy hình thức TT đúng
+            String hinhThucTT = "Tiền mặt"; // Nên lấy từ Combobox bên ManHinhBanGUI nếu có thể
+            double tienGiamGia = activeHoaDon.getGiamGia();
+            String maKM = activeHoaDon.getMaKM();
+            long tongThanhToanFinal = this.currentTotal;
 
-            // Gọi DAO cập nhật Hóa đơn
-            // Lưu ý: activeHoaDon.getMaHD() vẫn là mã hóa đơn gốc, tổng tiền đã được cập nhật trong CSDL ở bước 1.
-            thanhToanOK = hoaDonDAO.thanhToanHoaDon(activeHoaDon.getMaHD(), tienKhachTraLong, hinhThucTT);
+            boolean thanhToanOK = hoaDonDAO.thanhToanHoaDon(
+                    maHDCuoiCung,
+                    tienKhachTraLong, // Tiền khách đưa (ví dụ 80k)
+                    hinhThucTT,
+                    tienGiamGia,      // Truyền giảm giá (ví dụ 20k)
+                    maKM              // Truyền mã KM
+            );
+
             if (thanhToanOK) {
 
-                // Đổi trạng thái object Ban thành Trống
+                // 🌟 THAY ĐỔI MỚI: CẬP NHẬT TỔNG CHI TIÊU KHÁCH HÀNG
+                String maKH = activeHoaDon.getMaKH();
+                if (maKH != null && !maKH.trim().isEmpty()) {
+                    KhachHang khachHang = khachHangDAO.timTheoMaKH(maKH);
+                    if (khachHang != null && khachHang.getHangThanhVien() != entity.HangThanhVien.NONE) {
+                        // Chỉ cập nhật nếu không phải là khách vãng lai (NONE)
+                        float soTienCongThem = (float) tongThanhToanFinal;
+
+                        // 1. Cập nhật Tổng chi tiêu và Hạng thành viên trong Object
+                        khachHang.capNhatTongChiTieu(soTienCongThem);
+
+                        // 2. Lưu cập nhật xuống CSDL
+                        if (khachHangDAO.updateKhachHang(khachHang)) {
+                            System.out.println("Cập nhật KH " + maKH + " thành công. Tổng chi tiêu mới: " + khachHang.getTongChiTieu());
+
+                            // ⭐ GỌI LỆNH LÀM MỚI BẢNG KHÁCH HÀNG ⭐
+                            KhachHangGUI.reloadKhachHangTableIfAvailable();
+                            // ----------------------------------------
+
+                        } else {
+                            System.err.println("Lỗi CSDL khi cập nhật Khách Hàng: " + maKH);
+                        }
+                    }
+                }
+                // ------------------------------------------------------------------
+
+                // Cập nhật Bàn
                 banHienTai.setTrangThai(TrangThaiBan.TRONG);
-                banHienTai.setGioMoBan(null); // Reset giờ
+                banHienTai.setGioMoBan(null);
+                banDAO.updateBan(banHienTai);
 
-                // Gọi BanDAO để cập nhật CSDL
-                System.out.println("Đang cập nhật trạng thái Bàn " + banHienTai.getMaBan() + " về TRONG..."); // Debug
-                updateBanOK = banDAO.updateBan(banHienTai); // <-- GỌI LẠI Ở ĐÂY
-
-                if (!updateBanOK) {
-                    System.err.println("LỖI: Thanh toán HĐ OK nhưng không cập nhật được trạng thái Bàn!");
-                    JOptionPane.showMessageDialog(this, "Lỗi khi cập nhật trạng thái bàn sau thanh toán!", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
-                    // Tiếp tục chạy để cập nhật UI, nhưng cần ghi log lỗi
-                } else {
-                    System.out.println("Cập nhật trạng thái Bàn thành công."); // Debug
+                // Lấy danh sách món để in
+                List<ChiTietHoaDon> listToPrint = activeHoaDon.getDsChiTiet();
+                if (listToPrint == null || listToPrint.isEmpty()) {
+                    // Fallback nếu null
+                    listToPrint = getCurrentDetailList();
                 }
 
-                // TODO: Cập nhật Tổng chi tiêu Khách hàng (nếu cần)
 
+                // In Hóa Đơn
+                xuatPhieuIn("HÓA ĐƠN THANH TOÁN", true, tienKhachTraLong, tienThoiLong, activeHoaDon.getMaHD(), listToPrint);
+
+                // Refresh Giao Diện
+                if (parentGoiMonGUI != null) {
+                    parentGoiMonGUI.xoaThongTinGoiMon();
+                    if (parentGoiMonGUI.getParentDanhSachBanGUI() != null) {
+                        parentGoiMonGUI.getParentDanhSachBanGUI().refreshManHinhBan();
+                    }
+                } else if (parentBanGUI != null) {
+                    parentBanGUI.refreshTableList();
+                    clearBill();
+                }
+                maKM = activeHoaDon.getMaKM();
+                maKH = activeHoaDon.getMaKH();
+
+                // Chỉ ghi nhận nếu có mã KM và có khách hàng (nếu áp dụng cho KH cụ thể)
+                // Nếu mã áp dụng cho mọi người thì có thể maKH là null hoặc mã khách vãng lai
+                if (maKM != null && !maKM.isEmpty()) {
+
+                    // Nếu maKH null (khách vãng lai chưa lưu), bạn có thể truyền một giá trị mặc định hoặc xử lý tùy nghiệp vụ
+                    String maKHGhiNhan = (maKH != null) ? maKH : "KH_VANGLAI";
+
+                    // Gọi DAO để tăng số lượng và lưu lịch sử
+                    maKhuyenMaiDAO.ghiNhanSuDung(maKM, maKHGhiNhan);
+
+                    System.out.println("Đã ghi nhận lượt dùng cho mã: " + maKM);
+                }
+                // ------------------------------------------------
+
+                // ... (Các logic sau thanh toán: In hóa đơn, reset giao diện...) ...
+                JOptionPane.showMessageDialog(this, "Thanh toán thành công!");
             } else {
-                JOptionPane.showMessageDialog(this, "Thanh toán hóa đơn thất bại trong CSDL!", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Lỗi cập nhật CSDL!", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
             }
         } catch (Exception ex) {
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi hệ thống khi thực hiện thanh toán:\n" + ex.getMessage(), "Lỗi Hệ Thống", JOptionPane.ERROR_MESSAGE);
-            return; // Dừng nếu có lỗi
+            JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
 
-        // 5. Cập nhật Giao Diện (Chỉ khi thanh toán HĐ thành công)
-        if (thanhToanOK) {
-            // Thông báo thành công
-            xuatPhieuIn("HÓA ĐƠN THANH TOÁN", true, tienKhachTraLong, tienThoiLong);
-            // Xóa trắng màn hình gọi món
-            parentGoiMonGUI.xoaThongTinGoiMon();
-
-            // Yêu cầu màn hình Bàn cập nhật lại
-            if (parentGoiMonGUI.getParentDanhSachBanGUI() != null) {
-                System.out.println("Đang gọi refreshManHinhBan...");
-                parentGoiMonGUI.getParentDanhSachBanGUI().refreshManHinhBan();
-            }
-        }
     }
     private void xuLyLuuMon_Clicked() {
         // Gọi hàm lưu với tham số true để hiện thông báo thành công
         boolean luuThanhCong = luuMonAnVaoCSDL(true);
     }
-    public BillPanel() {
-        // Gọi constructor kia với parent là null
-        this(null);
+    private List<ChiTietHoaDon> getCurrentDetailList() {
+        List<ChiTietHoaDon> list = new ArrayList<>();
+
+        if (parentGoiMonGUI != null) {
+            // --- TRƯỜNG HỢP 1: Lấy từ JTable ---
+            DefaultTableModel model = parentGoiMonGUI.getModelChiTietHoaDon();
+            String maDon = null;
+            if(parentGoiMonGUI.getActiveHoaDon() != null) {
+                maDon = parentGoiMonGUI.getActiveHoaDon().getMaDon();
+            }
+
+            for (int i = 0; i < model.getRowCount(); i++) {
+                try {
+                    // 1. Lấy Mã Món một cách an toàn (tránh NullPointer)
+                    Object maMonObj = model.getValueAt(i, 1);
+                    String maMon = (maMonObj != null) ? maMonObj.toString().trim() : "";
+
+                    // 2. QUAN TRỌNG: Nếu mã món rỗng, bỏ qua dòng này ngay lập tức
+                    if (maMon.isEmpty()) {
+                        System.err.println("Dòng " + i + " trong bảng bị thiếu mã món, bỏ qua.");
+                        continue;
+                    }
+
+                    String tenMon = (String) model.getValueAt(i, 2);
+                    Integer soLuong = (Integer) model.getValueAt(i, 3);
+                    Float donGia = (Float) model.getValueAt(i, 4);
+
+                    // Validate số liệu cơ bản
+                    if (soLuong == null) soLuong = 1;
+                    if (donGia == null) donGia = 0f;
+
+                    // 3. Tạo object (Lúc này maMon chắc chắn có dữ liệu)
+                    ChiTietHoaDon ct = new ChiTietHoaDon(maDon, maMon, soLuong, donGia);
+                    ct.setTenMon(tenMon);
+                    list.add(ct);
+
+                } catch (Exception e) {
+                    System.err.println("Lỗi khi đọc dòng " + i + " từ bảng: " + e.getMessage());
+                    // Không ném lỗi ra ngoài để tránh crash chương trình
+                }
+            }
+        }
+        else if (parentBanGUI != null) {
+            // --- TRƯỜNG HỢP 2: Lấy từ CSDL ---
+            HoaDon hd = parentBanGUI.getActiveHoaDon();
+            if (hd != null) {
+                list = chiTietDAO.getChiTietTheoMaDon(hd.getMaDon());
+            }
+        }
+        return list;
     }
     private boolean luuMonAnVaoCSDL(boolean hienThongBaoThanhCong) {
         System.out.println("Xử lý Lưu Món..."); // Debug
@@ -419,17 +532,13 @@ public class BillPanel extends JPanel {
 
         return mainPanel;
     }
-    private void xuatPhieuIn(String tieuDe, boolean daThanhToan, long tienKhachDua, long tienThoi) {
+    private void xuatPhieuIn(String tieuDe, boolean daThanhToan, long tienKhachDua, long tienThoi,String maHD, List<ChiTietHoaDon> dsMon) {
         // 1. Kiểm tra dữ liệu đầu vào
-        if (parentGoiMonGUI == null) return;
-        Ban banHienTai = parentGoiMonGUI.getBanHienTai();
-        HoaDon activeHoaDon = parentGoiMonGUI.getActiveHoaDon();
-        DefaultTableModel model = parentGoiMonGUI.getModelChiTietHoaDon();
+        Ban banHienTai = null;
+        if (parentGoiMonGUI != null) banHienTai = parentGoiMonGUI.getBanHienTai();
+        else if (parentBanGUI != null) banHienTai = parentBanGUI.getSelectedTable();
 
-        if (banHienTai == null || model.getRowCount() == 0) {
-            // (Thông báo lỗi nếu cần, nhưng thường nút sẽ bị disable hoặc đã check trước đó)
-            return;
-        }
+        if (banHienTai == null || dsMon == null || dsMon.isEmpty()) return;
 
         // 2. Tạo nội dung hóa đơn
         StringBuilder billText = new StringBuilder();
@@ -439,7 +548,7 @@ public class BillPanel extends JPanel {
         billText.append("===================================================\n");
         billText.append("                   ").append(tieuDe).append("\n");
         billText.append("===================================================\n");
-        billText.append("Mã HĐ: ").append(activeHoaDon != null ? activeHoaDon.getMaHD() : "---").append("\n");
+        billText.append("Mã HĐ: ").append(maHD != null ? maHD : "---").append("\n");
         billText.append("Ngày:  ").append(LocalDateTime.now().format(dtf)).append("\n");
         billText.append("Bàn:   ").append(banHienTai.getTenBan()).append(" - ").append(banHienTai.getKhuVuc()).append("\n");
         // Nếu có khách hàng thì hiện tên
@@ -450,16 +559,12 @@ public class BillPanel extends JPanel {
         billText.append(String.format("%-20s %5s %10s %12s\n", "Tên món", "SL", "Đơn giá", "Thành tiền"));
         billText.append("---------------------------------------------------\n");
 
-        for (int i = 0; i < model.getRowCount(); i++) {
-            String tenMon = (String) model.getValueAt(i, 2);
-            int soLuong = (int) model.getValueAt(i, 3);
-            float donGia = (float) model.getValueAt(i, 4);
-            float thanhTien = (float) model.getValueAt(i, 5);
-
+        for (ChiTietHoaDon ct : dsMon) {
+            String tenMon = ct.getTenMon() != null ? ct.getTenMon() : ct.getMaMon(); // Fallback nếu thiếu tên
             String tenMonDisplay = tenMon.length() > 18 ? tenMon.substring(0, 17) + "." : tenMon;
 
             billText.append(String.format("%-20s %5d %10s %12s\n",
-                    tenMonDisplay, soLuong, nf.format(donGia), nf.format(thanhTien)));
+                    tenMonDisplay, ct.getSoluong(), nf.format(ct.getDongia()), nf.format(ct.getThanhtien())));
         }
         billText.append("---------------------------------------------------\n");
 
@@ -513,8 +618,16 @@ public class BillPanel extends JPanel {
         previewDialog.setVisible(true);
     }
     private void hienThiXemTamTinh() {
-        // Gọi hàm chung với cờ daThanhToan = false
-        xuatPhieuIn("PHIẾU TẠM TÍNH", false, 0, 0);
+        HoaDon hd = null;
+        if (parentGoiMonGUI != null) hd = parentGoiMonGUI.getActiveHoaDon();
+        else if (parentBanGUI != null) hd = parentBanGUI.getActiveHoaDon();
+
+        if (hd != null) {
+            String maHD = hd.getMaHD();
+            // Lấy list món dùng hàm helper
+            List<ChiTietHoaDon> listToPrint = getCurrentDetailList();
+            xuatPhieuIn("PHIẾU TẠM TÍNH", false, 0, 0, maHD, listToPrint);
+        }
     }
     private long roundUpToNearest(long number, long nearest) {
         if (nearest <= 0) return number;
