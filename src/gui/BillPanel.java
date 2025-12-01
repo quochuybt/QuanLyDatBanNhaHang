@@ -285,10 +285,6 @@ public class BillPanel extends JPanel {
 
                     System.out.println("Đã ghi nhận lượt dùng cho mã: " + maKM);
                 }
-                // ------------------------------------------------
-
-                // ... (Các logic sau thanh toán: In hóa đơn, reset giao diện...) ...
-                JOptionPane.showMessageDialog(this, "Thanh toán thành công!");
             } else {
                 JOptionPane.showMessageDialog(this, "Lỗi cập nhật CSDL!", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
             }

@@ -237,7 +237,7 @@ public class KhachHangGUI extends JPanel {
         LocalDate ngayThamGia = LocalDate.parse(ngayTGStr, dtf);
 
         float tongChiTieu = 0.0f;
-        HangThanhVien hangTV = HangThanhVien.NONE;
+        HangThanhVien hangTV = HangThanhVien.MEMBER;
 
         if (!isNew && khachHangDangChon != null) {
             tongChiTieu = khachHangDangChon.getTongChiTieu();
