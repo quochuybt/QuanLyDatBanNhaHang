@@ -91,9 +91,8 @@ public class DonDatMon {
     }
 
     public void setMaDon(String maDon) throws IllegalArgumentException {
-        // Ràng buộc 1.1: Dãy gồm 7 kí tự DONXXXX
-        if (maDon == null || !maDon.matches("^DON\\d{4}$")) {
-            throw new IllegalArgumentException("Mã đơn không hợp lệ. Phải có dạng DONXXXX (XXXX là 4 chữ số).");
+        if (maDon == null || maDon.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã đơn không được rỗng.");
         }
         this.maDon = maDon;
     }

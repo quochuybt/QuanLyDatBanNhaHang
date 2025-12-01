@@ -806,9 +806,9 @@ public class ManHinhDatBanGUI extends JPanel {
      * Xử lý logic khi bấm nút "ĐẶT BÀN".
      */
     private void xuLyDatBan() {
-        // 1. Validate dữ liệu
+        // 1. Validate dữ liệu (Giữ nguyên)
         if (dsBanDaChon.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn một bàn!", "Chưa chọn bàn", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn bàn!", "Chưa chọn bàn", JOptionPane.WARNING_MESSAGE);
             return;
         }
         String sdt = txtSDTKhach.getText().trim();
@@ -823,190 +823,123 @@ public class ManHinhDatBanGUI extends JPanel {
             txtHoTenKhach.requestFocus();
             return;
         }
-        // Validate thời gian (cần chuẩn hóa)
+        // Validate thời gian
         LocalDateTime thoiGianDat = null;
         try {
-            // Lấy Date từ spinner
             Date selectedDate = (Date) dateSpinner.getValue();
             Date selectedTime = (Date) timeSpinner.getValue();
-
-            // Dùng Calendar để kết hợp ngày và giờ
             Calendar dateCal = Calendar.getInstance();
             dateCal.setTime(selectedDate);
-
             Calendar timeCal = Calendar.getInstance();
             timeCal.setTime(selectedTime);
-
-            // Đặt giờ, phút, giây từ timeCal vào dateCal
             dateCal.set(Calendar.HOUR_OF_DAY, timeCal.get(Calendar.HOUR_OF_DAY));
             dateCal.set(Calendar.MINUTE, timeCal.get(Calendar.MINUTE));
-            dateCal.set(Calendar.SECOND, 0); // Đặt giây = 0
-
-            // Chuyển Calendar kết hợp sang LocalDateTime
+            dateCal.set(Calendar.SECOND, 0);
             thoiGianDat = dateCal.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
 
-            // Kiểm tra thời gian phải trong tương lai
             if (thoiGianDat.isBefore(LocalDateTime.now())) {
-                JOptionPane.showMessageDialog(this, "Thời gian đặt phải trong tương lai!", "Lỗi nhập liệu", JOptionPane.WARNING_MESSAGE);
-                return; // Dừng lại
+                JOptionPane.showMessageDialog(this, "Thời gian đặt phải trong tương lai!", "Lỗi", JOptionPane.WARNING_MESSAGE);
+                return;
             }
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Ngày hoặc giờ không hợp lệ!", "Lỗi nhập liệu", JOptionPane.WARNING_MESSAGE);
-            ex.printStackTrace(); // In lỗi ra console để debug
-            return; // Dừng lại
+            ex.printStackTrace();
+            return;
         }
-
 
         // 2. Tìm hoặc Tạo Khách Hàng
         entity.KhachHang kh = khachHangDAO.timTheoSDT(sdt);
         String maKHCanDung;
+
         if (kh == null) {
-            // Nếu không tìm thấy khách hàng với SĐT này -> Khách hàng mới
-            // Hiển thị hộp thoại hỏi có muốn thêm thành viên không
-            int choice = JOptionPane.showConfirmDialog(
-                    this,
-                    "Khách hàng mới với SĐT '" + sdt + "'.\nBạn có muốn thêm khách hàng này làm thành viên (Hạng MEMBER) không?",
-                    "Xác nhận thêm khách hàng",
-                    JOptionPane.YES_NO_CANCEL_OPTION, // Thêm nút Cancel
-                    JOptionPane.QUESTION_MESSAGE
-            );
+            // Logic tạo khách mới (Giữ nguyên logic của bạn)
+            int choice = JOptionPane.showConfirmDialog(this,
+                    "Khách hàng mới (" + sdt + "). Thêm vào danh sách thành viên?",
+                    "Khách mới", JOptionPane.YES_NO_CANCEL_OPTION);
 
-            if (choice == JOptionPane.YES_OPTION) {
-                // --- Người dùng chọn CÓ (Thêm làm MEMBER) ---
-                // Tạo khách hàng mới
-                kh = new entity.KhachHang(); // Dùng constructor mặc định tự sinh mã KH
-                kh.setTenKH(tenKH);          // Lấy tên từ ô nhập
-                kh.setSdt(sdt);              // Lấy SĐT từ ô nhập
-                kh.setHangThanhVien(entity.HangThanhVien.MEMBER); // Đặt hạng MEMBER
-                // Đặt các giá trị mặc định khác nếu cần (Entity của bạn có thể đã làm)
-                kh.setGioitinh("Khác"); // Hoặc một giá trị mặc định khác
-                kh.setNgaySinh(java.time.LocalDate.of(2000, 1, 1)); // Mặc định
-                kh.setDiaChi("");
-                kh.setEmail(null);
-                kh.setTongChiTieu(0);
-                kh.setNgayThamGia(java.time.LocalDate.now());
+            if (choice == JOptionPane.CANCEL_OPTION) return;
 
-                // Gọi DAO để thêm vào CSDL
-                boolean themOK = khachHangDAO.themKhachHang(kh);
-                if (themOK) {
-                    maKHCanDung = kh.getMaKH(); // Lấy mã KH vừa tạo
-                    JOptionPane.showMessageDialog(this, "Đã thêm khách hàng mới với hạng MEMBER.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                    if (mainGUI_DatBan != null) {
-                        mainGUI_DatBan.refreshKhachHangScreen(); // <-- GỌI HÀM CỦA MAIN GUI
-                    }
-                } else {
-                    JOptionPane.showMessageDialog(this, "Lỗi khi thêm khách hàng mới vào CSDL!", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
-                    return; // Dừng xử lý nếu không thêm được KH
-                }
+            kh = new entity.KhachHang();
+            kh.setTenKH(tenKH);
+            kh.setSdt(sdt);
+            // Mặc định NONE hoặc MEMBER tùy lựa chọn
+            kh.setHangThanhVien(choice == JOptionPane.YES_OPTION ? entity.HangThanhVien.MEMBER : entity.HangThanhVien.NONE);
+            // Các trường bắt buộc khác (tránh lỗi SQL)
+            kh.setGioitinh("Khác");
+            kh.setNgaySinh(java.time.LocalDate.of(2000,1,1));
+            kh.setNgayThamGia(java.time.LocalDate.now());
 
-            } else if (choice == JOptionPane.NO_OPTION) {
-                // --- Người dùng chọn KHÔNG (Thêm làm NONE) ---
-                // Tạo khách hàng mới
-                kh = new entity.KhachHang();
-                kh.setTenKH(tenKH);
-                kh.setSdt(sdt);
-                kh.setHangThanhVien(entity.HangThanhVien.NONE); // Đặt hạng NONE
-                // Đặt các giá trị mặc định khác
-                kh.setGioitinh("Khác");
-                kh.setNgaySinh(java.time.LocalDate.of(2000, 1, 1));
-                kh.setDiaChi("");
-                kh.setEmail(null);
-                kh.setTongChiTieu(0);
-                kh.setNgayThamGia(java.time.LocalDate.now());
-
-                // Gọi DAO để thêm vào CSDL
-                boolean themOK = khachHangDAO.themKhachHang(kh);
-                if (themOK) {
-                    maKHCanDung = kh.getMaKH(); // Lấy mã KH vừa tạo
-                    JOptionPane.showMessageDialog(this, "Đã thêm khách hàng mới (không phải thành viên).", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                    if (mainGUI_DatBan != null) {
-                        mainGUI_DatBan.refreshKhachHangScreen(); // <-- THÊM Ở ĐÂY
-                    }
-                } else {
-                    JOptionPane.showMessageDialog(this, "Lỗi khi thêm khách hàng mới vào CSDL!", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
-                    return; // Dừng xử lý
-                }
-
+            if (khachHangDAO.themKhachHang(kh)) {
+                maKHCanDung = kh.getMaKH();
             } else {
-                // Người dùng bấm Cancel hoặc đóng hộp thoại
-                JOptionPane.showMessageDialog(this, "Đã hủy thao tác đặt bàn.", "Hủy bỏ", JOptionPane.INFORMATION_MESSAGE);
-                return; // Dừng xử lý đặt bàn
+                JOptionPane.showMessageDialog(this, "Lỗi thêm khách hàng!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
             }
         } else {
-            // Nếu khách hàng đã tồn tại (tìm thấy theo SĐT)
-            maKHCanDung = kh.getMaKH(); // Lấy mã KH đã có
-            // (Không cần cập nhật tên KH ở đây trừ khi bạn muốn cho phép sửa)
+            maKHCanDung = kh.getMaKH();
         }
 
-
-        // 3 & 4. Tạo Đơn và Gọi DAO cho TỪNG BÀN
+        // --- 3. XỬ LÝ ĐẶT BÀN (QUAN TRỌNG: SỬA LOGIC TẠO ĐƠN) ---
         boolean tatCaThanhCong = true;
 
+        // Nếu chọn nhiều bàn (Ghép), ta cần đánh dấu
+        boolean isGhepBan = dsBanDaChon.size() > 1;
+        Ban banChinh = dsBanDaChon.get(0); // Chọn bàn đầu tiên làm bàn chính để tham chiếu
+
         for (Ban ban : dsBanDaChon) {
-            // Tạo đơn cho bàn này
             entity.DonDatMon ddm = new entity.DonDatMon();
             ddm.setNgayKhoiTao(LocalDateTime.now());
             ddm.setThoiGianDen(thoiGianDat);
-            ddm.setMaNV("NV01102");
-            ddm.setMaKH(maKHCanDung);
-            ddm.setMaBan(ban.getMaBan()); // Set từng bàn
+            ddm.setMaNV("NV01102"); // Nên lấy từ Session đăng nhập
+            ddm.setMaKH(maKHCanDung); // Quan trọng: Phải lưu mã KH để sau này tìm lại được
+            ddm.setMaBan(ban.getMaBan());
 
-            // Với bàn ghép, nên ghi chú thêm vào
-            if (dsBanDaChon.size() > 1) {
-                String ghiChuGhep = "Ghép với ";
-                for (Ban bKhac : dsBanDaChon) {
-                    if (!bKhac.equals(ban)) ghiChuGhep += bKhac.getTenBan() + " ";
+            // Xử lý Ghi chú
+            String ghiChuUser = txtGhiChu.getText().trim();
+            if (isGhepBan) {
+                // Nếu là ghép bàn, thêm thông tin liên kết vào ghi chú
+                // Lưu ý: Đừng dùng prefix "LINKED:" ở đây vội, vì "LINKED:" dùng cho đơn ảo khi đã mở bàn.
+                // Ở đây chỉ cần ghi chú để nhân viên biết.
+                if (ban.equals(banChinh)) {
+                    ddm.setGhiChu(ghiChuUser + " (Đặt chính nhóm " + dsBanDaChon.size() + " bàn)");
+                } else {
+                    ddm.setGhiChu(ghiChuUser + " (Đặt cùng " + banChinh.getTenBan() + ")");
                 }
-                ddm.setGhiChu(txtGhiChu.getText() + " (" + ghiChuGhep.trim() + ")");
             } else {
-                ddm.setGhiChu(txtGhiChu.getText());
+                ddm.setGhiChu(ghiChuUser);
             }
 
-            // Lưu đơn
+            // Lưu đơn đặt món
+            // Lưu ý: Không setMaDon() để DAO tự sinh mã DONxxxx chuẩn
             if (donDatMonDAO.themDonDatMon(ddm)) {
-                // Cập nhật bàn
+                // Cập nhật trạng thái bàn
                 ban.setTrangThai(TrangThaiBan.DA_DAT_TRUOC);
-                ban.setGioMoBan(thoiGianDat);
-                if (!banDAO.updateBan(ban)) {
-                    tatCaThanhCong = false;
-                }
+                // Với đặt trước, chưa cần set giờ mở bàn (gioMoBan) ngay, hoặc set bằng thoiGianDen
+                // ban.setGioMoBan(thoiGianDat);
+                if (!banDAO.updateBan(ban)) tatCaThanhCong = false;
             } else {
                 tatCaThanhCong = false;
             }
         }
 
         if (tatCaThanhCong) {
-            // Tải lại list bàn trống
+            // Reset giao diện
             taiDanhSachBanTrong();
-            // Hiển thị lại bàn (các bàn vừa đặt sẽ mất khỏi panel trái)
             hienThiBanPhuHop();
-            // Cập nhật list bên phải
             loadDanhSachDatTruoc();
 
-            // Xóa input
+            // Clear inputs
             spinnerSoLuongKhach.setValue(1);
-            Calendar calReset = Calendar.getInstance();
-            calReset.add(Calendar.HOUR_OF_DAY, 1);
-            calReset.set(Calendar.MINUTE, 0);
-            timeSpinner.setValue(calReset.getTime());
-            dateSpinner.setValue(new java.util.Date()); // Reset ngày về hôm nay
-
             txtGhiChu.setText("");
             txtSDTKhach.setText("");
             txtHoTenKhach.setText("");
-
-            // Reset biến chọn
             dsBanDaChon.clear();
 
-            // Gọi làm mới màn hình Bàn (ManHinhBanGUI)
             if (parentDanhSachBanGUI_DatBan != null) {
                 parentDanhSachBanGUI_DatBan.refreshManHinhBan();
             }
-
             JOptionPane.showMessageDialog(this, "Đặt bàn thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
         } else {
-            JOptionPane.showMessageDialog(this, "Có lỗi xảy ra khi đặt bàn! Vui lòng kiểm tra lại.", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
-            // TODO: Có thể cần logic Rollback (xóa các đơn đã tạo lỡ dở) ở đây nếu muốn hoàn hảo
+            JOptionPane.showMessageDialog(this, "Có lỗi xảy ra khi lưu đơn!", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -1068,6 +1001,9 @@ public class ManHinhDatBanGUI extends JPanel {
                 if (banCanUpdate != null && banCanUpdate.getTrangThai() == TrangThaiBan.DA_DAT_TRUOC) {
                     banCanUpdate.setTrangThai(TrangThaiBan.TRONG);
                     banCanUpdate.setGioMoBan(null); // Reset giờ đặt
+                    String tenHienTai = banCanUpdate.getTenBan();
+                    String tenGoc = tenHienTai.replaceAll("\\s*\\(Ghép.*\\)", "").trim();
+                    banCanUpdate.setTenBan(tenGoc);
                     boolean updateBanOK = banDAO.updateBan(banCanUpdate);
                     if (!updateBanOK) {
                         JOptionPane.showMessageDialog(this, "Hủy đơn thành công nhưng lỗi cập nhật lại trạng thái bàn!", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);

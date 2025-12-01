@@ -1,5 +1,6 @@
 package gui;
 
+import dao.BanDAO;
 import entity.Ban;
 import entity.TrangThaiBan;
 
@@ -13,37 +14,30 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Dialog chức năng Ghép Bàn
- */
+
 public class GhepBanDialog extends JDialog {
 
-    private final List<Ban> allTablesFromDB;
-    private List<Ban> selectedTables;
+    private List<Ban> allTablesFromDB;
+    private List<Ban> selectedSourceTables = new ArrayList<>();
+    private Ban selectedTargetTable = null;
     private JPanel leftTableContainer;
     private JPanel rightTableContainer;
     private String currentLeftFilter = "Tất cả";
     private String currentRightFilter = "Tất cả";
     private List<BanPanel> leftBanPanelList = new ArrayList<>();
     private List<BanPanel> rightBanPanelList = new ArrayList<>();
+    private BanDAO banDAO;
 
     public GhepBanDialog(Window parent) {
-        super(parent, Dialog.ModalityType.APPLICATION_MODAL); // <-- Quan trọng
-        this.selectedTables = new ArrayList<>();
+        super(parent, Dialog.ModalityType.APPLICATION_MODAL);
+        this.banDAO = new BanDAO();
 
-        // (Dữ liệu mẫu giữ nguyên)
-        allTablesFromDB = new ArrayList<>();
         try {
-            LocalDateTime time = LocalDateTime.now().plusHours(1);
-            allTablesFromDB.add(new Ban("Bàn 1", 4, TrangThaiBan.TRONG, time, "Tầng trệt"));
-            allTablesFromDB.add(new Ban("Bàn 2", 2, TrangThaiBan.DANG_PHUC_VU, time, "Tầng 1"));
-            allTablesFromDB.add(new Ban("Bàn 3", 4, TrangThaiBan.DA_DAT_TRUOC, time, "Tầng trệt"));
-            allTablesFromDB.add(new Ban("Bàn 4", 6, TrangThaiBan.TRONG, time, "Tầng 1"));
-            // (Thêm dữ liệu khác của bạn)
-            for (int i = 8; i <= 30; i++) {
-                allTablesFromDB.add(new Ban("Bàn " + i, 4, TrangThaiBan.TRONG, time, "Tầng trệt"));
-            }
-        } catch (Exception e) { e.printStackTrace(); }
+            this.allTablesFromDB = banDAO.getAllBan();
+        } catch (Exception e) {
+            e.printStackTrace();
+            this.allTablesFromDB = new ArrayList<>();
+        }
 
         // --- Thiết lập cho JDialog (thay vì JPanel) ---
         setUndecorated(true);
@@ -61,28 +55,24 @@ public class GhepBanDialog extends JDialog {
         JSplitPane splitPane = new JSplitPane();
         splitPane.setResizeWeight(0.5);
         splitPane.setBorder(BorderFactory.createEmptyBorder());
+
         JPanel leftPane = createListPanel("Danh sách toàn bộ bàn", true);
         JPanel rightPane = createListPanel("Danh sách bàn đã đặt/ phục vụ", false);
         splitPane.setLeftComponent(leftPane);
         splitPane.setRightComponent(rightPane);
-        contentPanel.add(splitPane, BorderLayout.CENTER);
 
+        contentPanel.add(splitPane, BorderLayout.CENTER);
         contentPanel.add(createBottomBar(), BorderLayout.SOUTH);
 
         // Thêm panel nội dung vào JDialog
         add(contentPanel);
-
         setSize(parent.getSize());
         setLocationRelativeTo(parent);
-        setLocationRelativeTo(parent); // Căn giữa so với cửa sổ cha
 
         // Populate
         populateLeftPanel(currentLeftFilter);
         populateRightPanel(currentRightFilter);
     }
-
-    // (Tất cả các phương thức helper bên dưới được copy y hệt
-    //  từ GhepBanSplitDialog cũ, chỉ cần sửa hằng số màu)
 
     private JPanel createTitleBar() {
         JPanel titlePanel = new JPanel(new BorderLayout());
@@ -90,13 +80,14 @@ public class GhepBanDialog extends JDialog {
         JLabel titleLabel = new JLabel("Ghép bàn");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
         titlePanel.add(titleLabel, BorderLayout.WEST);
+
         JButton closeButton = new JButton("X");
         closeButton.setFont(new Font("Segoe UI", Font.BOLD, 16));
         closeButton.setFocusPainted(false);
         closeButton.setContentAreaFilled(false);
         closeButton.setBorder(new EmptyBorder(5, 10, 5, 10));
         closeButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        closeButton.addActionListener(e -> dispose()); // <-- Sửa: dispose()
+        closeButton.addActionListener(e -> dispose());
         titlePanel.add(closeButton, BorderLayout.EAST);
         return titlePanel;
     }
@@ -104,18 +95,14 @@ public class GhepBanDialog extends JDialog {
     private JPanel createBottomBar() {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         buttonPanel.setOpaque(false);
+
         JButton btnHuyBo = new JButton("Hủy bỏ");
         styleDefaultButton(btnHuyBo);
-        btnHuyBo.addActionListener(e -> dispose()); // <-- Sửa: dispose()
+        btnHuyBo.addActionListener(e -> dispose());
+
         JButton btnGhep = new JButton("Ghép");
         stylePrimaryButton(btnGhep);
-        btnGhep.addActionListener(e -> {
-            System.out.println("Các bàn được chọn để ghép: " + selectedTables.size() + " bàn");
-            for (Ban b : selectedTables) {
-                System.out.println(" - " + b.getTenBan() + " (Mã: " + b.getMaBan() + ")");
-            }
-            dispose(); // <-- Sửa: dispose()
-        });
+        btnGhep.addActionListener(e -> xuLyGhepBan());
 
         buttonPanel.add(btnGhep);
         buttonPanel.add(btnHuyBo);
@@ -126,6 +113,7 @@ public class GhepBanDialog extends JDialog {
         JPanel panel = new JPanel(new BorderLayout(0, 10));
         panel.setOpaque(false);
         panel.setBorder(new EmptyBorder(0, 5, 0, 5));
+
         JPanel headerPanel = new JPanel(new BorderLayout(0, 5));
         headerPanel.setOpaque(false);
         JLabel titleLabel = new JLabel(title);
@@ -208,18 +196,18 @@ public class GhepBanDialog extends JDialog {
     private void populateLeftPanel(String khuVucFilter) {
         leftTableContainer.removeAll();
         leftBanPanelList.clear();
+
         for (Ban ban : allTablesFromDB) {
-            if (khuVucFilter.equals("Tất cả") || ban.getKhuVuc().equals(khuVucFilter)) {
-                BanPanel banPanel = new BanPanel(ban); // <-- Dùng class BanPanel công khai
-                if (selectedTables.contains(ban)) {
+            boolean khuVucMatch = khuVucFilter.equals("Tất cả") || ban.getKhuVuc().equals(khuVucFilter);
+            if (khuVucMatch) {
+                BanPanel banPanel = new BanPanel(ban);
+                if (selectedSourceTables.contains(ban)) {
                     banPanel.setSelected(true);
                 }
                 banPanel.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
-                        if (e.getButton() == MouseEvent.BUTTON1) {
-                            toggleSelection(ban, banPanel);
-                        }
+                        if (e.getButton() == MouseEvent.BUTTON1) handleSelectSource(ban, banPanel);
                     }
                 });
                 leftTableContainer.add(banPanel);
@@ -233,21 +221,21 @@ public class GhepBanDialog extends JDialog {
     private void populateRightPanel(String khuVucFilter) {
         rightTableContainer.removeAll();
         rightBanPanelList.clear();
+
         for (Ban ban : allTablesFromDB) {
+            // Chỉ hiện bàn Đang phục vụ hoặc Đã đặt
             boolean khuVucMatch = khuVucFilter.equals("Tất cả") || ban.getKhuVuc().equals(khuVucFilter);
-            TrangThaiBan status = ban.getTrangThai();
-            boolean statusMatch = (status == TrangThaiBan.DANG_PHUC_VU || status == TrangThaiBan.DA_DAT_TRUOC);
+            boolean statusMatch = (ban.getTrangThai() == TrangThaiBan.DANG_PHUC_VU || ban.getTrangThai() == TrangThaiBan.DA_DAT_TRUOC);
+
             if (khuVucMatch && statusMatch) {
-                BanPanel banPanel = new BanPanel(ban); // <-- Dùng class BanPanel công khai
-                if (selectedTables.contains(ban)) {
+                BanPanel banPanel = new BanPanel(ban);
+                if (selectedTargetTable != null && selectedTargetTable.equals(ban)) {
                     banPanel.setSelected(true);
                 }
                 banPanel.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
-                        if (e.getButton() == MouseEvent.BUTTON1) {
-                            toggleSelection(ban, banPanel);
-                        }
+                        if (e.getButton() == MouseEvent.BUTTON1) handleSelectTarget(ban, banPanel);
                     }
                 });
                 rightTableContainer.add(banPanel);
@@ -257,30 +245,81 @@ public class GhepBanDialog extends JDialog {
         rightTableContainer.revalidate();
         rightTableContainer.repaint();
     }
-
-    private void toggleSelection(Ban ban, BanPanel clickedPanel) {
-        boolean isNowSelected;
-        if (clickedPanel.isSelected()) {
-            selectedTables.remove(ban);
-            isNowSelected = false;
-        } else {
-            selectedTables.add(ban);
-            isNowSelected = true;
+    private void handleSelectSource(Ban ban, BanPanel clickedPanel) {
+        // --- LOGIC MỚI: TỰ ĐỘNG GỠ KHỎI ĐÍCH ---
+        // Nếu bàn này đang là Đích -> Hủy chọn Đích
+        if (selectedTargetTable != null && selectedTargetTable.equals(ban)) {
+            selectedTargetTable = null;
+            // Cập nhật giao diện bên phải (Bỏ highlight bàn này bên phải)
+            for (BanPanel p : rightBanPanelList) {
+                if (p.getBan().equals(ban)) {
+                    p.setSelected(false);
+                    break;
+                }
+            }
         }
-        clickedPanel.setSelected(isNowSelected);
-        if (leftTableContainer.isAncestorOf(clickedPanel)) {
-            updateVisualInList(rightBanPanelList, ban, isNowSelected);
+        // ----------------------------------------
+
+        // Logic toggle chọn nhiều (giữ nguyên)
+        if (selectedSourceTables.contains(ban)) {
+            selectedSourceTables.remove(ban);
+            clickedPanel.setSelected(false);
         } else {
-            updateVisualInList(leftBanPanelList, ban, isNowSelected);
+            selectedSourceTables.add(ban);
+            clickedPanel.setSelected(true);
         }
     }
 
-    private void updateVisualInList(List<BanPanel> panelList, Ban ban, boolean isSelected) {
-        for (BanPanel panel : panelList) {
-            if (panel.getBan().equals(ban)) {
-                panel.setSelected(isSelected);
-                break;
+    private void handleSelectTarget(Ban ban, BanPanel clickedPanel) {
+        // Logic cũ: Bỏ chọn nếu click lại bàn đang chọn
+        if (selectedTargetTable != null && selectedTargetTable.equals(ban)) {
+            selectedTargetTable = null;
+            clickedPanel.setSelected(false);
+            return;
+        }
+
+        // --- LOGIC MỚI: TỰ ĐỘNG GỠ KHỎI NGUỒN ---
+        // Nếu bàn này đang được chọn làm Nguồn -> Xóa nó khỏi danh sách Nguồn
+        if (selectedSourceTables.contains(ban)) {
+            selectedSourceTables.remove(ban);
+            // Cập nhật giao diện bên trái (Bỏ highlight bàn này bên trái)
+            for (BanPanel p : leftBanPanelList) {
+                if (p.getBan().equals(ban)) {
+                    p.setSelected(false);
+                    break;
+                }
             }
+        }
+        // ----------------------------------------
+
+        // Chọn bàn mới làm Đích
+        selectedTargetTable = ban;
+
+        // Reset visual các bàn khác bên phải (vì chỉ được chọn 1 đích)
+        for (BanPanel p : rightBanPanelList) {
+            p.setSelected(false);
+        }
+        clickedPanel.setSelected(true); // Highlight bàn vừa chọn
+    }
+
+    private void xuLyGhepBan() {
+        if (selectedSourceTables.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất 1 bàn nguồn!", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (selectedTargetTable == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn 1 bàn đích!", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Gọi DAO
+        boolean kq = banDAO.ghepBanLienKet(selectedSourceTables, selectedTargetTable);
+
+        if (kq) {
+            JOptionPane.showMessageDialog(this, "Ghép bàn thành công!\nTất cả hóa đơn đã dồn về bàn " + selectedTargetTable.getTenBan(), "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            dispose();
+        } else {
+            JOptionPane.showMessageDialog(this, "Có lỗi xảy ra khi ghép bàn.", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 

@@ -130,7 +130,12 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
 
             itemInLaiHoaDon.addActionListener(e_themBan -> InLaiHoaDon());
             itemGhepBan.addActionListener(e_themBan -> showGhepBanSplitDialog());
-            itemChuyenBan.addActionListener(e_themBan -> showChuyenBanDiaLog());
+            itemChuyenBan.addActionListener(e_themBan -> {
+                showChuyenBanDiaLog();
+                if (manHinhBanGUI != null) {
+                    manHinhBanGUI.refreshTableList(); // Tải lại giao diện bàn ngay lập tức
+                }
+            });
 
 
             popupMenu.add(itemInLaiHoaDon);
@@ -212,21 +217,7 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
             manHinhBanGUI.refreshTableList();
         }
     }
-    public void switchToTab(String cardName) {
-        // 1. Chuyển CardLayout
-        contentCardLayout.show(contentCardPanel, cardName);
 
-        // 2. Chọn nút tab tương ứng
-        if ("MAN_HINH_BAN".equals(cardName) && btnTabBan != null) {
-            btnTabBan.setSelected(true);
-        } else if ("MAN_HINH_GOI_MON".equals(cardName) && btnTabGoiMon != null) {
-            btnTabGoiMon.setSelected(true);
-        } else if ("MAN_HINH_DAT_BAN".equals(cardName) && btnTabDatBan != null) {
-            btnTabDatBan.setSelected(true);
-        }
-        updateTopNavButtonStyles();
-        System.out.println("Đã chuyển sang tab: " + cardName);
-    }
     private void showChuyenBanDiaLog() {
         Window parentFrame = SwingUtilities.getWindowAncestor(this);
          ChuyenBanDialog dialog = new ChuyenBanDialog(parentFrame);
@@ -240,6 +231,10 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
         Window parentFrame = SwingUtilities.getWindowAncestor(this);
          GhepBanDialog dialog = new GhepBanDialog(parentFrame);
          dialog.setVisible(true);
+        if (manHinhBanGUI != null) {
+            System.out.println("Đang làm mới danh sách bàn sau khi ghép...");
+            manHinhBanGUI.refreshTableList();
+        }
     }
 
     @Override

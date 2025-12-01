@@ -13,13 +13,14 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import dao.BanDAO;
-/**
- * Dialog chức năng Ghép Bàn
- */
+import dao.DonDatMonDAO;
+import dao.HoaDonDAO;
+
 public class ChuyenBanDialog extends JDialog {
 
     private List<Ban> allTablesFromDB;
-    private List<Ban> selectedTables;
+    private Ban selectedSourceTable = null;
+    private Ban selectedTargetTable = null;
     private JPanel leftTableContainer;
     private JPanel rightTableContainer;
     private String currentLeftFilter = "Tất cả";
@@ -27,10 +28,11 @@ public class ChuyenBanDialog extends JDialog {
     private List<BanPanel> leftBanPanelList = new ArrayList<>();
     private List<BanPanel> rightBanPanelList = new ArrayList<>();
     private BanDAO banDAO;
+    private DonDatMonDAO donDatMonDAO;
+    private HoaDonDAO hoaDonDAO;
 
     public ChuyenBanDialog(Window parent) {
-        super(parent, Dialog.ModalityType.APPLICATION_MODAL); // <-- Quan trọng
-        this.selectedTables = new ArrayList<>();
+        super(parent, Dialog.ModalityType.APPLICATION_MODAL);
         this.banDAO = new BanDAO();
 
 
@@ -46,12 +48,7 @@ public class ChuyenBanDialog extends JDialog {
 
         } catch (Exception e) {
             e.printStackTrace();
-            // Nếu có lỗi, khởi tạo danh sách rỗng để tránh NullPointerException
             this.allTablesFromDB = new ArrayList<>();
-            JOptionPane.showMessageDialog(this,
-                    "Lỗi kết nối hoặc tải dữ liệu Bàn.\nChi tiết: " + e.getMessage(),
-                    "Lỗi CSDL",
-                    JOptionPane.ERROR_MESSAGE);
         }
 
         // --- Thiết lập cho JDialog (thay vì JPanel) ---
@@ -61,7 +58,7 @@ public class ChuyenBanDialog extends JDialog {
 
         // Panel nội dung chính
         JPanel contentPanel = new JPanel(new BorderLayout(0, 10));
-        contentPanel.setPreferredSize(new Dimension(900, 600));
+        contentPanel.setPreferredSize(new Dimension(1000, 600));
         contentPanel.setBackground(Color.WHITE);
         contentPanel.setBorder(new EmptyBorder(10, 15, 10, 15));
 
@@ -74,16 +71,14 @@ public class ChuyenBanDialog extends JDialog {
         JPanel rightPane = createListPanel("Danh sách bàn đã đặt/ phục vụ", false);
         splitPane.setLeftComponent(rightPane);
         splitPane.setRightComponent(leftPane);
-        contentPanel.add(splitPane, BorderLayout.CENTER);
 
+        contentPanel.add(splitPane, BorderLayout.CENTER);
         contentPanel.add(createBottomBar(), BorderLayout.SOUTH);
 
         // Thêm panel nội dung vào JDialog
         add(contentPanel);
-
         setSize(parent.getSize());
         setLocationRelativeTo(parent);
-        setLocationRelativeTo(parent); // Căn giữa so với cửa sổ cha
 
         // Populate
         populateLeftPanel(currentLeftFilter);
@@ -111,18 +106,16 @@ public class ChuyenBanDialog extends JDialog {
     private JPanel createBottomBar() {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         buttonPanel.setOpaque(false);
+
         JButton btnHuyBo = new JButton("Hủy bỏ");
         styleDefaultButton(btnHuyBo);
-        btnHuyBo.addActionListener(e -> dispose()); // <-- Sửa: dispose()
+        btnHuyBo.addActionListener(e -> dispose());
+
         JButton btnChuyen = new JButton("Chuyển");
         stylePrimaryButton(btnChuyen);
-        btnChuyen.addActionListener(e -> {
-            System.out.println("Các bàn được chọn để chuyển: " + selectedTables.size() + " bàn");
-            for (Ban b : selectedTables) {
-                System.out.println(" - " + b.getTenBan() + " (Mã: " + b.getMaBan() + ")");
-            }
-            dispose(); // <-- Sửa: dispose()
-        });
+
+        btnChuyen.addActionListener(e -> xuLyChuyenBan());
+
         buttonPanel.add(btnHuyBo);
         buttonPanel.add(btnChuyen);
         return buttonPanel;
@@ -214,23 +207,26 @@ public class ChuyenBanDialog extends JDialog {
     private void populateLeftPanel(String khuVucFilter) {
         leftTableContainer.removeAll();
         leftBanPanelList.clear();
+
+        boolean targetStillVisible = false;
+
         for (Ban ban : allTablesFromDB) {
             boolean khuVucMatch = khuVucFilter.equals("Tất cả") || ban.getKhuVuc().equals(khuVucFilter);
-
-            // --- SỬA: Check 2: Lọc trạng thái (chỉ bàn TRONG) ---
             boolean statusMatch = (ban.getTrangThai() == TrangThaiBan.TRONG);
 
-            // Phải khớp CẢ HAI
             if (khuVucMatch && statusMatch) {
                 BanPanel banPanel = new BanPanel(ban);
-                if (selectedTables.contains(ban)) {
+
+                if (selectedTargetTable != null && selectedTargetTable.equals(ban)) {
                     banPanel.setSelected(true);
+                    targetStillVisible = true;
                 }
+
                 banPanel.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
                         if (e.getButton() == MouseEvent.BUTTON1) {
-                            toggleSelection(ban, banPanel);
+                            handleSelectTarget(ban, banPanel); // Hàm xử lý chọn đơn
                         }
                     }
                 });
@@ -238,6 +234,8 @@ public class ChuyenBanDialog extends JDialog {
                 leftBanPanelList.add(banPanel);
             }
         }
+        if (!targetStillVisible) selectedTargetTable = null;
+
         leftTableContainer.revalidate();
         leftTableContainer.repaint();
     }
@@ -245,20 +243,26 @@ public class ChuyenBanDialog extends JDialog {
     private void populateRightPanel(String khuVucFilter) {
         rightTableContainer.removeAll();
         rightBanPanelList.clear();
+
+        boolean sourceStillVisible = false;
+
         for (Ban ban : allTablesFromDB) {
             boolean khuVucMatch = khuVucFilter.equals("Tất cả") || ban.getKhuVuc().equals(khuVucFilter);
             TrangThaiBan status = ban.getTrangThai();
             boolean statusMatch = (status == TrangThaiBan.DANG_PHUC_VU || status == TrangThaiBan.DA_DAT_TRUOC);
             if (khuVucMatch && statusMatch) {
-                BanPanel banPanel = new BanPanel(ban); // <-- Dùng class BanPanel công khai
-                if (selectedTables.contains(ban)) {
+                BanPanel banPanel = new BanPanel(ban);
+
+                if (selectedSourceTable != null && selectedSourceTable.equals(ban)) {
                     banPanel.setSelected(true);
+                    sourceStillVisible = true;
                 }
+
                 banPanel.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
                         if (e.getButton() == MouseEvent.BUTTON1) {
-                            toggleSelection(ban, banPanel);
+                            handleSelectSource(ban, banPanel); // Hàm xử lý chọn đơn
                         }
                     }
                 });
@@ -266,38 +270,99 @@ public class ChuyenBanDialog extends JDialog {
                 rightBanPanelList.add(banPanel);
             }
         }
+        if (!sourceStillVisible) selectedSourceTable = null;
+
         rightTableContainer.revalidate();
         rightTableContainer.repaint();
     }
 
-    private void toggleSelection(Ban ban, BanPanel clickedPanel) {
-        boolean isNowSelected;
-        if (clickedPanel.isSelected()) {
-            selectedTables.remove(ban);
-            isNowSelected = false;
-        } else {
-            selectedTables.add(ban);
-            isNowSelected = true;
+    private void handleSelectSource(Ban ban, BanPanel clickedPanel) {
+        // 1. Nếu click vào bàn đang chọn -> Bỏ chọn
+        if (selectedSourceTable != null && selectedSourceTable.equals(ban)) {
+            selectedSourceTable = null;
+            clickedPanel.setSelected(false);
+            return;
         }
-        clickedPanel.setSelected(isNowSelected);
-        if (leftTableContainer.isAncestorOf(clickedPanel)) {
-            updateVisualInList(rightBanPanelList, ban, isNowSelected);
+
+        // 2. Chọn bàn mới -> Bỏ chọn tất cả bàn cũ trong panel phải
+        selectedSourceTable = ban;
+        for (BanPanel p : rightBanPanelList) {
+            p.setSelected(false); // Reset hết
+        }
+        clickedPanel.setSelected(true); // Highlight bàn mới
+    }
+
+    private void handleSelectTarget(Ban ban, BanPanel clickedPanel) {
+        // 1. Nếu click vào bàn đang chọn -> Bỏ chọn
+        if (selectedTargetTable != null && selectedTargetTable.equals(ban)) {
+            selectedTargetTable = null;
+            clickedPanel.setSelected(false);
+            return;
+        }
+
+        // 2. Chọn bàn mới -> Bỏ chọn tất cả bàn cũ trong panel trái
+        selectedTargetTable = ban;
+        for (BanPanel p : leftBanPanelList) {
+            p.setSelected(false); // Reset hết
+        }
+        clickedPanel.setSelected(true); // Highlight bàn mới
+    }
+
+    private void xuLyChuyenBan() {
+        // 1. Validate
+        if (selectedSourceTable == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn bàn cần chuyển (Bên trái)!", "Chưa chọn bàn nguồn", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (selectedTargetTable == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn bàn mới để đến (Bên phải)!", "Chưa chọn bàn đích", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // 2. Xác nhận
+        int confirm = JOptionPane.showConfirmDialog(this,
+                String.format("Xác nhận chuyển toàn bộ đơn từ bàn [%s] sang bàn [%s]?",
+                        selectedSourceTable.getTenBan(), selectedTargetTable.getTenBan()),
+                "Xác nhận chuyển bàn",
+                JOptionPane.YES_NO_OPTION);
+
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        // 3. Thực hiện chuyển trong CSDL
+        boolean ketQua = thucHienChuyenBanTrongDB(selectedSourceTable, selectedTargetTable);
+
+        if (ketQua) {
+            JOptionPane.showMessageDialog(this, "Chuyển bàn thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+
+            // Cập nhật lại giao diện cha (ManHinhBanGUI)
+            if (getParent() instanceof RootPaneContainer) { // Hoặc cách nào đó để gọi refreshManHinhBan
+                // Tạm thời dispose, ManHinhBanGUI cần tự refresh khi dialog đóng
+            }
+            dispose(); // Đóng dialog
         } else {
-            updateVisualInList(leftBanPanelList, ban, isNowSelected);
+            JOptionPane.showMessageDialog(this, "Chuyển bàn thất bại! Vui lòng kiểm tra lại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void updateVisualInList(List<BanPanel> panelList, Ban ban, boolean isSelected) {
-        for (BanPanel panel : panelList) {
-            if (panel.getBan().equals(ban)) {
-                panel.setSelected(isSelected);
-                break;
-            }
-        }
+    private boolean thucHienChuyenBanTrongDB(Ban banCu, Ban banMoi) {
+        // Logic chuyển bàn:
+        // 1. Tìm đơn đặt món (DonDatMon) đang hoạt động của banCu
+        // 2. Update maBan của đơn đó thành banMoi.getMaBan()
+        // 3. Update trạng thái banCu thành TRONG
+        // 4. Update trạng thái banMoi thành trạng thái cũ của banCu (DANG_PHUC_VU hoặc DA_DAT_TRUOC)
+        // 5. Update gioMoBan của banMoi = gioMoBan của banCu, banCu = null
+
+        // Bạn cần viết hàm này trong BanDAO hoặc DonDatMonDAO
+        // Ví dụ gọi: return banDAO.chuyenBan(banCu.getMaBan(), banMoi.getMaBan());
+
+        System.out.println("Đang thực hiện chuyển DB: " + banCu.getMaBan() + " -> " + banMoi.getMaBan());
+
+        // --- CHỖ NÀY CẦN GỌI DAO THỰC SỰ ---
+        return banDAO.chuyenBan(banCu, banMoi);
+        // -----------------------------------
     }
 
     private void stylePrimaryButton(JButton b) {
-        // Sử dụng hằng số từ BanPanel
         b.setBackground(BanPanel.COLOR_ACCENT_BLUE);
         b.setForeground(Color.WHITE);
         b.setFont(new Font("Segoe UI", Font.BOLD, 13));
