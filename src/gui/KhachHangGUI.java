@@ -515,10 +515,6 @@ public class KhachHangGUI extends JPanel {
         button.setForeground(COLOR_TEXT_WHITE);
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(Color.GRAY.brighter()),
-                new EmptyBorder(8, 15, 8, 15)
-        ));
         return button;
     }
 

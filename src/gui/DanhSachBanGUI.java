@@ -117,18 +117,14 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
         menuButton.addActionListener(e -> {
             JPopupMenu popupMenu = new JPopupMenu();
             popupMenu.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
-            JMenuItem itemInLaiHoaDon = new JMenuItem("In lại hóa đơn");
             JMenuItem itemGhepBan = new JMenuItem("Ghép bàn");
             JMenuItem itemChuyenBan = new JMenuItem("Chuyển bàn");
             Font menuFont = new Font("Segoe UI", Font.PLAIN, 13);
-            itemInLaiHoaDon.setFont(menuFont);
             itemGhepBan.setFont(menuFont);
             itemChuyenBan.setFont(menuFont);
-            itemInLaiHoaDon.setBorder(new EmptyBorder(5, 15, 5, 15));
             itemGhepBan.setBorder(new EmptyBorder(5, 15, 5, 15));
             itemChuyenBan.setBorder(new EmptyBorder(5, 15, 5, 15));
 
-            itemInLaiHoaDon.addActionListener(e_themBan -> InLaiHoaDon());
             itemGhepBan.addActionListener(e_themBan -> showGhepBanSplitDialog());
             itemChuyenBan.addActionListener(e_themBan -> {
                 showChuyenBanDiaLog();
@@ -138,7 +134,6 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
             });
 
 
-            popupMenu.add(itemInLaiHoaDon);
             popupMenu.add(itemGhepBan);
             popupMenu.add(itemChuyenBan);
 
@@ -224,8 +219,6 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
          dialog.setVisible(true);
     }
 
-    private void InLaiHoaDon() {
-    }
 
     private void showGhepBanSplitDialog() {
         Window parentFrame = SwingUtilities.getWindowAncestor(this);
