@@ -80,37 +80,59 @@ public class ManHinhBanGUI extends JPanel {
         }
 
         String maKM_input = txtMaKhuyenMai.getText().trim().toUpperCase();
-        String maKMLuuVaoDB = null;
-        if (!maKM_input.isEmpty()) {
-            // 1. Kiểm tra mã
+
+        // Trường hợp 1: Người dùng xóa trắng ô mã -> Hủy áp dụng
+        if (maKM_input.isEmpty()) {
+            activeHoaDon.setMaKM(null);
+            hoaDonDAO.capNhatMaKM(activeHoaDon.getMaHD(), null);
+            activeHoaDon.tinhLaiGiamGiaVaTongTien(khachHangDAO, maKhuyenMaiDAO);
+            updateBillPanelFromHoaDon(activeHoaDon);
+            return;
+        }
+
+        // Trường hợp 2: Có nhập mã -> Gọi hàm kiểm tra TRỌN GÓI từ DAO
+
+        // Lấy thông tin cần thiết để kiểm tra
+        activeHoaDon.tinhLaiTongTienTuChiTiet(); // Tính lại tổng tiền mới nhất
+        double tongTien = activeHoaDon.getTongTien();
+        String maKH = activeHoaDon.getMaKH();
+        if (maKH == null) maKH = ""; // Tránh lỗi null nếu là khách vãng lai
+
+        // [QUAN TRỌNG] Gọi hàm kiểm tra điều kiện (Số lượng, Lịch sử, Tiền, Ngày...)
+        String ketQuaKiemTra = maKhuyenMaiDAO.kiemTraDieuKienSuDung(maKM_input, maKH, tongTien);
+
+        if ("OK".equals(ketQuaKiemTra)) {
+            // --- HỢP LỆ ---
+
+            // 1. Lấy thông tin chi tiết để hiển thị tên chương trình
             entity.KhuyenMai km = maKhuyenMaiDAO.getKhuyenMaiHopLeByMa(maKM_input);
 
-            if (km == null) {
-                JOptionPane.showMessageDialog(this, "Mã không hợp lệ hoặc đã hết hạn!", "Lỗi Mã KM", JOptionPane.WARNING_MESSAGE);
-                // Reset về rỗng nếu mã sai
-                activeHoaDon.setMaKM(null);
-                maKMLuuVaoDB = null;
-                txtMaKhuyenMai.requestFocus();
+            // 2. Áp dụng vào hóa đơn
+            activeHoaDon.setMaKM(maKM_input);
+
+            // 3. Lưu vào CSDL
+            if (hoaDonDAO.capNhatMaKM(activeHoaDon.getMaHD(), maKM_input)) {
+                JOptionPane.showMessageDialog(this,
+                        "Áp dụng thành công mã: " + km.getTenChuongTrinh() + "\n" +
+                                "(Giảm: " + km.getGiaTri() + (km.getLoaiKhuyenMai().contains("tiền") ? " VNĐ" : "%") + ")",
+                        "Thành công", JOptionPane.INFORMATION_MESSAGE);
             } else {
-                // Mã đúng -> Set vào object
-                activeHoaDon.setMaKM(maKM_input);
-                maKMLuuVaoDB = maKM_input;
-                JOptionPane.showMessageDialog(this, "Đã áp dụng mã: " + km.getTenChuongTrinh(), "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Lỗi hệ thống: Không thể lưu mã vào hóa đơn.", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
+
         } else {
-            // Người dùng xóa mã -> Hủy áp dụng
+            // --- KHÔNG HỢP LỆ (Hiển thị lý do cụ thể từ DAO trả về) ---
+            JOptionPane.showMessageDialog(this,
+                    "Không thể áp dụng mã này:\n" + ketQuaKiemTra, // Lý do: Hết lượt, chưa đủ tiền, đã dùng rồi...
+                    "Lỗi áp dụng", JOptionPane.WARNING_MESSAGE);
+
+            // Reset mã nếu không hợp lệ
             activeHoaDon.setMaKM(null);
-            maKMLuuVaoDB = null;
+            hoaDonDAO.capNhatMaKM(activeHoaDon.getMaHD(), null);
+            txtMaKhuyenMai.requestFocus();
         }
 
-        // 2. Cập nhật vào CSDL (Quan trọng)
-        boolean updateDAOK = hoaDonDAO.capNhatMaKM(activeHoaDon.getMaHD(), maKMLuuVaoDB);
-        if (!updateDAOK) {
-            System.err.println("LỖI: Không thể cập nhật maKM vào CSDL!");
-        }
-
-        // 3. Tính toán lại tiền và cập nhật giao diện BillPanel
-        // Hàm này sẽ gọi loadBillTotals của BillPanel -> Cập nhật visual
+        // 4. Tính toán lại tiền và cập nhật giao diện BillPanel (cho cả 2 trường hợp)
         activeHoaDon.tinhLaiGiamGiaVaTongTien(khachHangDAO, maKhuyenMaiDAO);
         updateBillPanelFromHoaDon(activeHoaDon);
     }

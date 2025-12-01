@@ -256,6 +256,7 @@ public class BillPanel extends JPanel {
                     listToPrint = getCurrentDetailList();
                 }
 
+
                 // In Hóa Đơn
                 xuatPhieuIn("HÓA ĐƠN THANH TOÁN", true, tienKhachTraLong, tienThoiLong, activeHoaDon.getMaHD(), listToPrint);
 
@@ -269,6 +270,25 @@ public class BillPanel extends JPanel {
                     parentBanGUI.refreshTableList();
                     clearBill();
                 }
+                maKM = activeHoaDon.getMaKM();
+                maKH = activeHoaDon.getMaKH();
+
+                // Chỉ ghi nhận nếu có mã KM và có khách hàng (nếu áp dụng cho KH cụ thể)
+                // Nếu mã áp dụng cho mọi người thì có thể maKH là null hoặc mã khách vãng lai
+                if (maKM != null && !maKM.isEmpty()) {
+
+                    // Nếu maKH null (khách vãng lai chưa lưu), bạn có thể truyền một giá trị mặc định hoặc xử lý tùy nghiệp vụ
+                    String maKHGhiNhan = (maKH != null) ? maKH : "KH_VANGLAI";
+
+                    // Gọi DAO để tăng số lượng và lưu lịch sử
+                    maKhuyenMaiDAO.ghiNhanSuDung(maKM, maKHGhiNhan);
+
+                    System.out.println("Đã ghi nhận lượt dùng cho mã: " + maKM);
+                }
+                // ------------------------------------------------
+
+                // ... (Các logic sau thanh toán: In hóa đơn, reset giao diện...) ...
+                JOptionPane.showMessageDialog(this, "Thanh toán thành công!");
             } else {
                 JOptionPane.showMessageDialog(this, "Lỗi cập nhật CSDL!", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
             }
@@ -276,6 +296,7 @@ public class BillPanel extends JPanel {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
+
     }
     private void xuLyLuuMon_Clicked() {
         // Gọi hàm lưu với tham số true để hiện thông báo thành công

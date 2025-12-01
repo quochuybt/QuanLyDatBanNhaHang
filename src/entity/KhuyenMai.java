@@ -40,7 +40,7 @@ public class KhuyenMai {
     public int getSoLuotDaDung() { return soLuotDaDung; }
     public void setSoLuotDaDung(int soLuotDaDung) { this.soLuotDaDung = soLuotDaDung; }
 
-    // --- [GIỮ NGUYÊN] Các Getter/Setter cũ ---
+
     public String getMaKM() { return maKM; }
     public void setMaKM(String maKM) { this.maKM = maKM; }
 
