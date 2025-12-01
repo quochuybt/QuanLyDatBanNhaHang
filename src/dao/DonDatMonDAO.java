@@ -29,7 +29,39 @@ public class DonDatMonDAO {
         DonDatMon ddm = new DonDatMon(maDon, ngayKhoiTao, maNV, maKH, maBan, ghiChu);
         ddm.setThoiGianDen(thoiGianDen);
         ddm.setTrangThai(trangThai);
+        ddm.setMaKH(maKH);
         return ddm;
+    }
+    public List<String> getMaBanCungDotDat(String maKH, LocalDateTime thoiGianDen, String maBanHienTai) {
+        List<String> dsMaBan = new ArrayList<>();
+        if (maKH == null || maKH.isEmpty()) {
+            return dsMaBan;
+        }
+
+        String sql = "SELECT maBan FROM DonDatMon " +
+                "WHERE maKH = ? " +
+                "AND maBan != ? " +
+                "AND trangThai != N'Đã hủy' " +
+                "AND NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maDon = DonDatMon.maDon) " +
+                "AND DATEDIFF(MINUTE, thoiGianDen, ?) = 0";
+
+        try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maKH);
+            ps.setString(2, maBanHienTai);
+            ps.setTimestamp(3, java.sql.Timestamp.valueOf(thoiGianDen));
+
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    dsMaBan.add(rs.getString("maBan"));
+                }
+            }
+            System.out.println("DEBUG: Tìm thấy các bàn cùng nhóm với " + maBanHienTai + ": " + dsMaBan);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return dsMaBan;
     }
     public String getMaBanByMaDon(String maDon) {
         String maBan = null;
@@ -131,6 +163,27 @@ public class DonDatMonDAO {
         }
         return soDonHuy;
     }
+    public String getMaBanDichCuaBanGhep(String maBanHienTai) {
+        // Tìm đơn đang treo của bàn hiện tại
+        String sql = "SELECT ghiChu FROM DonDatMon WHERE maBan = ? AND trangThai = N'Chưa thanh toán' AND trangThai != N'Đã hủy'";
+        try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maBanHienTai);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String ghiChu = rs.getString("ghiChu");
+                    // Kiểm tra xem ghi chu có dạng "LINKED:BAN05" không
+                    if (ghiChu != null && ghiChu.startsWith("LINKED:")) {
+                        return ghiChu.substring(7).trim(); // Cắt bỏ chữ "LINKED:" để lấy mã bàn đích
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
     public DonDatMon getDonDatMonDatTruoc(String maBan) {
         DonDatMon ddm = null;
         // SỬA CÂU SQL:
@@ -159,7 +212,7 @@ public class DonDatMonDAO {
         return ddm;
     }
     public boolean themDonDatMon(DonDatMon ddm) {
-        String sql = "INSERT INTO DonDatMon (maDon, ngayKhoiTao,thoiGianDen, maNV, maKH, maBan, ghiChu) VALUES (?,?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO DonDatMon (maDon, ngayKhoiTao,thoiGianDen, maNV, maKH, maBan, ghiChu,trangThai) VALUES (?,?, ?, ?, ?, ?, ?,?)";
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -175,6 +228,11 @@ public class DonDatMonDAO {
             ps.setString(5, ddm.getMaKH()); // Có thể null
             ps.setString(6, ddm.getMaBan()); // Có thể null (nếu đặt mang về)
             ps.setString(7, ddm.getGhiChu());
+            String trangThai = ddm.getTrangThai();
+            if (trangThai == null || trangThai.isEmpty()) {
+                trangThai = "Chưa thanh toán";
+            }
+            ps.setString(8, trangThai);
 
             return ps.executeUpdate() > 0;
 
@@ -187,13 +245,10 @@ public class DonDatMonDAO {
     }
     public List<String> getMaBanDaDatTrongKhoang(LocalDateTime tuGio, LocalDateTime denGio) {
         List<String> dsMaBan = new ArrayList<>();
-        // Giả sử cột lưu giờ khách đến là 'thoiGianDen' (hoặc 'ngayKhoiTao' nếu bạn dùng tạm)
-        // Lưu ý: Bạn cần đảm bảo DonDatMon trong CSDL có lưu giờ khách hẹn đến.
 
-        // Query: Tìm các đơn mà giờ đến nằm trong khoảng check
         String sql = "SELECT DISTINCT maBan FROM DonDatMon " +
-                "WHERE (thoiGianDen BETWEEN ? AND ?) " + // Cần sửa tên cột này theo CSDL của bạn
-                "AND trangThai != N'Đã hủy' " +
+                "WHERE thoiGianDen BETWEEN ? AND ? " +
+                "AND trangThai != N'Đã hủy' " +          // <--- QUAN TRỌNG: Không tính đơn đã hủy
                 "AND trangThai != N'Đã thanh toán'";
 
         try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
@@ -249,14 +304,11 @@ public class DonDatMonDAO {
 public List<DonDatMon> getAllDonDatMonChuaNhan() {
     List<DonDatMon> ds = new ArrayList<>();
 
-    // --- SỬA CÂU SQL: KẾT HỢP LOGIC CŨ VÀ MỚI ---
-    // 1. Lọc: Chưa có hóa đơn (nghĩa là chưa nhận bàn) VÀ chưa bị hủy
-    // 2. Sắp xếp: Theo giờ hẹn (thoiGianDen) tăng dần
     String sql = "SELECT * FROM DonDatMon ddm " +
             "WHERE NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maDon = ddm.maDon) " +
             "AND ddm.trangThai != N'Đã hủy' " +
+            "AND (ddm.ghiChu IS NULL OR ddm.ghiChu NOT LIKE 'LINKED:%') " + // <-- THÊM DÒNG NÀY
             "ORDER BY ddm.thoiGianDen ASC";
-    // ---------------------------------------------
 
     try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
          java.sql.Statement stmt = conn.createStatement();

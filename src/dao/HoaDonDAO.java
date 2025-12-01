@@ -98,35 +98,130 @@ public class HoaDonDAO {
         return false;
     }
     public boolean thanhToanHoaDon(String maHD, double tienKhachDua, String hinhThucTT, double tienGiamGia, String maKM) {
-        // Câu lệnh SQL cần cập nhật thêm cột giamGia và maKM
-        String sql = "UPDATE HoaDon SET " +
+        // SQL Update Hóa Đơn Chính
+        String sqlUpdateHD = "UPDATE HoaDon SET " +
                 "trangThai = N'Đã thanh toán', " +
                 "tienKhachDua = ?, " +
                 "hinhThucThanhToan = ?, " +
-                "giamGia = ?, " +   // <-- THÊM CỘT NÀY
-                "maKM = ? " +       // <-- THÊM CỘT NÀY
+                "giamGia = ?, " +
+                "maKM = ? " +
                 "WHERE maHD = ?";
 
-        try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
-             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+        java.sql.Connection conn = null;
 
-            ps.setDouble(1, tienKhachDua);
-            ps.setString(2, hinhThucTT);
-            ps.setDouble(3, tienGiamGia); // <-- Set giá trị giảm giá
+        try {
+            conn = connectDB.SQLConnection.getConnection();
+            conn.setAutoCommit(false); // Bắt đầu Transaction
 
-            // Xử lý maKM (có thể null)
-            if (maKM != null && !maKM.isEmpty()) {
-                ps.setString(4, maKM);
-            } else {
-                ps.setNull(4, java.sql.Types.NVARCHAR);
+            // --- BƯỚC 1: UPDATE HÓA ĐƠN ---
+            try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlUpdateHD)) {
+                ps.setDouble(1, tienKhachDua);
+                ps.setString(2, hinhThucTT);
+                ps.setDouble(3, tienGiamGia);
+
+                if (maKM != null && !maKM.isEmpty()) {
+                    ps.setString(4, maKM);
+                } else {
+                    ps.setNull(4, java.sql.Types.NVARCHAR);
+                }
+                ps.setString(5, maHD);
+
+                if (ps.executeUpdate() <= 0) {
+                    conn.rollback();
+                    return false; // Không tìm thấy HĐ để update
+                }
+            }
+            String sqlUpdateDonGoc = "UPDATE DonDatMon SET trangThai = N'Đã thanh toán' " +
+                    "WHERE maDon = (SELECT maDon FROM HoaDon WHERE maHD = ?)";
+
+            try (java.sql.PreparedStatement psDon = conn.prepareStatement(sqlUpdateDonGoc)) {
+                psDon.setString(1, maHD);
+                psDon.executeUpdate();
             }
 
-            ps.setString(5, maHD);
+            // --- BƯỚC 2: XỬ LÝ BÀN GHÉP (NẾU CÓ) ---
+            // A. Tìm mã bàn Đích (Bàn mẹ) của hóa đơn này
+            String sqlGetBan = "SELECT maBan FROM DonDatMon WHERE maDon = (SELECT maDon FROM HoaDon WHERE maHD = ?)";
+            String maBanDich = null;
 
-            return ps.executeUpdate() > 0;
+            try (java.sql.PreparedStatement psGet = conn.prepareStatement(sqlGetBan)) {
+                psGet.setString(1, maHD);
+                try (java.sql.ResultSet rs = psGet.executeQuery()) {
+                    if (rs.next()) {
+                        maBanDich = rs.getString("maBan");
+                    }
+                }
+            }
+
+            if (maBanDich != null) {
+                // Tạo key liên kết (khớp với lúc tạo đơn ảo bên GhepBanDialog)
+                String linkNote = "LINKED:" + maBanDich;
+                List<String> banCanReset = new ArrayList<>();
+
+
+                // B. Reset các Bàn Nguồn (Bàn con) về trạng thái Trống
+                // QUAN TRỌNG: Phải chạy lệnh này TRƯỚC khi update đơn ảo thành 'Đã thanh toán'
+                // Lưu ý: Chuỗi trong REPLACE phải khớp chính xác với chuỗi bạn cộng thêm lúc ghép (vd: " (Ghép)")
+                String sqlFindActiveLinked =
+                        "SELECT b.maBan FROM Ban b " +
+                                "JOIN DonDatMon d ON b.maBan = d.maBan " +
+                                "WHERE d.ghiChu = ? " +
+                                "AND d.trangThai = N'Chưa thanh toán' " +
+                                "AND b.trangThai = N'Đang có khách'";
+                try (java.sql.PreparedStatement psFind = conn.prepareStatement(sqlFindActiveLinked)) {
+                    psFind.setString(1, linkNote);
+                    java.sql.ResultSet rsFind = psFind.executeQuery();
+                    while(rsFind.next()) {
+                        banCanReset.add(rsFind.getString("maBan"));
+                    }
+                }
+
+                if (!banCanReset.isEmpty()) {
+                    // Tạo chuỗi tham số cho câu lệnh IN (...) -> vd: (?, ?)
+                    StringBuilder sbParam = new StringBuilder();
+                    for(int i=0; i<banCanReset.size(); i++) sbParam.append("?,");
+                    String inClause = sbParam.substring(0, sbParam.length()-1);
+
+                    // 1. Reset Bàn (Chỉ reset những bàn trong danh sách lọc)
+                    String sqlResetBan = "UPDATE Ban SET " +
+                            "trangThai = N'Trống', " +
+                            "gioMoBan = NULL, " +
+                            "tenBan = CASE WHEN CHARINDEX(N' (Ghép', tenBan) > 0 " +
+                            "THEN LEFT(tenBan, CHARINDEX(N' (Ghép', tenBan) - 1) " +
+                            "ELSE tenBan END " +
+                            "WHERE maBan IN (" + inClause + ")";
+
+                    try (java.sql.PreparedStatement psReset = conn.prepareStatement(sqlResetBan)) {
+                        for (int i = 0; i < banCanReset.size(); i++) {
+                            psReset.setString(i + 1, banCanReset.get(i));
+                        }
+                        psReset.executeUpdate();
+                    }
+
+                    // 2. Đóng Đơn ảo (Chỉ đóng đơn của những bàn trong danh sách lọc)
+                    String sqlCloseDummy = "UPDATE DonDatMon SET trangThai = N'Đã thanh toán' " +
+                            "WHERE ghiChu = ? AND trangThai = N'Chưa thanh toán' " +
+                            "AND maBan IN (" + inClause + ")";
+
+                    try (java.sql.PreparedStatement psClose = conn.prepareStatement(sqlCloseDummy)) {
+                        psClose.setString(1, linkNote);
+                        for (int i = 0; i < banCanReset.size(); i++) {
+                            psClose.setString(i + 2, banCanReset.get(i));
+                        }
+                        psClose.executeUpdate();
+                    }
+                }
+            }
+
+            conn.commit(); // Xác nhận tất cả thành công
+            return true;
+
         } catch (Exception e) {
             e.printStackTrace();
+            try { if (conn != null) conn.rollback(); } catch (Exception ex) {} // Hoàn tác nếu lỗi
             return false;
+        } finally {
+            try { if (conn != null) { conn.setAutoCommit(true); conn.close(); } } catch (Exception ex) {}
         }
     }
     public boolean capNhatTongTien(String maHD, float tongTienMoi) {
