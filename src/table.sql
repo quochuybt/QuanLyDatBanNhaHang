@@ -1,0 +1,191 @@
+CREATE DATABASE StarGuardianDB;
+GO
+
+USE StarGuardianDB;
+GO
+
+CREATE TABLE VaiTro (
+    tenVaiTro NVARCHAR(20) PRIMARY KEY
+);
+INSERT INTO VaiTro (tenVaiTro) VALUES (N'NhanVien'), (N'QuanLy');
+
+CREATE TABLE HangThanhVien (
+    tenHang NVARCHAR(20) PRIMARY KEY
+);
+INSERT INTO HangThanhVien (tenHang) VALUES (N'NONE'), (N'MEMBER'), (N'BRONZE'), (N'SILVER'), (N'GOLD'), (N'DIAMOND');
+
+CREATE TABLE TaiKhoan (
+    tenTK NVARCHAR(50) PRIMARY KEY,
+    matKhau NVARCHAR(255) NOT NULL,
+    trangThai BIT NOT NULL DEFAULT 1
+);
+
+CREATE TABLE CaLam (
+    maCa NVARCHAR(20) PRIMARY KEY,
+    tenCa NVARCHAR(50) NOT NULL,
+    gioBatDau TIME NOT NULL,
+    gioKetThuc TIME NOT NULL
+);
+
+CREATE TABLE DanhMucMon (
+    maDM NVARCHAR(10) PRIMARY KEY,
+    tenDM NVARCHAR(100) NOT NULL,
+    moTa NVARCHAR(255),
+    maNV NVARCHAR(20) NULL
+);
+
+CREATE TABLE Ban (
+    maBan NVARCHAR(10) PRIMARY KEY,
+    tenBan NVARCHAR(50) NOT NULL,
+    soGhe INT NOT NULL,
+    trangThai NVARCHAR(50) NOT NULL,
+    gioMoBan DATETIME NULL,
+    khuVuc NVARCHAR(50) NOT NULL
+);
+
+CREATE TABLE KhuyenMai (
+    maKM NVARCHAR(20) PRIMARY KEY,
+    tenKM NVARCHAR(100) NOT NULL,
+    moTa NVARCHAR(255),
+    ngayBatDau DATETIME NOT NULL,
+    ngayKetThuc DATETIME NOT NULL,
+    loaiGiam NVARCHAR(50) NOT NULL,
+    giaTriGiam DECIMAL(18, 2) NOT NULL,
+    trangThai NVARCHAR(50) NOT NULL,
+    dieuKienApDung DECIMAL(18, 2) NULL DEFAULT 0
+);
+
+CREATE TABLE KhachHang (
+    maKH NVARCHAR(20) PRIMARY KEY,
+    tenKH NVARCHAR(100) NOT NULL,
+    gioiTinh NVARCHAR(10) NOT NULL,
+    sdt VARCHAR(15) UNIQUE,
+    hangThanhVien NVARCHAR(20) NOT NULL DEFAULT N'NONE',
+    tongChiTieu DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    CONSTRAINT FK_KhachHang_HangTV FOREIGN KEY (hangThanhVien) REFERENCES HangThanhVien(tenHang),
+    ngaySinh DATE NULL,
+    diaChi NVARCHAR(255) NULL,
+    ngayThamGia DATE NOT NULL DEFAULT GETDATE(),
+    email NVARCHAR(100) NULL
+);
+CREATE UNIQUE NONCLUSTERED INDEX UQ_KhachHang_Email_NotNull
+ON dbo.KhachHang(email)
+WHERE email IS NOT NULL;
+GO
+
+CREATE TABLE MonAn (
+    maMonAn NVARCHAR(20) PRIMARY KEY,
+    tenMon NVARCHAR(100) NOT NULL,
+    moTa NVARCHAR(500),
+    donGia DECIMAL(18, 2) NOT NULL,
+    donViTinh NVARCHAR(20) NOT NULL,
+    trangThai NVARCHAR(50) NOT NULL,
+    hinhAnh NVARCHAR(255),
+    maDM NVARCHAR(10) NOT NULL,
+    CONSTRAINT FK_MonAn_DanhMucMon FOREIGN KEY (maDM) REFERENCES DanhMucMon(maDM)
+);
+
+CREATE TABLE NhanVien (
+    maNV NVARCHAR(20) PRIMARY KEY,
+    hoTen NVARCHAR(100) NOT NULL,
+    ngaySinh DATE,
+    gioiTinh NVARCHAR(10) NOT NULL,
+    sdt VARCHAR(15) UNIQUE NOT NULL,
+    diaChi NVARCHAR(255),
+    ngayVaoLam DATE NOT NULL,
+    luong DECIMAL(18, 2) NOT NULL,
+    tenTK NVARCHAR(50) NOT NULL UNIQUE,
+    vaiTro NVARCHAR(20) NOT NULL,
+    CONSTRAINT FK_NhanVien_TaiKhoan FOREIGN KEY (tenTK) REFERENCES TaiKhoan(tenTK),
+    CONSTRAINT FK_NhanVien_VaiTro FOREIGN KEY (vaiTro) REFERENCES VaiTro(tenVaiTro)
+);
+
+CREATE TABLE PhanCongCa (
+    maNV NVARCHAR(20) NOT NULL,
+    maCa NVARCHAR(20) NOT NULL,
+    ngayLam DATE NOT NULL,
+    PRIMARY KEY (maNV, maCa, ngayLam),
+    CONSTRAINT FK_PhanCong_NhanVien FOREIGN KEY (maNV) REFERENCES NhanVien(maNV),
+    CONSTRAINT FK_PhanCong_CaLam FOREIGN KEY (maCa) REFERENCES CaLam(maCa)
+);
+
+CREATE TABLE DonDatMon (
+    maDon NVARCHAR(20) PRIMARY KEY,
+    ngayKhoiTao DATETIME NOT NULL DEFAULT GETDATE(),
+    thoiGianDen DATETIME NULL,
+    trangThai NVARCHAR(50) NOT NULL DEFAULT N'Chưa thanh toán',
+    maNV NVARCHAR(20) NOT NULL,
+    maKH NVARCHAR(20) NULL,
+    maBan NVARCHAR(10) NULL,
+    ghiChu NVARCHAR(MAX) NULL,
+
+    CONSTRAINT FK_DonDatMon_NhanVien FOREIGN KEY (maNV) REFERENCES NhanVien(maNV),
+    CONSTRAINT FK_DonDatMon_KhachHang FOREIGN KEY (maKH) REFERENCES KhachHang(maKH),
+    CONSTRAINT FK_DonDatMon_Ban FOREIGN KEY (maBan) REFERENCES Ban(maBan)
+);
+
+CREATE TABLE ChiTietHoaDon (
+    maDon NVARCHAR(20) NOT NULL,
+    maMonAn NVARCHAR(20) NOT NULL,
+    soLuong INT NOT NULL,
+    donGia DECIMAL(18, 2) NOT NULL,
+    thanhTien AS (soLuong * donGia),
+    PRIMARY KEY (maDon, maMonAn),
+    CONSTRAINT FK_ChiTiet_DonDatMon FOREIGN KEY (maDon) REFERENCES DonDatMon(maDon),
+    CONSTRAINT FK_ChiTiet_MonAn FOREIGN KEY (maMonAn) REFERENCES MonAn(maMonAn)
+);
+
+CREATE TABLE HoaDon (
+    maHD NVARCHAR(20) PRIMARY KEY,
+    ngayLap DATETIME NOT NULL DEFAULT GETDATE(),
+    tongTien DECIMAL(18, 2) NOT NULL,
+    trangThai NVARCHAR(50) NOT NULL,
+    hinhThucThanhToan NVARCHAR(50),
+    tienKhachDua DECIMAL(18, 2),
+    giamGia DECIMAL(18, 2) NULL DEFAULT 0,
+
+    maNV NVARCHAR(20) NOT NULL,
+    maKM NVARCHAR(20) NULL,
+    maDon NVARCHAR(20) NOT NULL UNIQUE,
+    maBan NVARCHAR(10) NULL,
+
+    CONSTRAINT FK_HoaDon_KhuyenMai FOREIGN KEY (maKM) REFERENCES KhuyenMai(maKM),
+    CONSTRAINT FK_HoaDon_DonDatMon FOREIGN KEY (maDon) REFERENCES DonDatMon(maDon)
+);
+GO
+
+ALTER TABLE DanhMucMon
+ADD CONSTRAINT FK_DanhMucMon_NhanVien FOREIGN KEY (maNV) REFERENCES NhanVien(maNV);
+GO
+
+USE StarGuardianDB;
+GO
+ALTER TABLE KhuyenMai
+    ADD soLuongGioiHan INT DEFAULT NULL,
+    soLuotDaDung INT DEFAULT 0 NOT NULL;
+GO
+
+CREATE TABLE LichSuSuDungKM (
+                                maLichSu INT IDENTITY(1,1) PRIMARY KEY,
+                                maKH NVARCHAR(20) NOT NULL,
+                                maKM NVARCHAR(20) NOT NULL,
+                                ngaySuDung DATETIME DEFAULT GETDATE(),
+
+                                CONSTRAINT FK_LichSu_KhachHang FOREIGN KEY (maKH) REFERENCES KhachHang(maKH),
+                                CONSTRAINT FK_LichSu_KhuyenMai FOREIGN KEY (maKM) REFERENCES KhuyenMai(maKM)
+);
+GO
+
+
+CREATE TABLE LichSuGiaoCa (
+    maGiaoCa INT IDENTITY(1,1) PRIMARY KEY,
+    maNV NVARCHAR(20),
+    thoiGianBatDau DATETIME NOT NULL,
+    thoiGianKetThuc DATETIME NULL, -- Null nghĩa là chưa kết ca
+    tienDauCa DECIMAL(18,0) NOT NULL,
+    tienCuoiCa DECIMAL(18,0) NULL,
+    tienHeThongTinh DECIMAL(18,0) NULL, -- Tiền phần mềm tính được từ Hóa đơn
+    chenhLech DECIMAL(18,0) NULL, -- (Tiền cuối ca - Tiền đầu ca - Tiền hệ thống)
+    ghiChu NVARCHAR(255),
+    FOREIGN KEY (maNV) REFERENCES NhanVien(maNV)
+);

@@ -21,7 +21,7 @@ public class Main {
                 e.printStackTrace();
             }
 
-            // --- 2. Tùy chỉnh giao diện (Lấy từ hàm main test của bạn) ---
+            // --- 2. Tùy chỉnh giao diện (Lấy từ hàm main test của bạn) --- 
             Color COLOR_INPUT_BORDER = new Color(150, 150, 150);
             Color COLOR_ACCENT_BLUE = new Color(56, 118, 243);
 
@@ -39,9 +39,12 @@ public class Main {
             UIManager.put("Button.font", new Font("Arial", Font.BOLD, 16));
             UIManager.put("Label.font", new Font("Arial", Font.PLAIN, 14));
 
+
             // --- 3. Khởi tạo và hiển thị cửa sổ Đăng nhập (TaiKhoanGUI) ---
             TaiKhoanGUI loginWindow = new TaiKhoanGUI(); // Sửa ở đây
             loginWindow.setVisible(true);
+            loginWindow.setExtendedState(JFrame.MAXIMIZED_BOTH);
+
 
         });
     }

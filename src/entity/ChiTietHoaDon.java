@@ -7,12 +7,20 @@ public class ChiTietHoaDon {
     private int soluong;
     private float dongia;
     private float thanhtien;
+    private String tenMon;
 
     public ChiTietHoaDon(String maMon, String maDon, int soluong, float dongia) {
         setMaMon(maMon);
         setMaDon(maDon);
         setDongia(dongia);
         setSoluong(soluong);
+    }
+    public ChiTietHoaDon(String maDon, String maMon, String tenMon, int soluong, float dongia) {
+        setMaDon(maDon);
+        setMaMon(maMon);
+        setTenMon(tenMon); // Set tên món
+        setDongia(dongia); // (đã tự gọi tinhThanhTien)
+        setSoluong(soluong); // (đã tự gọi tinhThanhTien)
     }
 
     public ChiTietHoaDon(ChiTietHoaDon other) {
@@ -23,7 +31,7 @@ public class ChiTietHoaDon {
         this.thanhtien = other.thanhtien;
     }
 
-    private void tinhThanhTien() {
+    public void tinhThanhTien() {
         this.thanhtien = this.soluong * this.dongia;
     }
 
@@ -36,6 +44,13 @@ public class ChiTietHoaDon {
             throw new IllegalArgumentException("Mã đơn không được rỗng.");
         }
         this.maDon = maDon;
+    }
+    public String getTenMon() {
+        return tenMon;
+    }
+
+    public void setTenMon(String tenMon) {
+        this.tenMon = tenMon;
     }
 
     public String getMaMon() {
@@ -81,9 +96,8 @@ public class ChiTietHoaDon {
     public String toString() {
         return "ChiTietHoaDon{" +
                 "maMon='" + maMon + '\'' +
-                ", maDon='" + maDon + '\'' +
+                ", tenMon='" + tenMon + '\'' + // Thêm
                 ", soluong=" + soluong +
-                ", dongia=" + dongia +
                 ", thanhtien=" + thanhtien +
                 '}';
     }

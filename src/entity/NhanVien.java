@@ -3,8 +3,6 @@ package entity;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class NhanVien {
@@ -17,11 +15,13 @@ public class NhanVien {
     private String diachi;
     private LocalDate ngayvaolam;
     private float luong;
-    private String viTri;
+    private VaiTro vaiTro;
+    private String tenTK;
 
+    // Constructor mặc định
     public NhanVien() {
-        this.viTri = "Nhân viên";
-        this.manv = phatSinhMaNV(this.viTri);
+        this.vaiTro = VaiTro.NHANVIEN;
+        this.manv = phatSinhMaNV(vaiTro);
         this.hoten = "Chưa có tên";
         this.ngaysinh = LocalDate.now().minusYears(18);
         this.gioitinh = "Khác";
@@ -29,12 +29,20 @@ public class NhanVien {
         this.diachi = "Chưa cập nhật";
         this.ngayvaolam = LocalDate.now();
         this.luong = 2000000f;
+        this.tenTK = "";
     }
 
+    // Constructor đầy đủ (dành cho việc tạo mới)
     public NhanVien(String hoTen, LocalDate ngaySinh, String gioiTinh, String sdt,
-                    String diaChi, LocalDate ngayVaoLam, float luong, String viTri) {
-        setViTri(viTri);
-        this.manv = phatSinhMaNV(this.viTri);
+                    String diaChi, LocalDate ngayVaoLam, float luong ,VaiTro vaiTro) {
+        this(hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, "");
+    }
+
+    // Constructor đầy đủ (có thêm tenTK)
+    public NhanVien(String hoTen, LocalDate ngaySinh, String gioiTinh, String sdt,
+                    String diaChi, LocalDate ngayVaoLam, float luong ,VaiTro vaiTro, String tenTK) {
+        setVaiTro(vaiTro);
+        this.manv = phatSinhMaNV(vaiTro);
         setHoten(hoTen);
         setNgaysinh(ngaySinh);
         setGioitinh(gioiTinh);
@@ -42,10 +50,28 @@ public class NhanVien {
         setDiachi(diaChi);
         setNgayvaolam(ngayVaoLam);
         setLuong(luong);
+        setTenTK(tenTK);
     }
 
+    // Constructor dùng để truyền mã NV khi cập nhật hoặc đọc từ DB
+    public NhanVien(String maNV, String hoTen, LocalDate ngaySinh, String gioiTinh, String sdt,
+                    String diaChi, LocalDate ngayVaoLam, float luong ,VaiTro vaiTro) {
+        this.manv = maNV;
+        setVaiTro(vaiTro);
+        setHoten(hoTen);
+        setNgaysinh(ngaySinh);
+        setGioitinh(gioiTinh);
+        setSdt(sdt);
+        setDiachi(diaChi);
+        setNgayvaolam(ngayVaoLam);
+        setLuong(luong);
+        this.tenTK = "";
+    }
+
+    // Constructor copy
     public NhanVien(NhanVien other) {
-        this.manv = phatSinhMaNV(other.viTri);
+        this.vaiTro = other.vaiTro;
+        this.manv = phatSinhMaNV(other.vaiTro);
         this.hoten = other.hoten;
         this.ngaysinh = other.ngaysinh;
         this.gioitinh = other.gioitinh;
@@ -53,25 +79,35 @@ public class NhanVien {
         this.diachi = other.diachi;
         this.ngayvaolam = other.ngayvaolam;
         this.luong = other.luong;
-        this.viTri = other.viTri;
+        this.tenTK = other.tenTK;
     }
 
-    private String phatSinhMaNV(String viTri) {
-        String maViTri;
-        if (viTri.equalsIgnoreCase("Quản lý")) {
-            maViTri = "02";
+    public NhanVien(String maNV, String hoTen) {
+        this.manv = maNV;
+        this.hoten = hoTen;
+    }
+
+    // Logic phát sinh mã NV
+    private String phatSinhMaNV(VaiTro vaiTro) {
+        String maVaiTro;
+        if (vaiTro == VaiTro.QUANLY) {
+            maVaiTro = "02";
         } else {
-            maViTri = "01";
+            maVaiTro = "01";
         }
         int soNgauNhien = ThreadLocalRandom.current().nextInt(100, 1000);
-        return "NV" + maViTri + soNgauNhien;
+        return "NV" + maVaiTro + soNgauNhien;
     }
+
+    // =================================================================
+    // GETTERS & SETTERS (Có Validation)
+    // =================================================================
 
     public String getManv() {
         return manv;
     }
 
-    private void setManv(String manv) {
+    public void setManv(String manv) {
         this.manv = manv;
     }
 
@@ -83,7 +119,16 @@ public class NhanVien {
         if (hoten == null || hoten.trim().isEmpty()) {
             throw new IllegalArgumentException("Họ tên không được rỗng");
         }
-        this.hoten = hoten;
+
+        // Regex: Chấp nhận chữ cái (bao gồm tiếng Việt có dấu, không dấu), khoảng trắng,
+        // dấu chấm, gạch ngang, nháy đơn. Loại bỏ số hoàn toàn.
+        String namePattern = "^[\\p{L} .'-]+$";
+
+        if (!hoten.trim().matches(namePattern)) {
+            throw new IllegalArgumentException("Họ tên không hợp lệ (Không được chứa số hoặc ký tự đặc biệt không được phép).");
+        }
+
+        this.hoten = hoten.trim();
     }
 
     public LocalDate getNgaysinh() {
@@ -144,20 +189,20 @@ public class NhanVien {
         this.luong = luong;
     }
 
-    public String getViTri() {
-        return viTri;
+    public VaiTro getVaiTro() {
+        return vaiTro;
     }
 
-    public void setViTri(String viTri) {
-        List<String> viTriHopLe = Arrays.asList("Nhân viên", "Quản lý");
-        if (viTri == null || !viTriHopLe.contains(viTri)) {
-            throw new IllegalArgumentException("Vị trí không hợp lệ. Chỉ chấp nhận: " + viTriHopLe);
-        }
-        this.viTri = viTri;
+    public void setVaiTro(VaiTro vaiTro) {
+        this.vaiTro = vaiTro;
     }
 
-    public float tinhLuongThang() {
-        return this.luong;
+    public String getTenTK() {
+        return tenTK;
+    }
+
+    public void setTenTK(String tenTK) {
+        this.tenTK = tenTK;
     }
 
     @Override
@@ -171,8 +216,9 @@ public class NhanVien {
                 ", sdt='" + sdt + '\'' +
                 ", diachi='" + diachi + '\'' +
                 ", ngayvaolam=" + ngayvaolam.format(formatter) +
-                ", viTri='" + viTri + '\'' +
                 ", luong=" + luong +
+                ", vaiTro=" + vaiTro.name() +
+                ", tenTK='" + tenTK + '\'' +
                 '}';
     }
 }
