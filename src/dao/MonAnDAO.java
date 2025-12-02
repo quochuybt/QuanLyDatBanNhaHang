@@ -158,4 +158,68 @@ public class MonAnDAO {
         return count;
     }
 
+    public boolean themMonAn(MonAn m) {
+        String sql = "INSERT INTO MonAn (maMonAn, tenMon, moTa, donGia, donViTinh, trangThai, hinhAnh, maDM) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, m.getMaMonAn());
+            ps.setString(2, m.getTenMon());
+            ps.setString(3, m.getMota());
+            ps.setFloat(4, m.getDonGia());
+            ps.setString(5, m.getDonViTinh());
+            ps.setString(6, m.getTrangThai());
+            ps.setString(7, m.getHinhAnh());
+            ps.setString(8, m.getMaDM());
+
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi thêm món ăn: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Cập nhật thông tin món ăn
+     */
+    public boolean capNhatMonAn(MonAn m) {
+        String sql = "UPDATE MonAn SET tenMon=?, moTa=?, donGia=?, donViTinh=?, trangThai=?, hinhAnh=?, maDM=? " +
+                "WHERE maMonAn=?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, m.getTenMon());
+            ps.setString(2, m.getMota());
+            ps.setFloat(3, m.getDonGia());
+            ps.setString(4, m.getDonViTinh());
+            ps.setString(5, m.getTrangThai());
+            ps.setString(6, m.getHinhAnh());
+            ps.setString(7, m.getMaDM());
+            ps.setString(8, m.getMaMonAn());
+
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi cập nhật món ăn: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Xóa món ăn
+     */
+    public boolean xoaMonAn(String maMon) {
+        String sql = "DELETE FROM MonAn WHERE maMonAn = ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maMon);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi xóa món ăn: " + e.getMessage());
+            return false;
+        }
+    }
 } // Kết thúc class MonAnDAO

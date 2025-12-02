@@ -3,6 +3,7 @@ package dao;
 import connectDB.SQLConnection;
 import entity.GiaoCa;
 import java.sql.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -386,7 +387,102 @@ public class GiaoCaDAO {
         }
         return list;
     }
+    /**
+     * [MỚI] Lấy danh sách tên nhân viên đang trong ca làm việc (chưa kết thúc ca)
+     */
+    public List<String> getNhanVienDangLamViecChiTiet() {
+        List<String> list = new ArrayList<>();
+        // Logic: Lấy nhân viên chưa kết thúc ca trong LichSuGiaoCa
+        // Join với PhanCongCa & CaLam của ngày hôm nay để lấy giờ chuẩn
+        String sql = "SELECT nv.hoTen, cl.tenCa, cl.gioBatDau, cl.gioKetThuc " +
+                "FROM LichSuGiaoCa ls " +
+                "JOIN NhanVien nv ON ls.maNV = nv.maNV " +
+                "LEFT JOIN PhanCongCa pc ON ls.maNV = pc.maNV AND pc.ngayLam = CAST(GETDATE() AS DATE) " +
+                "LEFT JOIN CaLam cl ON pc.maCa = cl.maCa " +
+                "WHERE ls.thoiGianKetThuc IS NULL " + // Đang làm việc
+                "ORDER BY ls.thoiGianBatDau DESC";
 
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                String tenNV = rs.getString("hoTen");
+                String tenCa = rs.getString("tenCa");
+                Time start = rs.getTime("gioBatDau");
+                Time end = rs.getTime("gioKetThuc");
+
+                if (tenCa != null && start != null && end != null) {
+                    // Format: Nguyễn Văn A (Ca Sáng: 06:00 - 14:00)
+                    String timeStr = start.toString().substring(0, 5) + " - " + end.toString().substring(0, 5);
+                    list.add(String.format("%s (%s: %s)", tenNV, tenCa, timeStr));
+                } else {
+                    list.add(tenNV + " (Ca bổ sung)");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    /**
+     * [MỚI] Lấy Top nhân viên chăm chỉ (theo tổng giờ làm) trong khoảng thời gian
+     */
+    public Map<String, Double> getTopStaffByWorkHours(LocalDate startDate, LocalDate endDate, int limit) {
+        Map<String, Double> result = new LinkedHashMap<>();
+
+        String sql = "SELECT TOP (?) nv.hoTen, " +
+                "SUM(DATEDIFF(MINUTE, ls.thoiGianBatDau, ISNULL(ls.thoiGianKetThuc, GETDATE()))) / 60.0 AS TongGio " +
+                "FROM LichSuGiaoCa ls " +
+                "JOIN NhanVien nv ON ls.maNV = nv.maNV " +
+                "WHERE ls.thoiGianBatDau >= ? AND ls.thoiGianBatDau < ? " +
+                "GROUP BY nv.hoTen " +
+                "ORDER BY TongGio DESC";
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, limit);
+            ps.setTimestamp(2, Timestamp.valueOf(startDate.atStartOfDay()));
+            ps.setTimestamp(3, Timestamp.valueOf(endDate.plusDays(1).atStartOfDay()));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    result.put(rs.getString("hoTen"), rs.getDouble("TongGio"));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+    public List<String> getNhanVienDangLamViec() {
+        List<String> list = new ArrayList<>();
+        String sql = "SELECT nv.hoTen, cl.tenCa " +
+                "FROM LichSuGiaoCa ls " +
+                "JOIN NhanVien nv ON ls.maNV = nv.maNV " +
+                // Join thêm PhanCongCa để lấy tên ca dự kiến (hoặc tự định nghĩa theo giờ)
+                "LEFT JOIN PhanCongCa pc ON ls.maNV = pc.maNV AND CAST(ls.thoiGianBatDau AS DATE) = pc.ngayLam " +
+                "LEFT JOIN CaLam cl ON pc.maCa = cl.maCa " +
+                "WHERE ls.thoiGianKetThuc IS NULL " + // Ca chưa đóng
+                "ORDER BY ls.thoiGianBatDau DESC";
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                String tenNV = rs.getString("hoTen");
+                String tenCa = rs.getString("tenCa");
+                if (tenCa == null) tenCa = "Ca bổ sung";
+                list.add(tenNV + " (" + tenCa + ")");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
     /**
      * [ĐÃ SỬA HOÀN TOÀN] Lấy giờ làm theo ngày cho biểu đồ
      * Sử dụng CAST AS DATE và đảm bảo đúng format
