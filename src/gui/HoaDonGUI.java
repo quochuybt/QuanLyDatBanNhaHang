@@ -1,13 +1,9 @@
 package gui;
 
-import dao.ChiTietHoaDonDAO;
-import dao.HoaDonDAO;
-import dao.MonAnDAO;
-import dao.NhanVienDAO;
-import dao.DonDatMonDAO; // Giữ nguyên import vì nó được khai báo ở đầu
-import dao.BanDAO;       // Giữ nguyên import vì nó được khai báo ở đầu
+import dao.*;
 import entity.Ban;       // Giữ nguyên import vì nó được khai báo ở đầu
 import entity.ChiTietHoaDon;
+import entity.DonDatMon;
 import entity.HoaDon;
 
 import javax.swing.*;
@@ -532,19 +528,72 @@ public class HoaDonGUI extends JPanel {
             return;
         }
 
-        // --- Bắt đầu tạo nội dung HTML cho Dialog Chi tiết ---
+        String tenKhachHang = "Khách lẻ"; // Mặc định
+        String tenBan = "Mang về / Không rõ"; // Mặc định
+        String maKHTimDuoc = hoaDon.getMaKH();
+        if (maKHTimDuoc == null || maKHTimDuoc.isEmpty()) {
+            try {
+                dao.DonDatMonDAO ddmDAO = new dao.DonDatMonDAO();
+                entity.DonDatMon ddm = ddmDAO.getDonDatMonByMa(hoaDon.getMaDon());
+                if (ddm != null) {
+                    maKHTimDuoc = ddm.getMaKH();
+                }
+            } catch (Exception e) {
+                System.err.println("Lỗi tìm mã khách hàng từ đơn: " + e.getMessage());
+            }
+        }
+
+        // 2. Nếu đã có mã khách (từ HĐ hoặc từ Đơn), đi tìm Tên
+        if (maKHTimDuoc != null && !maKHTimDuoc.isEmpty()) {
+            KhachHangDAO khDAO = new KhachHangDAO();
+            entity.KhachHang kh = khDAO.timTheoMaKH(maKHTimDuoc);
+            if (kh != null) {
+                tenKhachHang = kh.getTenKH();
+                // (Tùy chọn) Thêm SĐT nếu muốn chi tiết hơn
+                // tenKhachHang += " (" + kh.getSdt() + ")";
+            }
+        }
+
+        if (hoaDon.getTenBan() != null && !hoaDon.getTenBan().isEmpty()) {
+            tenBan = hoaDon.getTenBan();
+        }else {
+        // B. Lấy tên Bàn (Phức tạp hơn xíu: HoaDon -> DonDatMon -> Ban)
+            try {
+                dao.DonDatMonDAO ddmDAO = new dao.DonDatMonDAO();
+                dao.BanDAO banDAO = new dao.BanDAO();
+
+                // Bạn cần đảm bảo DonDatMonDAO có hàm lấy đơn theo mã (ví dụ: getDonDatMonByMa hoặc timDonDatMon)
+                // Nếu chưa có, bạn có thể viết tạm logic lấy mã bàn trực tiếp từ DB ở đây hoặc thêm hàm vào DAO
+                entity.DonDatMon ddm = ddmDAO.getDonDatMonByMa(hoaDon.getMaDon());
+
+                if (ddm != null) {
+                    tenBan = banDAO.getTenBanByMa(ddm.getMaBan());
+                }
+            } catch (Exception e) {
+                System.err.println("Lỗi lấy thông tin bàn: " + e.getMessage());
+            }
+        }
+
+        // --- 2. TẠO NỘI DUNG HTML ---
         StringBuilder detailsText = new StringBuilder();
-        detailsText.append("<html><body style='font-family: Arial; font-size: 11pt;'>"); // Đặt font và size chữ
+        detailsText.append("<html><body style='font-family: Arial; font-size: 11pt;'>");
         detailsText.append("<h2>Chi Tiết Hóa Đơn: ").append(hoaDon.getMaHD()).append("</h2>");
+
         detailsText.append("<b>Ngày lập:</b> ").append(hoaDon.getNgayLap() != null ? hoaDon.getNgayLap().format(tableDateFormatter) : "N/A").append("<br>");
         detailsText.append("<b>Mã Đơn Đặt:</b> ").append(hoaDon.getMaDon()).append("<br>");
+
+        // --- CẬP NHẬT: THÊM BÀN VÀ KHÁCH ---
+        detailsText.append("<b>Bàn:</b> ").append(tenBan).append("<br>");
+        detailsText.append("<b>Khách hàng:</b> ").append(tenKhachHang).append("<br>");
+        // ------------------------------------
+
         // Lấy tên NV từ mã NV
         String tenNV = nhanVienDAO.getTenNhanVienByMa(hoaDon.getMaNV());
-        detailsText.append("<b>Nhân viên:</b> ").append(tenNV).append(" (").append(hoaDon.getMaNV()).append(")<br>"); // Hiển thị cả tên và mã
+        detailsText.append("<b>Nhân viên:</b> ").append(tenNV).append(" (").append(hoaDon.getMaNV()).append(")<br>");
         detailsText.append("<br>");
 
         // Bảng chi tiết món ăn (HTML Table)
-        detailsText.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse; width:100%; font-size: 10pt;'>"); // Giảm size chữ bảng
+        detailsText.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse; width:100%; font-size: 10pt;'>");
         detailsText.append("<tr style='background-color:#f0f0f0;'><th>Mã Món</th><th>Tên Món</th><th>Số Lượng</th><th>Đơn Giá</th><th>Thành Tiền</th></tr>");
 
         float tongTienChiTiet = 0;
@@ -628,6 +677,7 @@ public class HoaDonGUI extends JPanel {
         detailDialog.setLocationRelativeTo(this);
         detailDialog.setVisible(true);
     }
+
 
     /**
      * Hiển thị JDialog mô phỏng phiếu in theo cấu trúc BillPanel/xuatPhieuIn.
