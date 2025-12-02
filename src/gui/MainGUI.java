@@ -19,50 +19,43 @@ public class MainGUI extends JFrame {
     // --- UI Components ---
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel mainContentPanel = new JPanel(cardLayout);
-    private final Map<String, JPanel> menuButtons = new LinkedHashMap<>(); // Giữ thứ tự nút menu
-    private JPanel currentActiveButton = null; // Nút menu đang được chọn
+    private final Map<String, JPanel> menuButtons = new LinkedHashMap<>();
+    private JPanel currentActiveButton = null;
 
     // --- User Information ---
-    private final String userRole; // Vai trò (String: "QUANLY" or "NHANVIEN")
-    private final String userName; // Tên hiển thị
-    private final String maNVDangNhap; // Mã nhân viên đăng nhập
+    private final String userRole;
+    private final String userName;
+    private final String maNVDangNhap;
 
     // --- Child Panels ---
-    private DanhSachBanGUI danhSachBanGUI; // Panel quản lý bàn (cho nhân viên)
-    private KhachHangGUI khachHangGUI;   // Panel quản lý khách hàng (cho nhân viên)
+    private DanhSachBanGUI danhSachBanGUI;
+    private KhachHangGUI khachHangGUI;
+    private DashboardNhanVienGUI dashboardNhanVienGUI; // [THÊM MỚI] Reference để cleanup
 
     public MainGUI(String userRole, String userName, String maNVDangNhap) {
         this.userRole = userRole;
         this.userName = userName;
-        this.maNVDangNhap = maNVDangNhap; // Lưu mã NV
+        this.maNVDangNhap = maNVDangNhap;
 
-        // --- Cài đặt cửa sổ chính ---
         setTitle("StarGuardian Restaurant - Quản lý Nhà hàng");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null); // Căn giữa màn hình khi mở
-        getRootPane().setBorder(BorderFactory.createEmptyBorder()); // Bỏ viền mặc định của JFrame
-        setLayout(new BorderLayout(0, 0)); // Layout chính không có khoảng cách
+        setLocationRelativeTo(null);
+        getRootPane().setBorder(BorderFactory.createEmptyBorder());
+        setLayout(new BorderLayout(0, 0));
 
-        // ===== TẠO CÁC THÀNH PHẦN GIAO DIỆN =====
-        JPanel menuPanel = createMenuPanel();           // Tạo menu bên trái
-        setupMainContentPanel();                        // Khởi tạo các panel nội dung chính
-        JPanel contentWrapperPanel = new JPanel(new BorderLayout()); // Panel bao bọc nội dung và header
-        contentWrapperPanel.add(createHeaderPanel(), BorderLayout.NORTH); // Thêm header ở trên
-        contentWrapperPanel.add(mainContentPanel, BorderLayout.CENTER);   // Thêm panel nội dung ở giữa
+        JPanel menuPanel = createMenuPanel();
+        setupMainContentPanel();
+        JPanel contentWrapperPanel = new JPanel(new BorderLayout());
+        contentWrapperPanel.add(createHeaderPanel(), BorderLayout.NORTH);
+        contentWrapperPanel.add(mainContentPanel, BorderLayout.CENTER);
 
-        // --- Thêm menu và nội dung vào JFrame ---
         add(menuPanel, BorderLayout.WEST);
         add(contentWrapperPanel, BorderLayout.CENTER);
 
-        // --- Mở rộng cửa sổ ra toàn màn hình ---
         this.setExtendedState(JFrame.MAXIMIZED_BOTH);
-        // Hiển thị màn hình chính (Dashboard) mặc định
         showCard("Dashboard");
     }
 
-    /**
-     * Constructor phụ (nếu không truyền mã NV, ví dụ cho mục đích test).
-     */
     public MainGUI(String userRole, String userName) {
         this(userRole, userName, null);
     }
@@ -238,6 +231,8 @@ public class MainGUI extends JFrame {
                             JOptionPane.QUESTION_MESSAGE
                     );
                     if (choice == JOptionPane.YES_OPTION) {
+                        // [THÊM MỚI] Stop timers trước khi đóng
+                        cleanupBeforeExit();
                         dispose();
                         SwingUtilities.invokeLater(() -> {
                             new TaiKhoanGUI().setVisible(true);
@@ -267,39 +262,40 @@ public class MainGUI extends JFrame {
     }
 
     /**
-     * Khởi tạo các panel con và thêm chúng vào CardLayout của mainContentPanel.
-     * Đã sửa để phân biệt Dashboard cho Quản lý và Nhân viên.
+     * [ĐÃ SỬA] Khởi tạo Dashboard phân biệt theo vai trò
      */
     private void setupMainContentPanel() {
-        // [ĐÃ SỬA] Logic phân chia Dashboard dựa trên UserRole
         if ("QUANLY".equalsIgnoreCase(this.userRole)) {
             // Dashboard thống kê cho Quản Lý
             mainContentPanel.add(new DashboardGUI(), "Dashboard");
         } else {
-            // Dashboard cá nhân hóa cho Nhân Viên (Giao ca, Hiệu suất cá nhân)
-            // Truyền mã NV và Tên NV vào để xử lý logic
-            mainContentPanel.add(new EmployeeDashboardGUI(this.maNVDangNhap, this.userName), "Dashboard");
+            // [SỬA] Dashboard cá nhân hóa cho Nhân Viên
+            // Kiểm tra mã NV trước khi khởi tạo
+            if (this.maNVDangNhap == null || this.maNVDangNhap.trim().isEmpty()) {
+                System.err.println("CẢNH BÁO: Mã NV chưa được truyền vào MainGUI!");
+                JPanel errorPanel = new JPanel(new BorderLayout());
+                errorPanel.add(new JLabel("Lỗi: Không xác định được nhân viên đăng nhập", JLabel.CENTER));
+                mainContentPanel.add(errorPanel, "Dashboard");
+            } else {
+                // Khởi tạo Dashboard Nhân Viên mới
+                this.dashboardNhanVienGUI = new DashboardNhanVienGUI(this.maNVDangNhap, this.userName);
+                mainContentPanel.add(this.dashboardNhanVienGUI, "Dashboard");
+            }
         }
 
-        VaiTro vaiTroEnum;
-        if (this.userRole != null && this.userRole.equalsIgnoreCase("QUANLY")) {
-            vaiTroEnum = VaiTro.QUANLY;
-        } else {
-            vaiTroEnum = VaiTro.NHANVIEN;
-        }
+        VaiTro vaiTroEnum = "QUANLY".equalsIgnoreCase(this.userRole) ? VaiTro.QUANLY : VaiTro.NHANVIEN;
 
-        // Panel Lịch làm việc (chung)
+        // Panel chung
         mainContentPanel.add(new LichLamViecGUI(vaiTroEnum), "Lịch làm việc");
-        // Panel Hóa đơn (chung)
         mainContentPanel.add(new HoaDonGUI(), "Hóa đơn");
 
-        // --- Panels chỉ dành cho Quản lý ---
+        // Panels chỉ dành cho Quản lý
         if (VaiTro.QUANLY == vaiTroEnum) {
             mainContentPanel.add(new DanhMucMonGUI(), "Danh mục món ăn");
             mainContentPanel.add(new KhuyenMaiGUI(), "Khuyến mãi");
             mainContentPanel.add(new NhanVienGUI(), "Nhân viên");
         }
-        // --- Panels chỉ dành cho Nhân viên ---
+        // Panels chỉ dành cho Nhân viên
         else if (VaiTro.NHANVIEN == vaiTroEnum) {
             this.danhSachBanGUI = new DanhSachBanGUI(this, this.maNVDangNhap);
             mainContentPanel.add(danhSachBanGUI, "Danh sách bàn");
@@ -326,5 +322,24 @@ public class MainGUI extends JFrame {
         if (currentActiveButton != null) {
             currentActiveButton.setBackground(COLOR_BUTTON_ACTIVE);
         }
+    }
+
+    /**
+     * [THÊM MỚI] Cleanup resources trước khi thoát
+     */
+    private void cleanupBeforeExit() {
+        if (dashboardNhanVienGUI != null) {
+            dashboardNhanVienGUI.stopTimers();
+            System.out.println("MainGUI: Đã dừng timers của DashboardNhanVienGUI");
+        }
+    }
+
+    /**
+     * [THÊM MỚI] Override dispose để đảm bảo cleanup
+     */
+    @Override
+    public void dispose() {
+        cleanupBeforeExit();
+        super.dispose();
     }
 }

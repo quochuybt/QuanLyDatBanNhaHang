@@ -400,26 +400,81 @@ public class HoaDonDAO {
     // Trong HoaDonDAO.java
 
     // [ĐÃ SỬA LỖI] Dùng tongTien thay vì (tienKhachDua - tienThoi)
+    // Thêm vào class HoaDonDAO
+
+    /**
+     * [ĐÃ SỬA] Lấy doanh thu theo hình thức thanh toán
+     * Tính chính xác: tongTien - giamGia
+     */
     public double getDoanhThuTheoHinhThuc(String maNV, LocalDateTime thoiGianBatDauCa, String hinhThuc) {
+        if (maNV == null || maNV.trim().isEmpty() || thoiGianBatDauCa == null || hinhThuc == null) {
+            return 0;
+        }
+
         double total = 0;
-        // Sửa: Lấy tổng của cột tongTien
-        String sql = "SELECT SUM(tongTien) FROM HoaDon " +
-                "WHERE maNV = ? AND ngayLap >= ? " +
+
+        // Sửa: Tính chính xác (tongTien - giamGia)
+        String sql = "SELECT ISNULL(SUM(tongTien - ISNULL(giamGia, 0)), 0) AS DoanhThu " +
+                "FROM HoaDon " +
+                "WHERE maNV = ? " +
+                "AND ngayLap >= ? " +
                 "AND trangThai = N'Đã thanh toán' " +
                 "AND hinhThucThanhToan = ?";
 
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
+
             ps.setString(1, maNV);
-            ps.setTimestamp(2, java.sql.Timestamp.valueOf(thoiGianBatDauCa));
+            ps.setTimestamp(2, Timestamp.valueOf(thoiGianBatDauCa));
             ps.setString(3, hinhThuc);
+
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) total = rs.getDouble(1);
+                if (rs.next()) {
+                    total = rs.getDouble("DoanhThu");
+                }
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (SQLException e) {
+            System.err.println("Lỗi getDoanhThuTheoHinhThuc: " + e.getMessage());
+            e.printStackTrace();
+        }
         return total;
     }
-    // --- CÁC HÀM MỚI CHO DASHBOARD ---
+
+    /**
+     * [MỚI] Lấy tổng doanh thu của nhân viên trong khoảng thời gian (tất cả hình thức)
+     */
+    public double getTongDoanhThuNhanVien(String maNV, LocalDateTime tuNgay, LocalDateTime denNgay) {
+        if (maNV == null || maNV.trim().isEmpty()) {
+            return 0;
+        }
+
+        double total = 0;
+
+        String sql = "SELECT ISNULL(SUM(tongTien - ISNULL(giamGia, 0)), 0) AS TongDoanhThu " +
+                "FROM HoaDon " +
+                "WHERE maNV = ? " +
+                "AND ngayLap >= ? " +
+                "AND ngayLap <= ? " +
+                "AND trangThai = N'Đã thanh toán'";
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maNV);
+            ps.setTimestamp(2, tuNgay != null ? Timestamp.valueOf(tuNgay) : Timestamp.valueOf(LocalDateTime.now().minusYears(10)));
+            ps.setTimestamp(3, denNgay != null ? Timestamp.valueOf(denNgay) : Timestamp.valueOf(LocalDateTime.now()));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    total = rs.getDouble("TongDoanhThu");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi getTongDoanhThuNhanVien: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return total;
+    }
 
     /**
      * Lấy tổng doanh thu theo từng ngày trong khoảng thời gian.
