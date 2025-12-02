@@ -271,35 +271,18 @@ public class GhepBanDialog extends JDialog {
     }
 
     private void handleSelectTarget(Ban ban, BanPanel clickedPanel) {
-        // Logic cũ: Bỏ chọn nếu click lại bàn đang chọn
         if (selectedTargetTable != null && selectedTargetTable.equals(ban)) {
             selectedTargetTable = null;
             clickedPanel.setSelected(false);
             return;
         }
 
-        // --- LOGIC MỚI: TỰ ĐỘNG GỠ KHỎI NGUỒN ---
-        // Nếu bàn này đang được chọn làm Nguồn -> Xóa nó khỏi danh sách Nguồn
-        if (selectedSourceTables.contains(ban)) {
-            selectedSourceTables.remove(ban);
-            // Cập nhật giao diện bên trái (Bỏ highlight bàn này bên trái)
-            for (BanPanel p : leftBanPanelList) {
-                if (p.getBan().equals(ban)) {
-                    p.setSelected(false);
-                    break;
-                }
-            }
-        }
-        // ----------------------------------------
-
-        // Chọn bàn mới làm Đích
         selectedTargetTable = ban;
 
-        // Reset visual các bàn khác bên phải (vì chỉ được chọn 1 đích)
         for (BanPanel p : rightBanPanelList) {
             p.setSelected(false);
         }
-        clickedPanel.setSelected(true); // Highlight bàn vừa chọn
+        clickedPanel.setSelected(true);
     }
 
     private void xuLyGhepBan() {

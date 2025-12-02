@@ -17,6 +17,7 @@ import java.util.Locale;
 import java.time.format.DateTimeFormatter;
 import entity.Ban;
 import entity.TrangThaiBan;
+import entity.NhanVien;
 import entity.KhachHang; // Import KhachHang
 
 import javax.swing.table.DefaultTableModel;
@@ -50,6 +51,7 @@ public class BillPanel extends JPanel {
     private ChiTietHoaDonDAO chiTietDAO;
     private HoaDonDAO hoaDonDAO;
     private BanDAO banDAO;
+    private NhanVienDAO nhanVienDAO;
 
     private KhachHangDAO khachHangDAO;
     private KhuyenMaiDAO maKhuyenMaiDAO;
@@ -77,6 +79,7 @@ public class BillPanel extends JPanel {
         this.banDAO = new BanDAO();
         this.khachHangDAO = new KhachHangDAO();
         this.maKhuyenMaiDAO = new KhuyenMaiDAO();
+        this.nhanVienDAO = new NhanVienDAO();
 
         setBackground(Color.WHITE);
         JPanel checkoutPanel = createCheckoutPanel();
@@ -207,13 +210,20 @@ public class BillPanel extends JPanel {
             double tienGiamGia = activeHoaDon.getGiamGia();
             String maKM = activeHoaDon.getMaKM();
             long tongThanhToanFinal = this.currentTotal;
-
+            String tenBanInHoaDon = banDAO.getTenBanByMa(banHienTai.getMaBan());
+            if (tenBanInHoaDon == null || tenBanInHoaDon.isEmpty()) {
+                tenBanInHoaDon = banHienTai.getTenBan();
+            }
+            String tenBanLuuLichSu = banDAO.getTenBanByMa(banHienTai.getMaBan());
+            if (tenBanLuuLichSu == null || tenBanLuuLichSu.isEmpty()) tenBanLuuLichSu = banHienTai.getTenBan();
             boolean thanhToanOK = hoaDonDAO.thanhToanHoaDon(
                     maHDCuoiCung,
-                    tienKhachTraLong, // Tiền khách đưa (ví dụ 80k)
+                    activeHoaDon.getTongThanhToan(),
+                    tienKhachTraLong,
                     hinhThucTT,
-                    tienGiamGia,      // Truyền giảm giá (ví dụ 20k)
-                    maKM              // Truyền mã KM
+                    tienGiamGia,
+                    maKM,
+                    tenBanLuuLichSu
             );
 
             if (thanhToanOK) {
@@ -244,11 +254,6 @@ public class BillPanel extends JPanel {
                 }
                 // ------------------------------------------------------------------
 
-                // Cập nhật Bàn
-                banHienTai.setTrangThai(TrangThaiBan.TRONG);
-                banHienTai.setGioMoBan(null);
-                banDAO.updateBan(banHienTai);
-
                 // Lấy danh sách món để in
                 List<ChiTietHoaDon> listToPrint = activeHoaDon.getDsChiTiet();
                 if (listToPrint == null || listToPrint.isEmpty()) {
@@ -256,10 +261,30 @@ public class BillPanel extends JPanel {
                     listToPrint = getCurrentDetailList();
                 }
 
+                String tenNVIn = "Admin"; // Giá trị mặc định
+                if (activeHoaDon.getMaNV() != null) {
+                    entity.NhanVien nv = nhanVienDAO.getChiTietNhanVien(activeHoaDon.getMaNV());
+                    if (nv != null) tenNVIn = nv.getHoten();
+                }
 
+                String tenKHIn = "Khách lẻ";
+                if (activeHoaDon.getMaKH() != null) {
+                    entity.KhachHang kh = khachHangDAO.timTheoMaKH(activeHoaDon.getMaKH());
+                    if (kh != null) tenKHIn = kh.getTenKH();
+                }
                 // In Hóa Đơn
-                xuatPhieuIn("HÓA ĐƠN THANH TOÁN", true, tienKhachTraLong, tienThoiLong, activeHoaDon.getMaHD(), listToPrint);
-
+                xuatPhieuIn(
+                        "HÓA ĐƠN THANH TOÁN",
+                        true,
+                        tienKhachTraLong,
+                        tienThoiLong,
+                        activeHoaDon.getMaHD(),
+                        listToPrint,
+                        hinhThucTT,
+                        tenBanInHoaDon,
+                        tenNVIn,
+                        tenKHIn
+                );
                 // Refresh Giao Diện
                 if (parentGoiMonGUI != null) {
                     parentGoiMonGUI.xoaThongTinGoiMon();
@@ -528,14 +553,38 @@ public class BillPanel extends JPanel {
 
         return mainPanel;
     }
-    private void xuatPhieuIn(String tieuDe, boolean daThanhToan, long tienKhachDua, long tienThoi,String maHD, List<ChiTietHoaDon> dsMon) {
+    private void xuatPhieuIn(String tieuDe, boolean daThanhToan, long tienKhachDua, long tienThoi,String maHD, List<ChiTietHoaDon> dsMon,String hinhThucTT,String tenBanThucTe,String tenNV, String tenKH) {
         // 1. Kiểm tra dữ liệu đầu vào
         Ban banHienTai = null;
-        if (parentGoiMonGUI != null) banHienTai = parentGoiMonGUI.getBanHienTai();
-        else if (parentBanGUI != null) banHienTai = parentBanGUI.getSelectedTable();
+        HoaDon activeHoaDon = null;
+
+        if (parentGoiMonGUI != null) {
+            banHienTai = parentGoiMonGUI.getBanHienTai();
+            activeHoaDon = parentGoiMonGUI.getActiveHoaDon();
+        } else if (parentBanGUI != null) {
+            banHienTai = parentBanGUI.getSelectedTable();
+            activeHoaDon = parentBanGUI.getActiveHoaDon();
+        }
 
         if (banHienTai == null || dsMon == null || dsMon.isEmpty()) return;
 
+
+        String tenNhanVien = "Không rõ";
+        String tenKhachHang = "Khách lẻ";
+
+        if (activeHoaDon != null) {
+            // Lấy tên nhân viên
+            if (activeHoaDon.getMaNV() != null) {
+                NhanVien nv = nhanVienDAO.getChiTietNhanVien(activeHoaDon.getMaNV()); // Đảm bảo DAO có hàm này
+                if (nv != null) tenNhanVien = nv.getHoten();
+            }
+
+            // Lấy tên khách hàng
+            if (activeHoaDon.getMaKH() != null) {
+                KhachHang kh = khachHangDAO.timTheoMaKH(activeHoaDon.getMaKH());
+                if (kh != null) tenKhachHang = kh.getTenKH();
+            }
+        }
         // 2. Tạo nội dung hóa đơn
         StringBuilder billText = new StringBuilder();
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy");
@@ -546,9 +595,10 @@ public class BillPanel extends JPanel {
         billText.append("===================================================\n");
         billText.append("Mã HĐ: ").append(maHD != null ? maHD : "---").append("\n");
         billText.append("Ngày:  ").append(LocalDateTime.now().format(dtf)).append("\n");
-        billText.append("Bàn:   ").append(banHienTai.getTenBan()).append(" - ").append(banHienTai.getKhuVuc()).append("\n");
-        // Nếu có khách hàng thì hiện tên
-        // billText.append("Khách: ").append(...).append("\n");
+        billText.append("Thu ngân: ").append(tenNV).append("\n");
+        billText.append("---------------------------------------------------\n");
+        billText.append("Bàn:   ").append(tenBanThucTe).append(" - ").append(banHienTai.getKhuVuc()).append("\n");
+        billText.append("Khách:    ").append(tenKH).append("\n");
         billText.append("---------------------------------------------------\n");
 
         // --- Danh sách món ---
@@ -578,6 +628,7 @@ public class BillPanel extends JPanel {
 
         // --- Phần thêm cho Hóa đơn đã thanh toán ---
         if (daThanhToan) {
+            billText.append(String.format("%-28s %20s\n", "HTTT:", hinhThucTT));
             billText.append(String.format("%-28s %20s\n", "Tiền khách đưa:", nf.format(tienKhachDua)));
             billText.append(String.format("%-28s %20s\n", "Tiền thối lại:", nf.format(tienThoi)));
             billText.append("---------------------------------------------------\n");
@@ -615,14 +666,35 @@ public class BillPanel extends JPanel {
     }
     private void hienThiXemTamTinh() {
         HoaDon hd = null;
-        if (parentGoiMonGUI != null) hd = parentGoiMonGUI.getActiveHoaDon();
-        else if (parentBanGUI != null) hd = parentBanGUI.getActiveHoaDon();
+        Ban banHienTai = null;
+        if (parentGoiMonGUI != null) {
+            hd = parentGoiMonGUI.getActiveHoaDon();
+            banHienTai = parentGoiMonGUI.getBanHienTai();
+        } else if (parentBanGUI != null) {
+            hd = parentBanGUI.getActiveHoaDon();
+            banHienTai = parentBanGUI.getSelectedTable();
+        }
 
-        if (hd != null) {
+        if (hd != null && banHienTai != null) {
             String maHD = hd.getMaHD();
-            // Lấy list món dùng hàm helper
             List<ChiTietHoaDon> listToPrint = getCurrentDetailList();
-            xuatPhieuIn("PHIẾU TẠM TÍNH", false, 0, 0, maHD, listToPrint);
+
+            // 3. Lấy tên bàn (Vì chưa thanh toán nên tên bàn lúc này vẫn đúng là tên gộp, ví dụ "Bàn 1 + 2")
+            String tenBan = banHienTai.getTenBan();
+            String tenNV = "Admin";
+            if (hd.getMaNV() != null) {
+                entity.NhanVien nv = nhanVienDAO.getChiTietNhanVien(hd.getMaNV());
+                if (nv != null) tenNV = nv.getHoten();
+            }
+
+            String tenKH = "Khách lẻ";
+            if (hd.getMaKH() != null) {
+                entity.KhachHang kh = khachHangDAO.timTheoMaKH(hd.getMaKH());
+                if (kh != null) tenKH = kh.getTenKH();
+            }
+
+            // 4. SỬA DÒNG LỖI: Thêm biến 'tenBan' vào cuối cùng
+            xuatPhieuIn("PHIẾU TẠM TÍNH", false, 0, 0, hd.getMaHD(), listToPrint, "---", tenBan, tenNV, tenKH);
         }
     }
     private long roundUpToNearest(long number, long nearest) {
@@ -873,29 +945,7 @@ public class BillPanel extends JPanel {
         btn.setPreferredSize(new Dimension(150, 60)); // Set chiều cao
         return btn;
     }
-    public void loadBill(HoaDon hoaDon) {
-        int tongSoLuong = 0;
 
-        // 2. Thêm món ăn vào bảng
-        for (ChiTietHoaDon ct : hoaDon.getDsChiTiet()) {
-            tongSoLuong += ct.getSoluong();
-        }
-
-        // 3. Cập nhật các JLabel tóm tắt
-        lblTongSoLuong.setText(String.valueOf(tongSoLuong));
-        lblTongCong.setText(nf.format(hoaDon.getTongTien()));
-        lblKhuyenMai.setText(nf.format(hoaDon.getGiamGia()));
-        lblPhanTramVAT.setText("0%"); // TODO: Cập nhật sau
-        lblVAT.setText(nf.format(hoaDon.getVat()));
-        lblTongThanhToan.setText(nf.format(hoaDon.getTongThanhToan()));
-
-        // 4. Cập nhật gợi ý tiền
-        updateSuggestedCash((long) hoaDon.getTongThanhToan());
-        tinhTienThoi(); // Reset tiền thối
-    }
-    /**
-     * (Hàm này sau này sẽ nhận 1 Hóa Đơn và load)
-     */
     public void loadBillTotals(long tongCong, long khuyenMai, long vat, long tongThanhToan, int tongSoLuong) {
 
         // 1. Cập nhật các JLabel tóm tắt
