@@ -35,6 +35,7 @@ public class MainGUI extends JFrame {
         this.userRole = userRole;
         this.userName = userName;
         this.maNVDangNhap = maNVDangNhap; // Lưu mã NV
+        this.setIconImage(util.AppResource.getAppIcon());
 
         // --- Cài đặt cửa sổ chính ---
         setTitle("StarGuardian Restaurant - Quản lý Nhà hàng");
@@ -305,15 +306,6 @@ public class MainGUI extends JFrame {
             mainContentPanel.add(danhSachBanGUI, "Danh sách bàn");
             this.khachHangGUI = new KhachHangGUI();
             mainContentPanel.add(this.khachHangGUI, "Thành viên");
-        }
-    }
-
-    public void refreshKhachHangScreen() {
-        if (khachHangGUI != null) {
-            khachHangGUI.refreshKhachHangTable();
-            System.out.println("MainGUI: Đã yêu cầu KhachHangGUI làm mới.");
-        } else {
-            System.err.println("MainGUI: KhachHangGUI chưa được khởi tạo.");
         }
     }
 
