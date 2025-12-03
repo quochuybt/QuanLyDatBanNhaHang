@@ -42,6 +42,8 @@ public class MainGUI extends JFrame {
         setLocationRelativeTo(null); // Căn giữa màn hình khi mở
         getRootPane().setBorder(BorderFactory.createEmptyBorder()); // Bỏ viền mặc định của JFrame
         setLayout(new BorderLayout(0, 0)); // Layout chính không có khoảng cách
+        this.setIconImage(util.AppResource.getAppIcon());
+
 
         // ===== TẠO CÁC THÀNH PHẦN GIAO DIỆN =====
         JPanel menuPanel = createMenuPanel();           // Tạo menu bên trái
@@ -274,11 +276,11 @@ public class MainGUI extends JFrame {
         // [ĐÃ SỬA] Logic phân chia Dashboard dựa trên UserRole
         if ("QUANLY".equalsIgnoreCase(this.userRole)) {
             // Dashboard thống kê cho Quản Lý
-            mainContentPanel.add(new DashboardGUI(), "Dashboard");
+            mainContentPanel.add(new DashboardQuanLyGUI(), "Dashboard");
         } else {
             // Dashboard cá nhân hóa cho Nhân Viên (Giao ca, Hiệu suất cá nhân)
             // Truyền mã NV và Tên NV vào để xử lý logic
-            mainContentPanel.add(new EmployeeDashboardGUI(this.maNVDangNhap, this.userName), "Dashboard");
+            mainContentPanel.add(new DashboardNhanVienGUI(this.maNVDangNhap, this.userName), "Dashboard");
         }
 
         VaiTro vaiTroEnum;

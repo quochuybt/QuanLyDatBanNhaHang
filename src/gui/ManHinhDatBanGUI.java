@@ -806,7 +806,7 @@ public class ManHinhDatBanGUI extends JPanel {
      * Xử lý logic khi bấm nút "ĐẶT BÀN".
      */
     private void xuLyDatBan() {
-        // 1. Validate dữ liệu (Giữ nguyên)
+        // 1. Validate dữ liệu
         if (dsBanDaChon.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn bàn!", "Chưa chọn bàn", JOptionPane.WARNING_MESSAGE);
             return;
@@ -823,6 +823,7 @@ public class ManHinhDatBanGUI extends JPanel {
             txtHoTenKhach.requestFocus();
             return;
         }
+
         // Validate thời gian
         LocalDateTime thoiGianDat = null;
         try {
@@ -848,10 +849,9 @@ public class ManHinhDatBanGUI extends JPanel {
 
         // 2. Tìm hoặc Tạo Khách Hàng
         entity.KhachHang kh = khachHangDAO.timTheoSDT(sdt);
-        String maKHCanDung;
+        String maKHCanDung = null;
 
         if (kh == null) {
-            // Logic tạo khách mới (Giữ nguyên logic của bạn)
             int choice = JOptionPane.showConfirmDialog(this,
                     "Khách hàng mới (" + sdt + "). Thêm vào danh sách thành viên?",
                     "Khách mới", JOptionPane.YES_NO_CANCEL_OPTION);
@@ -861,15 +861,21 @@ public class ManHinhDatBanGUI extends JPanel {
             kh = new entity.KhachHang();
             kh.setTenKH(tenKH);
             kh.setSdt(sdt);
-            // Mặc định NONE hoặc MEMBER tùy lựa chọn
             kh.setHangThanhVien(choice == JOptionPane.YES_OPTION ? entity.HangThanhVien.MEMBER : entity.HangThanhVien.NONE);
-            // Các trường bắt buộc khác (tránh lỗi SQL)
             kh.setGioitinh("Khác");
             kh.setNgaySinh(java.time.LocalDate.of(2000,1,1));
             kh.setNgayThamGia(java.time.LocalDate.now());
 
             if (khachHangDAO.themKhachHang(kh)) {
-                maKHCanDung = kh.getMaKH();
+                // --- SỬA QUAN TRỌNG: LẤY LẠI MÃ KH SAU KHI THÊM ---
+                // Để chắc chắn lấy đúng mã KH vừa sinh ra trong CSDL
+                entity.KhachHang khMoi = khachHangDAO.timTheoSDT(sdt);
+                if (khMoi != null) {
+                    maKHCanDung = khMoi.getMaKH();
+                } else {
+                    // Fallback nếu code Java tự sinh mã trước khi insert
+                    maKHCanDung = kh.getMaKH();
+                }
             } else {
                 JOptionPane.showMessageDialog(this, "Lỗi thêm khách hàng!", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
@@ -878,27 +884,27 @@ public class ManHinhDatBanGUI extends JPanel {
             maKHCanDung = kh.getMaKH();
         }
 
-        // --- 3. XỬ LÝ ĐẶT BÀN (QUAN TRỌNG: SỬA LOGIC TẠO ĐƠN) ---
-        boolean tatCaThanhCong = true;
+        // Kiểm tra lần cuối xem có mã KH không (để tránh lỗi gộp bàn sau này)
+        if (maKHCanDung == null) {
+            JOptionPane.showMessageDialog(this, "Lỗi: Không lấy được Mã Khách Hàng!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
 
-        // Nếu chọn nhiều bàn (Ghép), ta cần đánh dấu
+        // --- 3. XỬ LÝ ĐẶT BÀN ---
+        boolean tatCaThanhCong = true;
         boolean isGhepBan = dsBanDaChon.size() > 1;
-        Ban banChinh = dsBanDaChon.get(0); // Chọn bàn đầu tiên làm bàn chính để tham chiếu
+        Ban banChinh = dsBanDaChon.get(0);
 
         for (Ban ban : dsBanDaChon) {
             entity.DonDatMon ddm = new entity.DonDatMon();
             ddm.setNgayKhoiTao(LocalDateTime.now());
             ddm.setThoiGianDen(thoiGianDat);
-            ddm.setMaNV("NV01102"); // Nên lấy từ Session đăng nhập
-            ddm.setMaKH(maKHCanDung); // Quan trọng: Phải lưu mã KH để sau này tìm lại được
+            ddm.setMaNV("NV01102");
+            ddm.setMaKH(maKHCanDung); // Đã chắc chắn có mã
             ddm.setMaBan(ban.getMaBan());
 
-            // Xử lý Ghi chú
             String ghiChuUser = txtGhiChu.getText().trim();
             if (isGhepBan) {
-                // Nếu là ghép bàn, thêm thông tin liên kết vào ghi chú
-                // Lưu ý: Đừng dùng prefix "LINKED:" ở đây vội, vì "LINKED:" dùng cho đơn ảo khi đã mở bàn.
-                // Ở đây chỉ cần ghi chú để nhân viên biết.
                 if (ban.equals(banChinh)) {
                     ddm.setGhiChu(ghiChuUser + " (Đặt chính nhóm " + dsBanDaChon.size() + " bàn)");
                 } else {
@@ -908,14 +914,16 @@ public class ManHinhDatBanGUI extends JPanel {
                 ddm.setGhiChu(ghiChuUser);
             }
 
-            // Lưu đơn đặt món
-            // Lưu ý: Không setMaDon() để DAO tự sinh mã DONxxxx chuẩn
+            // Lưu đơn
             if (donDatMonDAO.themDonDatMon(ddm)) {
-                // Cập nhật trạng thái bàn
-                ban.setTrangThai(TrangThaiBan.DA_DAT_TRUOC);
-                // Với đặt trước, chưa cần set giờ mở bàn (gioMoBan) ngay, hoặc set bằng thoiGianDen
-                // ban.setGioMoBan(thoiGianDat);
-                if (!banDAO.updateBan(ban)) tatCaThanhCong = false;
+                // --- LOGIC TRẠNG THÁI CHUẨN ---
+                // Chỉ đổi màu bàn thành VÀNG nếu bàn đó KHÔNG PHẢI ĐANG ĂN
+                if (ban.getTrangThai() != TrangThaiBan.DANG_PHUC_VU) {
+                    ban.setTrangThai(TrangThaiBan.DA_DAT_TRUOC);
+                    ban.setGioMoBan(thoiGianDat);
+                    if (!banDAO.updateBan(ban)) tatCaThanhCong = false;
+                }
+                // Nếu đang DANG_PHUC_VU thì kệ nó, chỉ lưu đơn xuống DB
             } else {
                 tatCaThanhCong = false;
             }
@@ -923,17 +931,18 @@ public class ManHinhDatBanGUI extends JPanel {
 
         if (tatCaThanhCong) {
             // Reset giao diện
-            taiDanhSachBanTrong();
-            hienThiBanPhuHop();
-            loadDanhSachDatTruoc();
+            taiDanhSachBanTrong(); // Load lại bàn trái
+            hienThiBanPhuHop();    // Load lại bàn giữa
+            loadDanhSachDatTruoc(); // Load lại list phải
 
             // Clear inputs
             spinnerSoLuongKhach.setValue(1);
             txtGhiChu.setText("");
             txtSDTKhach.setText("");
             txtHoTenKhach.setText("");
-            dsBanDaChon.clear();
+            dsBanDaChon.clear(); // Xóa danh sách chọn
 
+            // Quan trọng: Làm mới màn hình sơ đồ bàn chính nếu đang mở
             if (parentDanhSachBanGUI_DatBan != null) {
                 parentDanhSachBanGUI_DatBan.refreshManHinhBan();
             }
@@ -1021,9 +1030,6 @@ public class ManHinhDatBanGUI extends JPanel {
                 if (parentDanhSachBanGUI_DatBan != null) {
                     parentDanhSachBanGUI_DatBan.refreshManHinhBan(); // <-- GỌI LÀM MỚI
                 }
-
-                JOptionPane.showMessageDialog(this, "Đã hủy đặt bàn thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-
             } else {
                 JOptionPane.showMessageDialog(this, "Hủy đặt bàn thất bại! Vui lòng thử lại.", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
             }

@@ -97,128 +97,127 @@ public class HoaDonDAO {
         }
         return false;
     }
-    public boolean thanhToanHoaDon(String maHD, double tienKhachDua, String hinhThucTT, double tienGiamGia, String maKM) {
-        // SQL Update Hóa Đơn Chính
-        String sqlUpdateHD = "UPDATE HoaDon SET " +
-                "trangThai = N'Đã thanh toán', " +
-                "tienKhachDua = ?, " +
-                "hinhThucThanhToan = ?, " +
-                "giamGia = ?, " +
-                "maKM = ? " +
-                "WHERE maHD = ?";
+    public boolean thanhToanHoaDon(String maHD, double tongTien, double tienKhachDua, String hinhThucTT, double tienGiamGia, String maKM, String tenBanGhiLai) {
+        System.out.println("========== BẮT ĐẦU THANH TOÁN & TRẢ TÊN BÀN ==========");
 
+        String sqlUpdateHD = "UPDATE HoaDon SET trangThai = N'Đã thanh toán', ngayLap = GETDATE(), tongTien = ?, tienKhachDua = ?, hinhThucThanhToan = ?, giamGia = ?, maKM = ?, tenBan = ? WHERE maHD = ?";
         java.sql.Connection conn = null;
-
         try {
             conn = connectDB.SQLConnection.getConnection();
-            conn.setAutoCommit(false); // Bắt đầu Transaction
+            conn.setAutoCommit(false); // Transaction
 
-            // --- BƯỚC 1: UPDATE HÓA ĐƠN ---
-            try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlUpdateHD)) {
-                ps.setDouble(1, tienKhachDua);
-                ps.setString(2, hinhThucTT);
-                ps.setDouble(3, tienGiamGia);
-
-                if (maKM != null && !maKM.isEmpty()) {
-                    ps.setString(4, maKM);
-                } else {
-                    ps.setNull(4, java.sql.Types.NVARCHAR);
-                }
-                ps.setString(5, maHD);
-
-                if (ps.executeUpdate() <= 0) {
-                    conn.rollback();
-                    return false; // Không tìm thấy HĐ để update
+            // --- BƯỚC 0: Lấy thông tin ---
+            String maDonHienTai = null;
+            String maBanChinh = null;
+            String sqlGetInfo = "SELECT d.maDon, d.maBan FROM HoaDon h JOIN DonDatMon d ON h.maDon = d.maDon WHERE h.maHD = ?";
+            try (java.sql.PreparedStatement psInfo = conn.prepareStatement(sqlGetInfo)) {
+                psInfo.setString(1, maHD);
+                java.sql.ResultSet rsInfo = psInfo.executeQuery();
+                if (rsInfo.next()) {
+                    maDonHienTai = rsInfo.getString("maDon");
+                    maBanChinh = rsInfo.getString("maBan");
                 }
             }
-            String sqlUpdateDonGoc = "UPDATE DonDatMon SET trangThai = N'Đã thanh toán' " +
-                    "WHERE maDon = (SELECT maDon FROM HoaDon WHERE maHD = ?)";
 
-            try (java.sql.PreparedStatement psDon = conn.prepareStatement(sqlUpdateDonGoc)) {
-                psDon.setString(1, maHD);
+            // --- BƯỚC 1: UPDATE HÓA ĐƠN (Để hiện đã thanh toán) ---
+            try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlUpdateHD)) {
+                ps.setDouble(1, tongTien);
+                ps.setDouble(2, tienKhachDua);
+                ps.setString(3, hinhThucTT);
+                ps.setDouble(4, tienGiamGia);
+                ps.setString(5, maKM);
+
+                // Set tên bàn vào tham số số 7
+                ps.setNString(6, tenBanGhiLai);
+
+                ps.setString(7, maHD);
+                if (ps.executeUpdate() <= 0) { conn.rollback(); return false; }
+            }
+
+            // --- BƯỚC 2: ĐÓNG ĐƠN HIỆN TẠI ---
+            String sqlCloseDon = "UPDATE DonDatMon SET trangThai = N'Đã thanh toán' WHERE maDon = ?";
+            try (java.sql.PreparedStatement psDon = conn.prepareStatement(sqlCloseDon)) {
+                psDon.setString(1, maDonHienTai);
                 psDon.executeUpdate();
             }
 
-            // --- BƯỚC 2: XỬ LÝ BÀN GHÉP (NẾU CÓ) ---
-            // A. Tìm mã bàn Đích (Bàn mẹ) của hóa đơn này
-            String sqlGetBan = "SELECT maBan FROM DonDatMon WHERE maDon = (SELECT maDon FROM HoaDon WHERE maHD = ?)";
-            String maBanDich = null;
-
-            try (java.sql.PreparedStatement psGet = conn.prepareStatement(sqlGetBan)) {
-                psGet.setString(1, maHD);
-                try (java.sql.ResultSet rs = psGet.executeQuery()) {
-                    if (rs.next()) {
-                        maBanDich = rs.getString("maBan");
-                    }
+            // --- BƯỚC 3: TÌM CÁC BÀN LIÊN QUAN (Để trả tên) ---
+            List<String> listBanCheck = new ArrayList<>();
+            if (maBanChinh != null) {
+                listBanCheck.add(maBanChinh);
+                // Tìm bàn ghép (qua đơn ảo LINKED)
+                String sqlLink = "SELECT maBan FROM DonDatMon WHERE ghiChu = ? AND trangThai != N'Đã thanh toán' AND trangThai != N'Đã hủy'";
+                try (java.sql.PreparedStatement psLink = conn.prepareStatement(sqlLink)) {
+                    psLink.setString(1, "LINKED:" + maBanChinh);
+                    java.sql.ResultSet rsLink = psLink.executeQuery();
+                    while(rsLink.next()) listBanCheck.add(rsLink.getString("maBan"));
                 }
             }
 
-            if (maBanDich != null) {
-                // Tạo key liên kết (khớp với lúc tạo đơn ảo bên GhepBanDialog)
-                String linkNote = "LINKED:" + maBanDich;
-                List<String> banCanReset = new ArrayList<>();
+            // --- BƯỚC 4: THANH TOÁN ĐƠN ẢO ---
+            if (listBanCheck.size() > 1) {
+                StringBuilder sb = new StringBuilder();
+                for(String s : listBanCheck) sb.append("'").append(s).append("',");
+                String inClause = sb.substring(0, sb.length()-1);
 
-
-                // B. Reset các Bàn Nguồn (Bàn con) về trạng thái Trống
-                // QUAN TRỌNG: Phải chạy lệnh này TRƯỚC khi update đơn ảo thành 'Đã thanh toán'
-                // Lưu ý: Chuỗi trong REPLACE phải khớp chính xác với chuỗi bạn cộng thêm lúc ghép (vd: " (Ghép)")
-                String sqlFindActiveLinked =
-                        "SELECT b.maBan FROM Ban b " +
-                                "JOIN DonDatMon d ON b.maBan = d.maBan " +
-                                "WHERE d.ghiChu = ? " +
-                                "AND d.trangThai = N'Chưa thanh toán' " +
-                                "AND b.trangThai = N'Đang có khách'";
-                try (java.sql.PreparedStatement psFind = conn.prepareStatement(sqlFindActiveLinked)) {
-                    psFind.setString(1, linkNote);
-                    java.sql.ResultSet rsFind = psFind.executeQuery();
-                    while(rsFind.next()) {
-                        banCanReset.add(rsFind.getString("maBan"));
-                    }
+                String sqlDummy = "UPDATE DonDatMon SET trangThai = N'Đã thanh toán' WHERE ghiChu = ? AND maBan IN (" + inClause + ")";
+                try (java.sql.PreparedStatement psDum = conn.prepareStatement(sqlDummy)) {
+                    psDum.setString(1, "LINKED:" + maBanChinh);
+                    psDum.executeUpdate();
                 }
+            }
 
-                if (!banCanReset.isEmpty()) {
-                    // Tạo chuỗi tham số cho câu lệnh IN (...) -> vd: (?, ?)
-                    StringBuilder sbParam = new StringBuilder();
-                    for(int i=0; i<banCanReset.size(); i++) sbParam.append("?,");
-                    String inClause = sbParam.substring(0, sbParam.length()-1);
-
-                    // 1. Reset Bàn (Chỉ reset những bàn trong danh sách lọc)
-                    String sqlResetBan = "UPDATE Ban SET " +
-                            "trangThai = N'Trống', " +
+            // --- BƯỚC 5: UPDATE BÀN (TRẠNG THÁI & TRẢ TÊN GỐC) ---
+            // Logic SQL "thần thánh" để trả tên:
+            // 1. Nếu tên có chữ " (Ghép": Cắt bỏ phần sau.
+            // 2. Nếu tên có chữ " + ": Cắt bỏ phần sau.
+            String sqlUpdateBan =
+                    "UPDATE Ban SET " +
                             "gioMoBan = NULL, " +
-                            "tenBan = CASE WHEN CHARINDEX(N' (Ghép', tenBan) > 0 " +
-                            "THEN LEFT(tenBan, CHARINDEX(N' (Ghép', tenBan) - 1) " +
-                            "ELSE tenBan END " +
-                            "WHERE maBan IN (" + inClause + ")";
+                            "trangThai = ?, " +
+                            "tenBan = CASE " +
+                            // Trường hợp 1: "Bàn 7 (Ghép Bàn 6)" -> Lấy "Bàn 7"
+                            "WHEN CHARINDEX(N' (Ghép', tenBan) > 0 THEN RTRIM(LEFT(tenBan, CHARINDEX(N' (Ghép', tenBan) - 1)) " +
+                            // Trường hợp 2: "Bàn 6 + 7 + 8" -> Lấy "Bàn 6"
+                            "WHEN CHARINDEX(N' +', tenBan) > 0 THEN RTRIM(LEFT(tenBan, CHARINDEX(N' +', tenBan) - 1)) " +
+                            // Trường hợp thường: Giữ nguyên
+                            "ELSE tenBan " +
+                            "END " +
+                            "WHERE maBan = ?";
 
-                    try (java.sql.PreparedStatement psReset = conn.prepareStatement(sqlResetBan)) {
-                        for (int i = 0; i < banCanReset.size(); i++) {
-                            psReset.setString(i + 1, banCanReset.get(i));
-                        }
-                        psReset.executeUpdate();
-                    }
+            String sqlCount = "SELECT COUNT(*) FROM DonDatMon " +
+                    "WHERE maBan = ? " +
+                    "AND maDon != ? " +
+                    "AND (ghiChu IS NULL OR ghiChu NOT LIKE 'LINKED:%') " +
+                    "AND trangThai NOT IN (N'Đã thanh toán', N'Đã hủy')";
 
-                    // 2. Đóng Đơn ảo (Chỉ đóng đơn của những bàn trong danh sách lọc)
-                    String sqlCloseDummy = "UPDATE DonDatMon SET trangThai = N'Đã thanh toán' " +
-                            "WHERE ghiChu = ? AND trangThai = N'Chưa thanh toán' " +
-                            "AND maBan IN (" + inClause + ")";
+            try (java.sql.PreparedStatement psUpBan = conn.prepareStatement(sqlUpdateBan);
+                 java.sql.PreparedStatement psCount = conn.prepareStatement(sqlCount)) {
 
-                    try (java.sql.PreparedStatement psClose = conn.prepareStatement(sqlCloseDummy)) {
-                        psClose.setString(1, linkNote);
-                        for (int i = 0; i < banCanReset.size(); i++) {
-                            psClose.setString(i + 2, banCanReset.get(i));
-                        }
-                        psClose.executeUpdate();
-                    }
+                for (String mb : listBanCheck) {
+                    // Đếm đơn chờ
+                    psCount.setString(1, mb);
+                    psCount.setString(2, maDonHienTai);
+
+                    int soDonCho = 0;
+                    java.sql.ResultSet rsCount = psCount.executeQuery();
+                    if (rsCount.next()) soDonCho = rsCount.getInt(1);
+
+                    String trangThaiMoi = (soDonCho > 0) ? "Đã đặt trước" : "Trống";
+
+                    // Update Bàn (bao gồm cả trả tên gốc)
+                    psUpBan.setNString(1, trangThaiMoi);
+                    psUpBan.setString(2, mb);
+                    psUpBan.executeUpdate();
                 }
             }
 
-            conn.commit(); // Xác nhận tất cả thành công
+            conn.commit();
             return true;
 
         } catch (Exception e) {
             e.printStackTrace();
-            try { if (conn != null) conn.rollback(); } catch (Exception ex) {} // Hoàn tác nếu lỗi
+            try { if (conn != null) conn.rollback(); } catch (Exception ex) {}
             return false;
         } finally {
             try { if (conn != null) { conn.setAutoCommit(true); conn.close(); } } catch (Exception ex) {}
@@ -254,14 +253,33 @@ public class HoaDonDAO {
         String maNV = rs.getString("maNV");
         String maKM = rs.getString("maKM");
 
-        float tongTien = rs.getFloat("tongTien"); // Đây là tổng tiền GỐC (trước giảm giá)
+        float tongTienLuuTrongDB = rs.getFloat("tongTien");
+        float giamGia = rs.getFloat("giamGia");
+        float vat = 0;
 
         float tienKhachDua = rs.getFloat("tienKhachDua");
+        float tongTienGoc = tongTienLuuTrongDB + giamGia - vat;
+
 
         HoaDon hd = new HoaDon(maHD, ngayLap, trangThai, hinhThucThanhToan, maDon, maNV, maKM);
 
+        // --- SỬA LỖI TẠI ĐÂY ---
+        // Kiểm tra xem cột tenBan có tồn tại trong ResultSet hay không
+        try {
+            // Tìm cột tenBan trong ResultSet metadata
+            int tenBanIndex = rs.findColumn("tenBan");
+            // Nếu tìm thấy, lấy giá trị
+            hd.setTenBan(rs.getString(tenBanIndex));
+        } catch (SQLException e) {
+            // Nếu không tìm thấy cột tenBan (lỗi "The column name tenBan is not valid"),
+            // bỏ qua và để giá trị mặc định (null hoặc chuỗi rỗng tùy logic của bạn)
+            // System.err.println("Cảnh báo: Không tìm thấy cột 'tenBan' trong ResultSet. Đặt mặc định là null.");
+            hd.setTenBan(null);
+        }
+
+
         hd.setTienKhachDua(tienKhachDua);
-        hd.setTongTienTuDB(tongTien); // Gán tổng tiền gốc
+        hd.setTongTienTuDB(tongTienGoc); // Gán tổng tiền gốc
         hd.setGiamGia(rs.getFloat("giamGia"));
         hd.setVat(0);
         hd.capNhatTongThanhToanTuCacThanhPhan();
@@ -272,18 +290,32 @@ public class HoaDonDAO {
     /**
      * [SELECT] - Lấy toàn bộ danh sách hóa đơn từ CSDL.
      */
+    /**
+     * [ĐÃ SỬA] Lấy toàn bộ hóa đơn kèm theo Tên Bàn
+     */
     public List<HoaDon> getAllHoaDon() {
         List<HoaDon> dsHoaDon = new ArrayList<>();
-        String sql = "SELECT * FROM HoaDon ORDER BY ngayLap DESC";
+        // Sửa câu lệnh SQL để JOIN với bảng DonDatMon và Ban để lấy tenBan
+        // Chú ý: Cột tenBan lấy từ bảng Ban (b.tenBan)
+        String sql = "SELECT hd.*, b.tenBan " +
+                "FROM HoaDon hd " +
+                "LEFT JOIN DonDatMon ddm ON hd.maDon = ddm.maDon " +
+                "LEFT JOIN Ban b ON ddm.maBan = b.maBan " +
+                "ORDER BY hd.ngayLap DESC";
+
         try (Connection conn = SQLConnection.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
                 try {
-                    dsHoaDon.add(createHoaDonFromResultSet(rs));
+                    HoaDon hd = createHoaDonFromResultSet(rs);
+                    // Nếu HoaDon có thuộc tính tenBan, hãy set nó ở đây
+                    // Ví dụ: hd.setTenBan(rs.getString("tenBan"));
+                    dsHoaDon.add(hd);
                 } catch (Exception e) {
-                    System.err.println("Lỗi khi tạo HoaDon từ ResultSet (getAll): " + e.getMessage());
+                    // In lỗi chi tiết 1 lần để debug nếu cần, thay vì spam console
+                    System.err.println("Lỗi dòng dữ liệu: " + e.getMessage());
                 }
             }
         } catch (SQLException e) {
@@ -400,26 +432,81 @@ public class HoaDonDAO {
     // Trong HoaDonDAO.java
 
     // [ĐÃ SỬA LỖI] Dùng tongTien thay vì (tienKhachDua - tienThoi)
+    // Thêm vào class HoaDonDAO
+
+    /**
+     * [ĐÃ SỬA] Lấy doanh thu theo hình thức thanh toán
+     * Tính chính xác: tongTien - giamGia
+     */
     public double getDoanhThuTheoHinhThuc(String maNV, LocalDateTime thoiGianBatDauCa, String hinhThuc) {
+        if (maNV == null || maNV.trim().isEmpty() || thoiGianBatDauCa == null || hinhThuc == null) {
+            return 0;
+        }
+
         double total = 0;
-        // Sửa: Lấy tổng của cột tongTien
-        String sql = "SELECT SUM(tongTien) FROM HoaDon " +
-                "WHERE maNV = ? AND ngayLap >= ? " +
+
+        // Sửa: Tính chính xác (tongTien - giamGia)
+        String sql = "SELECT ISNULL(SUM(tongTien - ISNULL(giamGia, 0)), 0) AS DoanhThu " +
+                "FROM HoaDon " +
+                "WHERE maNV = ? " +
+                "AND ngayLap >= ? " +
                 "AND trangThai = N'Đã thanh toán' " +
                 "AND hinhThucThanhToan = ?";
 
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
+
             ps.setString(1, maNV);
-            ps.setTimestamp(2, java.sql.Timestamp.valueOf(thoiGianBatDauCa));
+            ps.setTimestamp(2, Timestamp.valueOf(thoiGianBatDauCa));
             ps.setString(3, hinhThuc);
+
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) total = rs.getDouble(1);
+                if (rs.next()) {
+                    total = rs.getDouble("DoanhThu");
+                }
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (SQLException e) {
+            System.err.println("Lỗi getDoanhThuTheoHinhThuc: " + e.getMessage());
+            e.printStackTrace();
+        }
         return total;
     }
-    // --- CÁC HÀM MỚI CHO DASHBOARD ---
+
+    /**
+     * [MỚI] Lấy tổng doanh thu của nhân viên trong khoảng thời gian (tất cả hình thức)
+     */
+    public double getTongDoanhThuNhanVien(String maNV, LocalDateTime tuNgay, LocalDateTime denNgay) {
+        if (maNV == null || maNV.trim().isEmpty()) {
+            return 0;
+        }
+
+        double total = 0;
+
+        String sql = "SELECT ISNULL(SUM(tongTien - ISNULL(giamGia, 0)), 0) AS TongDoanhThu " +
+                "FROM HoaDon " +
+                "WHERE maNV = ? " +
+                "AND ngayLap >= ? " +
+                "AND ngayLap <= ? " +
+                "AND trangThai = N'Đã thanh toán'";
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maNV);
+            ps.setTimestamp(2, tuNgay != null ? Timestamp.valueOf(tuNgay) : Timestamp.valueOf(LocalDateTime.now().minusYears(10)));
+            ps.setTimestamp(3, denNgay != null ? Timestamp.valueOf(denNgay) : Timestamp.valueOf(LocalDateTime.now()));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    total = rs.getDouble("TongDoanhThu");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi getTongDoanhThuNhanVien: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return total;
+    }
 
     /**
      * Lấy tổng doanh thu theo từng ngày trong khoảng thời gian.

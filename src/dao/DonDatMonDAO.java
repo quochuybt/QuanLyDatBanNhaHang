@@ -14,6 +14,25 @@ public class DonDatMonDAO {
     /**
      * Hàm helper: Tạo đối tượng DonDatMon từ ResultSet
      */
+    public DonDatMon getDonDatMonByMa(String maDon) {
+        DonDatMon ddm = null;
+        String sql = "SELECT * FROM DonDatMon WHERE maDon = ?";
+
+        try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maDon);
+
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    ddm = createDonDatMonFromResultSet(rs);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ddm;
+    }
     private DonDatMon createDonDatMonFromResultSet(ResultSet rs) throws Exception {
         String maDon = rs.getString("maDon");
         LocalDateTime ngayKhoiTao = rs.getTimestamp("ngayKhoiTao").toLocalDateTime();
@@ -192,7 +211,8 @@ public class DonDatMonDAO {
         // 3. QUAN TRỌNG NHẤT: ORDER BY thoiGianDen ASC (Tăng dần) -> Để lấy cái giờ sớm nhất (17h trước 19h)
         String sql = "SELECT TOP 1 * FROM DonDatMon " +
                 "WHERE maBan = ? " +
-                "AND trangThai != N'Đã hủy' " +
+                "AND trangThai = N'Chưa thanh toán' " +
+                "AND (ghiChu IS NULL OR ghiChu NOT LIKE 'LINKED:%') " +
                 "AND NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maDon = DonDatMon.maDon) " +
                 "ORDER BY thoiGianDen ASC"; // <-- DÒNG QUYẾT ĐỊNH
 
@@ -227,12 +247,12 @@ public class DonDatMonDAO {
             ps.setString(4, ddm.getMaNV());
             ps.setString(5, ddm.getMaKH()); // Có thể null
             ps.setString(6, ddm.getMaBan()); // Có thể null (nếu đặt mang về)
-            ps.setString(7, ddm.getGhiChu());
+            ps.setNString(7, ddm.getGhiChu());
             String trangThai = ddm.getTrangThai();
             if (trangThai == null || trangThai.isEmpty()) {
                 trangThai = "Chưa thanh toán";
             }
-            ps.setString(8, trangThai);
+            ps.setNString(8, trangThai);
 
             return ps.executeUpdate() > 0;
 
@@ -242,6 +262,21 @@ public class DonDatMonDAO {
             e.printStackTrace();
         }
         return false;
+    }
+    public boolean huyDonDatMon(String maDon) {
+        // Cập nhật trạng thái thành 'Đã hủy' để hệ thống không đếm nhầm nữa
+        String sql = "UPDATE DonDatMon SET trangThai = N'Đã hủy' WHERE maDon = ?";
+
+        try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maDon);
+            return ps.executeUpdate() > 0;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
     public List<String> getMaBanDaDatTrongKhoang(LocalDateTime tuGio, LocalDateTime denGio) {
         List<String> dsMaBan = new ArrayList<>();
@@ -304,12 +339,15 @@ public class DonDatMonDAO {
 public List<DonDatMon> getAllDonDatMonChuaNhan() {
     List<DonDatMon> ds = new ArrayList<>();
 
-    String sql = "SELECT * FROM DonDatMon ddm " +
-            "WHERE NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maDon = ddm.maDon) " +
-            "AND ddm.trangThai != N'Đã hủy' " +
-            "AND (ddm.ghiChu IS NULL OR ddm.ghiChu NOT LIKE 'LINKED:%') " + // <-- THÊM DÒNG NÀY
-            "ORDER BY ddm.thoiGianDen ASC";
-
+    String sql = "SELECT * FROM DonDatMon d " +
+            "WHERE d.trangThai = N'Chưa thanh toán' " +
+            // Điều kiện: Chưa có hóa đơn (nghĩa là chưa mở bàn ăn)
+            "AND NOT EXISTS (SELECT 1 FROM HoaDon h WHERE h.maDon = d.maDon) " +
+            // Điều kiện: Không phải là đơn ảo của bàn ghép
+            "AND (d.ghiChu IS NULL OR d.ghiChu NOT LIKE 'LINKED:%') " +
+            // Điều kiện: Chỉ lấy các đơn từ hôm nay trở đi (tránh hiện đơn quá khứ bị sót)
+            "AND d.thoiGianDen >= CAST(GETDATE() AS DATE) " +
+            "ORDER BY d.thoiGianDen ASC";
     try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
          java.sql.Statement stmt = conn.createStatement();
          java.sql.ResultSet rs = stmt.executeQuery(sql)) {

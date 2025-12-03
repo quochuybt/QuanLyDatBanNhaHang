@@ -17,6 +17,7 @@ public class HoaDon {
     private String trangThai;
     private String hinhThucThanhToan;
     private float tienKhachDua; // 🌟 ĐÃ KHAI BÁO
+    private String tenBan;
 
 
     private String maDon;
@@ -163,7 +164,6 @@ public class HoaDon {
     public void setTongTienTuDB(float tongTien) {
         // Khi load từ DB, cột tongTien thường là tổng cuối cùng
         this.tongTien = tongTien;
-        this.tongThanhToan = this.tongTien - this.giamGia + this.vat;
     }
     public void capNhatTongThanhToanTuCacThanhPhan() {
         this.tongThanhToan = this.tongTien - this.giamGia + this.vat;
@@ -183,6 +183,7 @@ public class HoaDon {
     }
 
     // --- GETTER ---
+    public String getTenBan() { return tenBan; }
     public String getMaKH() { return maKH; }
     public String getMaHD() { return maHD; }
     public LocalDateTime getNgayLap() { return ngayLap; }
@@ -198,6 +199,7 @@ public class HoaDon {
     public List<ChiTietHoaDon> getDsChiTiet() { return dsChiTiet; }
 
     // Các giá trị đã tính toán
+    public void setTenBan(String tenBan) { this.tenBan = tenBan; }
     public float getTongTien() { return tongTien; } // Tổng món ăn
     public float getGiamGia() { return giamGia; }
     public float getVat() { return vat; }

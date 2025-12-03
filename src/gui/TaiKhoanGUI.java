@@ -22,6 +22,7 @@ public class TaiKhoanGUI extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1300, 800);
         setLocationRelativeTo(null);
+        this.setIconImage(util.AppResource.getAppIcon());
 
         BackgroundPanel backgroundPanel = new BackgroundPanel("/img/DangNhap+Logo/DangNhap.jpg");
         backgroundPanel.setLayout(new GridBagLayout());
