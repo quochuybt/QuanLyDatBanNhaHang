@@ -22,6 +22,8 @@ public class ManHinhBanGUI extends JPanel {
     public static final Color COLOR_STATUS_OCCUPIED = new Color(239, 68, 68);
     public static final Color COLOR_STATUS_RESERVED = new Color(187, 247, 208);
 
+    private javax.swing.Timer timerTuDongCapNhat;
+
     private List<Ban> allTablesFromDB;
     private BanDAO banDAO;
     private HoaDonDAO hoaDonDAO;
@@ -71,6 +73,25 @@ public class ManHinhBanGUI extends JPanel {
         this.donDatMonDAO = new DonDatMonDAO();
         this.maKhuyenMaiDAO = new KhuyenMaiDAO();
         buildUI();
+        khoiTaoTuDongCapNhat();
+    }
+    private void khoiTaoTuDongCapNhat() {
+        int thoiGianLap = 60 * 1000; // 60 giây (1 phút) cập nhật 1 lần
+        // Nếu muốn nhanh hơn thì để 30 * 1000 (30 giây)
+
+        timerTuDongCapNhat = new javax.swing.Timer(thoiGianLap, new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                // Code này sẽ chạy mỗi 1 phút
+                System.out.println("System: Đang tự động quét trạng thái bàn...");
+
+                // Gọi hàm làm mới mà chúng ta đã viết ở câu trước
+                // Hàm này sẽ tự động khóa bàn (Vàng) hoặc nhả bàn (Xanh) theo giờ
+                refreshTableList();
+            }
+        });
+
+        timerTuDongCapNhat.start(); // Bắt đầu chạy
     }
     private void xuLyApDungKhuyenMai() {
         HoaDon activeHoaDon = getActiveHoaDon();
@@ -847,6 +868,7 @@ public class ManHinhBanGUI extends JPanel {
         return selectedTable; // Trả về biến thành viên selectedTable
     }
     public void refreshTableList() {
+        new dao.DonDatMonDAO().capNhatTrangThaiBanTheoGio();
         System.out.println("Bắt đầu refreshTableList...");
         if (donDatMonDAO != null) {
             donDatMonDAO.tuDongHuyDonQuaGio();

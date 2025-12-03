@@ -8,8 +8,12 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
+import javax.swing.Timer;
 
 public class MainGUI extends JFrame {
     // --- Constants ---
@@ -123,6 +127,24 @@ public class MainGUI extends JFrame {
         };
         blueBarPanel.setOpaque(false);
 
+        JLabel lblCurrentTime = new JLabel();
+        lblCurrentTime.setFont(new Font("Segoe UI", Font.BOLD, 15)); // Set font to, rõ
+        lblCurrentTime.setForeground(Color.WHITE); // Chữ màu trắng cho nổi trên nền xanh
+        lblCurrentTime.setBorder(new EmptyBorder(0, 20, 0, 0)); // Cách lề trái 20px cho đẹp
+
+        // Định dạng ngày giờ (Dùng Locale vi-VN để hiện "Thứ Hai" thay vì "Monday")
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("EEEE, dd/MM/yyyy - HH:mm:ss", new Locale("vi", "VN"));
+
+        // Tạo Timer để cập nhật mỗi 1 giây (1000ms)
+        Timer timer = new Timer(1000, e -> {
+            lblCurrentTime.setText(LocalDateTime.now().format(dtf));
+        });
+        timer.setInitialDelay(0); // Cập nhật ngay lập tức khi chạy, không chờ 1s
+        timer.start();
+
+        // Thêm vào bên TRÁI của thanh xanh
+        blueBarPanel.add(lblCurrentTime, BorderLayout.WEST);
+
         JPanel userInfoPanel = new JPanel(new BorderLayout(10, 0)) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -144,11 +166,14 @@ public class MainGUI extends JFrame {
         JPanel textPanel = new JPanel();
         textPanel.setOpaque(false);
         textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
+
         JLabel nameLabel = new JLabel(this.userName != null ? this.userName : "N/A");
         nameLabel.setFont(new Font("Arial", Font.BOLD, 14));
         nameLabel.setForeground(Color.BLACK);
+
         JLabel roleLabel = new JLabel(this.userRole != null ? this.userRole : "N/A");
         roleLabel.setForeground(Color.DARK_GRAY);
+
         textPanel.add(nameLabel);
         textPanel.add(roleLabel);
 

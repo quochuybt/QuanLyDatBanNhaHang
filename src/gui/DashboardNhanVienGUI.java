@@ -90,7 +90,7 @@ public class DashboardNhanVienGUI extends JPanel {
 
         initComponents();
         loadEmployeeData();
-        startTimers();
+//        startTimers();
     }
 
     // =============== INIT UI ===============
@@ -119,13 +119,13 @@ public class DashboardNhanVienGUI extends JPanel {
         lblWelcome.setFont(TITLE_FONT);
         lblWelcome.setForeground(new Color(44, 62, 80));
 
-        lblCurrentTime = new JLabel();
-        lblCurrentTime.setFont(BODY_FONT);
-        lblCurrentTime.setForeground(new Color(127, 140, 141));
-        updateClock();
+//        lblCurrentTime = new JLabel();
+//        lblCurrentTime.setFont(BODY_FONT);
+//        lblCurrentTime.setForeground(new Color(127, 140, 141));
+//        updateClock();
 
         welcomePanel.add(lblWelcome);
-        welcomePanel.add(lblCurrentTime);
+//        welcomePanel.add(lblCurrentTime);
 
         lblShiftStatus = new JLabel("Chưa bắt đầu ca", JLabel.CENTER);
         lblShiftStatus.setFont(HEADER_FONT);
@@ -766,16 +766,16 @@ public class DashboardNhanVienGUI extends JPanel {
         }
     }
 
-    private void updateClock() {
-        lblCurrentTime.setText(LocalDateTime.now().format(DateTimeFormatter.ofPattern("EEEE, dd/MM/yyyy - HH:mm:ss")));
-    }
+//    private void updateClock() {
+//        lblCurrentTime.setText(LocalDateTime.now().format(DateTimeFormatter.ofPattern("EEEE, dd/MM/yyyy - HH:mm:ss")));
+//    }
 
-    private void startTimers() {
-        clockTimer = new Timer(1000, e -> updateClock());
-        clockTimer.start();
-        dataRefreshTimer = new Timer(30000, e -> loadEmployeeData());
-        dataRefreshTimer.start();
-    }
+//    private void startTimers() {
+//        clockTimer = new Timer(1000, e -> updateClock());
+//        clockTimer.start();
+//        dataRefreshTimer = new Timer(30000, e -> loadEmployeeData());
+//        dataRefreshTimer.start();
+//    }
 
     public void stopTimers() {
         if (clockTimer != null) clockTimer.stop();
