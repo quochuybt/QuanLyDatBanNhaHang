@@ -17,6 +17,7 @@ public class NhanVien {
     private float luong;
     private VaiTro vaiTro;
     private String tenTK;
+    private String email; // 🌟 THÊM: Thuộc tính email
 
     // Constructor mặc định
     public NhanVien() {
@@ -30,17 +31,18 @@ public class NhanVien {
         this.ngayvaolam = LocalDate.now();
         this.luong = 2000000f;
         this.tenTK = "";
+        this.email = "example@starguardian.com"; // Giá trị mặc định
     }
 
-    // Constructor đầy đủ (dành cho việc tạo mới)
+    // Constructor đầy đủ (dành cho việc tạo mới) - Đã sửa
     public NhanVien(String hoTen, LocalDate ngaySinh, String gioiTinh, String sdt,
-                    String diaChi, LocalDate ngayVaoLam, float luong ,VaiTro vaiTro) {
-        this(hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, "");
+                    String diaChi, LocalDate ngayVaoLam, float luong ,VaiTro vaiTro, String email) {
+        this(hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, "", email);
     }
 
-    // Constructor đầy đủ (có thêm tenTK)
+    // Constructor đầy đủ (có thêm tenTK) - Đã sửa
     public NhanVien(String hoTen, LocalDate ngaySinh, String gioiTinh, String sdt,
-                    String diaChi, LocalDate ngayVaoLam, float luong ,VaiTro vaiTro, String tenTK) {
+                    String diaChi, LocalDate ngayVaoLam, float luong ,VaiTro vaiTro, String tenTK, String email) {
         setVaiTro(vaiTro);
         this.manv = phatSinhMaNV(vaiTro);
         setHoten(hoTen);
@@ -51,11 +53,12 @@ public class NhanVien {
         setNgayvaolam(ngayVaoLam);
         setLuong(luong);
         setTenTK(tenTK);
+        setEmail(email); // 🌟 GỌI SETTER MỚI
     }
 
-    // Constructor dùng để truyền mã NV khi cập nhật hoặc đọc từ DB
+    // Constructor dùng để truyền mã NV khi cập nhật hoặc đọc từ DB - Đã sửa
     public NhanVien(String maNV, String hoTen, LocalDate ngaySinh, String gioiTinh, String sdt,
-                    String diaChi, LocalDate ngayVaoLam, float luong ,VaiTro vaiTro) {
+                    String diaChi, LocalDate ngayVaoLam, float luong ,VaiTro vaiTro, String email) {
         this.manv = maNV;
         setVaiTro(vaiTro);
         setHoten(hoTen);
@@ -66,6 +69,7 @@ public class NhanVien {
         setNgayvaolam(ngayVaoLam);
         setLuong(luong);
         this.tenTK = "";
+        setEmail(email); // 🌟 GỌI SETTER MỚI
     }
 
     // Constructor copy
@@ -80,6 +84,7 @@ public class NhanVien {
         this.ngayvaolam = other.ngayvaolam;
         this.luong = other.luong;
         this.tenTK = other.tenTK;
+        this.email = other.email; // 🌟 THÊM
     }
 
     public NhanVien(String maNV, String hoTen) {
@@ -205,6 +210,24 @@ public class NhanVien {
         this.tenTK = tenTK;
     }
 
+    // 🌟 THÊM: Getter cho email
+    public String getEmail() {
+        return email;
+    }
+
+    // 🌟 THÊM: Setter cho email (có validation đơn giản)
+    public void setEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("Email không được rỗng.");
+        }
+        // Regex đơn giản để kiểm tra định dạng email
+        String emailPattern = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$";
+        if (!email.trim().matches(emailPattern)) {
+            throw new IllegalArgumentException("Email không đúng định dạng.");
+        }
+        this.email = email.trim();
+    }
+
     @Override
     public String toString() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -219,6 +242,7 @@ public class NhanVien {
                 ", luong=" + luong +
                 ", vaiTro=" + vaiTro.name() +
                 ", tenTK='" + tenTK + '\'' +
+                ", email='" + email + '\'' + // 🌟 THÊM EMAIL VÀO toString
                 '}';
     }
 }

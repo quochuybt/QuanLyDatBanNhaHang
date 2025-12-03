@@ -28,6 +28,7 @@ public class NhanVienDAO {
         // Đọc enum từ chuỗi trong DB (cần TRIM để loại bỏ khoảng trắng dư thừa)
         nv.setVaiTro(VaiTro.valueOf(rs.getString("vaiTro").toUpperCase().trim()));
         nv.setTenTK(rs.getString("tenTK"));
+        nv.setEmail(rs.getString("email")); // 🌟 THÊM: Đọc cột email
         return nv;
     }
 
@@ -40,7 +41,8 @@ public class NhanVienDAO {
      */
     public List<NhanVien> getAllNhanVien() {
         List<NhanVien> ds = new ArrayList<>();
-        String sql = "SELECT manv, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, tenTK FROM NhanVien";
+        // 🌟 SỬA SQL: Thêm cột email
+        String sql = "SELECT manv, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, tenTK, email FROM NhanVien";
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
              ResultSet rs = pstmt.executeQuery()) {
@@ -58,7 +60,8 @@ public class NhanVienDAO {
      * Lấy thông tin chi tiết nhân viên dựa trên mã NV.
      */
     public NhanVien getChiTietNhanVien(String maNV) {
-        String sql = "SELECT manv, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, tenTK FROM NhanVien WHERE maNV = ?";
+        // 🌟 SỬA SQL: Thêm cột email
+        String sql = "SELECT manv, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, tenTK, email FROM NhanVien WHERE maNV = ?";
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
@@ -79,8 +82,8 @@ public class NhanVienDAO {
      */
     public List<NhanVien> searchNhanVienByName(String keyword) {
         List<NhanVien> ds = new ArrayList<>();
-        // Sử dụng LIKE để tìm kiếm gần đúng, và LOWER() để không phân biệt chữ hoa/thường
-        String sql = "SELECT manv, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, tenTK FROM NhanVien WHERE LOWER(hoTen) LIKE ?";
+        // 🌟 SỬA SQL: Thêm cột email
+        String sql = "SELECT manv, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, tenTK, email FROM NhanVien WHERE LOWER(hoTen) LIKE ?";
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
@@ -102,7 +105,8 @@ public class NhanVienDAO {
      */
     public List<NhanVien> getNhanVienByRole(VaiTro vaiTro) {
         List<NhanVien> ds = new ArrayList<>();
-        String sql = "SELECT manv, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, tenTK FROM NhanVien WHERE vaiTro = ?";
+        // 🌟 SỬA SQL: Thêm cột email
+        String sql = "SELECT manv, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, tenTK, email FROM NhanVien WHERE vaiTro = ?";
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
@@ -117,6 +121,28 @@ public class NhanVienDAO {
             throw new RuntimeException("Lỗi truy vấn NhanVien theo Vai trò: " + e.getMessage(), e);
         }
         return ds;
+    }
+
+    /**
+     * 🌟 THÊM: Hàm mới để lấy email dựa trên tên tài khoản
+     */
+    public String getEmailByTenTK(String tenTK) {
+        String sql = "SELECT email FROM NhanVien WHERE tenTK = ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, tenTK.trim());
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("email");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi SQL khi lấy email của TK " + tenTK + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+        return null; // Trả về null nếu không tìm thấy hoặc lỗi
     }
 
     // =================================================================
@@ -147,8 +173,9 @@ public class NhanVienDAO {
             }
 
             // 2. THÊM NHÂN VIÊN (FK) SAU
-            String sqlNV = "INSERT INTO NhanVien (maNV, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, tenTK) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            // 🌟 SỬA SQL: Thêm cột email
+            String sqlNV = "INSERT INTO NhanVien (maNV, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, tenTK, email) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             try (PreparedStatement pstmtNV = conn.prepareStatement(sqlNV)) {
                 pstmtNV.setString(1, nv.getManv());
                 pstmtNV.setString(2, nv.getHoten());
@@ -160,6 +187,7 @@ public class NhanVienDAO {
                 pstmtNV.setFloat(8, nv.getLuong());
                 pstmtNV.setString(9, nv.getVaiTro().name()); // Ghi NHANVIEN/QUANLY
                 pstmtNV.setString(10, tenTK);
+                pstmtNV.setString(11, nv.getEmail()); // 🌟 THÊM: Set email
 
                 if (pstmtNV.executeUpdate() == 0) {
                     conn.rollback();
@@ -193,7 +221,6 @@ public class NhanVienDAO {
 
     /**
      * CẬP NHẬT THÔNG TIN NHÂN VIÊN VÀ TÀI KHOẢN
-     * [ĐÃ SỬA LỖI]: Đảo ngược thứ tự update FK trước, PK sau để tránh lỗi REFERENCES constraint.
      */
     public boolean updateNhanVienAndAccount(NhanVien nv, String oldTenTK, String newTenTK, String newPlainPassword) {
         Connection conn = null;
@@ -230,7 +257,8 @@ public class NhanVienDAO {
             // BƯỚC 2: CẬP NHẬT THÔNG TIN CHUNG CỦA NHÂN VIÊN VÀ MẬT KHẨU
 
             // 2a. Cập nhật NhanVien (bao gồm các thông tin cá nhân và tenTK mới/cũ)
-            String sqlNV = "UPDATE NhanVien SET hoTen=?, ngaySinh=?, gioiTinh=?, sdt=?, diaChi=?, luong=?, vaiTro=?, tenTK=? WHERE maNV=?";
+            // 🌟 SỬA SQL: Thêm cột email
+            String sqlNV = "UPDATE NhanVien SET hoTen=?, ngaySinh=?, gioiTinh=?, sdt=?, diaChi=?, luong=?, vaiTro=?, tenTK=?, email=? WHERE maNV=?";
             try (PreparedStatement pstmtNV = conn.prepareStatement(sqlNV)) {
                 pstmtNV.setString(1, nv.getHoten());
                 pstmtNV.setDate(2, java.sql.Date.valueOf(nv.getNgaysinh()));
@@ -241,7 +269,8 @@ public class NhanVienDAO {
                 pstmtNV.setString(7, nv.getVaiTro().name());
                 // Luôn sử dụng newTenTK (hoặc oldTenTK nếu không đổi tên)
                 pstmtNV.setString(8, newTenTK);
-                pstmtNV.setString(9, nv.getManv());
+                pstmtNV.setString(9, nv.getEmail()); // 🌟 THÊM: Set email
+                pstmtNV.setString(10, nv.getManv());
 
                 if (pstmtNV.executeUpdate() == 0) throw new SQLException("Update NhanVien failed, no rows affected.");
             }
@@ -379,8 +408,8 @@ public class NhanVienDAO {
     }
     public List<NhanVien> searchNhanVienBySdt(String keyword) {
         List<NhanVien> ds = new ArrayList<>();
-        // Sử dụng LIKE để tìm kiếm gần đúng, tìm kiếm chuỗi keyword trong cột sdt
-        String sql = "SELECT manv, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, tenTK FROM NhanVien WHERE sdt LIKE ?";
+        // 🌟 SỬA SQL: Thêm cột email
+        String sql = "SELECT manv, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, vaiTro, tenTK, email FROM NhanVien WHERE sdt LIKE ?";
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 

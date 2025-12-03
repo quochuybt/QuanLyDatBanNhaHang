@@ -25,6 +25,7 @@ public class ThemNhanVienDialog extends JDialog {
     private final JComboBox<VaiTro> cmbVaiTro = new JComboBox<>(VaiTro.values());
     private final JTextField txtTenTK = new JTextField(10);
     private final JPasswordField txtMatKhau = new JPasswordField(10);
+    private final JTextField txtEmail = new JTextField(15); // 🌟 THÊM: Trường nhập Email
 
     public ThemNhanVienDialog(NhanVienGUI parentPanel) {
         super(SwingUtilities.getWindowAncestor(parentPanel) instanceof Frame ? (Frame) SwingUtilities.getWindowAncestor(parentPanel) : null,
@@ -53,17 +54,20 @@ public class ThemNhanVienDialog extends JDialog {
         addComponent(mainPanel, new JLabel("Giới Tính:"), cmbGioiTinh, gbc, 1, 0);
         addComponent(mainPanel, new JLabel("SĐT:"), txtSdt, gbc, 1, 1);
 
-        // Hàng 2: Tên Tài khoản | Mật khẩu
+        // 🌟 SỬA: Hàng 2: Tên Tài khoản | Email
         addComponent(mainPanel, new JLabel("Tên Tài khoản:"), txtTenTK, gbc, 2, 0);
-        addComponent(mainPanel, new JLabel("Mật Khẩu Mặc Định:"), txtMatKhau, gbc, 2, 1);
+        addComponent(mainPanel, new JLabel("Email:"), txtEmail, gbc, 2, 1);
 
-        // Hàng 3: Lương | Vai Trò
-        addComponent(mainPanel, new JLabel("Lương:"), txtLuong, gbc, 3, 0);
+        // 🌟 SỬA: Hàng 3: Mật khẩu | Vai Trò
+        addComponent(mainPanel, new JLabel("Mật Khẩu Mặc Định:"), txtMatKhau, gbc, 3, 0);
         addComponent(mainPanel, new JLabel("Vai Trò:"), cmbVaiTro, gbc, 3, 1);
 
-        // Hàng 4: Địa chỉ (Trải dài hết chiều ngang)
-        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 1; gbc.weightx = 0; mainPanel.add(new JLabel("Địa Chỉ:"), gbc);
-        gbc.gridx = 1; gbc.gridy = 4; gbc.gridwidth = 3; gbc.weightx = 1.0;
+        // Hàng 4: Lương (Đẩy xuống hàng 4 cột 0)
+        addComponent(mainPanel, new JLabel("Lương:"), txtLuong, gbc, 4, 0);
+
+        // Hàng 5: Địa chỉ (Trải dài hết chiều ngang)
+        gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 1; gbc.weightx = 0; mainPanel.add(new JLabel("Địa Chỉ:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 5; gbc.gridwidth = 3; gbc.weightx = 1.0;
         mainPanel.add(txtDiaChi, gbc);
 
         txtMatKhau.setText(generateDefaultPassword());
@@ -100,6 +104,7 @@ public class ThemNhanVienDialog extends JDialog {
     }
 
     private String generateDefaultPassword() {
+        // Giữ nguyên logic mật khẩu mặc định
         return "123456";
     }
 
@@ -122,6 +127,7 @@ public class ThemNhanVienDialog extends JDialog {
 
             String tenTK = txtTenTK.getText().trim();
             String matKhau = new String(txtMatKhau.getPassword());
+            String email = txtEmail.getText().trim(); // 🌟 THÊM: Lấy giá trị Email
 
             if(tenTK.isEmpty()){
                 JOptionPane.showMessageDialog(this, "Tên Tài khoản không được rỗng.", "Lỗi", JOptionPane.ERROR_MESSAGE);
@@ -131,8 +137,14 @@ public class ThemNhanVienDialog extends JDialog {
                 JOptionPane.showMessageDialog(this, "Mật khẩu không được rỗng.", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
+            // 🌟 THÊM: Kiểm tra Email rỗng (Validation chi tiết sẽ được xử lý trong constructor NhanVien)
+            if(email.isEmpty()){
+                JOptionPane.showMessageDialog(this, "Email không được rỗng.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
 
             // 2. Tạo đối tượng NhanVien (Validation xảy ra trong constructor)
+            // 🌟 SỬA: Gọi constructor mới, truyền thêm tham số email
             NhanVien nv = new NhanVien(
                     hoTen,
                     ngaySinh,
@@ -141,7 +153,8 @@ public class ThemNhanVienDialog extends JDialog {
                     diaChi,
                     LocalDate.now(),
                     luong,
-                    vaiTro
+                    vaiTro,
+                    email // 🌟 THÊM: Truyền Email
             );
 
             // 3. Thực hiện thêm nhân viên và tài khoản
@@ -152,7 +165,7 @@ public class ThemNhanVienDialog extends JDialog {
                 parentPanel.refreshTable();
                 dispose();
             } else {
-                JOptionPane.showMessageDialog(this, "Thêm Nhân viên/Tài khoản thất bại. Có thể Tên TK hoặc SĐT đã tồn tại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Thêm Nhân viên/Tài khoản thất bại. Có thể Tên TK, SĐT, hoặc Email đã tồn tại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
 
         } catch (NumberFormatException e) {
