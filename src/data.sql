@@ -33,7 +33,7 @@ INSERT INTO Ban (maBan, tenBan, soGhe, trangThai, gioMoBan, khuVuc) VALUES
 GO
 
 -- 4. Nhân viên
-INSERT INTO NhanVien (maNV, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, tenTK, vaiTro) VALUES
+INSERT INTO NhanVien (maNV, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, tenTK, vaiTro,email) VALUES
 (N'NV02101', N'Nguyễn Văn An', '1990-01-15', N'Nam', '0988888888', N'1 Nguyễn Huệ, Q1', '2023-01-01', 15000000.00, N'admin', N'QUANLY', N'an.nguyen@starguardian.com'),
 (N'NV01102', N'Trần Thị Bình', '1998-04-20', N'Nữ', '0977777777', N'2 Võ Thị Sáu, Q3', '2023-03-15', 7500000.00, N'nv_binh', N'NHANVIEN', N'binh.tran@starguardian.com'),
 (N'NV01103', N'Lê Văn Chí', '2000-07-10', N'Nam', '0966666666', N'3 Trần Hưng Đạo, Q5', '2023-03-15', 7000000.00, N'nv_chi', N'NHANVIEN', N'chi.le@starguardian.com'),
