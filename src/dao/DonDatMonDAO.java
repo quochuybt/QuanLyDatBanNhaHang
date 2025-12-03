@@ -203,6 +203,56 @@ public class DonDatMonDAO {
         }
         return null;
     }
+    public void capNhatTrangThaiBanTheoGio() {
+        Connection conn = null;
+        try {
+            conn = connectDB.SQLConnection.getConnection();
+            conn.setAutoCommit(false);
+
+            // --- BƯỚC 1: KHÓA BÀN (Xanh -> Vàng) ---
+            // Nếu có đơn trong vòng 2 tiếng tới -> Chuyển thành ĐÃ ĐẶT
+            String sqlLock =
+                    "UPDATE Ban SET trangThai = N'Đã đặt trước' " +
+                            "WHERE trangThai = N'Trống' " +
+                            "AND maBan IN ( " +
+                            "SELECT maBan FROM DonDatMon " +
+                            "WHERE trangThai = N'Chưa thanh toán' " +
+                            "AND NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maDon = DonDatMon.maDon) " +
+                            // Điều kiện: Khách đến trong vòng 2 tiếng (0 - 120 phút)
+                            "AND DATEDIFF(MINUTE, GETDATE(), thoiGianDen) BETWEEN 0 AND 120 " +
+                            ")";
+
+            // --- BƯỚC 2: NHẢ BÀN (Vàng -> Xanh) ---
+            // Nếu bàn đang ĐÃ ĐẶT, nhưng KHÔNG CÓ đơn nào trong vòng 2 tiếng tới -> Trả về TRỐNG
+            // (Dành cho trường hợp khách dời lịch từ 18h sang 22h, thì lúc 18h bàn phải xanh lại)
+            String sqlUnlock =
+                    "UPDATE Ban SET trangThai = N'Trống', gioMoBan = NULL " +
+                            "WHERE trangThai = N'Đã đặt trước' " +
+                            "AND maBan NOT IN ( " +
+                            "SELECT maBan FROM DonDatMon " +
+                            "WHERE trangThai = N'Chưa thanh toán' " +
+                            "AND DATEDIFF(MINUTE, GETDATE(), thoiGianDen) BETWEEN 0 AND 120 " +
+                            ")";
+
+            try (PreparedStatement psLock = conn.prepareStatement(sqlLock);
+                 PreparedStatement psUnlock = conn.prepareStatement(sqlUnlock)) {
+
+                int locked = psLock.executeUpdate();
+                int unlocked = psUnlock.executeUpdate();
+
+                if (locked > 0 || unlocked > 0) {
+                    System.out.println("Auto-Update: Khóa " + locked + " bàn, Nhả " + unlocked + " bàn.");
+                }
+            }
+
+            conn.commit();
+        } catch (Exception e) {
+            e.printStackTrace();
+            try { if(conn!=null) conn.rollback(); } catch(Exception ex){}
+        } finally {
+            try { if(conn!=null) { conn.setAutoCommit(true); conn.close(); } } catch(Exception ex){}
+        }
+    }
     public DonDatMon getDonDatMonDatTruoc(String maBan) {
         DonDatMon ddm = null;
         // SỬA CÂU SQL:

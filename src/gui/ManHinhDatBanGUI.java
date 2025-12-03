@@ -916,14 +916,19 @@ public class ManHinhDatBanGUI extends JPanel {
 
             // Lưu đơn
             if (donDatMonDAO.themDonDatMon(ddm)) {
-                // --- LOGIC TRẠNG THÁI CHUẨN ---
-                // Chỉ đổi màu bàn thành VÀNG nếu bàn đó KHÔNG PHẢI ĐANG ĂN
-                if (ban.getTrangThai() != TrangThaiBan.DANG_PHUC_VU) {
-                    ban.setTrangThai(TrangThaiBan.DA_DAT_TRUOC);
-                    ban.setGioMoBan(thoiGianDat);
-                    if (!banDAO.updateBan(ban)) tatCaThanhCong = false;
+                // 1. Tính khoảng cách thời gian từ HIỆN TẠI đến GIỜ ĐẶT
+                long phutChenhLech = java.time.Duration.between(LocalDateTime.now(), thoiGianDat).toMinutes();
+                // 2. Chỉ chuyển màu nếu khách đến trong vòng 2 tiếng (120 phút)
+                if (phutChenhLech <= 120) {
+                    if (ban.getTrangThai() != TrangThaiBan.DANG_PHUC_VU) {
+                        ban.setTrangThai(TrangThaiBan.DA_DAT_TRUOC);
+                        ban.setGioMoBan(thoiGianDat);
+                        banDAO.updateBan(ban); // Lưu xuống DB
+                    }
+                } else {
+                    // Nếu đặt xa (> 2 tiếng): KHÔNG làm gì cả (để bàn Trống cho khách khác ngồi)
+                    System.out.println("Đơn đặt xa (" + phutChenhLech + " phút), giữ nguyên trạng thái bàn.");
                 }
-                // Nếu đang DANG_PHUC_VU thì kệ nó, chỉ lưu đơn xuống DB
             } else {
                 tatCaThanhCong = false;
             }
@@ -1177,6 +1182,7 @@ public class ManHinhDatBanGUI extends JPanel {
     private void addBanPanelToView(Ban ban) {
         // Tạo panel giao diện cho bàn
         BanPanel banPanel = new BanPanel(ban);
+        banPanel.setBackground(BanPanel.COLOR_STATUS_FREE);
 
         // Thêm vào danh sách quản lý để sau này đổi màu khi chọn
         dsBanPanelHienThi.add(banPanel);
