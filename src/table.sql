@@ -84,7 +84,6 @@ CREATE TABLE MonAn (
     maDM NVARCHAR(10) NOT NULL,
     CONSTRAINT FK_MonAn_DanhMucMon FOREIGN KEY (maDM) REFERENCES DanhMucMon(maDM)
 );
-
 CREATE TABLE NhanVien (
     maNV NVARCHAR(20) PRIMARY KEY,
     hoTen NVARCHAR(100) NOT NULL,
@@ -96,10 +95,10 @@ CREATE TABLE NhanVien (
     luong DECIMAL(18, 2) NOT NULL,
     tenTK NVARCHAR(50) NOT NULL UNIQUE,
     vaiTro NVARCHAR(20) NOT NULL,
+    email NVARCHAR(100) UNIQUE, -- 🌟 THÊM: Cột email (UNIQUE để đảm bảo mỗi NV có 1 email duy nhất)
     CONSTRAINT FK_NhanVien_TaiKhoan FOREIGN KEY (tenTK) REFERENCES TaiKhoan(tenTK),
     CONSTRAINT FK_NhanVien_VaiTro FOREIGN KEY (vaiTro) REFERENCES VaiTro(tenVaiTro)
 );
-
 CREATE TABLE PhanCongCa (
     maNV NVARCHAR(20) NOT NULL,
     maCa NVARCHAR(20) NOT NULL,

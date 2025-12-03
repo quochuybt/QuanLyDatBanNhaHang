@@ -25,6 +25,7 @@ public class ChiTietNhanVienDialog extends JDialog {
     private final JComboBox<VaiTro> cmbVaiTro = new JComboBox<>(VaiTro.values());
     private final JTextField txtTenTK = new JTextField(10);
     private final JPasswordField txtMatKhauMoi = new JPasswordField(10);
+    private final JTextField txtEmail = new JTextField(15); // Trường nhập Email
 
     public ChiTietNhanVienDialog(NhanVienGUI parentPanel, String maNV) {
         super(SwingUtilities.getWindowAncestor(parentPanel) instanceof Frame ? (Frame) SwingUtilities.getWindowAncestor(parentPanel) : null,
@@ -56,6 +57,7 @@ public class ChiTietNhanVienDialog extends JDialog {
 
         txtTenTK.setText(nhanVienGoc.getTenTK());
         txtMatKhauMoi.setText("");
+        txtEmail.setText(nhanVienGoc.getEmail()); // Load Email
     }
 
     private void setupUI() {
@@ -79,17 +81,22 @@ public class ChiTietNhanVienDialog extends JDialog {
         addComponent(mainPanel, new JLabel("Giới Tính:"), cmbGioiTinh, gbc, 2, 0);
         addComponent(mainPanel, new JLabel("SĐT:"), txtSdt, gbc, 2, 1);
 
-        // Hàng 3: Tên Tài khoản | Mật khẩu mới
+        // Hàng 3: Tên Tài khoản | Email
         addComponent(mainPanel, new JLabel("Tên Tài khoản:"), txtTenTK, gbc, 3, 0);
-        addComponent(mainPanel, new JLabel("Nhập Mật khẩu MỚI (để trống nếu không đổi):"), txtMatKhauMoi, gbc, 3, 1);
+        addComponent(mainPanel, new JLabel("Email:"), txtEmail, gbc, 3, 1);
 
-        // Hàng 4: Lương | Vai Trò
-        addComponent(mainPanel, new JLabel("Lương:"), txtLuong, gbc, 4, 0);
+        // Hàng 4: Mật khẩu mới | Vai Trò
+        addComponent(mainPanel, new JLabel("Nhập Mật khẩu MỚI (để trống nếu không đổi):"), txtMatKhauMoi, gbc, 4, 0);
         addComponent(mainPanel, new JLabel("Vai Trò:"), cmbVaiTro, gbc, 4, 1);
 
-        // Hàng 5: Địa chỉ
-        gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 1; gbc.weightx = 0; mainPanel.add(new JLabel("Địa Chỉ:"), gbc);
-        gbc.gridx = 1; gbc.gridy = 5; gbc.gridwidth = 3; gbc.weightx = 1.0;
+        // 🌟 SỬA: Hàng 5: Lương
+        addComponent(mainPanel, new JLabel("Lương:"), txtLuong, gbc, 5, 0);
+        // Hàng 5, Cột 1 để trống, hoặc có thể dùng để căn chỉnh nếu cần:
+        // mainPanel.add(Box.createRigidArea(new Dimension(100, 20)), gbc);
+
+        // Hàng 6: Địa chỉ
+        gbc.gridx = 0; gbc.gridy = 6; gbc.gridwidth = 1; gbc.weightx = 0; mainPanel.add(new JLabel("Địa Chỉ:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 6; gbc.gridwidth = 3; gbc.weightx = 1.0;
         mainPanel.add(txtDiaChi, gbc);
 
 
@@ -136,6 +143,7 @@ public class ChiTietNhanVienDialog extends JDialog {
             float luong = Float.parseFloat(txtLuong.getText().trim());
             String diaChi = txtDiaChi.getText().trim();
             VaiTro vaiTro = (VaiTro) cmbVaiTro.getSelectedItem();
+            String email = txtEmail.getText().trim(); // Lấy giá trị Email mới
 
             String oldTenTK = nhanVienGoc.getTenTK();
             String newTenTK = txtTenTK.getText().trim();
@@ -149,7 +157,7 @@ public class ChiTietNhanVienDialog extends JDialog {
             // 2. Tạo đối tượng NhanVien mới (dùng validation)
             NhanVien nvUpdate = new NhanVien(
                     nhanVienGoc.getManv(),
-                    hoTen, ngaySinh, gioiTinh, sdt, diaChi, nhanVienGoc.getNgayvaolam(), luong, vaiTro
+                    hoTen, ngaySinh, gioiTinh, sdt, diaChi, nhanVienGoc.getNgayvaolam(), luong, vaiTro, email // Truyền email
             );
 
             // 3. Thực hiện cập nhật

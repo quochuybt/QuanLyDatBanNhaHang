@@ -50,4 +50,33 @@ public class TaiKhoanDAO {
 
         return null; // Trả về null nếu thất bại
     }
+
+    /**
+     * 🌟 THÊM: Cập nhật mật khẩu mới cho tài khoản (dành cho chức năng quên mật khẩu)
+     * @param tenTK Tên tài khoản cần cập nhật
+     * @param newPlainPassword Mật khẩu thô mới
+     * @return true nếu cập nhật thành công, false nếu thất bại
+     */
+    public boolean updatePassword(String tenTK, String newPlainPassword) {
+        String sqlUpdatePass = "UPDATE TaiKhoan SET matKhau = ? WHERE tenTK = ?";
+        String cleanTenTK = tenTK.trim();
+
+        // Hash mật khẩu mới theo quy tắc đã định
+        String hashedPass = "hashed_" + newPlainPassword.trim().toLowerCase().hashCode();
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement pstmtUpdatePass = conn.prepareStatement(sqlUpdatePass)) {
+
+            pstmtUpdatePass.setString(1, hashedPass);
+            pstmtUpdatePass.setString(2, cleanTenTK);
+
+            int rowsAffected = pstmtUpdatePass.executeUpdate();
+            return rowsAffected > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Lỗi SQL khi cập nhật mật khẩu cho TK " + tenTK + ": " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
 }
