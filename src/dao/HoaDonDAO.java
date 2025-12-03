@@ -262,7 +262,20 @@ public class HoaDonDAO {
 
 
         HoaDon hd = new HoaDon(maHD, ngayLap, trangThai, hinhThucThanhToan, maDon, maNV, maKM);
-        hd.setTenBan(rs.getString("tenBan"));
+
+        // --- SỬA LỖI TẠI ĐÂY ---
+        // Kiểm tra xem cột tenBan có tồn tại trong ResultSet hay không
+        try {
+            // Tìm cột tenBan trong ResultSet metadata
+            int tenBanIndex = rs.findColumn("tenBan");
+            // Nếu tìm thấy, lấy giá trị
+            hd.setTenBan(rs.getString(tenBanIndex));
+        } catch (SQLException e) {
+            // Nếu không tìm thấy cột tenBan (lỗi "The column name tenBan is not valid"),
+            // bỏ qua và để giá trị mặc định (null hoặc chuỗi rỗng tùy logic của bạn)
+            // System.err.println("Cảnh báo: Không tìm thấy cột 'tenBan' trong ResultSet. Đặt mặc định là null.");
+            hd.setTenBan(null);
+        }
 
 
         hd.setTienKhachDua(tienKhachDua);
@@ -277,18 +290,32 @@ public class HoaDonDAO {
     /**
      * [SELECT] - Lấy toàn bộ danh sách hóa đơn từ CSDL.
      */
+    /**
+     * [ĐÃ SỬA] Lấy toàn bộ hóa đơn kèm theo Tên Bàn
+     */
     public List<HoaDon> getAllHoaDon() {
         List<HoaDon> dsHoaDon = new ArrayList<>();
-        String sql = "SELECT * FROM HoaDon ORDER BY ngayLap DESC";
+        // Sửa câu lệnh SQL để JOIN với bảng DonDatMon và Ban để lấy tenBan
+        // Chú ý: Cột tenBan lấy từ bảng Ban (b.tenBan)
+        String sql = "SELECT hd.*, b.tenBan " +
+                "FROM HoaDon hd " +
+                "LEFT JOIN DonDatMon ddm ON hd.maDon = ddm.maDon " +
+                "LEFT JOIN Ban b ON ddm.maBan = b.maBan " +
+                "ORDER BY hd.ngayLap DESC";
+
         try (Connection conn = SQLConnection.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
                 try {
-                    dsHoaDon.add(createHoaDonFromResultSet(rs));
+                    HoaDon hd = createHoaDonFromResultSet(rs);
+                    // Nếu HoaDon có thuộc tính tenBan, hãy set nó ở đây
+                    // Ví dụ: hd.setTenBan(rs.getString("tenBan"));
+                    dsHoaDon.add(hd);
                 } catch (Exception e) {
-                    System.err.println("Lỗi khi tạo HoaDon từ ResultSet (getAll): " + e.getMessage());
+                    // In lỗi chi tiết 1 lần để debug nếu cần, thay vì spam console
+                    System.err.println("Lỗi dòng dữ liệu: " + e.getMessage());
                 }
             }
         } catch (SQLException e) {
@@ -405,26 +432,81 @@ public class HoaDonDAO {
     // Trong HoaDonDAO.java
 
     // [ĐÃ SỬA LỖI] Dùng tongTien thay vì (tienKhachDua - tienThoi)
+    // Thêm vào class HoaDonDAO
+
+    /**
+     * [ĐÃ SỬA] Lấy doanh thu theo hình thức thanh toán
+     * Tính chính xác: tongTien - giamGia
+     */
     public double getDoanhThuTheoHinhThuc(String maNV, LocalDateTime thoiGianBatDauCa, String hinhThuc) {
+        if (maNV == null || maNV.trim().isEmpty() || thoiGianBatDauCa == null || hinhThuc == null) {
+            return 0;
+        }
+
         double total = 0;
-        // Sửa: Lấy tổng của cột tongTien
-        String sql = "SELECT SUM(tongTien) FROM HoaDon " +
-                "WHERE maNV = ? AND ngayLap >= ? " +
+
+        // Sửa: Tính chính xác (tongTien - giamGia)
+        String sql = "SELECT ISNULL(SUM(tongTien - ISNULL(giamGia, 0)), 0) AS DoanhThu " +
+                "FROM HoaDon " +
+                "WHERE maNV = ? " +
+                "AND ngayLap >= ? " +
                 "AND trangThai = N'Đã thanh toán' " +
                 "AND hinhThucThanhToan = ?";
 
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
+
             ps.setString(1, maNV);
-            ps.setTimestamp(2, java.sql.Timestamp.valueOf(thoiGianBatDauCa));
+            ps.setTimestamp(2, Timestamp.valueOf(thoiGianBatDauCa));
             ps.setString(3, hinhThuc);
+
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) total = rs.getDouble(1);
+                if (rs.next()) {
+                    total = rs.getDouble("DoanhThu");
+                }
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (SQLException e) {
+            System.err.println("Lỗi getDoanhThuTheoHinhThuc: " + e.getMessage());
+            e.printStackTrace();
+        }
         return total;
     }
-    // --- CÁC HÀM MỚI CHO DASHBOARD ---
+
+    /**
+     * [MỚI] Lấy tổng doanh thu của nhân viên trong khoảng thời gian (tất cả hình thức)
+     */
+    public double getTongDoanhThuNhanVien(String maNV, LocalDateTime tuNgay, LocalDateTime denNgay) {
+        if (maNV == null || maNV.trim().isEmpty()) {
+            return 0;
+        }
+
+        double total = 0;
+
+        String sql = "SELECT ISNULL(SUM(tongTien - ISNULL(giamGia, 0)), 0) AS TongDoanhThu " +
+                "FROM HoaDon " +
+                "WHERE maNV = ? " +
+                "AND ngayLap >= ? " +
+                "AND ngayLap <= ? " +
+                "AND trangThai = N'Đã thanh toán'";
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maNV);
+            ps.setTimestamp(2, tuNgay != null ? Timestamp.valueOf(tuNgay) : Timestamp.valueOf(LocalDateTime.now().minusYears(10)));
+            ps.setTimestamp(3, denNgay != null ? Timestamp.valueOf(denNgay) : Timestamp.valueOf(LocalDateTime.now()));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    total = rs.getDouble("TongDoanhThu");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi getTongDoanhThuNhanVien: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return total;
+    }
 
     /**
      * Lấy tổng doanh thu theo từng ngày trong khoảng thời gian.

@@ -35,7 +35,6 @@ public class MainGUI extends JFrame {
         this.userRole = userRole;
         this.userName = userName;
         this.maNVDangNhap = maNVDangNhap; // Lưu mã NV
-        this.setIconImage(util.AppResource.getAppIcon());
 
         // --- Cài đặt cửa sổ chính ---
         setTitle("StarGuardian Restaurant - Quản lý Nhà hàng");
@@ -275,11 +274,11 @@ public class MainGUI extends JFrame {
         // [ĐÃ SỬA] Logic phân chia Dashboard dựa trên UserRole
         if ("QUANLY".equalsIgnoreCase(this.userRole)) {
             // Dashboard thống kê cho Quản Lý
-            mainContentPanel.add(new DashboardGUI(), "Dashboard");
+            mainContentPanel.add(new DashboardQuanLyGUI(), "Dashboard");
         } else {
             // Dashboard cá nhân hóa cho Nhân Viên (Giao ca, Hiệu suất cá nhân)
             // Truyền mã NV và Tên NV vào để xử lý logic
-            mainContentPanel.add(new EmployeeDashboardGUI(this.maNVDangNhap, this.userName), "Dashboard");
+            mainContentPanel.add(new DashboardNhanVienGUI(this.maNVDangNhap, this.userName), "Dashboard");
         }
 
         VaiTro vaiTroEnum;
@@ -306,6 +305,15 @@ public class MainGUI extends JFrame {
             mainContentPanel.add(danhSachBanGUI, "Danh sách bàn");
             this.khachHangGUI = new KhachHangGUI();
             mainContentPanel.add(this.khachHangGUI, "Thành viên");
+        }
+    }
+
+    public void refreshKhachHangScreen() {
+        if (khachHangGUI != null) {
+            khachHangGUI.refreshKhachHangTable();
+            System.out.println("MainGUI: Đã yêu cầu KhachHangGUI làm mới.");
+        } else {
+            System.err.println("MainGUI: KhachHangGUI chưa được khởi tạo.");
         }
     }
 

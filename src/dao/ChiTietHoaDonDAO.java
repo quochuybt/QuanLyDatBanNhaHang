@@ -178,5 +178,37 @@ public class ChiTietHoaDonDAO {
         if (list.isEmpty()) list.add("Chưa có dữ liệu hôm nay");
         return list;
     }
+    /**
+     * [MỚI] Lấy top món ăn có số lượng bán thấp nhất (Top Bad Sellers)
+     */
+    public Map<String, Integer> getLeastSellingItems(LocalDate startDate, LocalDate endDate, int limit) {
+        Map<String, Integer> result = new LinkedHashMap<>();
 
+        // SỬA LỖI Ở DÒNG JOIN: ma.maMon -> ma.maMonAn
+        String sql = "SELECT TOP (?) ma.tenMon, SUM(ct.soLuong) as SoLuongBan " +
+                "FROM ChiTietHoaDon ct " +
+                "JOIN MonAn ma ON ct.maMonAn = ma.maMonAn " + // <--- SỬA TẠI ĐÂY
+                "JOIN HoaDon hd ON ct.maDon = hd.maDon " +
+                "WHERE hd.ngayLap >= ? AND hd.ngayLap < ? " +
+                "AND hd.trangThai = N'Đã thanh toán' " +
+                "GROUP BY ma.tenMon " +
+                "ORDER BY SoLuongBan ASC";
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, limit);
+            ps.setTimestamp(2, Timestamp.valueOf(startDate.atStartOfDay()));
+            ps.setTimestamp(3, Timestamp.valueOf(endDate.plusDays(1).atStartOfDay()));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    result.put(rs.getString("tenMon"), rs.getInt("SoLuongBan"));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
 } // Kết thúc class ChiTietHoaDonDAO

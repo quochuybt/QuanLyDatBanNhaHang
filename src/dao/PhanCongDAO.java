@@ -137,50 +137,77 @@ public class PhanCongDAO {
      * @return String[] { "Thông tin ca trước", "Thông tin ca sau" }
      */
     // [ĐÃ SỬA LỖI] Ép kiểu tham số thời gian thành TIME để so sánh
-    public String[] getThongTinCaTruocSau(String maNVHienTai, LocalDate ngayLam) {
+    // Thêm/Sửa trong PhanCongDAO
+
+    /**
+     * [ĐÃ SỬA] Lấy thông tin nhân viên làm ca trước và ca sau
+     * Sửa lỗi cast thời gian
+     */
+    public String[] getThongTinCaTruocSau(String maNVHienTai, java.time.LocalDate ngayLam) {
         String[] result = {"-- Trống --", "-- Trống --"};
-        LocalTime now = LocalTime.now();
-        // Convert LocalTime to String for safer SQL passing
+
+        if (maNVHienTai == null || maNVHienTai.trim().isEmpty() || ngayLam == null) {
+            return result;
+        }
+
+        java.time.LocalTime now = java.time.LocalTime.now();
         String timeStr = now.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"));
 
-        // SQL Ca Trước: CAST(? AS TIME)
+        // SQL Ca Trước
         String sqlPrev = "SELECT TOP 1 cl.tenCa, cl.gioBatDau, cl.gioKetThuc, nv.hoTen " +
-                "FROM PhanCongCa pc JOIN CaLam cl ON pc.maCa = cl.maCa " +
+                "FROM PhanCongCa pc " +
+                "JOIN CaLam cl ON pc.maCa = cl.maCa " +
                 "JOIN NhanVien nv ON pc.maNV = nv.maNV " +
-                "WHERE pc.ngayLam = ? AND cl.gioKetThuc <= CAST(? AS TIME) " +
+                "WHERE pc.ngayLam = ? " +
+                "AND pc.maNV != ? " +
+                "AND cl.gioKetThuc <= CAST(? AS TIME) " +
                 "ORDER BY cl.gioKetThuc DESC";
-
-        // SQL Ca Sau: CAST(? AS TIME)
+        // SQL Ca Sau
         String sqlNext = "SELECT TOP 1 cl.tenCa, cl.gioBatDau, cl.gioKetThuc, nv.hoTen " +
-                "FROM PhanCongCa pc JOIN CaLam cl ON pc.maCa = cl.maCa " +
+                "FROM PhanCongCa pc " +
+                "JOIN CaLam cl ON pc.maCa = cl.maCa " +
                 "JOIN NhanVien nv ON pc.maNV = nv.maNV " +
-                "WHERE pc.ngayLam = ? AND cl.gioBatDau >= CAST(? AS TIME) " +
+                "WHERE pc.ngayLam = ? " +
+                "AND pc.maNV != ? " +
+                "AND cl.gioBatDau >= CAST(? AS TIME) " +
                 "ORDER BY cl.gioBatDau ASC";
 
         try (Connection conn = SQLConnection.getConnection()) {
             // Ca Trước
             try (PreparedStatement ps = conn.prepareStatement(sqlPrev)) {
                 ps.setDate(1, Date.valueOf(ngayLam));
-                ps.setString(2, timeStr); // Truyền String
+                ps.setString(2, maNVHienTai);
+                ps.setString(3, timeStr);
+
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
-                        String time = rs.getTime("gioBatDau").toString().substring(0, 5) + "-" + rs.getTime("gioKetThuc").toString().substring(0, 5);
-                        result[0] = "<html>" + rs.getString("hoTen") + "<br><i style='font-size:10px'>(" + rs.getString("tenCa") + " " + time + ")</i></html>";
+                        String time = rs.getTime("gioBatDau").toString().substring(0, 5) +
+                                "-" + rs.getTime("gioKetThuc").toString().substring(0, 5);
+                        result[0] = "<html>" + rs.getString("hoTen") +
+                                "<br><i style='font-size:10px'>(" + rs.getString("tenCa") + " " + time + ")</i></html>";
                     }
                 }
             }
+
             // Ca Sau
             try (PreparedStatement ps = conn.prepareStatement(sqlNext)) {
                 ps.setDate(1, Date.valueOf(ngayLam));
-                ps.setString(2, timeStr); // Truyền String
+                ps.setString(2, maNVHienTai);
+                ps.setString(3, timeStr);
+
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
-                        String time = rs.getTime("gioBatDau").toString().substring(0, 5) + "-" + rs.getTime("gioKetThuc").toString().substring(0, 5);
-                        result[1] = "<html>" + rs.getString("hoTen") + "<br><i style='font-size:10px'>(" + rs.getString("tenCa") + " " + time + ")</i></html>";
+                        String time = rs.getTime("gioBatDau").toString().substring(0, 5) +
+                                "-" + rs.getTime("gioKetThuc").toString().substring(0, 5);
+                        result[1] = "<html>" + rs.getString("hoTen") +
+                                "<br><i style='font-size:10px'>(" + rs.getString("tenCa") + " " + time + ")</i></html>";
                     }
                 }
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (SQLException e) {
+            System.err.println("Lỗi getThongTinCaTruocSau: " + e.getMessage());
+            e.printStackTrace();
+        }
         return result;
     }
 }
