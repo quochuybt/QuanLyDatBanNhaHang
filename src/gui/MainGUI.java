@@ -42,6 +42,8 @@ public class MainGUI extends JFrame {
         setLocationRelativeTo(null); // Căn giữa màn hình khi mở
         getRootPane().setBorder(BorderFactory.createEmptyBorder()); // Bỏ viền mặc định của JFrame
         setLayout(new BorderLayout(0, 0)); // Layout chính không có khoảng cách
+        this.setIconImage(util.AppResource.getAppIcon());
+
 
         // ===== TẠO CÁC THÀNH PHẦN GIAO DIỆN =====
         JPanel menuPanel = createMenuPanel();           // Tạo menu bên trái
