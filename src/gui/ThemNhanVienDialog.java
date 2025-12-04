@@ -3,7 +3,8 @@ package gui;
 import dao.NhanVienDAO;
 import entity.NhanVien;
 import entity.VaiTro;
-
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDate;
@@ -16,8 +17,9 @@ public class ThemNhanVienDialog extends JDialog {
     private final NhanVienGUI parentPanel;
 
     // Các thành phần UI
+    private final String DATE_PLACEHOLDER = "dd/MM/yyyy";
     private final JTextField txtHoTen = new JTextField(15);
-    private final JTextField txtNgaySinh = new JTextField("dd/MM/yyyy", 8);
+    private final JTextField txtNgaySinh = new JTextField(8);
     private final JComboBox<String> cmbGioiTinh = new JComboBox<>(new String[]{"Nam", "Nữ", "Khác"});
     private final JTextField txtSdt = new JTextField(10);
     private final JTextField txtDiaChi = new JTextField(30);
@@ -43,7 +45,26 @@ public class ThemNhanVienDialog extends JDialog {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 10, 5, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
+        txtNgaySinh.setText(DATE_PLACEHOLDER);
+        txtNgaySinh.setForeground(Color.GRAY);
 
+        txtNgaySinh.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (txtNgaySinh.getText().equals(DATE_PLACEHOLDER)) {
+                    txtNgaySinh.setText("");
+                    txtNgaySinh.setForeground(Color.BLACK); // Màu nhập liệu thông thường
+                }
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (txtNgaySinh.getText().isEmpty()) {
+                    txtNgaySinh.setForeground(Color.GRAY); // Màu Placeholder
+                    txtNgaySinh.setText(DATE_PLACEHOLDER);
+                }
+            }
+        });
         // --- BỐ CỤC 2 CỘT NHẬP LIỆU CHÍNH ---
 
         // Hàng 0: Họ Tên | Ngày Sinh

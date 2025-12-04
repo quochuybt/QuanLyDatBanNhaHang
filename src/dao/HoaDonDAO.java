@@ -24,9 +24,127 @@ import java.util.LinkedHashMap;
 
 public class HoaDonDAO {
     private ChiTietHoaDonDAO chiTietDAO;
+
+    // ⭐ CONSTANT PHÂN TRANG (Giới hạn 15 dòng) ⭐
+    private static final int ITEMS_PER_PAGE = 15;
+
     public HoaDonDAO() {
         this.chiTietDAO = new ChiTietHoaDonDAO();
     }
+
+    // ===============================================
+    // ⭐ PHẦN BỔ SUNG CHO PHÂN TRANG VÀ TÌM KIẾM TỐI ƯU ⭐
+    // ===============================================
+
+    /**
+     * [PAGINATION] - Lấy tổng số lượng hóa đơn theo trạng thái và từ khóa tìm kiếm.
+     * @param trangThai Trạng thái lọc ("Tất cả", "Đã thanh toán", "Chưa thanh toán").
+     * @param keyword Từ khóa tìm kiếm (theo MaHD), rỗng nếu không tìm kiếm.
+     * @return Tổng số lượng hóa đơn khớp điều kiện.
+     */
+    public int getTotalHoaDonCount(String trangThai, String keyword) {
+        int count = 0;
+        String sql = "SELECT COUNT(hd.maHD) FROM HoaDon hd WHERE 1=1";
+
+        // Thêm điều kiện lọc trạng thái
+        if (!"Tất cả".equalsIgnoreCase(trangThai)) {
+            sql += " AND hd.trangThai = ?";
+        }
+
+        // Thêm điều kiện tìm kiếm theo Mã HD
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql += " AND hd.maHD LIKE ?";
+        }
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            int index = 1;
+            if (!"Tất cả".equalsIgnoreCase(trangThai)) {
+                ps.setString(index++, trangThai);
+            }
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                ps.setString(index++, "%" + keyword + "%");
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    count = rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi SQL khi đếm hóa đơn: " + e.getMessage());
+        }
+        return count;
+    }
+
+    /**
+     * [PAGINATION] - Lấy danh sách HoaDon có giới hạn theo trang, trạng thái và từ khóa.
+     * SỬ DỤNG: Tải dữ liệu từng trang (Lazy Loading)
+     * @param page Trang cần lấy (bắt đầu từ 1).
+     * @param trangThai Trạng thái lọc.
+     * @param keyword Từ khóa tìm kiếm (theo MaHD), rỗng nếu không tìm kiếm.
+     * @return List<HoaDon> danh sách hóa đơn của trang đó (tối đa 15 dòng).
+     */
+    public List<HoaDon> getHoaDonByPage(int page, String trangThai, String keyword) {
+        List<HoaDon> dsHoaDon = new ArrayList<>();
+        int offset = (page - 1) * ITEMS_PER_PAGE;
+
+        // Câu lệnh SQL có JOIN và OFFSET/FETCH để phân trang
+        String sql = "SELECT hd.*, b.tenBan " +
+                "FROM HoaDon hd " +
+                "LEFT JOIN DonDatMon ddm ON hd.maDon = ddm.maDon " +
+                "LEFT JOIN Ban b ON ddm.maBan = b.maBan " +
+                "WHERE 1=1";
+
+        // Thêm điều kiện lọc trạng thái
+        if (!"Tất cả".equalsIgnoreCase(trangThai)) {
+            sql += " AND hd.trangThai = ?";
+        }
+
+        // Thêm điều kiện tìm kiếm theo Mã HD
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql += " AND hd.maHD LIKE ?";
+        }
+
+        sql += " ORDER BY hd.ngayLap DESC " +
+                "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"; // SQL Server Syntax
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            int index = 1;
+            if (!"Tất cả".equalsIgnoreCase(trangThai)) {
+                ps.setString(index++, trangThai);
+            }
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                ps.setString(index++, "%" + keyword + "%");
+            }
+
+            // Tham số OFFSET và LIMIT
+            ps.setInt(index++, offset);
+            ps.setInt(index++, ITEMS_PER_PAGE);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    try {
+                        dsHoaDon.add(createHoaDonFromResultSet(rs));
+                    } catch (Exception e) {
+                        System.err.println("Lỗi dòng dữ liệu: " + e.getMessage());
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi SQL khi lấy hóa đơn theo trang: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return dsHoaDon;
+    }
+
+    // ===============================================
+    // ⭐ PHẦN CÒN LẠI GIỮ NGUYÊN HOÀN TOÀN ⭐
+    // ===============================================
+
     public HoaDon getHoaDonChuaThanhToan(String maBan) {
         HoaDon hoaDon = null;
 
@@ -629,6 +747,4 @@ public class HoaDonDAO {
         }
         return topStaff;
     }
-
-
-} // Kết thúc class HoaDonDAO
+}
