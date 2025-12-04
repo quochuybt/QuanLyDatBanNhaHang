@@ -33,7 +33,7 @@ public class KhachHang {
         this.tenKH = "";
         this.gioitinh = "Nam";
         this.sdt = "";
-        this.hangThanhVien = HangThanhVien.NONE;
+        this.hangThanhVien = HangThanhVien.MEMBER;
         this.tongChiTieu = 0.0f;
         this.ngaySinh = LocalDate.of(2000, 1, 1); // Giá trị mặc định
         this.diaChi = "";
