@@ -45,6 +45,9 @@ public class KhachHangGUI extends JPanel {
     private List<KhachHang> dsKhachHang;
     private KhachHang khachHangDangChon = null;
 
+    // --- THÊM: Hằng số cho Placeholder ---
+    private final String PLACEHOLDER_NGAY_SINH = "dd/MM/yyyy";
+
     public KhachHangGUI() {
         this.khachHangDAO = new KhachHangDAO();
 
@@ -69,6 +72,9 @@ public class KhachHangGUI extends JPanel {
 
         // --- Thiết lập form và trạng thái mặc định ---
         lamMoiForm();
+
+        // THAY ĐỔI MỚI 1: Gán Placeholder Listener
+        addPlaceholderListener(txtNgaySinh, PLACEHOLDER_NGAY_SINH);
     }
 
     // 🌟 THAY ĐỔI MỚI 3: Phương thức static để các class khác gọi làm mới
@@ -80,6 +86,36 @@ public class KhachHangGUI extends JPanel {
         }
     }
 
+    /**
+     * Phương thức mô phỏng Placeholder cho JTextField
+     */
+    private void addPlaceholderListener(JTextField textField, String placeholder) {
+        // Khởi tạo trạng thái ban đầu
+        if (textField.getText().isEmpty() || textField.getText().equals(placeholder)) {
+            textField.setText(placeholder);
+            textField.setForeground(Color.GRAY.brighter());
+        }
+
+        textField.addFocusListener(new java.awt.event.FocusAdapter() {
+            // Khi ô nhập liệu được chọn (focus)
+            @Override
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                if (textField.getText().equals(placeholder)) {
+                    textField.setText("");
+                    textField.setForeground(Color.BLACK);
+                }
+            }
+
+            // Khi ô nhập liệu mất focus
+            @Override
+            public void focusLost(java.awt.event.FocusEvent evt) {
+                if (textField.getText().isEmpty()) {
+                    textField.setText(placeholder);
+                    textField.setForeground(Color.GRAY.brighter());
+                }
+            }
+        });
+    }
 
     // =========================================================================
     // I. LOGIC TẢI DỮ LIỆU & RENDER
@@ -231,9 +267,19 @@ public class KhachHangGUI extends JPanel {
 
         if (ten.isEmpty()) throw new Exception("Tên khách hàng không được rỗng!");
         if (sdt.isEmpty() || !sdt.matches("\\d{10}")) throw new Exception("Số điện thoại không hợp lệ (10 chữ số)!");
-        if (ngaySinhStr.isEmpty()) throw new Exception("Ngày sinh không được rỗng!");
 
-        LocalDate ngaySinh = LocalDate.parse(ngaySinhStr, dtf);
+        // THAY ĐỔI MỚI 2: Xử lý kiểm tra Ngày Sinh có Placeholder
+        if (ngaySinhStr.isEmpty() || ngaySinhStr.equals(PLACEHOLDER_NGAY_SINH)) {
+            throw new Exception("Ngày sinh không được rỗng!");
+        }
+
+        LocalDate ngaySinh;
+        try {
+            ngaySinh = LocalDate.parse(ngaySinhStr, dtf);
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new Exception("Ngày sinh không đúng định dạng " + PLACEHOLDER_NGAY_SINH + "!");
+        }
+
         LocalDate ngayThamGia = LocalDate.parse(ngayTGStr, dtf);
 
         float tongChiTieu = 0.0f;
@@ -571,6 +617,8 @@ public class KhachHangGUI extends JPanel {
         txtDiaChi.setText(kh.getDiaChi());
 
         txtNgaySinh.setText(kh.getNgaySinh() != null ? kh.getNgaySinh().format(dtf) : "");
+        txtNgaySinh.setForeground(Color.BLACK); // THAY ĐỔI MỚI: Đặt lại màu chữ
+
         txtNgayThamGia.setText(kh.getNgayThamGia() != null ? kh.getNgayThamGia().format(dtf) : "");
 
         txtTongChiTieu.setText(currencyFormat.format(kh.getTongChiTieu()));
@@ -591,11 +639,13 @@ public class KhachHangGUI extends JPanel {
         txtEmail.setText("");
         txtDiaChi.setText("");
 
-        txtNgaySinh.setText(LocalDate.of(2000, 1, 1).format(dtf));
+        // THAY ĐỔI MỚI: Để rỗng. Listener sẽ tự thêm placeholder
+        txtNgaySinh.setText("");
+
         txtNgayThamGia.setText(LocalDate.now().format(dtf));
 
         txtTongChiTieu.setText(currencyFormat.format(0.0f));
-        cbHangTV.setSelectedItem(HangThanhVien.NONE.toString());
+        cbHangTV.setSelectedItem(HangThanhVien.MEMBER.toString());
 
         tblKhachHang.clearSelection();
     }
