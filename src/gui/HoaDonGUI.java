@@ -53,6 +53,20 @@ public class HoaDonGUI extends JPanel {
     // ⭐ THÊM: Formatter cho Phiếu in (để khớp BillPanel) ⭐
     private final DateTimeFormatter billDateFormatter = DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy");
 
+    // ===============================================
+    // ⭐ THÊM CÁC BIẾN PHÂN TRANG ⭐
+    // ===============================================
+    private static final int ITEMS_PER_PAGE = 15; // Số dòng trên mỗi trang
+    private int currentPage = 1;                   // Trang hiện tại (bắt đầu từ 1)
+    private int totalPages = 1;                    // Tổng số trang
+    private String currentKeyword = "";            // Từ khóa tìm kiếm hiện tại (rỗng nếu không tìm kiếm)
+
+    // Thêm các thành phần GUI cho phân trang
+    private JPanel paginationPanel;
+    private JLabel lblPageInfo; // Hiển thị "Trang X/Y"
+    private JButton btnFirst, btnPrev, btnNext, btnLast;
+
+
     public HoaDonGUI() {
         // --- Khởi tạo DAO ---
         this.hoaDonDAO = new HoaDonDAO();
@@ -85,7 +99,8 @@ public class HoaDonGUI extends JPanel {
 
         // --- Tab Lọc ---
         tabbedPane = createFilterTabs(); // Tạo các tab lọc
-        tabbedPane.addChangeListener(e -> loadDataForSelectedTab()); // Gắn sự kiện khi chuyển tab
+        // Gắn sự kiện khi chuyển tab: Bắt đầu lại từ trang 1
+        tabbedPane.addChangeListener(e -> loadDataForSelectedTab());
 
         // --- Bố cục chính ---
         JPanel centerPanel = new JPanel(new BorderLayout()); // Panel trung tâm chứa tab và bảng
@@ -95,13 +110,262 @@ public class HoaDonGUI extends JPanel {
 
         add(centerPanel, BorderLayout.CENTER); // Thêm panel trung tâm vào layout chính
 
+        // ⭐ THÊM PANEL PHÂN TRANG VÀO PHÍA DƯỚI ⭐
+        paginationPanel = createPaginationPanel(); // Tạo panel phân trang
+        add(paginationPanel, BorderLayout.SOUTH); // Thêm vào BOTTOM của layout chính
+
         // --- Gắn Listener cho bảng ---
         addTableClickListener(); // Xử lý double-click để xem chi tiết
 
         // --- Tải dữ liệu lần đầu ---
         // Sử dụng invokeLater để đảm bảo giao diện được vẽ xong trước khi tải dữ liệu nặng
-        SwingUtilities.invokeLater(() -> loadDataToTable(hoaDonDAO.getAllHoaDon()));
+        SwingUtilities.invokeLater(this::loadFirstPage); // ⭐ THAY THẾ: Gọi hàm tải trang đầu tiên ⭐
     }
+
+    // ===============================================
+    // ⭐ PHƯƠNG THỨC HỖ TRỢ PHÂN TRANG ⭐
+    // ===============================================
+
+    /**
+     * Tạo panel chứa các nút điều hướng và thông tin phân trang.
+     */
+    private JPanel createPaginationPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 5)); // Căn giữa, khoảng cách 15
+        panel.setOpaque(false);
+        panel.setBorder(new EmptyBorder(5, 0, 0, 0));
+
+        // Nút Đầu (<<)
+        btnFirst = new JButton("<< Đầu");
+        btnFirst.setFont(new Font("Arial", Font.BOLD, 12));
+        btnFirst.addActionListener(e -> navigateToPage(1));
+        panel.add(btnFirst);
+
+        // Nút Trước (<)
+        btnPrev = new JButton("< Trước");
+        btnPrev.setFont(new Font("Arial", Font.BOLD, 12));
+        btnPrev.addActionListener(e -> navigateToPage(currentPage - 1));
+        panel.add(btnPrev);
+
+        // Thông tin trang (Trang X/Y)
+        lblPageInfo = new JLabel("Trang 1/1");
+        lblPageInfo.setFont(new Font("Arial", Font.BOLD, 14));
+        panel.add(lblPageInfo);
+
+        // Nút Sau (>)
+        btnNext = new JButton("Sau >");
+        btnNext.setFont(new Font("Arial", Font.BOLD, 12));
+        btnNext.addActionListener(e -> navigateToPage(currentPage + 1));
+        panel.add(btnNext);
+
+        // Nút Cuối (>>)
+        btnLast = new JButton("Cuối >>");
+        btnLast.setFont(new Font("Arial", Font.BOLD, 12));
+        btnLast.addActionListener(e -> navigateToPage(totalPages));
+        panel.add(btnLast);
+
+        updatePaginationControls();
+        return panel;
+    }
+
+    /**
+     * Cập nhật trạng thái hiển thị của các nút phân trang.
+     */
+    private void updatePaginationControls() {
+        lblPageInfo.setText("Trang " + currentPage + "/" + totalPages);
+
+        // Vô hiệu hóa nút Đầu/Trước nếu đang ở trang 1
+        btnFirst.setEnabled(currentPage > 1);
+        btnPrev.setEnabled(currentPage > 1);
+
+        // Vô hiệu hóa nút Sau/Cuối nếu đang ở trang cuối
+        btnNext.setEnabled(currentPage < totalPages);
+        btnLast.setEnabled(currentPage < totalPages);
+
+        // Xử lý trường hợp không có dữ liệu (totalPages <= 1)
+        if (totalPages <= 1) {
+            btnFirst.setEnabled(false);
+            btnPrev.setEnabled(false);
+            btnNext.setEnabled(false);
+            btnLast.setEnabled(false);
+        }
+    }
+
+    /**
+     * Helper: Lấy trạng thái lọc từ tab đang chọn.
+     */
+    private String getSelectedTrangThaiFilter() {
+        int selectedIndex = tabbedPane.getSelectedIndex();
+        switch (selectedIndex) {
+            case 1: return "Đã thanh toán";
+            case 2: return "Chưa thanh toán";
+            case 0:
+            default: return "Tất cả";
+        }
+    }
+
+    /**
+     * Tải trang đầu tiên khi khởi động hoặc khi chuyển tab/reset tìm kiếm.
+     */
+    private void loadFirstPage() {
+        currentPage = 1;
+        currentKeyword = ""; // Reset từ khóa tìm kiếm
+        loadDataForCurrentPage();
+    }
+
+    /**
+     * Điều hướng trang: Gọi DAO để lấy dữ liệu mới từ CSDL.
+     */
+    private void navigateToPage(int page) {
+        if (page < 1 || page > totalPages || page == currentPage) {
+            return; // Trang không hợp lệ hoặc đang ở trang đó
+        }
+        currentPage = page;
+        // ⭐ GỌI DAO TẢI DỮ LIỆU MỚI TỪ CSDL ⭐
+        loadDataForCurrentPage();
+    }
+
+    /**
+     * Tải dữ liệu cho trang hiện tại (Áp dụng lọc và tìm kiếm).
+     * Hàm này gọi DAO với OFFSET/LIMIT và là cốt lõi của lazy loading.
+     */
+    private void loadDataForCurrentPage() {
+        String trangThai = getSelectedTrangThaiFilter();
+
+        // 1. Lấy tổng số lượng và tính tổng số trang
+        int totalCount = hoaDonDAO.getTotalHoaDonCount(trangThai, currentKeyword);
+        totalPages = (int) Math.ceil((double) totalCount / ITEMS_PER_PAGE);
+
+        // Đảm bảo totalPages ít nhất là 1, và currentPage không vượt quá totalPages
+        if (totalPages == 0) totalPages = 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        // 2. Lấy danh sách hóa đơn theo trang từ DAO
+        List<HoaDon> list = hoaDonDAO.getHoaDonByPage(currentPage, trangThai, currentKeyword);
+
+        // 3. Hiển thị lên bảng và cập nhật điều khiển
+        loadDataToTable(list);
+        updatePaginationControls();
+    }
+
+    // ===============================================
+    // ⭐ PHƯƠNG THỨC CHÍNH (CÓ THAY ĐỔI LOGIC TẢI DỮ LIỆU) ⭐
+    // ===============================================
+
+    /**
+     * Tải lại dữ liệu cho tab đang được chọn (Quay về trang 1).
+     */
+    private void loadDataForSelectedTab() {
+        resetSearchFieldIfNeeded(); // Xóa tìm kiếm nếu cần
+        loadFirstPage(); // Tải lại dữ liệu (từ trang 1) của tab mới
+    }
+
+    /**
+     * Tải dữ liệu từ danh sách HoaDon vào JTable.
+     * @param list Danh sách hóa đơn cần hiển thị.
+     */
+    private void loadDataToTable(List<HoaDon> list) {
+        // Chạy trên luồng EDT để đảm bảo an toàn cho Swing
+        SwingUtilities.invokeLater(() -> {
+            // Cập nhật danh sách đang hiển thị
+            if (list == null) {
+                dsHoaDonDisplayed = new ArrayList<>(); // Tạo list rỗng nếu null
+            } else {
+                dsHoaDonDisplayed = list;
+            }
+
+            tableModel.setRowCount(0); // Xóa hết dữ liệu cũ trên bảng
+
+            // Lặp qua danh sách hóa đơn và thêm vào bảng
+            for (HoaDon hd : dsHoaDonDisplayed) {
+                if (hd == null) continue; // Bỏ qua nếu hóa đơn bị null
+
+                String maThamChieu = hd.getMaHD() != null ? hd.getMaHD() : "N/A";
+
+                // Lấy tên nhân viên từ mã NV
+                String maNV = hd.getMaNV();
+                String tenNV_Thuc = nhanVienDAO.getTenNhanVienByMa(maNV); // Dùng DAO để lấy tên
+
+                // Xác định ghi chú dựa trên logic nghiệp vụ
+                String ghiChu = "Không";
+                if (hd.getTongTien() > 1000000) {
+                    ghiChu = "Yêu cầu xuất VAT";
+                } else if (hd.getHinhThucThanhToan() != null && hd.getHinhThucThanhToan().equalsIgnoreCase("Chuyển khoản")) { // Dùng equalsIgnoreCase
+                    ghiChu = "Đã xác nhận"; // Hoặc logic khác tùy yêu cầu
+                }
+
+                try {
+                    // Thêm dòng mới vào tableModel
+                    tableModel.addRow(new Object[]{
+                            (hd.getNgayLap() != null ? hd.getNgayLap().format(tableDateFormatter) : "N/A"), // Format ngày giờ
+                            maThamChieu,
+                            tenNV_Thuc, // Hiển thị tên NV
+                            ghiChu,
+                            hd.getHinhThucThanhToan() != null ? hd.getHinhThucThanhToan() : "N/A",
+                            currencyFormatter.format(hd.getTongThanhToan()) // Sửa để hiển thị tổng thanh toán
+                    });
+                } catch (Exception e) {
+                    // Ghi log lỗi nếu có vấn đề khi thêm dòng (ví dụ dữ liệu không hợp lệ)
+                    System.err.println("Lỗi khi thêm dòng cho HĐ " + maThamChieu + ": " + e.getMessage());
+                }
+            }
+        });
+    }
+
+    /**
+     * Logic tìm kiếm hóa đơn dựa trên từ khóa nhập vào ô tìm kiếm.
+     * Cập nhật currentKeyword và tải lại trang 1.
+     */
+    private void searchHoaDonRealTime() {
+        final String currentText = txtTimKiem.getText();
+        final String placeholder = " Tìm kiếm qua mã hóa đơn";
+
+        if (currentText == null) return;
+
+        String query = currentText.trim();
+
+        // Nếu ô tìm kiếm trống hoặc là placeholder, reset và tải trang đầu tiên
+        if (query.isEmpty() || query.equalsIgnoreCase(placeholder.trim())) {
+            currentKeyword = ""; // Đặt từ khóa tìm kiếm là rỗng
+        } else {
+            currentKeyword = query; // Cập nhật từ khóa tìm kiếm
+        }
+
+        // Luôn tải lại từ trang 1 với bộ lọc/tìm kiếm mới
+        currentPage = 1;
+        loadDataForCurrentPage();
+    }
+
+    /**
+     * Reset ô tìm kiếm về trạng thái placeholder nếu nó không chứa placeholder.
+     */
+    private void resetSearchFieldIfNeeded() {
+        final String placeholder = " Tìm kiếm qua mã hóa đơn";
+        // Chỉ reset nếu nội dung hiện tại khác placeholder
+        if (!txtTimKiem.getText().equals(placeholder)) {
+            // Dùng invokeLater để tránh xung đột luồng khi thay đổi DocumentListener
+            SwingUtilities.invokeLater(() -> {
+                txtTimKiem.getDocument().removeDocumentListener(searchListener); // Tạm gỡ listener
+                txtTimKiem.setForeground(Color.GRAY); // Đặt màu placeholder
+                txtTimKiem.setText(placeholder);      // Đặt text placeholder
+                txtTimKiem.getDocument().addDocumentListener(searchListener); // Gắn lại listener
+            });
+        }
+    }
+
+    /**
+     * Helper: Lấy danh sách hóa đơn gốc tương ứng với tab đang được chọn.
+     * ❌ HÀM NÀY KHÔNG CÒN ĐƯỢC DÙNG.
+     */
+    private List<HoaDon> getCurrentTabBaseList() {
+        // Hàm này không còn dùng nữa do chuyển sang phân trang.
+        // Để tránh lỗi biên dịch, tôi giữ nguyên thân hàm nhưng không dùng logic cũ
+        return new ArrayList<>();
+    }
+
+    // ===============================================
+    // ⭐ CÁC PHƯƠNG THỨC KHÁC (GIỮ NGUYÊN HOÀN TOÀN) ⭐
+    // ===============================================
 
     /**
      * Tạo panel header chứa tiêu đề "Hóa đơn" và nút "Xuất hóa đơn".
@@ -234,18 +498,22 @@ public class HoaDonGUI extends JPanel {
      * Xử lý hiển thị placeholder cho JTextField.
      */
     private void addPlaceholderFocusHandler(JTextField textField, String placeholder) {
+        // Thiết lập ban đầu (chắc chắn màu xám)
+        textField.setText(placeholder);
+        textField.setForeground(Color.GRAY);
+
         textField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent e) {
-                // Khi focus vào, nếu đang là placeholder thì xóa text và đổi màu chữ
-                if (textField.getText().trim().equals(placeholder)) {
+                // Khi focus vào, nếu đang là placeholder, xóa text và đổi màu chữ
+                if (textField.getText().equals(placeholder)) {
                     textField.setText("");
-                    textField.setForeground(Color.BLACK);
+                    textField.setForeground(Color.BLACK); // Đổi màu chữ nhập liệu
                 }
             }
             @Override
             public void focusLost(FocusEvent e) {
-                // Khi mất focus, nếu ô trống thì đặt lại placeholder và màu chữ xám
+                // Khi mất focus, nếu ô trống (hoặc chỉ chứa khoảng trắng) thì đặt lại placeholder
                 if (textField.getText().trim().isEmpty()) {
                     textField.setForeground(Color.GRAY);
                     textField.setText(placeholder);
@@ -298,161 +566,11 @@ public class HoaDonGUI extends JPanel {
     }
 
     /**
-     * Tải dữ liệu từ danh sách HoaDon vào JTable.
-     * @param list Danh sách hóa đơn cần hiển thị.
-     */
-    private void loadDataToTable(List<HoaDon> list) {
-        // Chạy trên luồng EDT để đảm bảo an toàn cho Swing
-        SwingUtilities.invokeLater(() -> {
-            // Cập nhật danh sách đang hiển thị
-            if (list == null) {
-                dsHoaDonDisplayed = new ArrayList<>(); // Tạo list rỗng nếu null
-            } else {
-                dsHoaDonDisplayed = list;
-            }
-
-            tableModel.setRowCount(0); // Xóa hết dữ liệu cũ trên bảng
-
-            // Lặp qua danh sách hóa đơn và thêm vào bảng
-            for (HoaDon hd : dsHoaDonDisplayed) {
-                if (hd == null) continue; // Bỏ qua nếu hóa đơn bị null
-
-                String maThamChieu = hd.getMaHD() != null ? hd.getMaHD() : "N/A";
-
-                // Lấy tên nhân viên từ mã NV
-                String maNV = hd.getMaNV();
-                String tenNV_Thuc = nhanVienDAO.getTenNhanVienByMa(maNV); // Dùng DAO để lấy tên
-
-                // Xác định ghi chú dựa trên logic nghiệp vụ
-                String ghiChu = "Không";
-                if (hd.getTongTien() > 1000000) {
-                    ghiChu = "Yêu cầu xuất VAT";
-                } else if (hd.getHinhThucThanhToan() != null && hd.getHinhThucThanhToan().equalsIgnoreCase("Chuyển khoản")) { // Dùng equalsIgnoreCase
-                    ghiChu = "Đã xác nhận"; // Hoặc logic khác tùy yêu cầu
-                }
-
-                try {
-                    // Thêm dòng mới vào tableModel
-                    tableModel.addRow(new Object[]{
-                            (hd.getNgayLap() != null ? hd.getNgayLap().format(tableDateFormatter) : "N/A"), // Format ngày giờ
-                            maThamChieu,
-                            tenNV_Thuc, // Hiển thị tên NV
-                            ghiChu,
-                            hd.getHinhThucThanhToan() != null ? hd.getHinhThucThanhToan() : "N/A",
-                            currencyFormatter.format(hd.getTongThanhToan()) // Sửa để hiển thị tổng thanh toán
-                    });
-                } catch (Exception e) {
-                    // Ghi log lỗi nếu có vấn đề khi thêm dòng (ví dụ dữ liệu không hợp lệ)
-                    System.err.println("Lỗi khi thêm dòng cho HĐ " + maThamChieu + ": " + e.getMessage());
-                }
-            }
-        });
-    }
-
-    /**
-     * Tải lại dữ liệu cho tab đang được chọn.
-     */
-    private void loadDataForSelectedTab() {
-        List<HoaDon> allList = hoaDonDAO.getAllHoaDon(); // Lấy tất cả hóa đơn
-        List<HoaDon> filteredList;
-
-        if (allList == null) allList = new ArrayList<>(); // Tránh NullPointerException
-
-        int selectedIndex = tabbedPane.getSelectedIndex(); // Lấy index tab đang chọn
-        switch (selectedIndex) {
-            case 1: // Tab "Đã thanh toán"
-                filteredList = allList.stream()
-                        .filter(hd -> hd != null && "Đã thanh toán".equalsIgnoreCase(hd.getTrangThai())) // Lọc theo trạng thái
-                        .collect(Collectors.toList());
-                break;
-            case 2: // Tab "Chưa thanh toán"
-                filteredList = allList.stream()
-                        .filter(hd -> hd != null && "Chưa thanh toán".equalsIgnoreCase(hd.getTrangThai())) // Lọc theo trạng thái
-                        .collect(Collectors.toList());
-                break;
-            case 0: // Tab "Tất cả hóa đơn"
-            default:
-                filteredList = allList; // Không lọc
-        }
-
-        loadDataToTable(filteredList); // Hiển thị danh sách đã lọc
-        resetSearchFieldIfNeeded(); // Reset ô tìm kiếm nếu cần
-    }
-
-    /**
-     * Reset ô tìm kiếm về trạng thái placeholder nếu nó không chứa placeholder.
-     */
-    private void resetSearchFieldIfNeeded() {
-        final String placeholder = " Tìm kiếm qua mã hóa đơn";
-        // Chỉ reset nếu nội dung hiện tại khác placeholder
-        if (!txtTimKiem.getText().equals(placeholder)) {
-            // Dùng invokeLater để tránh xung đột luồng khi thay đổi DocumentListener
-            SwingUtilities.invokeLater(() -> {
-                txtTimKiem.getDocument().removeDocumentListener(searchListener); // Tạm gỡ listener
-                txtTimKiem.setForeground(Color.GRAY); // Đặt màu placeholder
-                txtTimKiem.setText(placeholder);      // Đặt text placeholder
-                txtTimKiem.getDocument().addDocumentListener(searchListener); // Gắn lại listener
-            });
-        }
-    }
-
-
-    /**
      * Thực hiện tìm kiếm khi timer kích hoạt.
      */
     private void performSearch() {
         // Chạy tìm kiếm trên luồng EDT
         SwingUtilities.invokeLater(this::searchHoaDonRealTime);
-    }
-
-    /**
-     * Logic tìm kiếm hóa đơn dựa trên từ khóa nhập vào ô tìm kiếm.
-     */
-    private void searchHoaDonRealTime() {
-        final String currentText = txtTimKiem.getText();
-        final String placeholder = " Tìm kiếm qua mã hóa đơn";
-
-        if (currentText == null) return; // Thoát nếu text là null
-
-        String query = currentText.trim().toLowerCase(); // Lấy từ khóa, bỏ khoảng trắng thừa, chuyển về chữ thường
-
-        // Nếu ô tìm kiếm trống hoặc là placeholder, tải lại dữ liệu của tab hiện tại
-        if (query.isEmpty() || query.equals(placeholder.trim().toLowerCase())) {
-            loadDataForSelectedTab();
-            return;
-        }
-
-        // Lấy danh sách hóa đơn gốc của tab hiện tại
-        List<HoaDon> baseListForTab = getCurrentTabBaseList();
-        // Lọc danh sách gốc dựa trên từ khóa (tìm theo mã HD)
-        List<HoaDon> searchResult = baseListForTab.stream()
-                .filter(hd -> hd != null && hd.getMaHD() != null && hd.getMaHD().toLowerCase().contains(query)) // Lọc theo mã HD chứa query
-                .collect(Collectors.toList());
-
-        loadDataToTable(searchResult); // Hiển thị kết quả tìm kiếm
-    }
-
-    /**
-     * Helper: Lấy danh sách hóa đơn gốc tương ứng với tab đang được chọn.
-     */
-    private List<HoaDon> getCurrentTabBaseList() {
-        int selectedIndex = tabbedPane.getSelectedIndex();
-        List<HoaDon> allList = hoaDonDAO.getAllHoaDon(); // Lấy tất cả HĐ từ DB
-        if (allList == null) allList = new ArrayList<>(); // Tránh NullPointerException
-
-        switch (selectedIndex) {
-            case 1: // Tab "Đã thanh toán"
-                return allList.stream()
-                        .filter(hd -> hd != null && "Đã thanh toán".equalsIgnoreCase(hd.getTrangThai()))
-                        .collect(Collectors.toList());
-            case 2: // Tab "Chưa thanh toán"
-                return allList.stream()
-                        .filter(hd -> hd != null && "Chưa thanh toán".equalsIgnoreCase(hd.getTrangThai()))
-                        .collect(Collectors.toList());
-            case 0: // Tab "Tất cả"
-            default:
-                return allList; // Trả về toàn bộ danh sách
-        }
     }
 
     /**

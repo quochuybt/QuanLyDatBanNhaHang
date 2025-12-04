@@ -11,7 +11,7 @@ public class TaiKhoan {
     public TaiKhoan(String tentk, String matkhau, VaiTro vaitro, boolean trangthai) {
         this.setTentk(tentk);
         this.tentk = tentk;
-        this.setMatkhau(matkhau);
+        this.matkhau = matkhau;
         this.trangthai = trangthai;
     }
 
@@ -30,15 +30,6 @@ public class TaiKhoan {
         return matkhau;
     }
 
-    public void setMatkhau(String matkhau) {
-        String passwordPattern = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,}$";
-        Pattern pattern = Pattern.compile(passwordPattern);
-        Matcher matcher = pattern.matcher(matkhau);
-        if (!matcher.matches()) {
-            throw new IllegalArgumentException("Mật khẩu không hợp lệ. Mật khẩu phải dài ít nhất 8 ký tự, chứa chữ hoa, chữ thường và số.");
-        }
-        this.matkhau = hashPassword(matkhau);
-    }
 
     public Boolean getTrangthai() {
         return trangthai;
