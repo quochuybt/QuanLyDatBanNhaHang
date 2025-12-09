@@ -373,10 +373,9 @@ public class HoaDonDAO {
 
         float tongTienLuuTrongDB = rs.getFloat("tongTien");
         float giamGia = rs.getFloat("giamGia");
-        float vat = 0;
 
         float tienKhachDua = rs.getFloat("tienKhachDua");
-        float tongTienGoc = tongTienLuuTrongDB + giamGia - vat;
+        float tongTienGoc = tongTienLuuTrongDB + giamGia ;
 
 
         HoaDon hd = new HoaDon(maHD, ngayLap, trangThai, hinhThucThanhToan, maDon, maNV, maKM);
@@ -399,7 +398,6 @@ public class HoaDonDAO {
         hd.setTienKhachDua(tienKhachDua);
         hd.setTongTienTuDB(tongTienGoc); // Gán tổng tiền gốc
         hd.setGiamGia(rs.getFloat("giamGia"));
-        hd.setVat(0);
         hd.capNhatTongThanhToanTuCacThanhPhan();
 
         return hd;

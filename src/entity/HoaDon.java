@@ -25,7 +25,6 @@ public class HoaDon {
     private String maKM;
     private String maKH;
     private float giamGia;
-    private float vat;
     private float tongThanhToan; // Tiền thực tế khách phải trả
     private List<ChiTietHoaDon> dsChiTiet;
     public HoaDon() {
@@ -37,7 +36,6 @@ public class HoaDon {
         this.dsChiTiet = new ArrayList<>();
         this.tongTien = 0;
         this.giamGia = 0;
-        this.vat = 0;
         this.tongThanhToan = 0;
     }
 
@@ -56,7 +54,6 @@ public class HoaDon {
         this.dsChiTiet = new ArrayList<>();
         this.tongTien = 0;
         this.giamGia = 0;
-        this.vat = 0;
         this.tongThanhToan = 0;
         this.tienKhachDua = 0; // 🌟 KHỞI TẠO TIỀN KHÁCH ĐƯA
     }
@@ -114,9 +111,6 @@ public class HoaDon {
         // 4. Tính tổng giảm giá (Cộng dồn)
         this.giamGia = giamGiaTV + giamGiaMa;
 
-        // 5. Tính VAT (Ví dụ 0%)
-        this.vat = 0; // Hoặc tính theo công thức
-
         // 6. Tính lại Tổng thanh toán cuối cùng
         tinhLaiTongThanhToan(); // Gọi hàm tính tổng cuối
     }
@@ -144,7 +138,6 @@ public class HoaDon {
         this.maKM = other.maKM;
         this.maKH = other.maKH;
         this.giamGia = other.giamGia;
-        this.vat = other.vat;
         this.tongThanhToan = other.tongThanhToan;
         // Copy danh sách chi tiết (nên tạo copy sâu nếu ChiTietHoaDon có thể thay đổi)
         this.dsChiTiet = new ArrayList<>();
@@ -166,7 +159,7 @@ public class HoaDon {
         this.tongTien = tongTien;
     }
     public void capNhatTongThanhToanTuCacThanhPhan() {
-        this.tongThanhToan = this.tongTien - this.giamGia + this.vat;
+        this.tongThanhToan = this.tongTien - this.giamGia;
         if (this.tongThanhToan < 0) this.tongThanhToan = 0;
     }
     public void setMaKH(String maKH) {
@@ -202,7 +195,6 @@ public class HoaDon {
     public void setTenBan(String tenBan) { this.tenBan = tenBan; }
     public float getTongTien() { return tongTien; } // Tổng món ăn
     public float getGiamGia() { return giamGia; }
-    public float getVat() { return vat; }
     public float getTongThanhToan() { return tongThanhToan;} // Tiền phải trả
 
     // (Bỏ các hàm set, validate, phatSinhMaHD... cũ để đơn giản hóa)
@@ -213,14 +205,13 @@ public class HoaDon {
             this.giamGia = giamGia;
         }
     }
-    public void setVat(float vat) { this.vat = (vat < 0) ? 0 : vat; }
     public void tinhLaiTongThanhToan() {
         // tongTien là tổng tiền gốc của các món ăn
-        this.tongThanhToan = this.tongTien - this.giamGia + this.vat;
+        this.tongThanhToan = this.tongTien - this.giamGia;
         if (this.tongThanhToan < 0) { // Đảm bảo không âm
             this.tongThanhToan = 0;
         }
-        System.out.println("DEBUG HoaDon: tongTien=" + tongTien + ", giamGia=" + giamGia + ", vat=" + vat + " => tongThanhToan=" + tongThanhToan);
+        System.out.println("DEBUG HoaDon: tongTien=" + tongTien + ", giamGia=" + giamGia + " => tongThanhToan=" + tongThanhToan);
     }
     // 🌟 SỬ DỤNG HÀM TÍNH TOÁN TIỀN THỐI
     public float getTienThoi() {

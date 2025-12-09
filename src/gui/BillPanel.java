@@ -43,6 +43,8 @@ public class BillPanel extends JPanel {
     private JLabel lblPhanTramVAT; // (VD: 0%)
     private JLabel lblTienThoi;
     private JTextField txtKhachTra;
+    private String customHeaderName = "";
+
 
     private JButton btnLuuMon, btnInTamTinh, btnThanhToan;
 
@@ -52,7 +54,7 @@ public class BillPanel extends JPanel {
     private HoaDonDAO hoaDonDAO;
     private BanDAO banDAO;
     private NhanVienDAO nhanVienDAO;
-
+    private MonAnDAO monAnDAO;
     private KhachHangDAO khachHangDAO;
     private KhuyenMaiDAO maKhuyenMaiDAO;
 
@@ -80,6 +82,7 @@ public class BillPanel extends JPanel {
         this.khachHangDAO = new KhachHangDAO();
         this.maKhuyenMaiDAO = new KhuyenMaiDAO();
         this.nhanVienDAO = new NhanVienDAO();
+        this.monAnDAO = new MonAnDAO();
 
         setBackground(Color.WHITE);
         JPanel checkoutPanel = createCheckoutPanel();
@@ -143,7 +146,7 @@ public class BillPanel extends JPanel {
             }
         });
     }
-    private void xuLyThanhToan() {
+    public void xuLyThanhToan() {
         System.out.println("Xử lý Thanh Toán..."); // Debug
 
         Ban banHienTai = null;
@@ -164,14 +167,23 @@ public class BillPanel extends JPanel {
             // Nếu ở màn hình Gọi Món: Phải LƯU trước
             if (parentGoiMonGUI.getModelChiTietHoaDon().getRowCount() == 0) return;
             if (!luuMonAnVaoCSDL(false)) return; // Lưu thất bại thì dừng
-            parentGoiMonGUI.updateBillPanelTotals(); // Update lại tiền
+            List<ChiTietHoaDon> dsMonMoi = chiTietDAO.getChiTietTheoMaDon(activeHoaDon.getMaDon());
+            activeHoaDon.setDsChiTiet(dsMonMoi);
+            activeHoaDon.tinhLaiGiamGiaVaTongTien(khachHangDAO, maKhuyenMaiDAO);
+            this.currentTotal = (long) activeHoaDon.getTongThanhToan();
+            loadBillTotals(
+                    (long)activeHoaDon.getTongTien(),
+                    (long)activeHoaDon.getGiamGia(),
+                    (long)activeHoaDon.getTongThanhToan(),
+                    dsMonMoi.size()
+            );
         } else if (parentBanGUI != null) {
             List<ChiTietHoaDon> dsMon = chiTietDAO.getChiTietTheoMaDon(activeHoaDon.getMaDon());
             activeHoaDon.setDsChiTiet(dsMon);
             activeHoaDon.tinhLaiGiamGiaVaTongTien(khachHangDAO, maKhuyenMaiDAO);
             this.currentTotal = (long) activeHoaDon.getTongThanhToan();
             loadBillTotals((long)activeHoaDon.getTongTien(), (long)activeHoaDon.getGiamGia(),
-                    (long)activeHoaDon.getVat(), (long)activeHoaDon.getTongThanhToan(), 0);
+                     (long)activeHoaDon.getTongThanhToan(), 0);
         }
 
         // 2. Validate Tiền Khách Trả
@@ -214,7 +226,10 @@ public class BillPanel extends JPanel {
             if (tenBanInHoaDon == null || tenBanInHoaDon.isEmpty()) {
                 tenBanInHoaDon = banHienTai.getTenBan();
             }
-            String tenBanLuuLichSu = banDAO.getTenBanByMa(banHienTai.getMaBan());
+            if (this.customHeaderName != null && !this.customHeaderName.isEmpty()) {
+                tenBanInHoaDon = this.customHeaderName;
+            }
+            String tenBanLuuLichSu = tenBanInHoaDon;
             if (tenBanLuuLichSu == null || tenBanLuuLichSu.isEmpty()) tenBanLuuLichSu = banHienTai.getTenBan();
             boolean thanhToanOK = hoaDonDAO.thanhToanHoaDon(
                     maHDCuoiCung,
@@ -398,10 +413,35 @@ public class BillPanel extends JPanel {
         Map<String, Integer> itemsTrenGUI = new HashMap<>();
         float tongTienMoiGUI = 0;
         for (int i = 0; i < model.getRowCount(); i++) {
-            String maMon = (String) model.getValueAt(i, 1); // Cột Mã Món (ẩn)
-            Integer soLuong = (Integer) model.getValueAt(i, 3); // Cột SL
-            Float thanhTien = (Float) model.getValueAt(i, 5); // Cột Thành tiền
-            if (maMon != null && soLuong != null && thanhTien != null) {
+            String maMon = (String) model.getValueAt(i, 1); // Cột Mã Món
+            Object soLuongObj = model.getValueAt(i, 3); // Cột SL
+            Object thanhTienObj = model.getValueAt(i, 5); // Cột Thành tiền
+            Integer soLuong = 0;
+            Float thanhTien = 0f;
+            try {
+                // Chuyển đổi Số lượng (có thể là Integer hoặc String)
+                if (soLuongObj != null) {
+                    if (soLuongObj instanceof Number) {
+                        soLuong = ((Number) soLuongObj).intValue();
+                    } else {
+                        soLuong = Integer.parseInt(soLuongObj.toString().trim());
+                    }
+                }
+                // Chuyển đổi Thành tiền (có thể là Float hoặc String)
+                if (thanhTienObj != null) {
+                    if (thanhTienObj instanceof Number) {
+                        thanhTien = ((Number) thanhTienObj).floatValue();
+                    } else {
+                        thanhTien = Float.parseFloat(thanhTienObj.toString().trim());
+                    }
+                }
+            } catch (Exception parseEx) {
+                System.err.println("Lỗi chuyển đổi kiểu dữ liệu tại hàng " + i + ": " + parseEx.getMessage());
+                continue; // Bỏ qua dòng bị lỗi để tránh crash
+            }
+
+            // 3. Kiểm tra và thêm vào Map
+            if (maMon != null && soLuong > 0) {
                 itemsTrenGUI.put(maMon, soLuong);
                 tongTienMoiGUI += thanhTien;
             }
@@ -430,13 +470,7 @@ public class BillPanel extends JPanel {
                 if (!itemsTrongDB.containsKey(maMonGUI)) { // Nếu món trên GUI không có trong DB
                     // Lấy đơn giá (cần truy cập MonAnDAO hoặc lấy từ bảng?)
                     // Tạm lấy từ bảng (Cột 4 - Đơn giá)
-                    float donGia = 0;
-                    for (int i = 0; i < model.getRowCount(); i++) {
-                        if (maMonGUI.equals(model.getValueAt(i, 1))) {
-                            donGia = (Float) model.getValueAt(i, 4);
-                            break;
-                        }
-                    }
+                    float donGia = monAnDAO.getDonGiaByMa(maMonGUI);
 
                     if (donGia > 0) {
                         ChiTietHoaDon ctMoi = new ChiTietHoaDon(maMonGUI, maDon, soLuongGUI, donGia);
@@ -447,7 +481,6 @@ public class BillPanel extends JPanel {
                         }
                     } else {
                         System.err.println("Không tìm thấy đơn giá cho món mới: " + maMonGUI);
-                        coLoi = true;
                     }
                 }
             }
@@ -517,6 +550,10 @@ public class BillPanel extends JPanel {
             return false;
         }
     }
+    public void setCustomHeader(String name) {
+        this.customHeaderName = name;
+        // Cập nhật Label tiêu đề nếu có (ví dụ lblTenBan.setText(name))
+    }
     private JPanel createCheckoutPanel() {
         // Panel chính cho phần checkout
         JPanel mainPanel = new JPanel(new BorderLayout(15, 10)); // Gap
@@ -567,7 +604,10 @@ public class BillPanel extends JPanel {
         }
 
         if (banHienTai == null || dsMon == null || dsMon.isEmpty()) return;
-
+        String tenBanHienThi = tenBanThucTe;
+        if (this.customHeaderName != null && !this.customHeaderName.isEmpty()) {
+            tenBanHienThi = this.customHeaderName;
+        }
 
         String tenNhanVien = "Không rõ";
         String tenKhachHang = "Khách lẻ";
@@ -597,7 +637,7 @@ public class BillPanel extends JPanel {
         billText.append("Ngày:  ").append(LocalDateTime.now().format(dtf)).append("\n");
         billText.append("Thu ngân: ").append(tenNV).append("\n");
         billText.append("---------------------------------------------------\n");
-        billText.append("Bàn:   ").append(tenBanThucTe).append(" - ").append(banHienTai.getKhuVuc()).append("\n");
+        billText.append("Bàn:   ").append(tenBanHienThi).append("\n");
         billText.append("Khách:    ").append(tenKH).append("\n");
         billText.append("---------------------------------------------------\n");
 
@@ -618,9 +658,6 @@ public class BillPanel extends JPanel {
         billText.append(String.format("%-28s %20s\n", "Tổng cộng:", lblTongCong.getText()));
         if (!lblKhuyenMai.getText().equals("0 ₫") && !lblKhuyenMai.getText().equals("0")) {
             billText.append(String.format("%-28s %20s\n", "Giảm giá:", lblKhuyenMai.getText()));
-        }
-        if (!lblVAT.getText().equals("0 ₫") && !lblVAT.getText().equals("0")) {
-            billText.append(String.format("%-28s %20s\n", "VAT (" + lblPhanTramVAT.getText() + "):", lblVAT.getText()));
         }
 
         billText.append("===================================================\n");
@@ -680,7 +717,15 @@ public class BillPanel extends JPanel {
             List<ChiTietHoaDon> listToPrint = getCurrentDetailList();
 
             // 3. Lấy tên bàn (Vì chưa thanh toán nên tên bàn lúc này vẫn đúng là tên gộp, ví dụ "Bàn 1 + 2")
-            String tenBan = banHienTai.getTenBan();
+            String tenBanHienThi;
+            if (this.customHeaderName != null && !this.customHeaderName.isEmpty()) {
+                // Nếu đã có tên tùy chỉnh (được set từ màn hình Gọi món/Bàn), dùng y nguyên nó.
+                // Vì nó đã bao gồm "Bàn X -- Tầng Y" rồi, KHÔNG nối thêm nữa.
+                tenBanHienThi = this.customHeaderName;
+            } else {
+                // Nếu chưa có, thì mới tự tạo
+                tenBanHienThi = banHienTai.getTenBan() + " -- " + banHienTai.getKhuVuc();
+            }
             String tenNV = "Admin";
             if (hd.getMaNV() != null) {
                 entity.NhanVien nv = nhanVienDAO.getChiTietNhanVien(hd.getMaNV());
@@ -694,7 +739,7 @@ public class BillPanel extends JPanel {
             }
 
             // 4. SỬA DÒNG LỖI: Thêm biến 'tenBan' vào cuối cùng
-            xuatPhieuIn("PHIẾU TẠM TÍNH", false, 0, 0, hd.getMaHD(), listToPrint, "---", tenBan, tenNV, tenKH);
+            xuatPhieuIn("PHIẾU TẠM TÍNH", false, 0, 0, hd.getMaHD(), listToPrint, "---", tenBanHienThi, tenNV, tenKH);
         }
     }
     private long roundUpToNearest(long number, long nearest) {
@@ -778,10 +823,8 @@ public class BillPanel extends JPanel {
         // --- KHỞI TẠO TẤT CẢ 6 JLABEL ---
         lblTongCong = new JLabel("0");
         lblKhuyenMai = new JLabel("0");
-        lblVAT = new JLabel("0");
         lblTongThanhToan = new JLabel("0");
         lblTongSoLuong = new JLabel("0"); // <-- KHỞI TẠO Ở ĐÂY
-        lblPhanTramVAT = new JLabel("0%"); // <-- KHỞI TẠO Ở ĐÂY
 
         // --- Set Font ---
         Font labelFont = new Font("Segoe UI", Font.PLAIN, 14);
@@ -793,14 +836,10 @@ public class BillPanel extends JPanel {
         lblTongCong.setHorizontalAlignment(SwingConstants.RIGHT);
         lblKhuyenMai.setFont(valueFont);
         lblKhuyenMai.setHorizontalAlignment(SwingConstants.RIGHT);
-        lblVAT.setFont(valueFont);
-        lblVAT.setHorizontalAlignment(SwingConstants.RIGHT);
         lblTongThanhToan.setFont(totalFont);
         lblTongThanhToan.setHorizontalAlignment(SwingConstants.RIGHT);
         lblTongSoLuong.setFont(valueFont);
         lblTongSoLuong.setHorizontalAlignment(SwingConstants.RIGHT);
-        lblPhanTramVAT.setFont(valueFont);
-        lblPhanTramVAT.setHorizontalAlignment(SwingConstants.RIGHT);
 
 
         // --- Hàng 1: Tổng cộng ---
@@ -829,18 +868,6 @@ public class BillPanel extends JPanel {
         gbc.gridx = 2;
         panel.add(lblKhuyenMai, gbc);
 
-        // --- Hàng 3: VAT ---
-        gbc.gridy = 2;
-        gbc.gridx = 0;
-        JLabel lbl3 = new JLabel("VAT:");
-        lbl3.setFont(labelFont);
-        panel.add(lbl3, gbc);
-
-        gbc.gridx = 1; // Cột % VAT
-        panel.add(lblPhanTramVAT, gbc);
-
-        gbc.gridx = 2;
-        panel.add(lblVAT, gbc);
 
         // --- Hàng 4: TỔNG THANH TOÁN ---
         gbc.gridy = 3;
@@ -946,14 +973,12 @@ public class BillPanel extends JPanel {
         return btn;
     }
 
-    public void loadBillTotals(long tongCong, long khuyenMai, long vat, long tongThanhToan, int tongSoLuong) {
+    public void loadBillTotals(long tongCong, long khuyenMai,  long tongThanhToan, int tongSoLuong) {
 
         // 1. Cập nhật các JLabel tóm tắt
         lblTongSoLuong.setText(String.valueOf(tongSoLuong));
         lblTongCong.setText(nf.format(tongCong));         // Dùng NumberFormat nf đã khai báo
         lblKhuyenMai.setText(nf.format(khuyenMai));
-        lblPhanTramVAT.setText(vat == 0 ? "0%" : "..."); // TODO: Cập nhật % VAT sau
-        lblVAT.setText(nf.format(vat));
         lblTongThanhToan.setText(nf.format(tongThanhToan));
 
         // 2. Cập nhật gợi ý tiền mặt
@@ -972,8 +997,6 @@ public class BillPanel extends JPanel {
         lblTongSoLuong.setText("0");
         lblTongCong.setText(nf.format(0));
         lblKhuyenMai.setText(nf.format(0));
-        lblPhanTramVAT.setText("0%");
-        lblVAT.setText(nf.format(0));
         lblTongThanhToan.setText(nf.format(0));
         lblTienThoi.setText(nf.format(0));
         txtKhachTra.setText("0");

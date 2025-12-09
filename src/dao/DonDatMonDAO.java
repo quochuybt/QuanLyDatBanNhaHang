@@ -218,10 +218,8 @@ public class DonDatMonDAO {
                             "SELECT maBan FROM DonDatMon " +
                             "WHERE trangThai = N'Chưa thanh toán' " +
                             "AND NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maDon = DonDatMon.maDon) " +
-                            // Điều kiện: Khách đến trong vòng 2 tiếng (0 - 120 phút)
-                            "AND DATEDIFF(MINUTE, GETDATE(), thoiGianDen) BETWEEN 0 AND 120 " +
+                            "AND DATEDIFF(MINUTE, GETDATE(), thoiGianDen) <= 120 " + // <--- SỬA Ở ĐÂY
                             ")";
-
             // --- BƯỚC 2: NHẢ BÀN (Vàng -> Xanh) ---
             // Nếu bàn đang ĐÃ ĐẶT, nhưng KHÔNG CÓ đơn nào trong vòng 2 tiếng tới -> Trả về TRỐNG
             // (Dành cho trường hợp khách dời lịch từ 18h sang 22h, thì lúc 18h bàn phải xanh lại)
@@ -231,7 +229,7 @@ public class DonDatMonDAO {
                             "AND maBan NOT IN ( " +
                             "SELECT maBan FROM DonDatMon " +
                             "WHERE trangThai = N'Chưa thanh toán' " +
-                            "AND DATEDIFF(MINUTE, GETDATE(), thoiGianDen) BETWEEN 0 AND 120 " +
+                            "AND DATEDIFF(MINUTE, GETDATE(), thoiGianDen) <= 120 " + // <--- SỬA Ở ĐÂY
                             ")";
 
             try (PreparedStatement psLock = conn.prepareStatement(sqlLock);
@@ -282,7 +280,7 @@ public class DonDatMonDAO {
         return ddm;
     }
     public boolean themDonDatMon(DonDatMon ddm) {
-        String sql = "INSERT INTO DonDatMon (maDon, ngayKhoiTao,thoiGianDen, maNV, maKH, maBan, ghiChu,trangThai) VALUES (?,?, ?, ?, ?, ?, ?,?)";
+        String sql = "INSERT INTO DonDatMon (maDon, ngayKhoiTao, thoiGianDen, maNV, maKH, maBan, ghiChu, trangThai) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -303,7 +301,6 @@ public class DonDatMonDAO {
                 trangThai = "Chưa thanh toán";
             }
             ps.setNString(8, trangThai);
-
             return ps.executeUpdate() > 0;
 
 
@@ -394,7 +391,7 @@ public List<DonDatMon> getAllDonDatMonChuaNhan() {
             // Điều kiện: Chưa có hóa đơn (nghĩa là chưa mở bàn ăn)
             "AND NOT EXISTS (SELECT 1 FROM HoaDon h WHERE h.maDon = d.maDon) " +
             // Điều kiện: Không phải là đơn ảo của bàn ghép
-            "AND (d.ghiChu IS NULL OR d.ghiChu NOT LIKE 'LINKED:%') " +
+            "AND (d.ghiChu IS NULL OR d.ghiChu NOT LIKE '%LINKED:%') " +
             // Điều kiện: Chỉ lấy các đơn từ hôm nay trở đi (tránh hiện đơn quá khứ bị sót)
             "AND d.thoiGianDen >= CAST(GETDATE() AS DATE) " +
             "ORDER BY d.thoiGianDen ASC";
@@ -415,9 +412,12 @@ public List<DonDatMon> getAllDonDatMonChuaNhan() {
         List<DonDatMon> dsKetQua = new ArrayList<>();
         // JOIN với KhachHang để tìm theo tên hoặc SĐT
         String sql = "SELECT ddm.* FROM DonDatMon ddm " +
-                "LEFT JOIN KhachHang kh ON ddm.maKH = kh.maKH " + // LEFT JOIN phòng trường hợp KH null
-                "WHERE NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maDon = ddm.maDon) " + // Chỉ lấy đơn chưa nhận
-                "AND (kh.sdt LIKE ? OR kh.tenKH LIKE ?) " + // Điều kiện tìm kiếm
+                "LEFT JOIN KhachHang kh ON ddm.maKH = kh.maKH " +
+                "WHERE NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maDon = ddm.maDon) " + // Chưa có HĐ
+                "AND ddm.trangThai = N'Chưa thanh toán' " +           // Chỉ lấy đơn chưa thanh toán
+                "AND ddm.trangThai != N'Đã hủy' " +                   // Không lấy đơn đã hủy
+                "AND (ddm.ghiChu IS NULL OR ddm.ghiChu NOT LIKE 'LINKED:%') " + // <--- QUAN TRỌNG: Bỏ đơn ảo gộp bàn
+                "AND (kh.sdt LIKE ? OR kh.tenKH LIKE ?) " +           // Tìm theo SĐT hoặc Tên
                 "ORDER BY ddm.ngayKhoiTao DESC";
 
         try (Connection conn = SQLConnection.getConnection();

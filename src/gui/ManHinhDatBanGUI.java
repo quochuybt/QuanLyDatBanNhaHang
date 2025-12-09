@@ -908,7 +908,10 @@ public class ManHinhDatBanGUI extends JPanel {
                 if (ban.equals(banChinh)) {
                     ddm.setGhiChu(ghiChuUser + " (Đặt chính nhóm " + dsBanDaChon.size() + " bàn)");
                 } else {
-                    ddm.setGhiChu(ghiChuUser + " (Đặt cùng " + banChinh.getTenBan() + ")");
+                    String noteHienThi = ghiChuUser + " (Đặt cùng " + banChinh.getTenBan() + ")";
+                    String noteKyThuat = " LINKED:" + banChinh.getMaBan();
+
+                    ddm.setGhiChu(noteHienThi + noteKyThuat);
                 }
             } else {
                 ddm.setGhiChu(ghiChuUser);
@@ -972,6 +975,11 @@ public class ManHinhDatBanGUI extends JPanel {
                 System.out.println("Không có đơn đặt trước nào."); // Hoặc hiển thị label
             } else {
                 for (entity.DonDatMon ddm : dsDatTruoc) {
+                    String tenHienThi = banDAO.getTenHienThiGhep(ddm.getMaBan());
+                    if (tenHienThi != null && !tenHienThi.isEmpty()) {
+                        // Mẹo: Gán "Bàn 9 + 6" vào chỗ mã bàn để hiển thị
+                        ddm.setMaBan(tenHienThi);
+                    }
                     modelListPhieuDat.addElement(ddm); // Thêm object vào model
                 }
             }
@@ -1129,7 +1137,7 @@ public class ManHinhDatBanGUI extends JPanel {
                 if (banDat != null) soNguoi = banDat.getSoGhe();
 
                 lblLine1.setText(String.format("%s (%s)", tenBan, sdtKH));
-                lblLine2.setText(String.format("%s - %s - %d người", gioDen, tenKH, soNguoi));
+                lblLine2.setText(String.format("%s - %s ", gioDen, tenKH));
 
                 // Hiện nút xóa cho item hợp lệ
                 btnDelete.setVisible(true);

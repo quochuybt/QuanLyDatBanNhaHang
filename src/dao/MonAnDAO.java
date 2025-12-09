@@ -222,4 +222,25 @@ public class MonAnDAO {
             return false;
         }
     }
+    public float getDonGiaByMa(String maMon) {
+        float donGia = 0;
+        // Giả sử bảng món ăn có tên là MonAn và cột đơn giá là donGia
+        String sql = "SELECT donGia FROM MonAn WHERE maMonAn = ?";
+
+        try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, maMon);
+
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    donGia = rs.getFloat("donGia");
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi khi lấy đơn giá cho món: " + maMon);
+            e.printStackTrace();
+        }
+        return donGia;
+    }
 } // Kết thúc class MonAnDAO
