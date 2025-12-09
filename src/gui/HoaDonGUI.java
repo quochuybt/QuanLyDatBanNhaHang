@@ -288,12 +288,6 @@ public class HoaDonGUI extends JPanel {
 
                 // Xác định ghi chú dựa trên logic nghiệp vụ
                 String ghiChu = "Không";
-                if (hd.getTongTien() > 1000000) {
-                    ghiChu = "Yêu cầu xuất VAT";
-                } else if (hd.getHinhThucThanhToan() != null && hd.getHinhThucThanhToan().equalsIgnoreCase("Chuyển khoản")) { // Dùng equalsIgnoreCase
-                    ghiChu = "Đã xác nhận"; // Hoặc logic khác tùy yêu cầu
-                }
-
                 try {
                     // Thêm dòng mới vào tableModel
                     tableModel.addRow(new Object[]{
@@ -741,7 +735,6 @@ public class HoaDonGUI extends JPanel {
         }
         // Hiển thị giảm giá và tổng thanh toán
         detailsText.append("<b>Giảm giá:</b> ").append(currencyFormatter.format(hoaDon.getGiamGia())).append("<br>");
-        detailsText.append("<b>VAT:</b> ").append(currencyFormatter.format(hoaDon.getVat())).append("<br>"); // Giả sử có getVat()
         detailsText.append("<b>Tổng thanh toán:</b> ").append(currencyFormatter.format(hoaDon.getTongThanhToan())).append("<br><br>");
 
 
@@ -806,7 +799,6 @@ public class HoaDonGUI extends JPanel {
         // --- 1. Lấy và định dạng các giá trị tiền tệ từ đối tượng HoaDon
         String tongTienGoc = currencyFormatter.format(hoaDon.getTongTien());
         String giamGia = currencyFormatter.format(hoaDon.getGiamGia());
-        String vat = currencyFormatter.format(hoaDon.getVat());
         String tongThanhToan = currencyFormatter.format(hoaDon.getTongThanhToan());
 
         // Lấy các giá trị phụ
@@ -849,9 +841,6 @@ public class HoaDonGUI extends JPanel {
         billText.append(String.format("%-28s %20s\n", "Tổng cộng (Gốc):", tongTienGoc));
         if (hoaDon.getGiamGia() > 0) {
             billText.append(String.format("%-28s %20s\n", "Giảm giá:", giamGia));
-        }
-        if (hoaDon.getVat() > 0) {
-            billText.append(String.format("%-28s %20s\n", "VAT:", vat));
         }
 
         billText.append("===================================================\n");

@@ -107,6 +107,23 @@ public class BanDAO {
             conn = connectDB.SQLConnection.getConnection();
             conn.setAutoCommit(false); // Bắt đầu Transaction
 
+            // Nếu bàn cũ là Master, phải báo cho các bàn Slave biết địa chỉ Master mới
+            String sqlUpdateLink = "UPDATE DonDatMon SET ghiChu = REPLACE(ghiChu, ?, ?) " +
+                    "WHERE maBan != ? AND trangThai = N'Chưa thanh toán' AND ghiChu LIKE ?";
+
+            // Dùng try-with-resources nhỏ ở đây để tự đóng PreparedStatement này cho gọn
+            try (java.sql.PreparedStatement psLink = conn.prepareStatement(sqlUpdateLink)) {
+                String oldTag = "LINKED:" + banCu.getMaBan(); // VD: LINKED:BAN09
+                String newTag = "LINKED:" + banMoi.getMaBan(); // VD: LINKED:BAN01
+
+                psLink.setString(1, oldTag);
+                psLink.setString(2, newTag);
+                psLink.setString(3, banCu.getMaBan()); // Trừ chính bàn cũ ra
+                psLink.setString(4, "%" + oldTag + "%"); // Chỉ tìm những thằng có chứa LINKED
+
+                psLink.executeUpdate();
+            }
+
             // --- BƯỚC 1: Chuyển Đơn Đặt Món ---
             psUpdateDon = conn.prepareStatement(sqlUpdateDon);
             psUpdateDon.setString(1, banMoi.getMaBan());
@@ -170,13 +187,98 @@ public class BanDAO {
             this.donGia = donGia;
         }
     }
+    public String getTenHienThiGhep(String maBanCheck) {
+        String tenGoc = "";
+        List<String> tenBanPhu = new ArrayList<>();
 
+        java.sql.Connection conn = null;
+        try {
+            conn = connectDB.SQLConnection.getConnection();
+
+            // 1. Kiểm tra xem bàn này là Bàn Phụ (Slave) hay Bàn Chính (Master)?
+            // Tìm xem bàn này có đang trỏ tới ai không?
+            String sqlCheckSlave = "SELECT ghiChu FROM DonDatMon WHERE maBan = ? AND trangThai = N'Chưa thanh toán' AND ghiChu LIKE '%LINKED:%'";
+            String maBanMaster = maBanCheck; // Mặc định mình là master
+
+            try(java.sql.PreparedStatement ps = conn.prepareStatement(sqlCheckSlave)) {
+                ps.setString(1, maBanCheck);
+                java.sql.ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    String ghiChu = rs.getString("ghiChu");
+                    int index = ghiChu.indexOf("LINKED:");
+                    if (index != -1) {
+                        // Cắt bỏ mọi thứ phía trước chữ LINKED:, chỉ lấy mã bàn phía sau
+                        maBanMaster = ghiChu.substring(index + 7).trim().split(" ")[0];
+                    }
+                }
+            }
+
+            // 2. Lấy tên của Bàn Master
+            String sqlGetMasterName = "SELECT tenBan FROM Ban WHERE maBan = ?";
+            try(java.sql.PreparedStatement ps = conn.prepareStatement(sqlGetMasterName)) {
+                ps.setString(1, maBanMaster);
+                java.sql.ResultSet rs = ps.executeQuery();
+                if (rs.next()) tenGoc = rs.getString("tenBan");
+            }
+
+            // 3. Lấy tên các Bàn Phụ đang trỏ tới Master
+            String sqlGetSlaves =
+                    "SELECT b.tenBan FROM DonDatMon d " +
+                            "JOIN Ban b ON d.maBan = b.maBan " +
+                            "WHERE d.ghiChu LIKE ? AND d.trangThai = N'Chưa thanh toán'";
+
+            try(java.sql.PreparedStatement ps = conn.prepareStatement(sqlGetSlaves)) {
+                ps.setString(1, "%LINKED:" + maBanMaster+"%");
+                java.sql.ResultSet rs = ps.executeQuery();
+                while(rs.next()) {
+                    String t = rs.getString("tenBan").replace("Bàn ", ""); // Bỏ chữ "Bàn" cho gọn
+                    // Nếu chính là bàn đang check thì bỏ qua (để tránh lặp nếu logic sai)
+                    if (!tenGoc.contains(t)) {
+                        tenBanPhu.add(t);
+                    }
+                }
+            }
+
+        } catch (Exception e) { e.printStackTrace(); }
+
+        // 4. Ghép chuỗi: "Bàn 9 + 7 + 8"
+        StringBuilder sb = new StringBuilder(tenGoc);
+        for (String t : tenBanPhu) {
+            sb.append(" + ").append(t);
+        }
+
+        return sb.toString();
+    }
+
+    // Hàm hỗ trợ: Lấy Mã Bàn Chính (nếu đang là bàn phụ)
+    public String getMaBanChinh(String maBanCheck) {
+        String sql = "SELECT ghiChu FROM DonDatMon WHERE maBan = ? AND trangThai = N'Chưa thanh toán' AND ghiChu LIKE 'LINKED:%'";
+        try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, maBanCheck);
+            java.sql.ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getString("ghiChu").replace("LINKED:", "").trim();
+            }
+        } catch (Exception e) {}
+        return maBanCheck; // Nếu không ghép thì chính là nó
+    }
     public boolean ghepBanLienKet(List<Ban> listBanNguon, Ban banDich) {
         System.out.println("=== BẮT ĐẦU GỘP BÀN (PHIÊN BẢN FINAL) ===");
         java.sql.Connection conn = null;
         try {
             conn = connectDB.SQLConnection.getConnection();
             conn.setAutoCommit(false); // Transaction
+
+            boolean coKhachDangAn = (banDich.getTrangThai() == entity.TrangThaiBan.DANG_PHUC_VU);
+            for (Ban b : listBanNguon) {
+                if (b.getTrangThai() == entity.TrangThaiBan.DANG_PHUC_VU) {
+                    coKhachDangAn = true;
+                    break;
+                }
+            }
+            // Nếu có ai đang ăn -> Đỏ ("Đang có khách"). Nếu toàn bộ là đặt trước -> Vàng ("Đã đặt trước")
+            String trangThaiSauGop = coKhachDangAn ? "Đang có khách" : "Đã đặt trước";
 
             // 1. TÌM ĐƠN ĐÍCH (Bàn 10)
             String maDonDich = null;
@@ -189,24 +291,16 @@ public class BanDAO {
 
             // Nếu đích chưa có đơn, tạo mới
             if (maDonDich == null) {
-                maDonDich = "DON" + System.nanoTime();
+                maDonDich = "DON" + System.currentTimeMillis();
                 String sqlNew = "INSERT INTO DonDatMon(maDon, ngayKhoiTao, thoiGianDen, maNV, maBan, trangThai) VALUES(?, GETDATE(), GETDATE(), 'NV01102', ?, N'Chưa thanh toán')";
                 try (java.sql.PreparedStatement psNew = conn.prepareStatement(sqlNew)) {
-                    psNew.setString(1, maDonDich);
-                    psNew.setString(2, banDich.getMaBan());
-                    psNew.executeUpdate();
+                    psNew.setString(1, maDonDich); psNew.setString(2, banDich.getMaBan()); psNew.executeUpdate();
                 }
             }
-
-            StringBuilder tenBanGop = new StringBuilder(banDich.getTenBan());
 
             // 2. DUYỆT CÁC BÀN NGUỒN (Bàn 2)
             for (Ban bNguon : listBanNguon) {
                 if (bNguon.getMaBan().equals(banDich.getMaBan())) continue;
-
-                // Xử lý tên: "Bàn 10 + 2"
-                String tenNguonShort = bNguon.getTenBan().replace("Bàn ", "");
-                if (!tenBanGop.toString().contains(tenNguonShort)) tenBanGop.append(" + ").append(tenNguonShort);
 
                 // Lấy đơn nguồn
                 String maDonNguon = null;
@@ -216,8 +310,7 @@ public class BanDAO {
                     if (rs.next()) maDonNguon = rs.getString("maDon");
                 }
 
-                if (maDonNguon != null) {
-                    System.out.println("   -> Gộp đơn nguồn: " + maDonNguon);
+                if (maDonNguon != null && !maDonNguon.equals(maDonDich)) {
 
                     // A. COPY MÓN TỪ NGUỒN VÀO RAM
                     List<MonAnTam> listItems = new ArrayList<>();
@@ -230,68 +323,42 @@ public class BanDAO {
                         }
                     }
 
-                    if (listItems.isEmpty()) {
-                        System.out.println("   ⚠️ CẢNH BÁO: Đơn nguồn " + maDonNguon + " KHÔNG CÓ MÓN NÀO TRONG DB (Bạn đã bấm Lưu chưa?)");
-                    }
-
                     // B. XÓA SẠCH CHI TIẾT BÊN NGUỒN
                     String sqlDel = "DELETE FROM ChiTietHoaDon WHERE maDon = ?";
                     try (java.sql.PreparedStatement psDel = conn.prepareStatement(sqlDel)) {
-                        psDel.setString(1, maDonNguon);
-                        psDel.executeUpdate();
+                        psDel.setString(1, maDonNguon); psDel.executeUpdate();
                     }
 
                     // C. GHI VÀO ĐÍCH (CỘNG DỒN HOẶC THÊM MỚI)
                     String sqlCheck = "SELECT COUNT(*) FROM ChiTietHoaDon WHERE maDon = ? AND maMonAn = ?";
                     String sqlUpdate = "UPDATE ChiTietHoaDon SET soLuong = soLuong + ? WHERE maDon = ? AND maMonAn = ?";
                     String sqlInsert = "INSERT INTO ChiTietHoaDon(maDon, maMonAn, soLuong, donGia) VALUES(?, ?, ?, ?)";
-
                     try (java.sql.PreparedStatement psCheck = conn.prepareStatement(sqlCheck);
                          java.sql.PreparedStatement psUp = conn.prepareStatement(sqlUpdate);
                          java.sql.PreparedStatement psIn = conn.prepareStatement(sqlInsert)) {
-
                         for (MonAnTam item : listItems) {
-                            psCheck.setString(1, maDonDich);
-                            psCheck.setString(2, item.maMon);
-                            java.sql.ResultSet rsCheck = psCheck.executeQuery();
-                            rsCheck.next();
-                            boolean exists = rsCheck.getInt(1) > 0;
-
-                            if (exists) {
-                                psUp.setInt(1, item.soLuong);
-                                psUp.setString(2, maDonDich);
-                                psUp.setString(3, item.maMon);
-                                psUp.executeUpdate();
+                            psCheck.setString(1, maDonDich); psCheck.setString(2, item.maMon);
+                            java.sql.ResultSet rsCheck = psCheck.executeQuery(); rsCheck.next();
+                            if (rsCheck.getInt(1) > 0) {
+                                psUp.setInt(1, item.soLuong); psUp.setString(2, maDonDich); psUp.setString(3, item.maMon); psUp.executeUpdate();
                             } else {
-                                psIn.setString(1, maDonDich);
-                                psIn.setString(2, item.maMon);
-                                psIn.setInt(3, item.soLuong);
-                                psIn.setDouble(4, item.donGia);
-                                psIn.executeUpdate();
+                                psIn.setString(1, maDonDich); psIn.setString(2, item.maMon); psIn.setInt(3, item.soLuong); psIn.setDouble(4, item.donGia); psIn.executeUpdate();
                             }
                         }
                     }
 
-                    // D. HỦY ĐƠN ĐẶT MÓN NGUỒN
-                    String sqlCancelDon = "UPDATE DonDatMon SET trangThai = N'Đã hủy', ghiChu = ? WHERE maDon = ?";
-                    try (java.sql.PreparedStatement psCan = conn.prepareStatement(sqlCancelDon)) {
-                        psCan.setNString(1, "Gộp vào " + banDich.getTenBan());
-                        psCan.setString(2, maDonNguon);
-                        psCan.executeUpdate();
+                    // D. HỦY ĐƠN & BILL NGUỒN
+                    try (java.sql.PreparedStatement ps = conn.prepareStatement("UPDATE DonDatMon SET trangThai = N'Đã hủy' WHERE maDon = ?")) {
+                        ps.setString(1, maDonNguon); ps.executeUpdate();
                     }
-
-                    // E. HỦY LUÔN HÓA ĐƠN NGUỒN (ĐÂY LÀ BƯỚC QUAN TRỌNG ĐỂ KHÔNG BỊ 2 BILL)
-                    String sqlCancelHD = "UPDATE HoaDon SET trangThai = N'Đã hủy' WHERE maDon = ?";
-                    try (java.sql.PreparedStatement psCanHD = conn.prepareStatement(sqlCancelHD)) {
-                        psCanHD.setString(1, maDonNguon);
-                        psCanHD.executeUpdate();
+                    try (java.sql.PreparedStatement ps = conn.prepareStatement("UPDATE HoaDon SET trangThai = N'Đã hủy' WHERE maDon = ?")) {
+                        ps.setString(1, maDonNguon); ps.executeUpdate();
                     }
                 }
 
-                // 3. TẠO ĐƠN ẢO (LINKED) CHO BÀN NGUỒN
-                String timeStr = String.valueOf(System.currentTimeMillis());
-                String shortTime = timeStr.substring(timeStr.length() - 9); // Lấy 9 số cuối
-                String dummyID = "L" + shortTime + bNguon.getMaBan();
+                // 3. TẠO ĐƠN DUMMY TRÊN BÀN NGUỒN
+                String dummyID = "L" + (System.currentTimeMillis() % 100000000) + bNguon.getMaBan();
+                // Ghi chú dạng: "LINKED:BAN09" (Bàn 9 là bàn đích)
                 String sqlDummy = "INSERT INTO DonDatMon(maDon, ngayKhoiTao, thoiGianDen, maNV, maBan, trangThai, ghiChu) VALUES(?, GETDATE(), GETDATE(), 'NV01102', ?, N'Chưa thanh toán', ?)";
                 try (java.sql.PreparedStatement psDum = conn.prepareStatement(sqlDummy)) {
                     psDum.setString(1, dummyID);
@@ -301,19 +368,18 @@ public class BanDAO {
                 }
 
                 // 4. CẬP NHẬT TÊN BÀN NGUỒN
-                String sqlUpSrc = "UPDATE Ban SET tenBan = ?, trangThai = N'Đang có khách' WHERE maBan = ?";
+                String sqlUpSrc = "UPDATE Ban SET  trangThai = ? WHERE maBan = ?";
                 try(java.sql.PreparedStatement psUp = conn.prepareStatement(sqlUpSrc)){
-                    String tenGoc = bNguon.getTenBan().replaceAll("\\s*\\(Ghép.*\\)", "").trim();
-                    psUp.setNString(1, tenGoc + " (Ghép " + banDich.getTenBan() + ")");
+                    psUp.setNString(1, trangThaiSauGop);
                     psUp.setString(2, bNguon.getMaBan());
                     psUp.executeUpdate();
                 }
             }
 
             // 5. CẬP NHẬT TÊN BÀN ĐÍCH
-            String sqlUpDest = "UPDATE Ban SET tenBan = ? WHERE maBan = ?";
+            String sqlUpDest = "UPDATE Ban SET trangThai = ? WHERE maBan = ?";
             try(java.sql.PreparedStatement psUp = conn.prepareStatement(sqlUpDest)){
-                psUp.setNString(1, tenBanGop.toString());
+                psUp.setNString(1, trangThaiSauGop);
                 psUp.setString(2, banDich.getMaBan());
                 psUp.executeUpdate();
             }

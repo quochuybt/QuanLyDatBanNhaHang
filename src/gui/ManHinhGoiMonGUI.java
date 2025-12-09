@@ -107,20 +107,30 @@ public class ManHinhGoiMonGUI extends JPanel {
             Ban banDich = banDAO.getBanByMa(maBanDich);
             if (banDich != null) {
                 banThucSu = banDich; // Chuyển sang làm việc với Bàn Đích
-                System.out.println("-> Đây là bàn ghép. Chuyển hướng sang bàn chính: " + banDich.getTenBan());
-
-                // Cập nhật Header để báo hiệu
-                lblTenBanHeader.setText(banDuocChon.getTenBan() + " (Liên kết -> " + banDich.getTenBan() + ")");
+//                System.out.println("-> Đây là bàn ghép. Chuyển hướng sang bàn chính: " + banDich.getTenBan());
+//
+//                // Cập nhật Header để báo hiệu
+//                lblTenBanHeader.setText(banDuocChon.getTenBan() + " (Liên kết -> " + banDich.getTenBan() + ")");
             }
-        } else {
-            lblTenBanHeader.setText(banDuocChon.getTenBan() + " - " + banDuocChon.getKhuVuc());
         }
+//        else {
+//            lblTenBanHeader.setText(banDuocChon.getTenBan() + " -- " + banDuocChon.getKhuVuc());
+//        }
         this.banHienTai = banThucSu;
+        String tenHienThi = banDAO.getTenHienThiGhep(banThucSu.getMaBan());
+        if (tenHienThi == null || tenHienThi.isEmpty()) {
+            tenHienThi = banThucSu.getTenBan();
+        }
+        // 3. Set Text cho Header: "Bàn 2 + 1 -- Tầng Trệt"
+        lblTenBanHeader.setText(tenHienThi + " -- " + banThucSu.getKhuVuc());
+        if (billPanel != null) {
+            billPanel.setCustomHeader(lblTenBanHeader.getText());
+        }
 
         // 1. Cập nhật Header và Màu sắc
-        lblTenBanHeader.setText(banDuocChon.getTenBan() + " - " + banDuocChon.getKhuVuc());
+//        lblTenBanHeader.setText(banDuocChon.getTenBan() + " - " + banDuocChon.getKhuVuc());
         Color statusColor;
-        switch (banDuocChon.getTrangThai()) {
+        switch (banThucSu.getTrangThai()) {
             case TRONG: statusColor = ManHinhBanGUI.COLOR_STATUS_FREE; break;
             case DA_DAT_TRUOC: statusColor = ManHinhBanGUI.COLOR_STATUS_RESERVED; break;
             case DANG_PHUC_VU: default: statusColor = ManHinhBanGUI.COLOR_STATUS_OCCUPIED; break;
@@ -333,7 +343,6 @@ public class ManHinhGoiMonGUI extends JPanel {
             billPanel.loadBillTotals(
                     (long) currentHD.getTongTien(),
                     (long) currentHD.getGiamGia(),
-                    (long) currentHD.getVat(),
                     (long) currentHD.getTongThanhToan(),
                     tongSoLuong
             );
@@ -911,7 +920,6 @@ public class ManHinhGoiMonGUI extends JPanel {
                         boolean ketQua = banDAO.ghepBanLienKet(dsBanPhu, banChinh);
 
                         if (ketQua) {
-                            JOptionPane.showMessageDialog(this, "Đã mở nhóm bàn thành công!");
                             // Refresh lại giao diện nếu cần
                             if (parentDanhSachBanGUI_GoiMon != null) parentDanhSachBanGUI_GoiMon.refreshManHinhBan();
                         } else {
