@@ -16,39 +16,56 @@ public class TaiKhoanDAO {
         String cleanTenTK = tenTK.trim();
         String inputHashedPassword = "hashed_" + cleanPassword.hashCode();
 
-        // 🌟 SỬA: Thêm N.maNV vào câu SELECT
-        String sql = "SELECT T.matKhau, N.vaiTro, N.hoTen, N.maNV FROM TaiKhoan T " +
+        // 🌟 SỬA SQL: BỎ điều kiện "T.trangThai = 1" để có thể lấy trạng thái 0 (Khóa)
+        // và thêm T.trangThai vào cột SELECT
+        String sql = "SELECT T.matKhau, T.trangThai, N.vaiTro, N.hoTen, N.maNV FROM TaiKhoan T " +
                 "JOIN NhanVien N ON T.tenTK = N.tenTK " +
-                "WHERE T.tenTK = ? AND T.trangThai = 1";
+                "WHERE T.tenTK = ?"; // Chỉ kiểm tra tên tài khoản
 
-        try {
-            Connection conn = SQLConnection.getConnection();
-            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                pstmt.setString(1, cleanTenTK);
-                try (ResultSet rs = pstmt.executeQuery()) {
-                    if (rs.next()) {
-                        String dbHashedPassword = rs.getString("matKhau").trim();
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, cleanTenTK);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    String dbHashedPassword = rs.getString("matKhau").trim();
+
+                    // 🌟 LẤY THÔNG TIN TRẠNG THÁI
+                    int trangThai = rs.getInt("trangThai");
+
+                    // 1. So sánh mật khẩu
+                    if (inputHashedPassword.equals(dbHashedPassword)) {
+
+                        // 2. Kiểm tra Trạng thái sau khi mật khẩu ĐÚNG
+                        if (trangThai == 0) {
+                            // Mật khẩu đúng, nhưng tài khoản bị khóa (trangThai = 0)
+                            Map<String, String> lockedInfo = new HashMap<>();
+                            lockedInfo.put("status", "LOCKED"); // Trả về mã lỗi đặc biệt
+                            return lockedInfo;
+                        }
+
+                        // Mật khẩu đúng và HOẠT ĐỘNG (trangThai = 1)
                         String vaiTro = rs.getString("vaiTro");
                         String hoTen = rs.getString("hoTen");
-                        String maNV = rs.getString("maNV"); // 🌟 LẤY MÃ NV
+                        String maNV = rs.getString("maNV");
 
-                        // So sánh mật khẩu
-                        if (inputHashedPassword.equals(dbHashedPassword)) {
-                            // 🌟 SỬA: Tạo Map và trả về
-                            Map<String, String> userInfo = new HashMap<>();
-                            userInfo.put("role", vaiTro);
-                            userInfo.put("name", hoTen);
-                            userInfo.put("maNV", maNV); // 🌟 TRẢ VỀ MÃ NV
-                            return userInfo; // Trả về Map chứa role, name, và maNV
-                        }
+                        Map<String, String> userInfo = new HashMap<>();
+                        userInfo.put("role", vaiTro);
+                        userInfo.put("name", hoTen);
+                        userInfo.put("maNV", maNV);
+                        return userInfo; // Trả về Map chứa role, name, và maNV
+
                     }
+                    // Nếu mật khẩu sai, sẽ tiếp tục xuống cuối hàm và trả về null
                 }
             }
         } catch (SQLException e) {
+            // Ném lỗi RuntimeException nếu CSDL không kết nối được
             throw new RuntimeException("Lỗi truy vấn CSDL khi đăng nhập", e);
         }
 
-        return null; // Trả về null nếu thất bại
+        return null; // Trả về null nếu Tên TK không tồn tại hoặc Mật khẩu sai
     }
 
     /**

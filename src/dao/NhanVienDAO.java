@@ -309,74 +309,6 @@ public class NhanVienDAO {
         }
         return isSuccess;
     }
-
-    /**
-     * XÓA NHÂN VIÊN (Transaction - Hard Delete)
-     */
-    public boolean deleteNhanVienAndAccount(String maNV, String tenTK) {
-        Connection conn = null;
-        try {
-            conn = SQLConnection.getConnection();
-            conn.setAutoCommit(false);
-
-            // BƯỚC 1: XÓA DỮ LIỆU LIÊN QUAN (Giả định FK cần xóa thủ công)
-
-            // 1a. Xóa PhanCongCa (FK_PhanCong_NhanVien)
-            String sqlDeletePCC = "DELETE FROM PhanCongCa WHERE maNV = ?";
-            try (PreparedStatement pstmtPCC = conn.prepareStatement(sqlDeletePCC)) {
-                pstmtPCC.setString(1, maNV);
-                pstmtPCC.executeUpdate();
-            }
-
-            // 1b. Xóa DonDatMon (FK_DonDatMon_NhanVien)
-            String sqlDeleteDDM = "DELETE FROM DonDatMon WHERE maNV = ?";
-            try (PreparedStatement pstmtDDM = conn.prepareStatement(sqlDeleteDDM)) {
-                pstmtDDM.setString(1, maNV);
-                pstmtDDM.executeUpdate();
-            }
-
-            // 2. Xóa Nhân viên (FK)
-            String sqlDeleteNV = "DELETE FROM NhanVien WHERE maNV = ?";
-            try (PreparedStatement pstmtNV = conn.prepareStatement(sqlDeleteNV)) {
-                pstmtNV.setString(1, maNV);
-                if (pstmtNV.executeUpdate() == 0) {
-                    throw new SQLException("Xóa NhanVien thất bại.");
-                }
-            }
-
-            // 3. Xóa Tài khoản (PK) SAU (Sau khi FK đã được xóa)
-            String sqlDeleteTK = "DELETE FROM TaiKhoan WHERE tenTK = ?";
-            try (PreparedStatement pstmtTK = conn.prepareStatement(sqlDeleteTK)) {
-                pstmtTK.setString(1, tenTK);
-                if (pstmtTK.executeUpdate() == 0) {
-                    // Log: Có thể tài khoản đã bị xóa nếu DB có ON DELETE CASCADE
-                }
-            }
-
-            conn.commit();
-            return true;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            if (conn != null) {
-                try {
-                    conn.rollback();
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                }
-            }
-            return false;
-        } finally {
-            if (conn != null) {
-                try {
-                    conn.setAutoCommit(true);
-                    conn.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
     /**
      * Lấy tên nhân viên dựa trên mã NV (Không thay đổi)
      */
@@ -426,5 +358,82 @@ public class NhanVienDAO {
             throw new RuntimeException("Lỗi truy vấn tìm kiếm NhanVien theo SĐT: " + e.getMessage(), e);
         }
         return ds;
+    }
+    public boolean suspendNhanVienAndAccount(String maNV, String tenTK, VaiTro vaiTro) {
+        Connection conn = null;
+        try {
+            conn = SQLConnection.getConnection();
+            conn.setAutoCommit(false);
+
+            // 1. Kiểm tra Vai trò: CHỈ TẠM NGƯNG NHANVIEN
+            if (vaiTro != VaiTro.NHANVIEN) {
+                throw new IllegalArgumentException("Chỉ có thể tạm ngưng nhân viên có Vai trò NHANVIEN.");
+            }
+
+            // 2. Vô hiệu hóa Tài khoản (TaiKhoan.trangThai = 0)
+            String sqlUpdateTK = "UPDATE TaiKhoan SET trangThai = 0 WHERE tenTK = ?";
+            try (PreparedStatement pstmtTK = conn.prepareStatement(sqlUpdateTK)) {
+                pstmtTK.setString(1, tenTK);
+                if (pstmtTK.executeUpdate() == 0) {
+                    throw new SQLException("Vô hiệu hóa Tài khoản thất bại hoặc Tài khoản không tồn tại.");
+                }
+            }
+
+            // 3. Cập nhật trạng thái (nếu có cột trangThai trong NhanVien, nếu không thì bỏ qua)
+            // Nếu không có cột trạng thái trong NhanVien, bước này không cần thiết.
+
+            conn.commit();
+            return true;
+        } catch (SQLException | IllegalArgumentException e) {
+            e.printStackTrace();
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+    public int getAccountStatus(String tenTK) {
+        String sql = "SELECT trangThai FROM TaiKhoan WHERE tenTK = ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, tenTK.trim());
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("trangThai");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi SQL khi lấy trạng thái TK " + tenTK + ": " + e.getMessage());
+        }
+        return -1; // Trả về -1 nếu lỗi hoặc không tìm thấy
+    }
+    public boolean activateNhanVienAccount(String tenTK) {
+        String sqlUpdateTK = "UPDATE TaiKhoan SET trangThai = 1 WHERE tenTK = ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement pstmtTK = conn.prepareStatement(sqlUpdateTK)) {
+
+            pstmtTK.setString(1, tenTK);
+            return pstmtTK.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Lỗi SQL khi kích hoạt lại TK " + tenTK + ": " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
     }
 }

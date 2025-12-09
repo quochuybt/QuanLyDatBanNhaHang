@@ -32,7 +32,7 @@ public class KhachHangGUI extends JPanel {
     private JTextField txtMaKH, txtTenKH, txtSDT, txtEmail, txtDiaChi, txtTongChiTieu;
     private JComboBox<String> cbGioiTinh, cbHangTV;
     private JTextField txtNgaySinh, txtNgayThamGia;
-    private JButton btnThem, btnXoa, btnSua, btnTimKiem, btnLamMoiForm;
+    private JButton btnThem, btnSua, btnTimKiem, btnLamMoiForm;
 
     // --- Components Bảng ---
     private JTable tblKhachHang;
@@ -226,8 +226,6 @@ public class KhachHangGUI extends JPanel {
 
         btnSua.addActionListener(e -> suaKhachHang());
 
-        btnXoa.addActionListener(e -> xoaKhachHang());
-
         btnTimKiem.addActionListener(e -> timKhachHang());
 
         tblKhachHang.addMouseListener(new MouseAdapter() {
@@ -344,41 +342,6 @@ public class KhachHangGUI extends JPanel {
             }
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    /**
-     * Xử lý sự kiện Xóa Khách hàng (Sử dụng DAO CSDL)
-     */
-    private void xoaKhachHang() {
-        if (khachHangDangChon == null) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn khách hàng cần xóa!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        String maKHToDelete = khachHangDangChon.getMaKH();
-
-        // Giữ lại logic cảnh báo ràng buộc khóa ngoại
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "Bạn có chắc chắn muốn xóa khách hàng " + khachHangDangChon.getTenKH() + " (Mã: " + maKHToDelete + ")?",
-                "Xác nhận xóa",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE);
-
-        if (confirm == JOptionPane.YES_OPTION) {
-            try {
-                boolean success = khachHangDAO.xoaKhachHang(maKHToDelete);
-
-                if (success) {
-                    JOptionPane.showMessageDialog(this, "Xóa khách hàng thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                    refreshKhachHangTable();
-                    lamMoiForm();
-                } else {
-                    JOptionPane.showMessageDialog(this, "Xóa khách hàng thất bại! Khách hàng này đã phát sinh giao dịch (Hóa đơn/Đơn đặt món) nên không thể xóa.", "Lỗi Ràng Buộc Dữ Liệu", JOptionPane.ERROR_MESSAGE);
-                }
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Lỗi khi xóa: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-            }
         }
     }
 
@@ -524,20 +487,17 @@ public class KhachHangGUI extends JPanel {
 
         btnLamMoiForm = createStyledButton("🔄 Làm mới", COLOR_ACCENT_BLUE.brighter());
         btnThem = createStyledButton(" Thêm", new Color(0, 150, 50));
-        btnXoa = createStyledButton(" Xóa", new Color(210, 0, 0));
         btnSua = createStyledButton(" Sửa", COLOR_BUTTON_BLUE);
         btnTimKiem = createStyledButton(" Tìm kiếm", Color.LIGHT_GRAY.darker());
 
         Dimension buttonSize = new Dimension(150, 40);
         btnLamMoiForm.setMaximumSize(buttonSize);
         btnThem.setMaximumSize(buttonSize);
-        btnXoa.setMaximumSize(buttonSize);
         btnSua.setMaximumSize(buttonSize);
         btnTimKiem.setMaximumSize(buttonSize);
 
         btnLamMoiForm.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnThem.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btnXoa.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnSua.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnTimKiem.setAlignmentX(Component.CENTER_ALIGNMENT);
 
@@ -546,8 +506,6 @@ public class KhachHangGUI extends JPanel {
         buttonPanel.add(btnThem);
         buttonPanel.add(Box.createVerticalStrut(10));
         buttonPanel.add(btnSua);
-        buttonPanel.add(Box.createVerticalStrut(10));
-        buttonPanel.add(btnXoa);
         buttonPanel.add(Box.createVerticalStrut(10));
         buttonPanel.add(btnTimKiem);
 

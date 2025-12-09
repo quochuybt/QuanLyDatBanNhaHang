@@ -177,7 +177,7 @@ public class ForgotPasswordDialog extends JDialog {
         panel.add(new JLabel("<html><h3>3. Đặt Mật khẩu Mới</h3></html>"), gbc);
         panel.add(Box.createVerticalStrut(10), gbc);
 
-        panel.add(new JLabel("Mật khẩu mới (Tối thiểu 8 ký tự, có hoa, thường, số):"), gbc);
+        panel.add(new JLabel("Mật khẩu mới:"), gbc);
         panel.add(txtNewPassword, gbc);
 
         panel.add(new JLabel("Nhập lại Mật khẩu:"), gbc);
