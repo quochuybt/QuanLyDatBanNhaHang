@@ -1,7 +1,7 @@
 package gui;
 
 import dao.*;
-import entity.Ban;       // Giữ nguyên import vì nó được khai báo ở đầu
+import entity.Ban;
 import entity.ChiTietHoaDon;
 import entity.DonDatMon;
 import entity.HoaDon;
@@ -21,9 +21,15 @@ import java.text.DecimalFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
+import java.time.ZoneId;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
-import util.ExcelExporter; // Đảm bảo import đúng package của ExcelExporter
+import util.ExcelExporter;
+import java.text.ParseException; // Thêm thư viện để xử lý lỗi parse Date
+
+// import com.toedter.calendar.JDateChooser; // Giả định đã import
 
 public class HoaDonGUI extends JPanel {
     private final HoaDonDAO hoaDonDAO;
@@ -41,6 +47,13 @@ public class HoaDonGUI extends JPanel {
     private DocumentListener searchListener;
     private Timer searchTimer; // Timer để trì hoãn tìm kiếm khi gõ
 
+    // ⭐ GIỮ NGUYÊN: Dùng JTextField cho mục đích biên dịch ⭐
+    private JTextField dateChooserTuNgay;
+    private JTextField dateChooserDenNgay;
+    private JButton btnLocNgay;
+    private JButton btnHomNay;
+    private JButton btnXoaLoc;
+
     // ⭐ THÊM: Biến Phiên In ⭐
     private static int printSessionCounter = 0;
 
@@ -49,12 +62,13 @@ public class HoaDonGUI extends JPanel {
     private final String[] columnNames = {"Thời gian thanh toán", "Mã tham chiếu", "Nhân viên", "Ghi chú", "Thanh toán", "Tổng tiền"};
     private final DecimalFormat currencyFormatter = new DecimalFormat("#,##0 ₫"); // Format tiền tệ VNĐ
     private final DateTimeFormatter tableDateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"); // Format ngày giờ cho bảng
+    private final DateTimeFormatter displayDateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy"); // ⭐ THÊM: Format ngày hiển thị/nhập
 
     // ⭐ THÊM: Formatter cho Phiếu in (để khớp BillPanel) ⭐
     private final DateTimeFormatter billDateFormatter = DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy");
 
     // ===============================================
-    // ⭐ THÊM CÁC BIẾN PHÂN TRANG ⭐
+    // ⭐ CÁC BIẾN PHÂN TRANG ⭐
     // ===============================================
     private static final int ITEMS_PER_PAGE = 15; // Số dòng trên mỗi trang
     private int currentPage = 1;                   // Trang hiện tại (bắt đầu từ 1)
@@ -123,7 +137,7 @@ public class HoaDonGUI extends JPanel {
     }
 
     // ===============================================
-    // ⭐ PHƯƠNG THỨC HỖ TRỢ PHÂN TRANG ⭐
+    // ⭐ PHƯƠNG THỨC HỖ TRỢ PHÂN TRANG & LỌC NGÀY ⭐
     // ===============================================
 
     /**
@@ -137,12 +151,14 @@ public class HoaDonGUI extends JPanel {
         // Nút Đầu (<<)
         btnFirst = new JButton("<< Đầu");
         btnFirst.setFont(new Font("Arial", Font.BOLD, 12));
+        btnFirst.setForeground(Color.WHITE);
         btnFirst.addActionListener(e -> navigateToPage(1));
         panel.add(btnFirst);
 
         // Nút Trước (<)
         btnPrev = new JButton("< Trước");
         btnPrev.setFont(new Font("Arial", Font.BOLD, 12));
+        btnPrev.setForeground(Color.WHITE);
         btnPrev.addActionListener(e -> navigateToPage(currentPage - 1));
         panel.add(btnPrev);
 
@@ -154,12 +170,14 @@ public class HoaDonGUI extends JPanel {
         // Nút Sau (>)
         btnNext = new JButton("Sau >");
         btnNext.setFont(new Font("Arial", Font.BOLD, 12));
+        btnNext.setForeground(Color.WHITE);
         btnNext.addActionListener(e -> navigateToPage(currentPage + 1));
         panel.add(btnNext);
 
         // Nút Cuối (>>)
         btnLast = new JButton("Cuối >>");
         btnLast.setFont(new Font("Arial", Font.BOLD, 12));
+        btnLast.setForeground(Color.WHITE);
         btnLast.addActionListener(e -> navigateToPage(totalPages));
         panel.add(btnLast);
 
@@ -204,7 +222,63 @@ public class HoaDonGUI extends JPanel {
     }
 
     /**
-     * Tải trang đầu tiên khi khởi động hoặc khi chuyển tab/reset tìm kiếm.
+     * Helper: Chuyển đổi JTextField (Giả định là JDateChooser) thành Date.
+     */
+    private Date getDateFromJComponent(JTextField component) {
+        String text = component.getText();
+        if (text.equals("DD/MM/YYYY") || text.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            // Giả lập Parse date từ JTextField
+            return new java.text.SimpleDateFormat("dd/MM/yyyy").parse(text);
+        } catch (ParseException e) {
+            // Nếu parse lỗi, trả về null và hiển thị cảnh báo (nếu cần)
+            return null;
+        }
+    }
+
+    /**
+     * ⭐ SỬA LỖI: Lấy ngày bắt đầu/kết thúc từ DateChooser, kiểm tra tính hợp lệ.
+     * @return Một mảng [startDateTime, endDateTime]. Nếu null, tức là không lọc ngày.
+     */
+    private LocalDateTime[] getFilterDates() {
+        LocalDateTime start = null;
+        LocalDateTime end = null;
+
+        // 1. Lấy Date từ các trường nhập liệu giả lập
+        Date dateFrom = getDateFromJComponent(dateChooserTuNgay);
+        Date dateTo = getDateFromJComponent(dateChooserDenNgay);
+
+        // 2. Xử lý logic ngày
+        if (dateFrom != null && dateTo != null) {
+            // Trường hợp 1: Có cả ngày Bắt đầu và Kết thúc (lọc phạm vi)
+            start = dateFrom.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime().toLocalDate().atStartOfDay();
+            end = dateTo.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime().toLocalDate().plusDays(1).atStartOfDay().minusNanos(1);
+        } else if (dateFrom != null) {
+            // Trường hợp 2: Chỉ có ngày Bắt đầu (lọc chính xác 1 ngày)
+            start = dateFrom.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime().toLocalDate().atStartOfDay();
+            end = start.plusDays(1).minusNanos(1);
+        } else if (dateTo != null) {
+            // Trường hợp 3: Chỉ có ngày Kết thúc (lọc từ trước đến hết ngày đó)
+            end = dateTo.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime().toLocalDate().plusDays(1).atStartOfDay().minusNanos(1);
+            start = LocalDateTime.MIN; // Từ rất lâu
+        } else {
+            // Trường hợp 4: Không có ngày nào (Xóa bộ lọc ngày)
+            return new LocalDateTime[]{null, null};
+        }
+
+        // 3. Kiểm tra logic: Ngày bắt đầu không được sau ngày kết thúc (trừ trường hợp MIN/MAX)
+        if (start != LocalDateTime.MIN && start != null && end != null && start.isAfter(end)) {
+            JOptionPane.showMessageDialog(this, "Ngày bắt đầu không được sau ngày kết thúc.", "Lỗi lọc ngày", JOptionPane.WARNING_MESSAGE);
+            return new LocalDateTime[]{null, null};
+        }
+
+        return new LocalDateTime[]{start, end};
+    }
+
+    /**
+     * Tải trang đầu tiên khi khởi động hoặc khi chuyển tab/reset tìm kiếm/lọc.
      */
     private void loadFirstPage() {
         currentPage = 1;
@@ -225,14 +299,19 @@ public class HoaDonGUI extends JPanel {
     }
 
     /**
-     * Tải dữ liệu cho trang hiện tại (Áp dụng lọc và tìm kiếm).
+     * ⭐ QUAN TRỌNG: Tải dữ liệu cho trang hiện tại (Áp dụng lọc, tìm kiếm và LỌC NGÀY).
      * Hàm này gọi DAO với OFFSET/LIMIT và là cốt lõi của lazy loading.
      */
     private void loadDataForCurrentPage() {
         String trangThai = getSelectedTrangThaiFilter();
 
+        // ⭐ LẤY THAM SỐ NGÀY HỢP LỆ ⭐
+        LocalDateTime[] dates = getFilterDates();
+        LocalDateTime tuNgay = dates != null ? dates[0] : null;
+        LocalDateTime denNgay = dates != null ? dates[1] : null;
+
         // 1. Lấy tổng số lượng và tính tổng số trang
-        int totalCount = hoaDonDAO.getTotalHoaDonCount(trangThai, currentKeyword);
+        int totalCount = hoaDonDAO.getTotalHoaDonCount(trangThai, currentKeyword, tuNgay, denNgay);
         totalPages = (int) Math.ceil((double) totalCount / ITEMS_PER_PAGE);
 
         // Đảm bảo totalPages ít nhất là 1, và currentPage không vượt quá totalPages
@@ -241,7 +320,7 @@ public class HoaDonGUI extends JPanel {
         if (currentPage < 1) currentPage = 1;
 
         // 2. Lấy danh sách hóa đơn theo trang từ DAO
-        List<HoaDon> list = hoaDonDAO.getHoaDonByPage(currentPage, trangThai, currentKeyword);
+        List<HoaDon> list = hoaDonDAO.getHoaDonByPage(currentPage, trangThai, currentKeyword, tuNgay, denNgay);
 
         // 3. Hiển thị lên bảng và cập nhật điều khiển
         loadDataToTable(list);
@@ -262,7 +341,7 @@ public class HoaDonGUI extends JPanel {
 
     /**
      * Tải dữ liệu từ danh sách HoaDon vào JTable.
-     * @param list Danh sách hóa đơn cần hiển thị.
+     * (GIỮ NGUYÊN)
      */
     private void loadDataToTable(List<HoaDon> list) {
         // Chạy trên luồng EDT để đảm bảo an toàn cho Swing
@@ -325,7 +404,7 @@ public class HoaDonGUI extends JPanel {
             currentKeyword = query; // Cập nhật từ khóa tìm kiếm
         }
 
-        // Luôn tải lại từ trang 1 với bộ lọc/tìm kiếm mới
+        // ⭐ ĐẢM BẢO GỌI LẠI loadDataForCurrentPage() ĐỂ CẬP NHẬT DỮ LIỆU VÀ BẢNG ⭐
         currentPage = 1;
         loadDataForCurrentPage();
     }
@@ -347,19 +426,131 @@ public class HoaDonGUI extends JPanel {
         }
     }
 
+
     /**
-     * Helper: Lấy danh sách hóa đơn gốc tương ứng với tab đang được chọn.
-     * ❌ HÀM NÀY KHÔNG CÒN ĐƯỢC DÙNG.
+     * Tạo panel chính chứa ô tìm kiếm và bảng hóa đơn.
+     * @param scrollPane JScrollPane chứa bảng hóa đơn.
      */
-    private List<HoaDon> getCurrentTabBaseList() {
-        // Hàm này không còn dùng nữa do chuyển sang phân trang.
-        // Để tránh lỗi biên dịch, tôi giữ nguyên thân hàm nhưng không dùng logic cũ
-        return new ArrayList<>();
+    private JPanel createMainTablePanel(JScrollPane scrollPane) {
+        JPanel panel = new JPanel(new BorderLayout(0, 10)); // Khoảng cách dọc 10px
+        panel.setOpaque(false); // Nền trong suốt
+
+        // --- Panel Tìm kiếm & Lọc Ngày ---
+        JPanel topFilterPanel = new JPanel(new BorderLayout(10, 0)); // Panel cha chứa tìm kiếm và lọc ngày
+        topFilterPanel.setOpaque(false);
+        topFilterPanel.setBorder(new EmptyBorder(10, 0, 10, 0)); // Lề trên dưới 10px
+
+
+        // 1. Panel Tìm kiếm (Bên trái)
+        JPanel searchPanel = new JPanel(new BorderLayout(10, 0));
+        searchPanel.setOpaque(false);
+
+        // Ô nhập liệu tìm kiếm
+        txtTimKiem = new JTextField(" Tìm kiếm qua mã hóa đơn"); // Placeholder ban đầu
+        txtTimKiem.setFont(new Font("Arial", Font.PLAIN, 14));
+        txtTimKiem.setForeground(Color.GRAY); // Màu chữ placeholder
+        txtTimKiem.setPreferredSize(new Dimension(250, 35)); // Chiều cao 35px
+        // Viền kết hợp padding
+        txtTimKiem.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1), // Viền xám nhạt
+                BorderFactory.createEmptyBorder(5, 5, 5, 5) // Padding
+        ));
+
+        // Xử lý Placeholder khi focus/mất focus
+        addPlaceholderFocusHandler(txtTimKiem, " Tìm kiếm qua mã hóa đơn");
+
+        // Tìm kiếm real-time (khi gõ) với độ trễ (timer)
+        setupRealTimeSearch();
+
+        // Icon tìm kiếm
+        JLabel searchIcon = new JLabel("🔎"); // Ký tự kính lúp
+        searchIcon.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 16));
+        JPanel inputWrapper = new JPanel(new BorderLayout(5, 0)); // Bọc icon và ô nhập
+        inputWrapper.setOpaque(false);
+        inputWrapper.add(searchIcon, BorderLayout.WEST);
+        inputWrapper.add(txtTimKiem, BorderLayout.CENTER);
+        searchPanel.add(inputWrapper, BorderLayout.CENTER); // Thêm vào panel tìm kiếm
+
+        // 2. Panel Lọc Ngày (Bên phải)
+        JPanel dateFilterPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        dateFilterPanel.setOpaque(false);
+
+        // --- Khởi tạo JDateChooser (Sử dụng JTextField để tránh lỗi biên dịch) ---
+        dateChooserTuNgay = new JTextField("");
+        dateChooserDenNgay = new JTextField("");
+
+        // Cấu hình
+        dateChooserTuNgay.setPreferredSize(new Dimension(100, 35));
+        dateChooserDenNgay.setPreferredSize(new Dimension(100, 35));
+        dateChooserTuNgay.setEditable(true);
+        dateChooserDenNgay.setEditable(true);
+
+
+        // Nút Lọc
+        btnLocNgay = new JButton("Lọc");
+        btnLocNgay.setFont(new Font("Arial", Font.BOLD, 14));
+        btnLocNgay.setPreferredSize(new Dimension(80, 35));
+        btnLocNgay.setBackground(new Color(50, 150, 200));
+        btnLocNgay.setForeground(Color.WHITE);
+
+        // ⭐ LOGIC: Gắn sự kiện cho nút Lọc ⭐
+        btnLocNgay.addActionListener(e -> {
+            // Tạm thời ẩn focus để kích hoạt kiểm tra
+            btnLocNgay.requestFocusInWindow();
+            currentPage = 1; // Luôn quay về trang 1 khi lọc ngày
+            loadDataForCurrentPage(); // ⭐ GỌI HÀM CẬP NHẬT DỮ LIỆU VÀ BẢNG ⭐
+        });
+
+        // ⭐ Nút Hôm nay ⭐
+        btnHomNay = new JButton("Hôm nay");
+        btnHomNay.setFont(new Font("Arial", Font.BOLD, 14));
+        btnHomNay.setPreferredSize(new Dimension(100, 35));
+        btnHomNay.setBackground(new Color(255, 165, 0));
+        btnHomNay.setForeground(Color.WHITE);
+        btnHomNay.addActionListener(e -> {
+            LocalDate today = LocalDate.now();
+            String todayStr = today.format(displayDateFormatter);
+            dateChooserTuNgay.setText(todayStr);
+            dateChooserDenNgay.setText(todayStr);
+            currentPage = 1;
+            loadDataForCurrentPage(); // ⭐ GỌI HÀM CẬP NHẬT DỮ LIỆU VÀ BẢNG ⭐
+        });
+
+        // ⭐ Nút Xóa lọc ⭐
+        btnXoaLoc = new JButton("Xóa lọc");
+        btnXoaLoc.setFont(new Font("Arial", Font.PLAIN, 14));
+        btnXoaLoc.setPreferredSize(new Dimension(80, 35));
+        btnXoaLoc.setForeground(Color.WHITE);
+        btnXoaLoc.addActionListener(e -> {
+            dateChooserTuNgay.setText("");
+            dateChooserDenNgay.setText("");
+            currentPage = 1;
+            loadDataForCurrentPage(); // ⭐ GỌI HÀM CẬP NHẬT DỮ LIỆU VÀ BẢNG ⭐
+        });
+
+        dateFilterPanel.add(new JLabel("Từ ngày:"));
+        dateFilterPanel.add(dateChooserTuNgay);
+        dateFilterPanel.add(new JLabel("Đến ngày:"));
+        dateFilterPanel.add(dateChooserDenNgay);
+        dateFilterPanel.add(btnLocNgay);
+        dateFilterPanel.add(btnHomNay); // ⭐ THÊM NÚT HÔM NAY ⭐
+        dateFilterPanel.add(btnXoaLoc); // ⭐ THÊM NÚT XÓA LỌC ⭐
+
+        // Bố cục tổng thể của topFilterPanel
+        topFilterPanel.add(searchPanel, BorderLayout.WEST);
+        topFilterPanel.add(dateFilterPanel, BorderLayout.EAST);
+
+        panel.add(topFilterPanel, BorderLayout.NORTH); // Panel tìm kiếm và lọc ngày ở trên
+
+        // --- Bảng Hóa Đơn ---
+        scrollPane.getViewport().setBackground(Color.WHITE); // Nền trắng cho vùng chứa bảng
+        scrollPane.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1)); // Viền xám nhạt
+        panel.add(scrollPane, BorderLayout.CENTER); // Bảng ở giữa
+
+        return panel;
     }
 
-    // ===============================================
-    // ⭐ CÁC PHƯƠNG THỨC KHÁC (GIỮ NGUYÊN HOÀN TOÀN) ⭐
-    // ===============================================
+    // --- CÁC PHƯƠNG THỨC KHÁC GIỮ NGUYÊN ---
 
     /**
      * Tạo panel header chứa tiêu đề "Hóa đơn" và nút "Xuất hóa đơn".
@@ -440,55 +631,6 @@ public class HoaDonGUI extends JPanel {
     }
 
     /**
-     * Tạo panel chính chứa ô tìm kiếm và bảng hóa đơn.
-     * @param scrollPane JScrollPane chứa bảng hóa đơn.
-     */
-    private JPanel createMainTablePanel(JScrollPane scrollPane) {
-        JPanel panel = new JPanel(new BorderLayout(0, 10)); // Khoảng cách dọc 10px
-        panel.setOpaque(false); // Nền trong suốt
-
-        // --- Panel Tìm kiếm ---
-        JPanel searchPanel = new JPanel(new BorderLayout(10, 0)); // Khoảng cách ngang 10px
-        searchPanel.setBorder(new EmptyBorder(10, 0, 10, 0)); // Lề trên dưới 10px
-        searchPanel.setOpaque(false); // Nền trong suốt
-
-        // Ô nhập liệu tìm kiếm
-        txtTimKiem = new JTextField(" Tìm kiếm qua mã hóa đơn"); // Placeholder ban đầu
-        txtTimKiem.setFont(new Font("Arial", Font.PLAIN, 14));
-        txtTimKiem.setForeground(Color.GRAY); // Màu chữ placeholder
-        txtTimKiem.setPreferredSize(new Dimension(0, 35)); // Chiều cao 35px
-        // Viền kết hợp padding
-        txtTimKiem.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1), // Viền xám nhạt
-                BorderFactory.createEmptyBorder(5, 5, 5, 5) // Padding
-        ));
-
-        // Xử lý Placeholder khi focus/mất focus
-        addPlaceholderFocusHandler(txtTimKiem, " Tìm kiếm qua mã hóa đơn");
-
-        // Tìm kiếm real-time (khi gõ) với độ trễ (timer)
-        setupRealTimeSearch();
-
-        // Icon tìm kiếm
-        JLabel searchIcon = new JLabel("🔎"); // Ký tự kính lúp
-        searchIcon.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 16));
-        JPanel inputWrapper = new JPanel(new BorderLayout(5, 0)); // Bọc icon và ô nhập
-        inputWrapper.setOpaque(false);
-        inputWrapper.add(searchIcon, BorderLayout.WEST);
-        inputWrapper.add(txtTimKiem, BorderLayout.CENTER);
-        searchPanel.add(inputWrapper, BorderLayout.CENTER); // Thêm vào panel tìm kiếm
-
-        panel.add(searchPanel, BorderLayout.NORTH); // Panel tìm kiếm ở trên
-
-        // --- Bảng Hóa Đơn ---
-        scrollPane.getViewport().setBackground(Color.WHITE); // Nền trắng cho vùng chứa bảng
-        scrollPane.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1)); // Viền xám nhạt
-        panel.add(scrollPane, BorderLayout.CENTER); // Bảng ở giữa
-
-        return panel;
-    }
-
-    /**
      * Xử lý hiển thị placeholder cho JTextField.
      */
     private void addPlaceholderFocusHandler(JTextField textField, String placeholder) {
@@ -526,14 +668,18 @@ public class HoaDonGUI extends JPanel {
 
         // Listener theo dõi thay đổi trong ô tìm kiếm
         searchListener = new DocumentListener() {
-            @Override public void insertUpdate(DocumentEvent e) { searchTimer.restart(); } // Khởi động lại timer khi thêm ký tự
-            @Override public void removeUpdate(DocumentEvent e) { searchTimer.restart(); } // Khởi động lại timer khi xóa ký tự
+            // Khi gõ, set lại trang 1
+            @Override public void insertUpdate(DocumentEvent e) { searchTimer.restart(); }
+            @Override public void removeUpdate(DocumentEvent e) { searchTimer.restart(); }
             @Override public void changedUpdate(DocumentEvent e) { /* Không dùng cho plain text */ }
         };
         txtTimKiem.getDocument().addDocumentListener(searchListener); // Gắn listener vào ô tìm kiếm
     }
 
-
+    private void performSearch() {
+        // Chạy tìm kiếm trên luồng EDT
+        SwingUtilities.invokeLater(this::searchHoaDonRealTime);
+    }
     /**
      * Cấu hình giao diện cho bảng (font, màu sắc, chiều cao dòng, độ rộng cột).
      */
@@ -559,13 +705,6 @@ public class HoaDonGUI extends JPanel {
         tcm.getColumn(5).setPreferredWidth(100); // Tổng tiền
     }
 
-    /**
-     * Thực hiện tìm kiếm khi timer kích hoạt.
-     */
-    private void performSearch() {
-        // Chạy tìm kiếm trên luồng EDT
-        SwingUtilities.invokeLater(this::searchHoaDonRealTime);
-    }
 
     /**
      * Gắn sự kiện double-click vào bảng để hiển thị chi tiết hóa đơn.
@@ -611,7 +750,6 @@ public class HoaDonGUI extends JPanel {
 
     /**
      * Helper: Truy vấn tên bàn và khu vực từ CSDL.
-     * LƯU Ý: Yêu cầu hàm getMaBanByMaDon(String maDon) phải tồn tại trong DonDatMonDAO.
      */
     private String getTenBanVaKhuVuc(String maDon) {
         String maBan = donDatMonDAO.getMaBanByMaDon(maDon);
@@ -669,7 +807,7 @@ public class HoaDonGUI extends JPanel {
         if (hoaDon.getTenBan() != null && !hoaDon.getTenBan().isEmpty()) {
             tenBan = hoaDon.getTenBan();
         }else {
-        // B. Lấy tên Bàn (Phức tạp hơn xíu: HoaDon -> DonDatMon -> Ban)
+            // B. Lấy tên Bàn (Phức tạp hơn xíu: HoaDon -> DonDatMon -> Ban)
             try {
                 dao.DonDatMonDAO ddmDAO = new dao.DonDatMonDAO();
                 dao.BanDAO banDAO = new dao.BanDAO();
@@ -885,20 +1023,44 @@ public class HoaDonGUI extends JPanel {
         previewDialog.setVisible(true);
     }
 
+    /**
+     * ⭐ SỬA LỖI QUAN TRỌNG: Hàm xuất Excel lấy TẤT CẢ dữ liệu đã được lọc (không phân trang).
+     */
     private void exportDataToExcel() {
-        // Lấy danh sách hóa đơn đang hiển thị trên bảng
-        List<HoaDon> listToExport = this.dsHoaDonDisplayed;
+        // 1. Lấy các điều kiện lọc hiện tại
+        String trangThai = getSelectedTrangThaiFilter();
+        String keyword = currentKeyword;
+        LocalDateTime[] dates = getFilterDates();
+        LocalDateTime tuNgay = dates != null ? dates[0] : null;
+        LocalDateTime denNgay = dates != null ? dates[1] : null;
+
+        // 2. ⭐ GỌI DAO ĐỂ LẤY TOÀN BỘ DANH SÁCH KHÔNG PHÂN TRANG ⭐
+        // *** TẠI ĐÂY, TA GIẢ ĐỊNH HOA DON DAO CÓ HÀM `getAllHoaDonFiltered` ***
+        // Nếu không có, bạn cần tự thêm hàm này vào HoaDonDAO (tham khảo code ở bước 2)
+        List<HoaDon> listToExport = hoaDonDAO.getAllHoaDonFiltered(trangThai, keyword, tuNgay, denNgay);
+
         if (listToExport == null || listToExport.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Không có dữ liệu hóa đơn để xuất.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Không có dữ liệu hóa đơn thỏa mãn điều kiện lọc để xuất.", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         // --- Mở hộp thoại chọn nơi lưu file ---
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Chọn nơi lưu file Excel");
-        // Đặt tên file mặc định có ngày giờ
+
+        // ⭐ ĐẶT TÊN FILE DỰA TRÊN BỘ LỌC NGÀY ⭐
+        String dateSuffix = "";
+        if (tuNgay != null && denNgay != null) {
+            if (tuNgay.toLocalDate().isEqual(denNgay.toLocalDate())) {
+                dateSuffix = "_Ngay_" + tuNgay.format(DateTimeFormatter.ofPattern("ddMMyyyy"));
+            } else {
+                dateSuffix = "_Tu_" + tuNgay.format(DateTimeFormatter.ofPattern("ddMMyy")) +
+                        "_Den_" + denNgay.toLocalDate().format(DateTimeFormatter.ofPattern("ddMMyy"));
+            }
+        }
+
         DateTimeFormatter fileNameFormat = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
-        String defaultFileName = "HoaDon_" + LocalDateTime.now().format(fileNameFormat) + ".xlsx";
+        String defaultFileName = "HoaDon_Loc" + dateSuffix + "_" + LocalDateTime.now().format(fileNameFormat) + ".xlsx";
         fileChooser.setSelectedFile(new java.io.File(defaultFileName));
 
         int userSelection = fileChooser.showSaveDialog(this); // Hiển thị hộp thoại lưu

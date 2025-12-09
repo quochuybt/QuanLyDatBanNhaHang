@@ -120,29 +120,6 @@ public class KhachHangDAO {
 // --------------------------------------------------------------------------------------------------------------------------
 
     /**
-     * [DELETE] - Xóa một khách hàng khỏi CSDL
-     */
-    public boolean xoaKhachHang(String maKH) {
-        String sql = "DELETE FROM KhachHang WHERE maKH = ?";
-
-        try (Connection conn = SQLConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, maKH);
-
-            return ps.executeUpdate() > 0;
-        } catch (java.sql.SQLIntegrityConstraintViolationException e) {
-            System.err.println("Lỗi: Không thể xóa khách hàng " + maKH + " do bị ràng buộc khóa ngoại (ví dụ: đã có hóa đơn).");
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-// --------------------------------------------------------------------------------------------------------------------------
-
-    /**
      * [SEARCH] - Tìm kiếm khách hàng theo SDT hoặc Tên (ví dụ)
      */
     public List<KhachHang> timKhachHang(String tuKhoa) {

@@ -26,6 +26,7 @@ public class ChiTietNhanVienDialog extends JDialog {
     private final JTextField txtTenTK = new JTextField(10);
     private final JPasswordField txtMatKhauMoi = new JPasswordField(10);
     private final JTextField txtEmail = new JTextField(15); // Trường nhập Email
+    private int accountStatus;
 
     public ChiTietNhanVienDialog(NhanVienGUI parentPanel, String maNV) {
         super(SwingUtilities.getWindowAncestor(parentPanel) instanceof Frame ? (Frame) SwingUtilities.getWindowAncestor(parentPanel) : null,
@@ -39,7 +40,7 @@ public class ChiTietNhanVienDialog extends JDialog {
             dispose();
             return;
         }
-
+        this.accountStatus = nhanVienDAO.getAccountStatus(nhanVienGoc.getTenTK());
         setupUI();
         loadData();
         pack();
@@ -106,16 +107,33 @@ public class ChiTietNhanVienDialog extends JDialog {
         JButton btnLuu = new JButton("Lưu Thay Đổi");
         btnLuu.addActionListener(e -> capNhatNhanVien());
 
-        JButton btnXoa = new JButton("Xóa Nhân Viên");
-        btnXoa.setBackground(Color.RED);
-        btnXoa.setForeground(Color.WHITE);
-        btnXoa.addActionListener(e -> xoaNhanVien());
+        // 🌟 NÚT TẠM NGƯNG
+        JButton btnTamNgung = new JButton("Tạm Ngưng Hoạt Động");
+        btnTamNgung.setBackground(Color.ORANGE);
+        btnTamNgung.addActionListener(e -> tamNgungNhanVien());
+
+        // 🌟 NÚT KÍCH HOẠT LẠI
+        JButton btnKichHoat = new JButton("KÍCH HOẠT LẠI");
+        btnKichHoat.setBackground(new Color(0, 150, 0)); // Màu xanh lá cây
+        btnKichHoat.addActionListener(e -> kichHoatNhanVien()); // Gọi hàm mới
+
+        // --- Logic Hiển thị nút ---
+        // Nếu Vai trò là QUANLY thì không cho phép tạm ngưng/kích hoạt
+        if (nhanVienGoc.getVaiTro() == VaiTro.NHANVIEN) {
+            if (accountStatus == 1) {
+                // Đang hoạt động -> Hiển thị nút Tạm Ngưng
+                buttonPanel.add(btnTamNgung);
+            } else if (accountStatus == 0) {
+                // Đang tạm ngưng -> Hiển thị nút Kích Hoạt Lại
+                buttonPanel.add(btnKichHoat);
+            }
+            // Nếu accountStatus là -1 (lỗi) thì không hiển thị nút nào liên quan đến trạng thái
+        }
+
+        buttonPanel.add(btnLuu);
 
         JButton btnHuy = new JButton("Đóng");
         btnHuy.addActionListener(e -> dispose());
-
-        buttonPanel.add(btnXoa);
-        buttonPanel.add(btnLuu);
         buttonPanel.add(btnHuy);
 
         add(mainPanel, BorderLayout.CENTER);
@@ -180,12 +198,49 @@ public class ChiTietNhanVienDialog extends JDialog {
             e.printStackTrace();
         }
     }
-
-    private void xoaNhanVien() {
+    private void kichHoatNhanVien() {
         int choice = JOptionPane.showConfirmDialog(
                 this,
-                "Bạn có chắc chắn muốn XÓA vĩnh viễn nhân viên này và tài khoản liên quan?\n\nHành động này không thể hoàn tác.",
-                "Xác nhận Xóa",
+                "Bạn có chắc chắn muốn KÍCH HOẠT LẠI tài khoản của nhân viên này không?",
+                "Xác nhận Kích Hoạt",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (choice == JOptionPane.YES_OPTION) {
+            String tenTK = nhanVienGoc.getTenTK();
+
+            try {
+                boolean success = nhanVienDAO.activateNhanVienAccount(tenTK);
+
+                if (success) {
+                    JOptionPane.showMessageDialog(this, "Đã KÍCH HOẠT LẠI tài khoản nhân viên thành công.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                    parentPanel.refreshTable();
+                    dispose();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Kích hoạt lại thất bại. Vui lòng kiểm tra lại kết nối CSDL hoặc tên tài khoản.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Lỗi hệ thống khi kích hoạt lại: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
+            }
+        }
+    }
+    private void tamNgungNhanVien() {
+        // Kiểm tra điều kiện chỉ cho phép tạm ngưng VaiTro.NHANVIEN
+        if (nhanVienGoc.getVaiTro() != VaiTro.NHANVIEN) {
+            JOptionPane.showMessageDialog(this,
+                    "Chỉ có thể TẠM NGƯNG hoạt động đối với nhân viên có Vai trò NHANVIEN (hiện tại là " + nhanVienGoc.getVaiTro().name() + ").",
+                    "Lỗi Tác Vụ",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return;
+        }
+
+        int choice = JOptionPane.showConfirmDialog(
+                this,
+                "Bạn có chắc chắn muốn TẠM NGƯNG HOẠT ĐỘNG của nhân viên này?\n\nTài khoản của họ sẽ bị vô hiệu hóa, không thể đăng nhập.",
+                "Xác nhận Tạm Ngưng",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.WARNING_MESSAGE
         );
@@ -193,19 +248,24 @@ public class ChiTietNhanVienDialog extends JDialog {
         if (choice == JOptionPane.YES_OPTION) {
             String maNV = nhanVienGoc.getManv();
             String tenTK = nhanVienGoc.getTenTK();
+            VaiTro vaiTro = nhanVienGoc.getVaiTro();
 
             try {
-                boolean success = nhanVienDAO.deleteNhanVienAndAccount(maNV, tenTK);
+                // 🌟 GỌI PHƯƠNG THỨC MỚI
+                boolean success = nhanVienDAO.suspendNhanVienAndAccount(maNV, tenTK, vaiTro);
 
                 if (success) {
-                    JOptionPane.showMessageDialog(this, "Đã xóa nhân viên và tài khoản thành công.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Đã TẠM NGƯNG HOẠT ĐỘNG nhân viên và vô hiệu hóa tài khoản thành công.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
                     parentPanel.refreshTable();
                     dispose();
                 } else {
-                    JOptionPane.showMessageDialog(this, "Xóa thất bại. Vui lòng kiểm tra các ràng buộc khác (như Hóa đơn, Đơn đặt món, PhanCongCa) hoặc lỗi CSDL.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Tạm ngưng thất bại. Vui lòng kiểm tra lại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
+            } catch (IllegalArgumentException e) {
+                // Bắt lỗi nếu vai trò không phải NHANVIEN (mặc dù đã kiểm tra ở trên)
+                JOptionPane.showMessageDialog(this, "Lỗi: " + e.getMessage(), "Lỗi Tác Vụ", JOptionPane.ERROR_MESSAGE);
             } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, "Lỗi hệ thống khi xóa: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Lỗi hệ thống khi tạm ngưng: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
                 e.printStackTrace();
             }
         }

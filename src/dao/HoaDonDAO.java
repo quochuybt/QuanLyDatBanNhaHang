@@ -33,16 +33,18 @@ public class HoaDonDAO {
     }
 
     // ===============================================
-    // ⭐ PHẦN BỔ SUNG CHO PHÂN TRANG VÀ TÌM KIẾM TỐI ƯU ⭐
+    // ⭐ PHẦN BỔ SUNG CHO PHÂN TRANG, TÌM KIẾM VÀ LỌC NGÀY TỐI ƯU ⭐
     // ===============================================
 
     /**
-     * [PAGINATION] - Lấy tổng số lượng hóa đơn theo trạng thái và từ khóa tìm kiếm.
+     * [PAGINATION] - Lấy tổng số lượng hóa đơn theo trạng thái, từ khóa tìm kiếm và PHẠM VI NGÀY.
      * @param trangThai Trạng thái lọc ("Tất cả", "Đã thanh toán", "Chưa thanh toán").
      * @param keyword Từ khóa tìm kiếm (theo MaHD), rỗng nếu không tìm kiếm.
+     * @param tuNgay Ngày bắt đầu (bao gồm), null để bỏ qua.
+     * @param denNgay Ngày kết thúc (bao gồm), null để bỏ qua.
      * @return Tổng số lượng hóa đơn khớp điều kiện.
      */
-    public int getTotalHoaDonCount(String trangThai, String keyword) {
+    public int getTotalHoaDonCount(String trangThai, String keyword, LocalDateTime tuNgay, LocalDateTime denNgay) {
         int count = 0;
         String sql = "SELECT COUNT(hd.maHD) FROM HoaDon hd WHERE 1=1";
 
@@ -56,6 +58,14 @@ public class HoaDonDAO {
             sql += " AND hd.maHD LIKE ?";
         }
 
+        // ⭐ THÊM ĐIỀU KIỆN LỌC NGÀY ⭐
+        if (tuNgay != null) {
+            sql += " AND hd.ngayLap >= ?";
+        }
+        if (denNgay != null) {
+            sql += " AND hd.ngayLap <= ?";
+        }
+
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -65,6 +75,14 @@ public class HoaDonDAO {
             }
             if (keyword != null && !keyword.trim().isEmpty()) {
                 ps.setString(index++, "%" + keyword + "%");
+            }
+
+            // ⭐ Đặt tham số ngày ⭐
+            if (tuNgay != null) {
+                ps.setTimestamp(index++, Timestamp.valueOf(tuNgay));
+            }
+            if (denNgay != null) {
+                ps.setTimestamp(index++, Timestamp.valueOf(denNgay));
             }
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -79,14 +97,16 @@ public class HoaDonDAO {
     }
 
     /**
-     * [PAGINATION] - Lấy danh sách HoaDon có giới hạn theo trang, trạng thái và từ khóa.
+     * [PAGINATION] - Lấy danh sách HoaDon có giới hạn theo trang, trạng thái, từ khóa và PHẠM VI NGÀY.
      * SỬ DỤNG: Tải dữ liệu từng trang (Lazy Loading)
      * @param page Trang cần lấy (bắt đầu từ 1).
      * @param trangThai Trạng thái lọc.
      * @param keyword Từ khóa tìm kiếm (theo MaHD), rỗng nếu không tìm kiếm.
+     * @param tuNgay Ngày bắt đầu (bao gồm), null để bỏ qua.
+     * @param denNgay Ngày kết thúc (bao gồm), null để bỏ qua.
      * @return List<HoaDon> danh sách hóa đơn của trang đó (tối đa 15 dòng).
      */
-    public List<HoaDon> getHoaDonByPage(int page, String trangThai, String keyword) {
+    public List<HoaDon> getHoaDonByPage(int page, String trangThai, String keyword, LocalDateTime tuNgay, LocalDateTime denNgay) {
         List<HoaDon> dsHoaDon = new ArrayList<>();
         int offset = (page - 1) * ITEMS_PER_PAGE;
 
@@ -107,6 +127,14 @@ public class HoaDonDAO {
             sql += " AND hd.maHD LIKE ?";
         }
 
+        // ⭐ THÊM ĐIỀU KIỆN LỌC NGÀY ⭐
+        if (tuNgay != null) {
+            sql += " AND hd.ngayLap >= ?";
+        }
+        if (denNgay != null) {
+            sql += " AND hd.ngayLap <= ?";
+        }
+
         sql += " ORDER BY hd.ngayLap DESC " +
                 "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"; // SQL Server Syntax
 
@@ -119,6 +147,14 @@ public class HoaDonDAO {
             }
             if (keyword != null && !keyword.trim().isEmpty()) {
                 ps.setString(index++, "%" + keyword + "%");
+            }
+
+            // ⭐ Đặt tham số ngày ⭐
+            if (tuNgay != null) {
+                ps.setTimestamp(index++, Timestamp.valueOf(tuNgay));
+            }
+            if (denNgay != null) {
+                ps.setTimestamp(index++, Timestamp.valueOf(denNgay));
             }
 
             // Tham số OFFSET và LIMIT
@@ -744,5 +780,69 @@ public class HoaDonDAO {
             throw new RuntimeException("Lỗi truy vấn top nhân viên", e);
         }
         return topStaff;
+    }
+    public List<HoaDon> getAllHoaDonFiltered(String trangThai, String keyword, LocalDateTime tuNgay, LocalDateTime denNgay) {
+        List<HoaDon> dsHoaDon = new ArrayList<>();
+
+        // Câu lệnh SQL có JOIN
+        String sql = "SELECT hd.*, b.tenBan " +
+                "FROM HoaDon hd " +
+                "LEFT JOIN DonDatMon ddm ON hd.maDon = ddm.maDon " +
+                "LEFT JOIN Ban b ON ddm.maBan = b.maBan " +
+                "WHERE 1=1";
+
+        // Thêm điều kiện lọc trạng thái
+        if (!"Tất cả".equalsIgnoreCase(trangThai)) {
+            sql += " AND hd.trangThai = ?";
+        }
+
+        // Thêm điều kiện tìm kiếm theo Mã HD
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql += " AND hd.maHD LIKE ?";
+        }
+
+        // THÊM ĐIỀU KIỆN LỌC NGÀY
+        if (tuNgay != null) {
+            sql += " AND hd.ngayLap >= ?";
+        }
+        if (denNgay != null) {
+            sql += " AND hd.ngayLap <= ?";
+        }
+
+        sql += " ORDER BY hd.ngayLap DESC";
+
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            int index = 1;
+            if (!"Tất cả".equalsIgnoreCase(trangThai)) {
+                ps.setString(index++, trangThai);
+            }
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                ps.setString(index++, "%" + keyword + "%");
+            }
+
+            // Đặt tham số ngày
+            if (tuNgay != null) {
+                ps.setTimestamp(index++, Timestamp.valueOf(tuNgay));
+            }
+            if (denNgay != null) {
+                ps.setTimestamp(index++, Timestamp.valueOf(denNgay));
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    try {
+                        dsHoaDon.add(createHoaDonFromResultSet(rs));
+                    } catch (Exception e) {
+                        System.err.println("Lỗi dòng dữ liệu (Export): " + e.getMessage());
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi SQL khi lấy hóa đơn để Export: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return dsHoaDon;
     }
 }

@@ -148,8 +148,18 @@ public class TaiKhoanGUI extends JFrame {
                     return; // Dừng lại không làm gì nữa
                 }
 
-// --- Logic xử lý kết quả ---
+// --- Logic xử lý kết quả (Đã sửa) ---
                 if (loginResult != null) {
+                    // 🌟 BƯỚC SỬA 1: KIỂM TRA MÃ TRẠNG THÁI KHÓA
+                    if (loginResult.containsKey("status") && loginResult.get("status").equals("LOCKED")) {
+                        // Trạng thái: TÀI KHOẢN BỊ KHÓA
+                        JOptionPane.showMessageDialog(TaiKhoanGUI.this,
+                                "**Tài khoản đã bị tạm ngưng hoạt động!**\nVui lòng liên hệ Quản lý để được hỗ trợ kích hoạt lại.",
+                                "Tài khoản bị Khóa", JOptionPane.WARNING_MESSAGE);
+                        return; // Dừng xử lý
+                    }
+
+                    // Trạng thái: ĐĂNG NHẬP THÀNH CÔNG
                     String userRole = loginResult.get("role");
                     String userName = loginResult.get("name");
                     // 🌟 LẤY MÃ NV
@@ -168,7 +178,7 @@ public class TaiKhoanGUI extends JFrame {
                     // Truyền vai trò (userRole) và TÊN, MÃ NV vào MainGUI
                     final String finalUserRole = userRole;
                     final String finalUserName = userName;
-                    final String finalMaNV = maNV; // <--- 🌟 TRUYỀN MÃ NV
+                    final String finalMaNV = maNV;
 
                     SwingUtilities.invokeLater(() -> {
                         // Gọi constructor mới của MainGUI (Đã thêm maNV)
@@ -177,6 +187,7 @@ public class TaiKhoanGUI extends JFrame {
                     });
 
                 } else {
+                    // Trạng thái: Sai tên TK hoặc Mật khẩu
                     JOptionPane.showMessageDialog(TaiKhoanGUI.this, "Sai tên tài khoản hoặc mật khẩu!",
                             "Lỗi Đăng nhập", JOptionPane.ERROR_MESSAGE);
                 }
