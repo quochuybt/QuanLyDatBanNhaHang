@@ -437,4 +437,20 @@ public List<DonDatMon> getAllDonDatMonChuaNhan() {
         }
         return dsKetQua;
     }
+    public boolean capNhatGhiChu(String maDon, String ghiChu) {
+        String sql = "UPDATE DonDatMon SET ghiChu = ? WHERE maDon = ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setNString(1, ghiChu);
+            ps.setString(2, maDon);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (Exception e) {
+            System.err.println("Lỗi khi cập nhật ghi chú cho đơn " + maDon + ": " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

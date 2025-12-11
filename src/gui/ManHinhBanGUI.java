@@ -300,6 +300,11 @@ public class ManHinhBanGUI extends JPanel {
         txtHoTenKhach = createStyledTextField(true);
         txtSoLuongKhach = createStyledTextField(true);
         txtGhiChu = createStyledTextField(true);
+        txtGhiChu.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusLost(java.awt.event.FocusEvent evt) {
+                xuLyCapNhatGhiChu(); // Gọi hàm xử lý lưu
+            }
+        });
         cmbPTThanhToan = new JComboBox<>(new String[]{"Tiền mặt", "Chuyển khoản"});
         cmbPTThanhToan.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         cmbPTThanhToan.setBackground(Color.WHITE);
@@ -921,5 +926,40 @@ public class ManHinhBanGUI extends JPanel {
                     JOptionPane.ERROR_MESSAGE);
         }
         System.out.println("ManHinhBanGUI: Kết thúc refreshTableList.");
+    }
+    private void xuLyCapNhatGhiChu() {
+        HoaDon activeHoaDon = getActiveHoaDon();
+        if (activeHoaDon == null) return; // Không có HĐ đang hoạt động để lưu
+
+        String ghiChuMoi = txtGhiChu.getText().trim();
+        String maDon = activeHoaDon.getMaDon();
+
+        if (maDon != null && !maDon.isEmpty()) {
+            // Kiểm tra xem có phải bàn gộp không để giữ lại chuỗi LINKED:
+            String maBanChinh = banDAO.getMaBanChinh(selectedTable.getMaBan());
+            entity.DonDatMon ddmHienTai = donDatMonDAO.getDonDatMonByMa(maDon);
+
+            String ghiChuHoanChinh = ghiChuMoi;
+
+            if (ddmHienTai != null && ddmHienTai.getGhiChu() != null && ddmHienTai.getGhiChu().contains("LINKED:")) {
+                // Nếu là bàn gộp, giữ lại phần LINKED:
+                String linkedPart = ddmHienTai.getGhiChu().substring(ddmHienTai.getGhiChu().indexOf("LINKED:"));
+                // Nối ghi chú người dùng với phần kỹ thuật
+                ghiChuHoanChinh = ghiChuMoi + " " + linkedPart;
+            }
+
+            // Cập nhật CSDL
+            if (donDatMonDAO.capNhatGhiChu(maDon, ghiChuHoanChinh)) {
+                System.out.println("System: Đã cập nhật ghi chú mới cho đơn " + maDon);
+
+                // Cập nhật đối tượng DonDatMon trong bộ nhớ nếu cần (tùy chọn)
+                if (ddmHienTai != null) {
+                    ddmHienTai.setGhiChu(ghiChuHoanChinh);
+                }
+            } else {
+                System.err.println("System: Lỗi khi cập nhật ghi chú cho đơn " + maDon);
+                // Có thể hiển thị thông báo lỗi cho người dùng
+            }
+        }
     }
 }

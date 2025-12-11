@@ -360,25 +360,53 @@ public class HoaDonGUI extends JPanel {
                 if (hd == null) continue; // Bỏ qua nếu hóa đơn bị null
 
                 String maThamChieu = hd.getMaHD() != null ? hd.getMaHD() : "N/A";
+                String tenNV_Thuc = nhanVienDAO.getTenNhanVienByMa(hd.getMaNV());
 
-                // Lấy tên nhân viên từ mã NV
-                String maNV = hd.getMaNV();
-                String tenNV_Thuc = nhanVienDAO.getTenNhanVienByMa(maNV); // Dùng DAO để lấy tên
+                // ⭐ LOGIC ĐÃ SỬA LỖI GHI CHÚ ⭐
+                String ghiChu = "";
+                if (hd.getMaDon() != null) {
+                    DonDatMon ddm = donDatMonDAO.getDonDatMonByMa(hd.getMaDon());
 
-                // Xác định ghi chú dựa trên logic nghiệp vụ
-                String ghiChu = "Không";
+                    if (ddm != null && ddm.getGhiChu() != null) {
+                        ghiChu = ddm.getGhiChu().trim();
+
+                        // Xử lý Ghi chú gộp bàn (như đã thấy trong ManHinhBanGUI)
+                        if (ghiChu.contains("LINKED:")) {
+                            // Cắt bỏ phần kỹ thuật
+                            String cleanNote = ghiChu.substring(0, ghiChu.indexOf("LINKED:")).trim();
+
+                            if (cleanNote.isEmpty()) {
+                                ghiChu = "Gộp bàn";
+                            } else {
+                                // Nếu có ghi chú riêng và là bàn gộp
+                                ghiChu = cleanNote + " (Gộp)";
+                            }
+                        } else if (ghiChu.isEmpty()) {
+                            // Nếu ghi chú sau khi trim là rỗng
+                            ghiChu = "Không";
+                        }
+                    }
+                }
+
+                // Chuẩn hóa cuối cùng
+                if (ghiChu == null || ghiChu.isEmpty()) {
+                    ghiChu = "Không";
+                } else if (ghiChu.equalsIgnoreCase("Không")) {
+                    ghiChu = "Không"; // Đảm bảo chữ "Không" được chuẩn hóa
+                }
+                // ⭐ KẾT THÚC LOGIC ĐÃ SỬA LỖI GHI CHÚ ⭐
+
                 try {
                     // Thêm dòng mới vào tableModel
                     tableModel.addRow(new Object[]{
-                            (hd.getNgayLap() != null ? hd.getNgayLap().format(tableDateFormatter) : "N/A"), // Format ngày giờ
+                            (hd.getNgayLap() != null ? hd.getNgayLap().format(tableDateFormatter) : "N/A"),
                             maThamChieu,
-                            tenNV_Thuc, // Hiển thị tên NV
-                            ghiChu,
+                            tenNV_Thuc,
+                            ghiChu, // Dùng biến ghiChú đã được tra cứu
                             hd.getHinhThucThanhToan() != null ? hd.getHinhThucThanhToan() : "N/A",
-                            currencyFormatter.format(hd.getTongThanhToan()) // Sửa để hiển thị tổng thanh toán
+                            currencyFormatter.format(hd.getTongThanhToan())
                     });
                 } catch (Exception e) {
-                    // Ghi log lỗi nếu có vấn đề khi thêm dòng (ví dụ dữ liệu không hợp lệ)
                     System.err.println("Lỗi khi thêm dòng cho HĐ " + maThamChieu + ": " + e.getMessage());
                 }
             }
