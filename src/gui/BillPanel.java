@@ -27,6 +27,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
+import entity.DonDatMon; // ⭐ ĐÃ THÊM: Import DonDatMon
+
 /**
  * Panel này hiển thị chi tiết hóa đơn (JTable) VÀ BẢNG ĐIỀU KHIỂN THANH TOÁN.
  */
@@ -57,6 +59,7 @@ public class BillPanel extends JPanel {
     private MonAnDAO monAnDAO;
     private KhachHangDAO khachHangDAO;
     private KhuyenMaiDAO maKhuyenMaiDAO;
+    private DonDatMonDAO donDatMonDAO; // ⭐ ĐÃ THÊM: Khai báo DonDatMonDAO
 
     private long currentTotal = 0; // Lưu tổng tiền (dạng số)
     private JPanel suggestedCashPanel; // Panel chứa 6 nút
@@ -83,6 +86,7 @@ public class BillPanel extends JPanel {
         this.maKhuyenMaiDAO = new KhuyenMaiDAO();
         this.nhanVienDAO = new NhanVienDAO();
         this.monAnDAO = new MonAnDAO();
+        this.donDatMonDAO = new DonDatMonDAO(); // ⭐ ĐÃ THÊM: Khởi tạo DonDatMonDAO
 
         setBackground(Color.WHITE);
         JPanel checkoutPanel = createCheckoutPanel();
@@ -163,6 +167,17 @@ public class BillPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Chưa có bàn/hóa đơn hợp lệ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
         }
+
+        String ghiChuHoaDon = "";
+        if (activeHoaDon.getMaDon() != null) {
+            // Sử dụng DonDatMonDAO đã được khởi tạo
+            entity.DonDatMon ddm = donDatMonDAO.getDonDatMonByMa(activeHoaDon.getMaDon());
+            if (ddm != null && ddm.getGhiChu() != null) {
+                ghiChuHoaDon = ddm.getGhiChu();
+            }
+        }
+        // ⭐ KẾT THÚC BƯỚC MỚI ⭐
+
         if (parentGoiMonGUI != null) {
             // Nếu ở màn hình Gọi Món: Phải LƯU trước
             if (parentGoiMonGUI.getModelChiTietHoaDon().getRowCount() == 0) return;
@@ -183,7 +198,7 @@ public class BillPanel extends JPanel {
             activeHoaDon.tinhLaiGiamGiaVaTongTien(khachHangDAO, maKhuyenMaiDAO);
             this.currentTotal = (long) activeHoaDon.getTongThanhToan();
             loadBillTotals((long)activeHoaDon.getTongTien(), (long)activeHoaDon.getGiamGia(),
-                     (long)activeHoaDon.getTongThanhToan(), 0);
+                    (long)activeHoaDon.getTongThanhToan(), 0);
         }
 
         // 2. Validate Tiền Khách Trả
@@ -287,7 +302,7 @@ public class BillPanel extends JPanel {
                     entity.KhachHang kh = khachHangDAO.timTheoMaKH(activeHoaDon.getMaKH());
                     if (kh != null) tenKHIn = kh.getTenKH();
                 }
-                // In Hóa Đơn
+                // In Hóa Đơn (ĐÃ SỬA THAM SỐ CUỐI CÙNG)
                 xuatPhieuIn(
                         "HÓA ĐƠN THANH TOÁN",
                         true,
@@ -298,7 +313,8 @@ public class BillPanel extends JPanel {
                         hinhThucTT,
                         tenBanInHoaDon,
                         tenNVIn,
-                        tenKHIn
+                        tenKHIn,
+                        ghiChuHoaDon // ⭐ ĐÃ THÊM: Ghi chú
                 );
                 // Refresh Giao Diện
                 if (parentGoiMonGUI != null) {
@@ -590,7 +606,8 @@ public class BillPanel extends JPanel {
 
         return mainPanel;
     }
-    private void xuatPhieuIn(String tieuDe, boolean daThanhToan, long tienKhachDua, long tienThoi,String maHD, List<ChiTietHoaDon> dsMon,String hinhThucTT,String tenBanThucTe,String tenNV, String tenKH) {
+    // ⭐ ĐÃ SỬA: Thêm tham số 'String ghiChu' vào cuối cùng
+    private void xuatPhieuIn(String tieuDe, boolean daThanhToan, long tienKhachDua, long tienThoi,String maHD, List<ChiTietHoaDon> dsMon,String hinhThucTT,String tenBanThucTe,String tenNV, String tenKH, String ghiChu) {
         // 1. Kiểm tra dữ liệu đầu vào
         Ban banHienTai = null;
         HoaDon activeHoaDon = null;
@@ -639,6 +656,18 @@ public class BillPanel extends JPanel {
         billText.append("---------------------------------------------------\n");
         billText.append("Bàn:   ").append(tenBanHienThi).append("\n");
         billText.append("Khách:    ").append(tenKH).append("\n");
+
+        // ⭐ ĐÃ THÊM: LOGIC HIỂN THỊ GHI CHÚ ⭐
+        String ghiChuDisplay = ghiChu;
+        if (ghiChuDisplay != null && ghiChuDisplay.contains("LINKED:")) {
+            // Loại bỏ phần kỹ thuật nếu có
+            ghiChuDisplay = ghiChuDisplay.substring(0, ghiChuDisplay.indexOf("LINKED:")).trim();
+        }
+        if (ghiChuDisplay != null && !ghiChuDisplay.isEmpty()) {
+            billText.append("Ghi chú:  ").append(ghiChuDisplay).append("\n");
+        }
+        // ⭐ KẾT THÚC LOGIC HIỂN THỊ GHI CHÚ ⭐
+
         billText.append("---------------------------------------------------\n");
 
         // --- Danh sách món ---
@@ -738,8 +767,18 @@ public class BillPanel extends JPanel {
                 if (kh != null) tenKH = kh.getTenKH();
             }
 
-            // 4. SỬA DÒNG LỖI: Thêm biến 'tenBan' vào cuối cùng
-            xuatPhieuIn("PHIẾU TẠM TÍNH", false, 0, 0, hd.getMaHD(), listToPrint, "---", tenBanHienThi, tenNV, tenKH);
+            // ⭐ ĐÃ THÊM: LOGIC LẤY GHI CHÚ CHO TẠM TÍNH ⭐
+            String ghiChuHoaDon = "";
+            if (hd.getMaDon() != null) {
+                DonDatMon ddm = donDatMonDAO.getDonDatMonByMa(hd.getMaDon());
+                if (ddm != null && ddm.getGhiChu() != null) {
+                    ghiChuHoaDon = ddm.getGhiChu();
+                }
+            }
+            // ⭐ KẾT THÚC LOGIC LẤY GHI CHÚ CHO TẠM TÍNH ⭐
+
+            // 4. SỬA DÒNG GỌI HÀM: Thêm biến 'ghiChuHoaDon' vào cuối cùng
+            xuatPhieuIn("PHIẾU TẠM TÍNH", false, 0, 0, hd.getMaHD(), listToPrint, "---", tenBanHienThi, tenNV, tenKH, ghiChuHoaDon);
         }
     }
     private long roundUpToNearest(long number, long nearest) {
