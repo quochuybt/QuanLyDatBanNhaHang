@@ -148,41 +148,44 @@ public class HoaDonGUI extends JPanel {
         panel.setOpaque(false);
         panel.setBorder(new EmptyBorder(5, 0, 0, 0));
 
-        // Nút Đầu (<<)
+        // --- Nút Đầu (<<) ---
         btnFirst = new JButton("<< Đầu");
-        btnFirst.setFont(new Font("Arial", Font.BOLD, 12));
-        btnFirst.setForeground(Color.WHITE);
+        stylePaginationButton(btnFirst); // <--- ÁP DỤNG STYLE Ở ĐÂY
         btnFirst.addActionListener(e -> navigateToPage(1));
         panel.add(btnFirst);
 
-        // Nút Trước (<)
+        // --- Nút Trước (<) ---
         btnPrev = new JButton("< Trước");
-        btnPrev.setFont(new Font("Arial", Font.BOLD, 12));
-        btnPrev.setForeground(Color.WHITE);
+        stylePaginationButton(btnPrev); // <--- ÁP DỤNG STYLE Ở ĐÂY
         btnPrev.addActionListener(e -> navigateToPage(currentPage - 1));
         panel.add(btnPrev);
 
-        // Thông tin trang (Trang X/Y)
+        // --- Thông tin trang (Trang X/Y) ---
         lblPageInfo = new JLabel("Trang 1/1");
         lblPageInfo.setFont(new Font("Arial", Font.BOLD, 14));
         panel.add(lblPageInfo);
 
-        // Nút Sau (>)
+        // --- Nút Sau (>) ---
         btnNext = new JButton("Sau >");
-        btnNext.setFont(new Font("Arial", Font.BOLD, 12));
-        btnNext.setForeground(Color.WHITE);
+        stylePaginationButton(btnNext); // <--- ÁP DỤNG STYLE Ở ĐÂY
         btnNext.addActionListener(e -> navigateToPage(currentPage + 1));
         panel.add(btnNext);
 
-        // Nút Cuối (>>)
+        // --- Nút Cuối (>>) ---
         btnLast = new JButton("Cuối >>");
-        btnLast.setFont(new Font("Arial", Font.BOLD, 12));
-        btnLast.setForeground(Color.WHITE);
+        stylePaginationButton(btnLast); // <--- ÁP DỤNG STYLE Ở ĐÂY
         btnLast.addActionListener(e -> navigateToPage(totalPages));
         panel.add(btnLast);
 
         updatePaginationControls();
         return panel;
+    }
+    private void stylePaginationButton(JButton btn) {
+        btn.setFont(new Font("Arial", Font.BOLD, 12));
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(new Color(56, 118, 243));
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 
     /**
