@@ -6,7 +6,6 @@ import entity.DanhMucMon;
 import entity.MonAn;
 
 import javax.swing.*;
-import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import java.awt.*;
@@ -29,7 +28,7 @@ public class DanhMucMonGUI extends JPanel {
     private MonAnDAO monAnDAO;
     private DanhMucMonDAO danhMucMonDAO;
     private List<MonAn> dsMonAnFull;
-    private List<MonAnItemPanel> dsMonAnPanel;
+    private List<MonAnItemPanel> dsMonAnPanel; // Danh sách các panel con
     private String currentCategoryFilter = "Tất cả";
     private String currentKeywordFilter = "";
 
@@ -50,7 +49,7 @@ public class DanhMucMonGUI extends JPanel {
         add(createHeaderPanel(), BorderLayout.NORTH);
         add(createMenuPanel(), BorderLayout.CENTER);
 
-        // Load dữ liệu
+        // Load dữ liệu khi khởi chạy
         SwingUtilities.invokeLater(() -> {
             loadFilterButtons();
             loadDataFromDB();
@@ -99,16 +98,9 @@ public class DanhMucMonGUI extends JPanel {
 
         // 2. Nút Thêm Món
         JButton btnThem = new JButton("Thêm món");
-        styleMainButton(btnThem, new Color(40, 167, 69));
+        styleMainButton(btnThem, new Color(40, 167, 69)); // Màu xanh lá
 
-        // Kiểm tra ảnh
-        String iconPath = "/img/icon/add_circle.png";
-        URL iconURL = getClass().getResource(iconPath);
-        if (iconURL != null) {
-            btnThem.setIcon(new ImageIcon(iconURL));
-            btnThem.setIconTextGap(8);
-        }
-
+        // Logic khi bấm nút Thêm
         btnThem.addActionListener(e -> showAddMonAnDialog());
         rightPanel.add(btnThem);
 
@@ -120,26 +112,22 @@ public class DanhMucMonGUI extends JPanel {
         JPanel panel = new JPanel(new BorderLayout(0, 15));
         panel.setOpaque(false);
 
-        // --- SỬA LỖI CĂN GIỮA TẠI ĐÂY ---
-        // Thay đổi FlowLayout: Tăng Vgap từ 0 lên 10 để đẩy nút xuống giữa
+        // Thanh lọc danh mục
         filterButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         filterButtonPanel.setOpaque(false);
 
         JScrollPane filterScrollPane = new JScrollPane(filterButtonPanel);
         filterScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         filterScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
-        // Tạo viền xám bao quanh thanh lọc giống trong hình bạn gửi
         filterScrollPane.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
         filterScrollPane.getViewport().setOpaque(false);
         filterScrollPane.setOpaque(false);
-        // Tăng chiều cao lên một chút để thoải mái hơn (từ 50 -> 55)
         filterScrollPane.setPreferredSize(new Dimension(0, 55));
-
         filterScrollPane.getHorizontalScrollBar().setUnitIncrement(20);
 
         panel.add(filterScrollPane, BorderLayout.NORTH);
 
-        // CENTER: Lưới món ăn
+        // CENTER: Lưới chứa món ăn (Sử dụng Layout Wrap)
         pnlMenuItemContainer = new VerticallyWrappingFlowPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
         pnlMenuItemContainer.setBorder(new EmptyBorder(10, 10, 10, 10));
         pnlMenuItemContainer.setBackground(Color.WHITE);
@@ -154,119 +142,20 @@ public class DanhMucMonGUI extends JPanel {
         return panel;
     }
 
-    private void loadFilterButtons() {
-        filterButtonPanel.removeAll();
-        ButtonGroup group = new ButtonGroup();
-
-        JToggleButton btnTatCa = createFilterButton("Tất cả", true);
-        btnTatCa.setActionCommand("Tất cả");
-        group.add(btnTatCa);
-        filterButtonPanel.add(btnTatCa);
-
-        ActionListener filterListener = e -> {
-            currentCategoryFilter = e.getActionCommand();
-            filterMonAn();
-        };
-        btnTatCa.addActionListener(filterListener);
-
-        List<DanhMucMon> dsDanhMuc = danhMucMonDAO.getAllDanhMuc();
-        if (dsDanhMuc != null) {
-            for (DanhMucMon dm : dsDanhMuc) {
-                JToggleButton button = createFilterButton(dm.getTendm(), false);
-                button.setActionCommand(dm.getMadm());
-                button.addActionListener(filterListener);
-                group.add(button);
-                filterButtonPanel.add(button);
-            }
-        }
-        filterButtonPanel.revalidate();
-        filterButtonPanel.repaint();
-    }
-
-    // --- SỬA LỖI BO GÓC TẠI ĐÂY ---
-    private JToggleButton createFilterButton(String text, boolean selected) {
-        JToggleButton button = new JToggleButton(text);
-        button.setFont(new Font("Segoe UI", selected ? Font.BOLD : Font.PLAIN, 14));
-        button.setFocusPainted(false);
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setContentAreaFilled(false);
-        button.setBorderPainted(false);
-
-        // Padding cho nút
-        button.setBorder(new EmptyBorder(6, 16, 6, 16));
-
-        // Tự vẽ lại nút: Dùng fillRect thay vì fillRoundRect
-        button.setUI(new javax.swing.plaf.basic.BasicToggleButtonUI() {
-            @Override
-            public void paint(Graphics g, JComponent c) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                if (button.isSelected()) {
-                    g2.setColor(COLOR_ACCENT_BLUE);
-                    // SỬA: Dùng fillRect để vuông góc
-                    g2.fillRect(0, 0, c.getWidth(), c.getHeight());
-                    button.setForeground(Color.WHITE);
-                } else {
-                    g2.setColor(Color.WHITE);
-                    g2.fillRect(0, 0, c.getWidth(), c.getHeight());
-
-                    // Vẽ viền mờ khi không chọn (Vuông góc)
-                    g2.setColor(new Color(220, 220, 220));
-                    g2.drawRect(0, 0, c.getWidth() - 1, c.getHeight() - 1);
-                    button.setForeground(Color.DARK_GRAY);
-                }
-
-                // Hiệu ứng hover
-                if(button.getModel().isRollover() && !button.isSelected()){
-                    g2.setColor(new Color(240, 240, 240));
-                    g2.fillRect(0, 0, c.getWidth(), c.getHeight());
-                    button.setForeground(Color.BLACK);
-                }
-
-                g2.dispose();
-                super.paint(g, c);
-            }
-        });
-
-        button.setSelected(selected);
-        return button;
-    }
-
-    public static void styleMainButton(JButton btn, Color bgColor) {
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setForeground(Color.WHITE);
-        btn.setBackground(bgColor);
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(8, 15, 8, 15));
-
-        btn.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                btn.setBackground(bgColor.brighter());
-            }
-            @Override
-            public void mouseExited(MouseEvent e) {
-                btn.setBackground(bgColor);
-            }
-        });
-    }
-
+    // --- LOGIC LOAD DỮ LIỆU ---
     private void loadDataFromDB() {
         dsMonAnFull = monAnDAO.getAllMonAn();
         pnlMenuItemContainer.removeAll();
         dsMonAnPanel.clear();
 
         for (MonAn mon : dsMonAnFull) {
+            // Tạo Panel con cho từng món (Class ở dưới)
             MonAnItemPanel itemPanel = new MonAnItemPanel(mon);
 
+            // Context Menu (Chuột phải)
             JPopupMenu popupMenu = new JPopupMenu();
             JMenuItem editItem = new JMenuItem("Sửa món ăn");
             JMenuItem deleteItem = new JMenuItem("Xóa món ăn");
-            editItem.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-            deleteItem.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 
             editItem.addActionListener(e -> showEditMonAnDialog(mon));
             deleteItem.addActionListener(e -> deleteMonAn(mon));
@@ -275,12 +164,12 @@ public class DanhMucMonGUI extends JPanel {
             popupMenu.add(deleteItem);
 
             itemPanel.setComponentPopupMenu(popupMenu);
+
+            // Sự kiện Click đúp để sửa
             itemPanel.addMouseListener(new MouseAdapter() {
-                @Override
                 public void mouseReleased(MouseEvent e) {
                     if (e.isPopupTrigger()) popupMenu.show(e.getComponent(), e.getX(), e.getY());
                 }
-                @Override
                 public void mousePressed(MouseEvent e) {
                     if (e.isPopupTrigger()) popupMenu.show(e.getComponent(), e.getX(), e.getY());
                     if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e)) {
@@ -292,24 +181,30 @@ public class DanhMucMonGUI extends JPanel {
             dsMonAnPanel.add(itemPanel);
             pnlMenuItemContainer.add(itemPanel);
         }
-        filterMonAn();
+        filterMonAn(); // Áp dụng lọc ngay sau khi load
     }
 
     private void filterMonAn() {
+        pnlMenuItemContainer.removeAll();
         for (MonAnItemPanel itemPanel : dsMonAnPanel) {
             MonAn mon = itemPanel.getMonAn();
             boolean show = true;
+            // Lọc theo danh mục
             if (!currentCategoryFilter.equals("Tất cả")) {
                 if (mon.getMaDM() == null || !mon.getMaDM().equals(currentCategoryFilter)) show = false;
             }
+            // Lọc theo từ khóa
             if (show && !currentKeywordFilter.isEmpty()) {
                 if (!mon.getTenMon().toLowerCase().contains(currentKeywordFilter)) show = false;
             }
-            itemPanel.setVisible(show);
+
+            if (show) pnlMenuItemContainer.add(itemPanel);
         }
         pnlMenuItemContainer.revalidate();
         pnlMenuItemContainer.repaint();
     }
+
+    // --- CÁC HÀM XỬ LÝ SỰ KIỆN ---
 
     private void showAddMonAnDialog() {
         MonAnDialog dialog = new MonAnDialog((Frame) SwingUtilities.getWindowAncestor(this));
@@ -349,5 +244,78 @@ public class DanhMucMonGUI extends JPanel {
                 JOptionPane.showMessageDialog(this, "Xóa thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         }
+    }
+
+    // --- UI HELPERS ---
+    private void loadFilterButtons() {
+        filterButtonPanel.removeAll();
+        ButtonGroup group = new ButtonGroup();
+
+        JToggleButton btnTatCa = createFilterButton("Tất cả", true);
+        btnTatCa.setActionCommand("Tất cả");
+        group.add(btnTatCa);
+        filterButtonPanel.add(btnTatCa);
+
+        ActionListener filterListener = e -> {
+            currentCategoryFilter = e.getActionCommand();
+            filterMonAn();
+        };
+        btnTatCa.addActionListener(filterListener);
+
+        List<DanhMucMon> dsDanhMuc = danhMucMonDAO.getAllDanhMuc();
+        if (dsDanhMuc != null) {
+            for (DanhMucMon dm : dsDanhMuc) {
+                JToggleButton button = createFilterButton(dm.getTendm(), false);
+                button.setActionCommand(dm.getMadm());
+                button.addActionListener(filterListener);
+                group.add(button);
+                filterButtonPanel.add(button);
+            }
+        }
+        filterButtonPanel.revalidate();
+        filterButtonPanel.repaint();
+    }
+
+    private JToggleButton createFilterButton(String text, boolean selected) {
+        JToggleButton button = new JToggleButton(text);
+        button.setFont(new Font("Segoe UI", selected ? Font.BOLD : Font.PLAIN, 14));
+        button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setBorder(new EmptyBorder(6, 16, 6, 16));
+
+        button.setUI(new javax.swing.plaf.basic.BasicToggleButtonUI() {
+            @Override
+            public void paint(Graphics g, JComponent c) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (button.isSelected()) {
+                    g2.setColor(COLOR_ACCENT_BLUE);
+                    g2.fillRoundRect(0, 0, c.getWidth(), c.getHeight(), 10, 10); // Bo góc
+                    button.setForeground(Color.WHITE);
+                } else {
+                    g2.setColor(Color.WHITE);
+                    g2.fillRoundRect(0, 0, c.getWidth(), c.getHeight(), 10, 10);
+                    g2.setColor(new Color(220, 220, 220));
+                    g2.drawRoundRect(0, 0, c.getWidth() - 1, c.getHeight() - 1, 10, 10);
+                    button.setForeground(Color.DARK_GRAY);
+                }
+                g2.dispose();
+                super.paint(g, c);
+            }
+        });
+        button.setSelected(selected);
+        return button;
+    }
+
+    public static void styleMainButton(JButton btn, Color bgColor) {
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(bgColor);
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setBorder(new EmptyBorder(8, 15, 8, 15));
     }
 }

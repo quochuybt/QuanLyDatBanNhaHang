@@ -111,9 +111,9 @@ INSERT INTO KhachHang (maKH, tenKH, gioiTinh, sdt, hangThanhVien, tongChiTieu, n
 (N'KH20251025030', N'Lý Thị Thu', N'Nữ', '0920000000', N'GOLD', 0.00, '1989-01-14', N'472 Lê Văn Việt, Q9', '2025-06-05', N'thu.ly@email.com');
 GO
 
-INSERT INTO PhanCongCa (maNV, maCa, ngayLam) VALUES
-(N'NV01102', N'CA-01', '2025-11-01'),
-(N'NV01103', N'CA-01', '2025-11-01'),
+    INSERT INTO PhanCongCa (maNV, maCa, ngayLam) VALUES
+    (N'NV01102', N'CA-01', '2025-11-01'),
+    (N'NV01103', N'CA-01', '2025-11-01'),
 (N'NV01104', N'CA-02', '2025-11-01'),
 (N'NV01105', N'CA-03', '2025-11-01'),
 (N'NV01102', N'CA-01', '2025-11-02'),
