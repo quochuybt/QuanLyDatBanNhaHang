@@ -207,7 +207,6 @@ public class DashboardNhanVienGUI extends JPanel {
         return statsPanel;
     }
 
-    // Sửa tham số thứ 3 từ 'String icon' (emoji) thành 'String iconPath' (đường dẫn ảnh)
     private JPanel createStatCard(String title, String value, String iconPath, Color accentColor, StatCardCallback callback) {
         JPanel card = new JPanel(new BorderLayout(10, 10));
         card.setBackground(CARD_COLOR);
@@ -259,21 +258,26 @@ public class DashboardNhanVienGUI extends JPanel {
         void accept(JLabel valueLabel);
     }
 
-    // =============== SHIFT CONTROL PANEL ===============
     private JPanel createShiftControlPanel() {
-        JPanel shiftPanel = new JPanel(new BorderLayout(0, 15));
+        JPanel shiftPanel = new JPanel(new BorderLayout(10, 15));
         shiftPanel.setBackground(CARD_COLOR);
         shiftPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(220, 220, 220), 1, true),
-                new EmptyBorder(20, 20, 20, 20)
+                new EmptyBorder(30, 20, 30, 20)
         ));
 
         JLabel lblTitle = new JLabel("Quản lý ca làm & Đồng nghiệp");
         lblTitle.setFont(HEADER_FONT);
         lblTitle.setForeground(new Color(44, 62, 80));
 
-        JPanel infoGrid = new JPanel(new GridLayout(4, 2, 10, 15));
+        JPanel centerContent = new JPanel();
+        centerContent.setLayout(new BoxLayout(centerContent, BoxLayout.Y_AXIS));
+        centerContent.setBackground(CARD_COLOR);
+
+        JPanel infoGrid = new JPanel(new GridLayout(4, 2, 10, 12));
         infoGrid.setBackground(CARD_COLOR);
+        infoGrid.setMaximumSize(new Dimension(Integer.MAX_VALUE, 150));
+        infoGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         infoGrid.add(createInfoLabel("Ca hiện tại:"));
         lblCurrentShift = createInfoValue("Chưa có ca");
@@ -291,7 +295,18 @@ public class DashboardNhanVienGUI extends JPanel {
         lblCurrentRevenue = createInfoValue("0 ₫");
         infoGrid.add(lblCurrentRevenue);
 
-        JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        shiftControlInfoPanel = createShiftControlInfoPanel();
+        shiftControlInfoPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        centerContent.add(infoGrid);
+        centerContent.add(Box.createVerticalStrut(20));
+        centerContent.add(shiftControlInfoPanel);
+
+        // Thêm Glue để đẩy mọi thứ lên trên nếu còn dư chỗ (Tránh bị dàn trải)
+        centerContent.add(Box.createVerticalGlue());
+
+        // --- 3. CÁC NÚT BẤM (VÙNG SOUTH) ---
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 15, 0));
         buttonPanel.setBackground(CARD_COLOR);
 
         btnStartShift = createActionButton("Bắt đầu ca", SUCCESS_COLOR);
@@ -304,36 +319,48 @@ public class DashboardNhanVienGUI extends JPanel {
         buttonPanel.add(btnStartShift);
         buttonPanel.add(btnEndShift);
 
-        shiftControlInfoPanel = createShiftControlInfoPanel();
-
-        JPanel contentPanel = new JPanel(new BorderLayout(0, 15));
-        contentPanel.setBackground(CARD_COLOR);
-        contentPanel.add(infoGrid, BorderLayout.NORTH);
-        contentPanel.add(buttonPanel, BorderLayout.CENTER);
-        contentPanel.add(shiftControlInfoPanel, BorderLayout.SOUTH);
-
+        // --- RÁP VÀO PANEL TỔNG ---
         shiftPanel.add(lblTitle, BorderLayout.NORTH);
-        shiftPanel.add(contentPanel, BorderLayout.CENTER);
+        shiftPanel.add(centerContent, BorderLayout.CENTER);
+        shiftPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         return shiftPanel;
     }
 
     private JPanel createShiftControlInfoPanel() {
-        JPanel infoPanel = new JPanel(new GridLayout(2, 2, 10, 10));
+        JPanel infoPanel = new JPanel(new GridLayout(1, 2, 20, 0));
         infoPanel.setBackground(CARD_COLOR);
+
+        // TitledBorder
         infoPanel.setBorder(new TitledBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)),
                 "Đồng nghiệp làm ca gần nhất", TitledBorder.LEFT, TitledBorder.TOP,
                 BODY_FONT, new Color(127, 140, 141)));
 
-        infoPanel.add(createInfoLabel("Ca trước:"));
-        JLabel lblPrevShift = createInfoValue("-- Trống --");
-        lblPrevShift.setName("lblPrevShift");
-        infoPanel.add(lblPrevShift);
+        // --- CỘT TRÁI: CA TRƯỚC ---
+        JPanel pnlPrev = new JPanel(new BorderLayout());
+        pnlPrev.setBackground(CARD_COLOR);
+        pnlPrev.add(createInfoLabel("Ca trước:"), BorderLayout.NORTH);
 
-        infoPanel.add(createInfoLabel("Ca sau:"));
-        JLabel lblNextShift = createInfoValue("-- Trống --");
+        JLabel lblPrevShift = new JLabel("<html><center>Đang tải...</center></html>", JLabel.CENTER);
+        lblPrevShift.setName("lblPrevShift");
+        lblPrevShift.setVerticalAlignment(JLabel.TOP);
+        pnlPrev.add(lblPrevShift, BorderLayout.CENTER);
+
+        // --- CỘT PHẢI: CA SAU ---
+        JPanel pnlNext = new JPanel(new BorderLayout());
+        pnlNext.setBackground(CARD_COLOR);
+        pnlNext.add(createInfoLabel("Ca sau:"), BorderLayout.NORTH);
+
+        JLabel lblNextShift = new JLabel("<html><center>Đang tải...</center></html>", JLabel.CENTER);
         lblNextShift.setName("lblNextShift");
-        infoPanel.add(lblNextShift);
+        lblNextShift.setVerticalAlignment(JLabel.TOP);
+        pnlNext.add(lblNextShift, BorderLayout.CENTER);
+
+        infoPanel.add(pnlPrev);
+        infoPanel.add(pnlNext);
+
+        infoPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 140));
+        infoPanel.setPreferredSize(new Dimension(0, 140));
 
         return infoPanel;
     }
@@ -354,13 +381,16 @@ public class DashboardNhanVienGUI extends JPanel {
 
     private JButton createActionButton(String text, Color bgColor) {
         JButton btn = new JButton(text);
-        btn.setFont(BODY_FONT);
+        // Tăng font size một chút và in đậm để cân đối với nút to
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btn.setBackground(bgColor);
         btn.setForeground(Color.WHITE);
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(0, 45));
+
+        // Chiều cao 45px: To, rõ, dễ bấm
+        btn.setPreferredSize(new Dimension(0, 100));
 
         btn.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent evt) {
@@ -406,13 +436,7 @@ public class DashboardNhanVienGUI extends JPanel {
         return chartCard;
     }
 
-    // [QUAN TRỌNG] Phương thức vẽ biểu đồ tùy chỉnh (Code bạn cung cấp)
-    // File: gui/DashboardNhanVienGUI.java
 
-    /**
-     * [ĐÃ SỬA] Biểu đồ giờ làm 7 ngày gần nhất với đường tham chiếu 8 giờ
-     * Fix lỗi: Cột chồng lên nhau, hiển thị sai số lượng ngày
-     */
     private JPanel createWorkHoursBarChart(Map<String, Double> data) {
         JPanel chart = new JPanel() {
             @Override
@@ -420,6 +444,7 @@ public class DashboardNhanVienGUI extends JPanel {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g;
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
                 if (data.isEmpty() || data.values().stream().allMatch(v -> v == 0.0)) {
                     g2.setFont(BODY_FONT);
@@ -432,10 +457,9 @@ public class DashboardNhanVienGUI extends JPanel {
                     return;
                 }
 
-                // === 1. LỌC DỮ LIỆU (CHỈ LẤY 7 NGÀY CUỐI) ===
-                // Dù DAO đã lọc, ta lọc lại ở đây để đảm bảo hiển thị không bị vỡ layout
+                // === 1. LỌC DỮ LIỆU ===
                 Map<String, Double> filteredData = data.entrySet().stream()
-                        .skip(Math.max(0, data.size() - 7)) // Bỏ qua các ngày cũ, chỉ lấy 7 ngày cuối
+                        .skip(Math.max(0, data.size() - 7))
                         .collect(java.util.stream.Collectors.toMap(
                                 Map.Entry::getKey,
                                 Map.Entry::getValue,
@@ -444,91 +468,112 @@ public class DashboardNhanVienGUI extends JPanel {
                         ));
 
                 // === 2. CẤU HÌNH KÍCH THƯỚC ===
-                final double REFERENCE_LINE = 8.0; // Đường tham chiếu 8 giờ
-                int padding = 40;
-                int barMargin = 20; // Khoảng cách rộng hơn để không bị dính
-                int chartHeight = getHeight() - 2 * padding;
+                final double REFERENCE_LINE = 8.0;
+
+                // Tăng paddingBottom để có chỗ cho Chú thích ở dưới
+                int paddingTop = 30;
+                int paddingBottom = 60; // Tăng từ 40 lên 60
+                int paddingLeft = 40;
+                int paddingRight = 40;
+
+                int barMargin = 20;
+                int chartHeight = getHeight() - paddingTop - paddingBottom;
                 int totalBars = filteredData.size();
 
-                // Tính chiều rộng cột động, nhưng giới hạn tối thiểu để dễ nhìn
-                int barWidth = (getWidth() - 2 * padding - barMargin * (totalBars - 1)) / totalBars;
-                // Nếu cột quá nhỏ (do màn hình bé), set cố định (có thể bị tràn, nhưng đẹp hơn dính)
+                int barWidth = (getWidth() - paddingLeft - paddingRight - barMargin * (totalBars - 1)) / totalBars;
                 if (barWidth < 20) barWidth = 20;
 
-                // Tính giá trị max (Trục Y)
                 double maxValue = Math.max(
                         filteredData.values().stream().mapToDouble(Double::doubleValue).max().orElse(10.0),
                         REFERENCE_LINE + 1.0
                 );
 
-                // Tính trung bình
-                double averageValue = filteredData.values().stream().mapToDouble(Double::doubleValue).sum() / totalBars;
+                // Tính vị trí Y của đường 8h
+                int refY = paddingTop + (int) ((1 - REFERENCE_LINE / maxValue) * chartHeight);
 
-                // === 3. VẼ NỀN THAM CHIẾU ===
-                int refY = getHeight() - padding - (int) ((REFERENCE_LINE / maxValue) * chartHeight);
+                // === 3. VẼ NỀN (BACKGROUND ZONES) ===
+                // Vùng đạt chuẩn (Xanh nhạt)
+                g2.setPaint(new GradientPaint(
+                        paddingLeft, paddingTop, new Color(39, 174, 96, 10),
+                        paddingLeft, refY, new Color(39, 174, 96, 20)
+                ));
+                g2.fillRect(paddingLeft, paddingTop, getWidth() - paddingLeft - paddingRight, refY - paddingTop);
 
-                // Vùng xanh (Đạt chuẩn)
-                g2.setColor(new Color(39, 174, 96, 20));
-                g2.fillRect(padding, padding, getWidth() - 2 * padding, refY - padding);
+                g2.setPaint(new GradientPaint(
+                        paddingLeft, refY, new Color(231, 76, 60, 5),
+                        paddingLeft, getHeight() - paddingBottom, new Color(231, 76, 60, 15)
+                ));
+                g2.fillRect(paddingLeft, refY, getWidth() - paddingLeft - paddingRight, getHeight() - paddingBottom - refY);
 
-                // Vùng đỏ (Chưa đạt)
-                g2.setColor(new Color(231, 76, 60, 15));
-                g2.fillRect(padding, refY, getWidth() - 2 * padding, getHeight() - padding - refY);
+                g2.setColor(new Color(41, 128, 185, 180)); // Màu xanh dương
+                // Nét đứt
+                Stroke dashed = new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
+                        10.0f, new float[]{8.0f, 5.0f}, 0.0f);
+                g2.setStroke(dashed);
+                g2.drawLine(paddingLeft, refY, getWidth() - paddingRight, refY);
+                g2.setStroke(new BasicStroke(1.0f)); // Reset về nét liền
 
-                // Đường kẻ 8h
-                g2.setColor(new Color(52, 73, 94));
-                g2.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{10.0f}, 0.0f));
-                g2.drawLine(padding, refY, getWidth() - padding, refY);
-
-                g2.setFont(new Font("Segoe UI", Font.ITALIC, 10));
-                g2.drawString("Mục tiêu: 8h", getWidth() - padding - 60, refY - 5);
-                g2.setStroke(new BasicStroke(1.0f));
-
-                // === 4. VẼ ĐƯỜNG TRUNG BÌNH ===
-                int avgY = getHeight() - padding - (int) ((averageValue / maxValue) * chartHeight);
-                g2.setColor(CHART_AVG_COLOR);
-                g2.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 1.0f, new float[]{5.0f, 5.0f}, 0.0f));
-                g2.drawLine(padding, avgY, getWidth() - padding, avgY);
-                g2.setStroke(new BasicStroke(1.0f));
-
-                // === 5. VẼ CỘT ===
-                int x = padding;
+                // === 5. VẼ CỘT (BARS) ===
+                int x = paddingLeft;
                 for (Map.Entry<String, Double> entry : filteredData.entrySet()) {
                     double value = entry.getValue();
                     int barHeight = (int) ((value / maxValue) * chartHeight);
 
-                    // Màu sắc: Xanh (>=8h), Vàng (>=6h), Đỏ (<6h)
-                    Color barColor;
-                    if (value >= REFERENCE_LINE) barColor = SUCCESS_COLOR;
-                    else if (value >= 6.0) barColor = WARNING_COLOR;
-                    else barColor = DANGER_COLOR;
+                    // Chọn màu cột
+                    Color barColor, barColorDark;
+                    if (value >= REFERENCE_LINE) {
+                        barColor = new Color(39, 174, 96); // Xanh lá
+                        barColorDark = new Color(30, 132, 73);
+                    } else if (value >= 6.0) {
+                        barColor = new Color(243, 156, 18); // Cam
+                        barColorDark = new Color(211, 84, 0);
+                    } else {
+                        barColor = new Color(231, 76, 60); // Đỏ
+                        barColorDark = new Color(192, 57, 43);
+                    }
 
-                    // Vẽ cột
-                    g2.setColor(barColor);
-                    g2.fillRoundRect(x, getHeight() - padding - barHeight, barWidth, barHeight, 8, 8);
+                    int yPos = getHeight() - paddingBottom - barHeight;
 
-                    // Giá trị trên cột
-                    g2.setColor(Color.BLACK);
-                    g2.setFont(new Font("Segoe UI", Font.BOLD, 11));
+                    // Vẽ cột (Gradient)
+                    g2.setPaint(new GradientPaint(x, yPos, barColor, x, yPos + barHeight, barColorDark));
+                    g2.fillRoundRect(x, yPos, barWidth, barHeight, 8, 8);
+
+                    // Viền cột
+                    g2.setColor(barColorDark);
+                    g2.drawRoundRect(x, yPos, barWidth, barHeight, 8, 8);
+
+                    // Hiển thị giá trị trên đầu cột
+                    g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
                     String valueStr = String.format("%.1fh", value);
-                    FontMetrics fm = g2.getFontMetrics();
-                    int textX = x + (barWidth - fm.stringWidth(valueStr)) / 2;
-                    g2.drawString(valueStr, textX, getHeight() - padding - barHeight - 5);
-
-                    // Nhãn ngày (Trục X)
-                    g2.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+                    FontMetrics fmVal = g2.getFontMetrics();
+                    int txtX = x + (barWidth - fmVal.stringWidth(valueStr)) / 2;
                     g2.setColor(new Color(44, 62, 80));
-                    String label = entry.getKey();
-                    int labelX = x + (barWidth - g2.getFontMetrics().stringWidth(label)) / 2;
-                    g2.drawString(label, labelX, getHeight() - padding + 20);
+                    g2.drawString(valueStr, txtX, yPos - 3);
+
+                    // Hiển thị ngày (Trục X)
+                    g2.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+                    String dateLabel = entry.getKey();
+                    int dateX = x + (barWidth - g2.getFontMetrics().stringWidth(dateLabel)) / 2;
+                    g2.drawString(dateLabel, dateX, getHeight() - paddingBottom + 18);
 
                     x += barWidth + barMargin;
                 }
 
-                // Vẽ trục Y đơn giản
-                g2.setColor(Color.LIGHT_GRAY);
-                g2.drawLine(padding, padding, padding, getHeight() - padding); // Trục dọc
-                g2.drawLine(padding, getHeight() - padding, getWidth() - padding, getHeight() - padding); // Trục ngang
+                // === 6. VẼ TRỤC TỌA ĐỘ ===
+                g2.setColor(new Color(189, 195, 199));
+                g2.drawLine(paddingLeft, getHeight() - paddingBottom, getWidth() - paddingRight, getHeight() - paddingBottom);
+
+                int legendY = getHeight() - 15; // Cách đáy 15px
+                int centerX = getWidth() / 2;
+
+                g2.setColor(new Color(41, 128, 185));
+                g2.setStroke(dashed);
+                g2.drawLine(centerX - 40, legendY - 4, centerX - 10, legendY - 4);
+                g2.setStroke(new BasicStroke(1.0f));
+
+                g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                g2.setColor(new Color(100, 100, 100));
+                g2.drawString(": 8h - Chỉ tiêu", centerX, legendY);
             }
         };
 
@@ -545,7 +590,7 @@ public class DashboardNhanVienGUI extends JPanel {
                 new EmptyBorder(20, 20, 20, 20)
         ));
 
-        JLabel title = new JLabel("Lịch làm việc 3 ngày sắp tới");
+        JLabel title = new JLabel("Lịch làm việc gần đây");
         title.setFont(HEADER_FONT);
         title.setForeground(new Color(44, 62, 80));
 
@@ -639,7 +684,7 @@ public class DashboardNhanVienGUI extends JPanel {
                 btnStartShift.setEnabled(false);
                 btnEndShift.setEnabled(true);
             } else {
-                lblShiftStatus.setText("⏸️ Chưa bắt đầu ca");
+                lblShiftStatus.setText("Trạng thái: Chưa bắt đầu ca");
                 lblShiftStatus.setBackground(new Color(189, 195, 199));
                 lblCurrentShift.setText("Chưa có ca");
                 lblShiftTime.setText("--:-- - --:--");
