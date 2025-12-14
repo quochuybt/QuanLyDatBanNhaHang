@@ -73,6 +73,23 @@ public class MonAnDAO {
         }
         return dsMonAn;
     }
+    public List<MonAn> getMonAnDangKinhDoanh() {
+        List<MonAn> dsMonAn = new ArrayList<>();
+
+        String sql = "SELECT * FROM MonAn WHERE trangThai = N'Còn'";
+
+        try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
+             java.sql.Statement stmt = conn.createStatement();
+             java.sql.ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                dsMonAn.add(createMonAnFromResultSet(rs));
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+        return dsMonAn;
+    }
 
     /**
      * KHÔI PHỤC: Lấy danh sách món theo mã danh mục

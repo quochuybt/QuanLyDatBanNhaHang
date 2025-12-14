@@ -375,7 +375,7 @@ public class ManHinhGoiMonGUI extends JPanel {
     }
     private void loadDataFromDB() {
         // 1. Tải danh sách từ DAO
-        this.dsMonAnFull = monAnDAO.getAllMonAn();
+        this.dsMonAnFull = monAnDAO.getMonAnDangKinhDoanh();
         System.out.println("Đã tải " + dsMonAnFull.size() + " món ăn từ CSDL.");
 
         // 2. Tạo các Panel Item và thêm vào container
