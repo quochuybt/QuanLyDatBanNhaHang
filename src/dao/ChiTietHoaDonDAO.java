@@ -15,13 +15,9 @@ import java.util.Map; // Thêm import này
 
 public class ChiTietHoaDonDAO {
 
-    /**
-     * Lấy tất cả ChiTietHoaDon (kèm Tên Món) theo maDon
-     */
     public List<ChiTietHoaDon> getChiTietTheoMaDon(String maDon) {
         List<ChiTietHoaDon> dsChiTiet = new ArrayList<>();
 
-        // Câu lệnh SQL JOIN 2 bảng ChiTietHoaDon và MonAn
         String sql = "SELECT ct.maDon, ct.maMonAn, m.tenMon, ct.soLuong, ct.donGia " +
                 "FROM ChiTietHoaDon ct " +
                 "JOIN MonAn m ON ct.maMonAn = m.maMonAn " +
@@ -39,7 +35,6 @@ public class ChiTietHoaDonDAO {
                     int soLuong = rs.getInt("soLuong");
                     float donGia = rs.getFloat("donGia");
 
-                    // Dùng constructor mới (có tenMon)
                     ChiTietHoaDon ct = new ChiTietHoaDon(maDon, maMon, tenMon, soLuong, donGia);
                     dsChiTiet.add(ct);
                 }
@@ -50,7 +45,6 @@ public class ChiTietHoaDonDAO {
         return dsChiTiet;
     }
     public boolean themChiTiet(ChiTietHoaDon ct) {
-        // Giả định bảng ChiTietHoaDon có các cột: maDon, maMonAn, soLuong, donGia
         String sql = "INSERT INTO ChiTietHoaDon (maDon, maMonAn, soLuong, donGia) VALUES (?, ?, ?, ?)";
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -62,12 +56,8 @@ public class ChiTietHoaDonDAO {
 
             return ps.executeUpdate() > 0;
         } catch (java.sql.SQLIntegrityConstraintViolationException e) {
-            // Lỗi này có thể xảy ra nếu maDon hoặc maMonAn không tồn tại trong bảng cha,
-            // hoặc cặp (maDon, maMonAn) đã tồn tại (nếu có UNIQUE constraint)
-            System.err.println("Lỗi ràng buộc khi thêm chi tiết hóa đơn: " + e.getMessage());
             e.printStackTrace();
         } catch (Exception e) {
-            System.err.println("Lỗi khi thêm chi tiết hóa đơn: " + e.getMessage());
             e.printStackTrace();
         }
         return false;
@@ -82,14 +72,11 @@ public class ChiTietHoaDonDAO {
 
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            System.err.println("Lỗi khi xóa chi tiết hóa đơn (maDon=" + maDon + ", maMon=" + maMon + "): " + e.getMessage());
             e.printStackTrace();
         }
         return false;
     }
     public boolean suaChiTiet(ChiTietHoaDon ct) {
-        // Cập nhật số lượng. Đơn giá có thể không cần cập nhật nếu giá món không đổi.
-        // Thành tiền sẽ tự tính lại.
         String sql = "UPDATE ChiTietHoaDon SET soLuong = ? WHERE maDon = ? AND maMonAn = ?";
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -100,29 +87,15 @@ public class ChiTietHoaDonDAO {
 
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            System.err.println("Lỗi khi sửa chi tiết hóa đơn: " + e.getMessage());
             e.printStackTrace();
         }
         return false;
     }
 
-    // --- HÀM MỚI CHO DASHBOARD ---
-    /**
-     * (MỚI) Lấy danh sách các món bán chạy nhất trong khoảng thời gian.
-     * @param startDate Ngày bắt đầu
-     * @param endDate Ngày kết thúc
-     * @param limit Số lượng món ăn hàng đầu cần lấy (ví dụ: 5)
-     * @return Map<String, Integer> (Key: Tên món, Value: Tổng số lượng bán)
-     */
+
     public Map<String, Integer> getTopSellingItems(LocalDate startDate, LocalDate endDate, int limit) {
-        // Dùng LinkedHashMap để giữ thứ tự top bán chạy
         Map<String, Integer> topItems = new LinkedHashMap<>();
 
-        // Câu SQL này JOIN 4 bảng:
-        // 1. ChiTietHoaDon (ct) - để lấy soLuong
-        // 2. MonAn (m) - để lấy tenMon
-        // 3. DonDatMon (ddm) - để liên kết ct với hd
-        // 4. HoaDon (hd) - để lọc theo trangThai = 'Đã thanh toán' và ngayLap
         String sqlTop = "SELECT TOP (?) m.tenMon, SUM(ct.soLuong) AS TongSoLuong " +
                 "FROM ChiTietHoaDon ct " +
                 "JOIN MonAn m ON ct.maMonAn = m.maMonAn " +
@@ -149,7 +122,6 @@ public class ChiTietHoaDonDAO {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("SQL Error while fetching top selling items: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("Lỗi truy vấn món bán chạy", e);
         }
@@ -157,7 +129,6 @@ public class ChiTietHoaDonDAO {
     }
 
 
-    // Trong ChiTietHoaDonDAO.java
     public java.util.List<String> getTopMonBanChayTrongNgay() {
         java.util.List<String> list = new java.util.ArrayList<>();
         String sql = "SELECT TOP 3 m.tenMon, SUM(ct.soLuong) as SL " +
@@ -178,13 +149,10 @@ public class ChiTietHoaDonDAO {
         if (list.isEmpty()) list.add("Chưa có dữ liệu hôm nay");
         return list;
     }
-    /**
-     * [MỚI] Lấy top món ăn có số lượng bán thấp nhất (Top Bad Sellers)
-     */
+
     public Map<String, Integer> getLeastSellingItems(LocalDate startDate, LocalDate endDate, int limit) {
         Map<String, Integer> result = new LinkedHashMap<>();
 
-        // SỬA LỖI Ở DÒNG JOIN: ma.maMon -> ma.maMonAn
         String sql = "SELECT TOP (?) ma.tenMon, SUM(ct.soLuong) as SoLuongBan " +
                 "FROM ChiTietHoaDon ct " +
                 "JOIN MonAn ma ON ct.maMonAn = ma.maMonAn " + // <--- SỬA TẠI ĐÂY
@@ -211,4 +179,4 @@ public class ChiTietHoaDonDAO {
         }
         return result;
     }
-} // Kết thúc class ChiTietHoaDonDAO
+}

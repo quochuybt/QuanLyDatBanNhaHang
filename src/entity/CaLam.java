@@ -5,19 +5,13 @@ import java.time.format.DateTimeFormatter;
 // [THÊM MỚI] Import thư viện Objects để dùng cho equals/hashCode
 import java.util.Objects;
 
-/**
- * Lớp CaLam đại diện cho một ca làm việc.
- * (Đã sửa đổi để dùng LocalTime)
- */
 public class CaLam {
 
-    // 1. Khai báo thuộc tính
     private String maCa;
     private String tenCa;
-    private LocalTime gioBatDau;  // Dùng LocalTime
-    private LocalTime gioKetThuc; // Dùng LocalTime
+    private LocalTime gioBatDau;
+    private LocalTime gioKetThuc;
 
-    // --- (Constructor) ---
 
     public CaLam() {
         this.maCa = "Chưa có mã";
@@ -40,8 +34,6 @@ public class CaLam {
         this.gioBatDau = ca.gioBatDau;
         this.gioKetThuc = ca.gioKetThuc;
     }
-
-    // --- ( Getters và Setters ) ---
 
     public String getMaCa() {
         return maCa;
@@ -89,10 +81,6 @@ public class CaLam {
         this.gioKetThuc = gioKetThuc;
     }
 
-
-    /**
-     * Phương thức toString() (Giữ nguyên)
-     */
     @Override
     public String toString() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
@@ -107,10 +95,6 @@ public class CaLam {
                 '}';
     }
 
-
-    /**
-     * So sánh 2 CaLam dựa trên maCa.
-     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -119,9 +103,6 @@ public class CaLam {
         return Objects.equals(maCa, caLam.maCa);
     }
 
-    /**
-     * Băm đối tượng CaLam dựa trên maCa.
-     */
     @Override
     public int hashCode() {
         return Objects.hash(maCa);

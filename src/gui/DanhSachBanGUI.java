@@ -30,21 +30,17 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
         setBorder(new EmptyBorder(20, 10, 0, 0));
         setBackground(Color.WHITE);
 
-        // --- Panel Thanh Điều Hướng Trên Cùng ---
         JPanel topNavPanel = new JPanel(new BorderLayout());
         topNavPanel.setOpaque(true);
         topNavPanel.setBackground(COLOR_ACCENT_BLUE);
 
-        // Panel chứa các nút tab bên trái
         JPanel leftButtonsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         leftButtonsPanel.setOpaque(false);
 
-        // --- Tạo các nút tab ---
         btnTabBan = createTopNavButton("Bàn", "MAN_HINH_BAN", true);
         btnTabGoiMon = createTopNavButton("Gọi Món", "MAN_HINH_GOI_MON", false);
         btnTabDatBan = createTopNavButton("Đặt Bàn", "MAN_HINH_DAT_BAN", false);
 
-        // --- XỬ LÝ RIÊNG CHO NÚT "GỌI MÓN" ---
         ActionListener[] defaultGoiMonListeners = btnTabGoiMon.getActionListeners();
         for (ActionListener al : defaultGoiMonListeners) {
             btnTabGoiMon.removeActionListener(al);
@@ -81,20 +77,16 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
             btnTabDatBan.removeActionListener(al);
         }
 
-        // Thêm listener mới
         btnTabDatBan.addActionListener(e -> {
             if (btnTabDatBan.isSelected()) {
-                // 1. Chuyển màn hình
                 contentCardLayout.show(contentCardPanel, "MAN_HINH_DAT_BAN");
                 updateTopNavButtonStyles();
 
-                // 2. Yêu cầu ManHinhDatBanGUI tải lại dữ liệu mới nhất từ CSDL
                 if (manHinhDatBanGUI != null) {
-                    manHinhDatBanGUI.refreshData(); // <-- GỌI HÀM NÀY
+                    manHinhDatBanGUI.refreshData();
                 }
             }
         });
-        // --- Thêm các nút tab vào ButtonGroup và Panel ---
         topNavGroup.add(btnTabBan);
         topNavGroup.add(btnTabGoiMon);
         topNavGroup.add(btnTabDatBan);
@@ -103,7 +95,6 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
         leftButtonsPanel.add(btnTabGoiMon);
         leftButtonsPanel.add(btnTabDatBan);
 
-        // --- Panel chứa nút "..." bên phải ---
         JPanel rightButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         rightButtonPanel.setOpaque(false);
         rightButtonPanel.setBorder(new EmptyBorder(0, 0, 0, 5));
@@ -129,7 +120,7 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
             itemChuyenBan.addActionListener(e_themBan -> {
                 showChuyenBanDiaLog();
                 if (manHinhBanGUI != null) {
-                    manHinhBanGUI.refreshTableList(); // Tải lại giao diện bàn ngay lập tức
+                    manHinhBanGUI.refreshTableList();
                 }
             });
 
@@ -141,32 +132,25 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
         });
         rightButtonPanel.add(menuButton);
 
-        // --- Gắn các panel con vào thanh điều hướng chính ---
         topNavPanel.add(leftButtonsPanel, BorderLayout.WEST);
         topNavPanel.add(rightButtonPanel, BorderLayout.EAST);
 
-        // --- Panel Nội Dung Chính (CardLayout) ---
         contentCardPanel = new JPanel(contentCardLayout);
         contentCardPanel.setOpaque(false);
 
-        // --- Khởi tạo các màn hình con ---
         manHinhBanGUI = new ManHinhBanGUI(this);
         manHinhGoiMonGUI = new ManHinhGoiMonGUI(this, this.maNVDangNhap);
         manHinhDatBanGUI = new ManHinhDatBanGUI(this, mainGUI_Parent);
 
-        // --- Thêm các màn hình con vào CardLayout ---
         contentCardPanel.add(manHinhBanGUI, "MAN_HINH_BAN");
         contentCardPanel.add(manHinhGoiMonGUI, "MAN_HINH_GOI_MON");
         contentCardPanel.add(manHinhDatBanGUI, "MAN_HINH_DAT_BAN");
 
-        // --- Gắn thanh điều hướng và panel nội dung vào DanhSachBanGUI ---
         add(topNavPanel, BorderLayout.NORTH);
         add(contentCardPanel, BorderLayout.CENTER);
 
-        // --- Hiển thị màn hình Bàn mặc định ---
         contentCardLayout.show(contentCardPanel, "MAN_HINH_BAN");
 
-        // --- Cập nhật màu sắc nút tab lần đầu tiên ---
         SwingUtilities.invokeLater(this::updateTopNavButtonStyles);
     }
     public String getMaNVDangNhap() {

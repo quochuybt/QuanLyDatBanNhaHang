@@ -12,13 +12,9 @@ import java.util.List;
 
 public class CaLamDAO {
 
-    /**
-     * Lấy danh sách tất cả các ca làm.
-     * @return List<CaLam>
-     */
     public List<CaLam> getAllCaLam() {
         List<CaLam> dsCaLam = new ArrayList<>();
-        String sql = "SELECT maCa, tenCa, gioBatDau, gioKetThuc FROM CaLam ORDER BY gioBatDau"; // Sắp xếp theo giờ bắt đầu
+        String sql = "SELECT maCa, tenCa, gioBatDau, gioKetThuc FROM CaLam ORDER BY gioBatDau";
 
         try (Connection conn = SQLConnection.getConnection();
              Statement stmt = conn.createStatement();
@@ -32,7 +28,6 @@ public class CaLamDAO {
                 dsCaLam.add(new CaLam(maCa, tenCa, gioBatDau, gioKetThuc));
             }
         } catch (Exception e) {
-            System.err.println("Lỗi khi lấy danh sách ca làm: " + e.getMessage());
             e.printStackTrace();
         }
         return dsCaLam;

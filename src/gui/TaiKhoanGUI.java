@@ -33,7 +33,6 @@ public class TaiKhoanGUI extends JFrame {
         loginFormPanel.setMaximumSize(new Dimension(390, 600));
         loginFormPanel.setOpaque(false);
 
-        // Custom painting cho nền mờ bo góc
         JPanel contentPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -134,38 +133,28 @@ public class TaiKhoanGUI extends JFrame {
 
                 Map<String, String> loginResult = null;
                 try {
-                    // 1. Khởi tạo lớp DAO
                     TaiKhoanDAO taiKhoanDAO = new TaiKhoanDAO();
-
-                    // 2. Gọi hàm checkLogin (truyền mật khẩu thô)
                     loginResult = taiKhoanDAO.checkLoginAndGetInfo(tenDangNhap, matKhau);
 
                 } catch (RuntimeException ex) {
-                    // Bắt lỗi nếu CSDL bị sập hoặc không kết nối được
                     JOptionPane.showMessageDialog(TaiKhoanGUI.this,
                             "Lỗi kết nối CSDL! Vui lòng kiểm tra lại.\nChi tiết: " + ex.getMessage(),
                             "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
-                    return; // Dừng lại không làm gì nữa
+                    return;
                 }
 
-// --- Logic xử lý kết quả (Đã sửa) ---
                 if (loginResult != null) {
-                    // 🌟 BƯỚC SỬA 1: KIỂM TRA MÃ TRẠNG THÁI KHÓA
                     if (loginResult.containsKey("status") && loginResult.get("status").equals("LOCKED")) {
-                        // Trạng thái: TÀI KHOẢN BỊ KHÓA
                         JOptionPane.showMessageDialog(TaiKhoanGUI.this,
                                 "**Tài khoản đã bị tạm ngưng hoạt động!**\nVui lòng liên hệ Quản lý để được hỗ trợ kích hoạt lại.",
                                 "Tài khoản bị Khóa", JOptionPane.WARNING_MESSAGE);
-                        return; // Dừng xử lý
+                        return;
                     }
 
-                    // Trạng thái: ĐĂNG NHẬP THÀNH CÔNG
                     String userRole = loginResult.get("role");
                     String userName = loginResult.get("name");
-                    // 🌟 LẤY MÃ NV
                     String maNV = loginResult.get("maNV");
                     if (maNV == null) {
-                        // Fallback (chỉ dùng nếu TaiKhoanDAO không trả về maNV)
                         maNV = tenDangNhap;
                     }
 
@@ -175,19 +164,16 @@ public class TaiKhoanGUI extends JFrame {
 
                     dispose();
 
-                    // Truyền vai trò (userRole) và TÊN, MÃ NV vào MainGUI
                     final String finalUserRole = userRole;
                     final String finalUserName = userName;
                     final String finalMaNV = maNV;
 
                     SwingUtilities.invokeLater(() -> {
-                        // Gọi constructor mới của MainGUI (Đã thêm maNV)
                         MainGUI mainGUI = new MainGUI(finalUserRole, finalUserName, finalMaNV);
                         mainGUI.setVisible(true);
                     });
 
                 } else {
-                    // Trạng thái: Sai tên TK hoặc Mật khẩu
                     JOptionPane.showMessageDialog(TaiKhoanGUI.this, "Sai tên tài khoản hoặc mật khẩu!",
                             "Lỗi Đăng nhập", JOptionPane.ERROR_MESSAGE);
                 }
@@ -195,7 +181,6 @@ public class TaiKhoanGUI extends JFrame {
         });
         contentPanel.add(btnDangNhap);
 
-        // --- Link "Quên mật khẩu?" (Căn phải) ---
         JPanel linkPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         linkPanel.setOpaque(false);
 
@@ -206,10 +191,6 @@ public class TaiKhoanGUI extends JFrame {
         lblQuenMatKhau.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                // ✅ LOGIC MỚI: Gọi màn hình ForgotPasswordDialog
-
-                // ⚠️ Lưu ý: Đảm bảo class ForgotPasswordDialog đã được import
-                // (import gui.ForgotPasswordDialog;) hoặc nằm trong cùng package.
                 new ForgotPasswordDialog(TaiKhoanGUI.this).setVisible(true);
             }
             @Override
@@ -308,7 +289,6 @@ public class TaiKhoanGUI extends JFrame {
 
         return rowPanel;
     }
-    // --- Hàm Hỗ Trợ Placeholder (cho JTextField) ---
     private void setupPlaceholder(JTextField tf, String placeholder) {
         if (placeholder == null) return;
 

@@ -16,7 +16,6 @@ public class ThemNhanVienDialog extends JDialog {
     private final NhanVienDAO nhanVienDAO = new NhanVienDAO();
     private final NhanVienGUI parentPanel;
 
-    // Các thành phần UI
     private final String DATE_PLACEHOLDER = "dd/MM/yyyy";
     private final JTextField txtHoTen = new JTextField(15);
     private final JTextField txtNgaySinh = new JTextField(8);
@@ -65,28 +64,20 @@ public class ThemNhanVienDialog extends JDialog {
                 }
             }
         });
-        // --- BỐ CỤC 2 CỘT NHẬP LIỆU CHÍNH ---
-
-        // Hàng 0: Họ Tên | Ngày Sinh
         addComponent(mainPanel, new JLabel("Họ Tên:"), txtHoTen, gbc, 0, 0);
         addComponent(mainPanel, new JLabel("Ngày Sinh:"), txtNgaySinh, gbc, 0, 1);
 
-        // Hàng 1: Giới Tính | SĐT
         addComponent(mainPanel, new JLabel("Giới Tính:"), cmbGioiTinh, gbc, 1, 0);
         addComponent(mainPanel, new JLabel("SĐT:"), txtSdt, gbc, 1, 1);
 
-        // 🌟 SỬA: Hàng 2: Tên Tài khoản | Email
         addComponent(mainPanel, new JLabel("Tên Tài khoản:"), txtTenTK, gbc, 2, 0);
         addComponent(mainPanel, new JLabel("Email:"), txtEmail, gbc, 2, 1);
 
-        // 🌟 SỬA: Hàng 3: Mật khẩu | Vai Trò
         addComponent(mainPanel, new JLabel("Mật Khẩu Mặc Định:"), txtMatKhau, gbc, 3, 0);
         addComponent(mainPanel, new JLabel("Vai Trò:"), cmbVaiTro, gbc, 3, 1);
 
-        // Hàng 4: Lương (Đẩy xuống hàng 4 cột 0)
         addComponent(mainPanel, new JLabel("Lương:"), txtLuong, gbc, 4, 0);
 
-        // Hàng 5: Địa chỉ (Trải dài hết chiều ngang)
         gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 1; gbc.weightx = 0; mainPanel.add(new JLabel("Địa Chỉ:"), gbc);
         gbc.gridx = 1; gbc.gridy = 5; gbc.gridwidth = 3; gbc.weightx = 1.0;
         mainPanel.add(txtDiaChi, gbc);
@@ -107,7 +98,6 @@ public class ThemNhanVienDialog extends JDialog {
     }
 
     private void addComponent(JPanel panel, Component label, Component field, GridBagConstraints gbc, int row, int col) {
-        // Cài đặt cho Label (cột vật lý 0 hoặc 2)
         gbc.gridx = col * 2;
         gbc.gridy = row;
         gbc.anchor = GridBagConstraints.WEST;
@@ -115,7 +105,6 @@ public class ThemNhanVienDialog extends JDialog {
         gbc.gridwidth = 1;
         panel.add(label, gbc);
 
-        // Cài đặt cho Field (cột vật lý 1 hoặc 3)
         gbc.gridx = col * 2 + 1;
         gbc.gridy = row;
         gbc.anchor = GridBagConstraints.WEST;
@@ -125,13 +114,11 @@ public class ThemNhanVienDialog extends JDialog {
     }
 
     private String generateDefaultPassword() {
-        // Giữ nguyên logic mật khẩu mặc định
         return "123456";
     }
 
     private void themNhanVien() {
         try {
-            // 1. Lấy và Validate dữ liệu
             String hoTen = txtHoTen.getText().trim();
             LocalDate ngaySinh;
             try {
@@ -158,14 +145,11 @@ public class ThemNhanVienDialog extends JDialog {
                 JOptionPane.showMessageDialog(this, "Mật khẩu không được rỗng.", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            // 🌟 THÊM: Kiểm tra Email rỗng (Validation chi tiết sẽ được xử lý trong constructor NhanVien)
             if(email.isEmpty()){
                 JOptionPane.showMessageDialog(this, "Email không được rỗng.", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            // 2. Tạo đối tượng NhanVien (Validation xảy ra trong constructor)
-            // 🌟 SỬA: Gọi constructor mới, truyền thêm tham số email
             NhanVien nv = new NhanVien(
                     hoTen,
                     ngaySinh,
@@ -175,10 +159,9 @@ public class ThemNhanVienDialog extends JDialog {
                     LocalDate.now(),
                     luong,
                     vaiTro,
-                    email // 🌟 THÊM: Truyền Email
+                    email
             );
 
-            // 3. Thực hiện thêm nhân viên và tài khoản
             boolean success = nhanVienDAO.addNhanVienAndAccount(nv, tenTK, matKhau);
 
             if (success) {

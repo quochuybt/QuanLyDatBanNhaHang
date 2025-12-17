@@ -4,7 +4,6 @@ import java.time.LocalDate;
 import java.util.Objects;
 
 public class KhuyenMai {
-    // --- Giữ nguyên toàn bộ thuộc tính cũ ---
     private String maKM;
     private String tenChuongTrinh;
     private String moTa;
@@ -15,11 +14,9 @@ public class KhuyenMai {
     private LocalDate ngayKetThuc;
     private String trangThai;
 
-    // [THÊM MỚI] Thuộc tính bổ sung
-    private int soLuongGioiHan = 0; // Mặc định 0 (vô hạn)
-    private int soLuotDaDung = 0;   // Mặc định 0
+    private int soLuongGioiHan = 0;
+    private int soLuotDaDung = 0;
 
-    // --- [GIỮ NGUYÊN] Constructor Cũ (Không sửa gì cả) ---
     public KhuyenMai(String maKM, String tenChuongTrinh, String moTa, String loaiKhuyenMai,
                      double giaTri, double dieuKienApDung, LocalDate ngayBatDau, LocalDate ngayKetThuc, String trangThai) {
         this.maKM = maKM;
@@ -32,8 +29,6 @@ public class KhuyenMai {
         this.ngayKetThuc = ngayKetThuc;
         this.trangThai = trangThai;
     }
-
-    // --- [THÊM MỚI] Getter và Setter cho thuộc tính mới ---
     public int getSoLuongGioiHan() { return soLuongGioiHan; }
     public void setSoLuongGioiHan(int soLuongGioiHan) { this.soLuongGioiHan = soLuongGioiHan; }
 
@@ -45,13 +40,11 @@ public class KhuyenMai {
     public void setMaKM(String maKM) { this.maKM = maKM; }
 
     public String getTenChuongTrinh() { return tenChuongTrinh; }
-    public void setTenChuongTrinh(String tenChuongTrinh) { this.tenChuongTrinh = tenChuongTrinh; }
 
     public String getMoTa() { return moTa; }
     public String getLoaiKhuyenMai() { return loaiKhuyenMai; }
     public double getGiaTri() { return giaTri; }
     public double getDieuKienApDung() { return dieuKienApDung; }
-    public void setDieuKienApDung(double dieuKienApDung) { this.dieuKienApDung = dieuKienApDung; }
 
     public LocalDate getNgayBatDau() { return ngayBatDau; }
     public LocalDate getNgayKetThuc() { return ngayKetThuc; }

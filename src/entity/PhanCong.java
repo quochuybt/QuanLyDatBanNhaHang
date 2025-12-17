@@ -13,7 +13,6 @@ public class PhanCong {
         this.ngayLam = ngayLam;
     }
 
-    // Getters
     public CaLam getCaLam() {
         return caLam;
     }

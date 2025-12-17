@@ -25,4 +25,68 @@ public class DanhMucMonDAO {
         }
         return list;
     }
+
+    public boolean themDanhMuc(DanhMucMon dm) {
+        String sql = "INSERT INTO DanhMucMon (maDM, tenDM, moTa) VALUES (?, ?, ?)";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            // Tự động sinh mã nếu chưa có
+            if(dm.getMadm() == null || dm.getMadm().isEmpty()) {
+                dm.setMadm(generateNewMaDM());
+            }
+
+            ps.setString(1, dm.getMadm());
+            ps.setString(2, dm.getTendm());
+            ps.setString(3, dm.getMota());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean capNhatDanhMuc(DanhMucMon dm) {
+        String sql = "UPDATE DanhMucMon SET tenDM = ?, moTa = ? WHERE maDM = ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, dm.getTendm());
+            ps.setString(2, dm.getMota());
+            ps.setString(3, dm.getMadm());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean xoaDanhMuc(String maDM) {
+        // Lưu ý: Cần xử lý ràng buộc khóa ngoại bên SQL hoặc xóa món ăn thuộc danh mục này trước
+        String sql = "DELETE FROM DanhMucMon WHERE maDM = ?";
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, maDM);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // Hàm sinh mã tự động: DM0001, DM0002...
+    private String generateNewMaDM() {
+        String sql = "SELECT MAX(maDM) FROM DanhMucMon";
+        try (Connection conn = SQLConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                String maxID = rs.getString(1);
+                if (maxID != null) {
+                    int num = Integer.parseInt(maxID.replace("DM", ""));
+                    return String.format("DM%04d", num + 1);
+                }
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return "DM0001";
+    }
 }
