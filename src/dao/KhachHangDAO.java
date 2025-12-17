@@ -15,12 +15,8 @@ import java.util.List;
 
 public class KhachHangDAO {
 
-    /**
-     * [SELECT] - Lấy toàn bộ danh sách khách hàng từ CSDL
-     */
     public List<KhachHang> getAllKhachHang() {
         List<KhachHang> dsKhachHang = new ArrayList<>();
-        // Đảm bảo tên cột khớp với CSDL của bạn (Bảng: KhachHang)
         String sql = "SELECT maKH, tenKH, gioitinh, sdt, email, ngaySinh, diaChi, ngayThamGia, tongChiTieu, hangThanhVien FROM KhachHang";
 
         try (Connection conn = SQLConnection.getConnection();
@@ -34,13 +30,11 @@ public class KhachHangDAO {
                 String sdt = rs.getString("sdt");
                 String email = rs.getString("email");
 
-                // Xử lý các trường Date
                 LocalDate ngaySinh = (rs.getDate("ngaySinh") == null) ? null : rs.getDate("ngaySinh").toLocalDate();
                 String diaChi = rs.getString("diaChi");
                 LocalDate ngayThamGia = rs.getDate("ngayThamGia").toLocalDate();
 
                 float tongChiTieu = rs.getFloat("tongChiTieu");
-                // Chuyển String từ CSDL thành Enum
                 HangThanhVien hangTV = HangThanhVien.valueOf(rs.getString("hangThanhVien").toUpperCase());
 
                 KhachHang kh = new KhachHang(maKH, tenKH, gioitinh, sdt, ngaySinh, diaChi, email, ngayThamGia, tongChiTieu, hangTV);
@@ -52,11 +46,6 @@ public class KhachHangDAO {
         return dsKhachHang;
     }
 
-// --------------------------------------------------------------------------------------------------------------------------
-
-    /**
-     * [INSERT] - Thêm một khách hàng mới vào CSDL
-     */
     public boolean themKhachHang(KhachHang kh) {
         String sql = "INSERT INTO KhachHang (maKH, tenKH, gioitinh, sdt, email, ngaySinh, diaChi, ngayThamGia, tongChiTieu, hangThanhVien) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -85,14 +74,7 @@ public class KhachHangDAO {
         return false;
     }
 
-// --------------------------------------------------------------------------------------------------------------------------
-
-    /**
-     * [UPDATE] - Cập nhật thông tin khách hàng trong CSDL
-     */
     public boolean updateKhachHang(KhachHang kh) {
-        // Lưu ý: maKH, tongChiTieu, va hangThanhVien KHÔNG được sửa trực tiếp qua form,
-        // nhưng ta vẫn gửi chúng lên để đảm bảo tính toàn vẹn.
         String sql = "UPDATE KhachHang SET tenKH = ?, gioitinh = ?, sdt = ?, email = ?, ngaySinh = ?, diaChi = ?, " +
                 "ngayThamGia = ?, tongChiTieu = ?, hangThanhVien = ? WHERE maKH = ?";
 
@@ -117,11 +99,6 @@ public class KhachHangDAO {
         return false;
     }
 
-// --------------------------------------------------------------------------------------------------------------------------
-
-    /**
-     * [SEARCH] - Tìm kiếm khách hàng theo SDT hoặc Tên (ví dụ)
-     */
     public List<KhachHang> timKhachHang(String tuKhoa) {
         List<KhachHang> dsKetQua = new ArrayList<>();
         // Tìm kiếm theo tên hoặc số điện thoại
@@ -156,7 +133,6 @@ public class KhachHangDAO {
         return dsKetQua;
     }
     public KhachHang timTheoMaKH(String maKH) {
-        // Câu lệnh SQL tìm chính xác 1 người
         String sql = "SELECT * FROM KhachHang WHERE maKH = ?";
 
         try (Connection conn = SQLConnection.getConnection();
@@ -166,7 +142,6 @@ public class KhachHangDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    // (Copy logic từ hàm getAllKhachHang của bạn)
                     String tenKH = rs.getString("tenKH");
                     String gioitinh = rs.getString("gioitinh");
                     String sdt = rs.getString("sdt");
@@ -186,7 +161,6 @@ public class KhachHangDAO {
         return null;
     }
     public KhachHang timTheoSDT(String sdt) {
-        // Câu lệnh SQL tìm chính xác 1 người
         String sql = "SELECT * FROM KhachHang WHERE sdt = ?";
 
         try (Connection conn = SQLConnection.getConnection();

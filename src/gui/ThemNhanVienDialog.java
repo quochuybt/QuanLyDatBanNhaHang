@@ -52,14 +52,14 @@ public class ThemNhanVienDialog extends JDialog {
             public void focusGained(FocusEvent e) {
                 if (txtNgaySinh.getText().equals(DATE_PLACEHOLDER)) {
                     txtNgaySinh.setText("");
-                    txtNgaySinh.setForeground(Color.BLACK); // Màu nhập liệu thông thường
+                    txtNgaySinh.setForeground(Color.BLACK);
                 }
             }
 
             @Override
             public void focusLost(FocusEvent e) {
                 if (txtNgaySinh.getText().isEmpty()) {
-                    txtNgaySinh.setForeground(Color.GRAY); // Màu Placeholder
+                    txtNgaySinh.setForeground(Color.GRAY);
                     txtNgaySinh.setText(DATE_PLACEHOLDER);
                 }
             }

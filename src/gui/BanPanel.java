@@ -37,9 +37,9 @@
 
             String tenBanHienThi = ban.getTenBan();
 
-            String fontSizeStyle = "font-size:11px"; // Mặc định to
+            String fontSizeStyle = "font-size:11px";
             if (tenBanHienThi.length() > 10) {
-                fontSizeStyle = "font-size:8px"; // Chữ dài thì nhỏ lại xíu
+                fontSizeStyle = "font-size:8px";
             }
 
             String htmlText = "<html><div style='text-align: center; width: 85px; " + fontSizeStyle + "'>"
