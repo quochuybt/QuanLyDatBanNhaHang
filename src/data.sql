@@ -78,36 +78,35 @@ USE StarGuardianDB;
 GO
 
 INSERT INTO KhachHang (maKH, tenKH, gioiTinh, sdt, hangThanhVien, tongChiTieu, ngaySinh, diaChi, ngayThamGia, email) VALUES
-(N'KH20251025001', N'Khách vãng lai', N'Khác', '0900000000', N'NONE', 0.00, '1990-01-01', N'TP.HCM', '2025-01-01', N'vanglai@email.com'),
 (N'KH20251025002', N'Trần Văn Bảo', N'Nam', '0912345678', N'MEMBER', 0.00, '1995-05-15', N'123 Lê Lợi, Q1', '2025-02-10', N'bao.tran@email.com'),
-(N'KH20251025003', N'Nguyễn Thị Lan', N'Nữ', '0987654321', N'SILVER', 0.00, '1992-11-30', N'456 Hai Bà Trưng, Q3', '2025-03-11', N'lan.nguyen@email.com'),
-(N'KH20251025004', N'Lê Minh Hùng', N'Nam', '0933445566', N'DIAMOND', 0.00, '1988-02-10', N'789 Nguyễn Trãi, Q5', '2025-04-12', N'hung.le@email.com'),
-(N'KH20251025005', N'Phạm Hoàng Yến', N'Nữ', '0977889900', N'BRONZE', 0.00, '2000-07-22', N'321 CMT8, Q10', '2025-05-15', N'yen.pham@email.com'),
-(N'KH20251025006', N'Võ Thành Trung', N'Nam', '0905112233', N'GOLD', 0.00, '1990-01-20', N'Bình Dương', '2025-06-20', N'trung.vo@email.com'),
-(N'KH20251025007', N'Đặng Minh Tuấn', N'Nam', '0901234567', N'NONE', 0.00, '1998-03-12', N'15 Điện Biên Phủ, Q.Bình Thạnh', '2025-10-20', N'tuan.dang@email.com'),
-(N'KH20251025008', N'Bùi Thị Hương', N'Nữ', '0902345678', N'NONE', 0.00, '2001-08-25', N'22 Cách Mạng Tháng 8, Q.3', '2025-10-22', N'huong.bui@email.com'),
+(N'KH20251025003', N'Nguyễn Thị Lan', N'Nữ', '0987654321', N'MEMBER', 0.00, '1992-11-30', N'456 Hai Bà Trưng, Q3', '2025-03-11', N'lan.nguyen@email.com'),
+(N'KH20251025004', N'Lê Minh Hùng', N'Nam', '0933445566', N'MEMBER', 0.00, '1988-02-10', N'789 Nguyễn Trãi, Q5', '2025-04-12', N'hung.le@email.com'),
+(N'KH20251025005', N'Phạm Hoàng Yến', N'Nữ', '0977889900', N'MEMBER', 0.00, '2000-07-22', N'321 CMT8, Q10', '2025-05-15', N'yen.pham@email.com'),
+(N'KH20251025006', N'Võ Thành Trung', N'Nam', '0905112233', N'MEMBER', 0.00, '1990-01-20', N'Bình Dương', '2025-06-20', N'trung.vo@email.com'),
+(N'KH20251025007', N'Đặng Minh Tuấn', N'Nam', '0901234567', N'MEMBER', 0.00, '1998-03-12', N'15 Điện Biên Phủ, Q.Bình Thạnh', '2025-10-20', N'tuan.dang@email.com'),
+(N'KH20251025008', N'Bùi Thị Hương', N'Nữ', '0902345678', N'MEMBER', 0.00, '2001-08-25', N'22 Cách Mạng Tháng 8, Q.3', '2025-10-22', N'huong.bui@email.com'),
 (N'KH20251025009', N'Trương Văn Đức', N'Nam', '0903456789', N'MEMBER', 0.00, '1993-06-18', N'45 Lý Thường Kiệt, Q.Tân Bình', '2025-07-05', N'duc.truong@email.com'),
 (N'KH20251025010', N'Ngô Thị Mai', N'Nữ', '0904567890', N'MEMBER', 0.00, '1996-12-08', N'78 Nguyễn Thị Minh Khai, Q.1', '2025-07-15', N'mai.ngo@email.com'),
 (N'KH20251025011', N'Phan Minh Khôi', N'Nam', '0905678901', N'MEMBER', 0.00, '1999-04-30', N'12 Phan Xích Long, Q.Phú Nhuận', '2025-08-01', N'khoi.phan@email.com'),
-(N'KH20251025012', N'Hoàng Thị Thảo', N'Nữ', '0906789012', N'BRONZE', 0.00, '1994-09-14', N'56 Hoàng Văn Thụ, Q.Tân Bình', '2025-05-20', N'thao.hoang@email.com'),
-(N'KH20251025013', N'Vũ Quang Huy', N'Nam', '0907890123', N'BRONZE', 0.00, '1997-02-27', N'89 Trường Chinh, Q.12', '2025-06-10', N'huy.vu@email.com'),
-(N'KH20251025014', N'Đinh Thị Nga', N'Nữ', '0908901234', N'BRONZE', 0.00, '1991-11-03', N'34 Xô Viết Nghệ Tĩnh, Q.Bình Thạnh', '2025-06-25', N'nga.dinh@email.com'),
-(N'KH20251025015', N'Lý Văn Phong', N'Nam', '0909012345', N'SILVER', 0.00, '1989-07-19', N'67 Đinh Tiên Hoàng, Q.1', '2025-04-05', N'phong.ly@email.com'),
-(N'KH20251025016', N'Trịnh Thị Kim', N'Nữ', '0910123456', N'SILVER', 0.00, '1993-05-22', N'90 Nguyễn Đình Chiểu, Q.3', '2025-04-18', N'kim.trinh@email.com'),
-(N'KH20251025017', N'Đỗ Minh Tâm', N'Nam', '0911234567', N'SILVER', 0.00, '1996-10-11', N'23 Lê Văn Sỹ, Q.3', '2025-05-02', N'tam.do@email.com'),
-(N'KH20251025018', N'Chu Thị Hà', N'Nữ', '0912345679', N'GOLD', 0.00, '1990-03-08', N'45 Nam Kỳ Khởi Nghĩa, Q.1', '2025-03-15', N'ha.chu@email.com'),
-(N'KH20251025019', N'Mai Văn Long', N'Nam', '0913456780', N'GOLD', 0.00, '1987-12-25', N'78 Phan Đăng Lưu, Q.Phú Nhuận', '2025-03-28', N'long.mai@email.com'),
-(N'KH20251025020', N'Lâm Thị Phượng', N'Nữ', '0914567891', N'DIAMOND', 0.00, '1985-08-15', N'12 Tôn Đức Thắng, Q.1', '2025-02-05', N'phuong.lam@email.com'),
-(N'KH20251025021', N'Nguyễn Văn Hùng', N'Nam', '0911111111', N'NONE', 0.00, '1985-03-15', N'123 Nguyễn Văn Linh, Q7', '2025-10-01', N'hung.nguyen@email.com'),
-(N'KH20251025022', N'Trần Thị Mai', N'Nữ', '0912222222', N'NONE', 0.00, '1990-07-20', N'456 Lê Văn Việt, Q9', '2025-10-02', N'mai.tran@email.com'),
+(N'KH20251025012', N'Hoàng Thị Thảo', N'Nữ', '0906789012', N'MEMBER', 0.00, '1994-09-14', N'56 Hoàng Văn Thụ, Q.Tân Bình', '2025-05-20', N'thao.hoang@email.com'),
+(N'KH20251025013', N'Vũ Quang Huy', N'Nam', '0907890123', N'MEMBER', 0.00, '1997-02-27', N'89 Trường Chinh, Q.12', '2025-06-10', N'huy.vu@email.com'),
+(N'KH20251025014', N'Đinh Thị Nga', N'Nữ', '0908901234', N'MEMBER', 0.00, '1991-11-03', N'34 Xô Viết Nghệ Tĩnh, Q.Bình Thạnh', '2025-06-25', N'nga.dinh@email.com'),
+(N'KH20251025015', N'Lý Văn Phong', N'Nam', '0909012345', N'MEMBER', 0.00, '1989-07-19', N'67 Đinh Tiên Hoàng, Q.1', '2025-04-05', N'phong.ly@email.com'),
+(N'KH20251025016', N'Trịnh Thị Kim', N'Nữ', '0910123456', N'MEMBER', 0.00, '1993-05-22', N'90 Nguyễn Đình Chiểu, Q.3', '2025-04-18', N'kim.trinh@email.com'),
+(N'KH20251025017', N'Đỗ Minh Tâm', N'Nam', '0911234567', N'MEMBER', 0.00, '1996-10-11', N'23 Lê Văn Sỹ, Q.3', '2025-05-02', N'tam.do@email.com'),
+(N'KH20251025018', N'Chu Thị Hà', N'Nữ', '0912345679', N'MEMBER', 0.00, '1990-03-08', N'45 Nam Kỳ Khởi Nghĩa, Q.1', '2025-03-15', N'ha.chu@email.com'),
+(N'KH20251025019', N'Mai Văn Long', N'Nam', '0913456780', N'MEMBER', 0.00, '1987-12-25', N'78 Phan Đăng Lưu, Q.Phú Nhuận', '2025-03-28', N'long.mai@email.com'),
+(N'KH20251025020', N'Lâm Thị Phượng', N'Nữ', '0914567891', N'MEMBER', 0.00, '1985-08-15', N'12 Tôn Đức Thắng, Q.1', '2025-02-05', N'phuong.lam@email.com'),
+(N'KH20251025021', N'Nguyễn Văn Hùng', N'Nam', '0911111111', N'MEMBER', 0.00, '1985-03-15', N'123 Nguyễn Văn Linh, Q7', '2025-10-01', N'hung.nguyen@email.com'),
+(N'KH20251025022', N'Trần Thị Mai', N'Nữ', '0912222222', N'MEMBER', 0.00, '1990-07-20', N'456 Lê Văn Việt, Q9', '2025-10-02', N'mai.tran@email.com'),
 (N'KH20251025023', N'Lê Văn Nam', N'Nam', '0913333333', N'MEMBER', 0.00, '1992-05-10', N'789 Nguyễn Hữu Thọ, Q7', '2025-09-15', N'nam.le@email.com'),
 (N'KH20251025024', N'Phạm Thị Lan', N'Nữ', '0914444444', N'MEMBER', 0.00, '1995-11-25', N'321 Huỳnh Tấn Phát, Q7', '2025-09-20', N'lan.pham@email.com'),
-(N'KH20251025025', N'Hoàng Văn Tuấn', N'Nam', '0915555555', N'BRONZE', 0.00, '1988-08-12', N'654 Nguyễn Văn Linh, Q7', '2025-08-10', N'tuan.hoang@email.com'),
-(N'KH20251025026', N'Vũ Thị Hương', N'Nữ', '0916666666', N'BRONZE', 0.00, '1993-02-18', N'987 Nguyễn Thị Thập, Q7', '2025-08-15', N'huong.vu@email.com'),
-(N'KH20251025027', N'Đặng Văn Bình', N'Nam', '0917777777', N'SILVER', 0.00, '1986-12-05', N'147 Nguyễn Văn Quỳ, Q7', '2025-07-01', N'binh.dang@email.com'),
-(N'KH20251025028', N'Bùi Thị Ngọc', N'Nữ', '0918888888', N'SILVER', 0.00, '1991-04-30', N'258 Nguyễn Văn Linh, Q7', '2025-07-05', N'ngoc.bui@email.com'),
-(N'KH20251025029', N'Đỗ Văn Long', N'Nam', '0919999999', N'GOLD', 0.00, '1984-09-22', N'369 Nguyễn Hữu Thọ, Q7', '2025-06-01', N'long.do@email.com'),
-(N'KH20251025030', N'Lý Thị Thu', N'Nữ', '0920000000', N'GOLD', 0.00, '1989-01-14', N'472 Lê Văn Việt, Q9', '2025-06-05', N'thu.ly@email.com');
+(N'KH20251025025', N'Hoàng Văn Tuấn', N'Nam', '0915555555', N'MEMBER', 0.00, '1988-08-12', N'654 Nguyễn Văn Linh, Q7', '2025-08-10', N'tuan.hoang@email.com'),
+(N'KH20251025026', N'Vũ Thị Hương', N'Nữ', '0916666666', N'MEMBER', 0.00, '1993-02-18', N'987 Nguyễn Thị Thập, Q7', '2025-08-15', N'huong.vu@email.com'),
+(N'KH20251025027', N'Đặng Văn Bình', N'Nam', '0917777777', N'MEMBER', 0.00, '1986-12-05', N'147 Nguyễn Văn Quỳ, Q7', '2025-07-01', N'binh.dang@email.com'),
+(N'KH20251025028', N'Bùi Thị Ngọc', N'Nữ', '0918888888', N'MEMBER', 0.00, '1991-04-30', N'258 Nguyễn Văn Linh, Q7', '2025-07-05', N'ngoc.bui@email.com'),
+(N'KH20251025029', N'Đỗ Văn Long', N'Nam', '0919999999', N'MEMBER', 0.00, '1984-09-22', N'369 Nguyễn Hữu Thọ, Q7', '2025-06-01', N'long.do@email.com'),
+(N'KH20251025030', N'Lý Thị Thu', N'Nữ', '0920000000', N'MEMBER', 0.00, '1989-01-14', N'472 Lê Văn Việt, Q9', '2025-06-05', N'thu.ly@email.com');
 GO
 
 INSERT INTO PhanCongCa (maNV, maCa, ngayLam) VALUES
@@ -1220,7 +1219,7 @@ INSERT INTO HoaDon (maHD, ngayLap, tongTien, trangThai, hinhThucThanhToan, tienK
 (N'HD2512221310', '2025-12-22 21:00:00', 80000.00, N'Đã thanh toán', N'Tiền mặt', 80000.00, N'NV01104', NULL, N'DON1310'),
 (N'HD2512221311', '2025-12-22 22:00:00', 140000.00, N'Đã thanh toán', N'Chuyển khoản', 140000.00, N'NV01103', NULL, N'DON1311');
 GO
-INSERT INTO LichSuGiaoCa (maNV, thoiGianBatDau, thoiGianKetThuc, tienDauCa, tienCuoiCa, tienHeThongTinh, chenhLech, ghiChu) VALUES
+INSERT INTO GiaoCa (maNV, thoiGianBatDau, thoiGianKetThuc, tienDauCa, tienCuoiCa, tienHeThongTinh, chenhLech, ghiChu) VALUES
 
 (N'NV01102', '2025-11-01 06:08:45', '2025-11-01 14:04:12', 1500000.00, 1585000.00, 85000.00, 0.00, N'Khớp số đầu tiên trong tháng.'), 
 (N'NV01103', '2025-11-01 05:51:22', '2025-11-01 13:54:55', 1200000.00, 1306500.00, 105000.00, 1500.00, N'Thừa quỹ 1,500 VNĐ.'), 
@@ -1532,4 +1531,25 @@ INSERT INTO LichSuGiaoCa (maNV, thoiGianBatDau, thoiGianKetThuc, tienDauCa, tien
 (N'NV01103', '2025-12-22 05:50:50', '2025-12-22 13:54:19', 1900000.00, 2025000.00, 125000.00, 0.00, N'Khớp số.'),
 (N'NV01104', '2025-12-22 14:00:40', '2025-12-22 22:08:45', 1750000.00, 2151000.00, 400000.00, 1000.00, N'Thừa quỹ 1,000 VNĐ.'),
 (N'NV01105', '2025-12-22 18:05:55', '2025-12-22 21:51:30', 1000000.00, 1050000.00, 50000.00, 0.00, N'Khớp số ca part-time.');
+GO
+
+UPDATE KhachHang
+SET tongChiTieu = (
+    SELECT ISNULL(SUM(hd.tongTien), 0)
+    FROM HoaDon hd
+    INNER JOIN DonDatMon ddm ON hd.maDon = ddm.maDon
+    WHERE ddm.maKH = KhachHang.maKH
+    AND hd.trangThai = N'Đã thanh toán'
+);
+GO
+
+UPDATE KhachHang
+SET hangThanhVien = CASE
+    WHEN tongChiTieu >= 50000000 THEN N'DIAMOND'
+    WHEN tongChiTieu >= 25000000 THEN N'GOLD'
+    WHEN tongChiTieu >= 10000000 THEN N'SILVER'
+    WHEN tongChiTieu >= 5000000  THEN N'BRONZE'
+    ELSE N'MEMBER'
+END
+WHERE hangThanhVien <> N'NONE';
 GO

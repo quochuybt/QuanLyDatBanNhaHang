@@ -17,7 +17,7 @@ public class GiaoCaDAO {
             return -1;
         }
 
-        String sql = "SELECT TOP 1 maGiaoCa FROM LichSuGiaoCa " +
+        String sql = "SELECT TOP 1 maGiaoCa FROM GiaoCa " +
                 "WHERE maNV = ? AND thoiGianKetThuc IS NULL " +
                 "ORDER BY thoiGianBatDau DESC";
 
@@ -54,7 +54,7 @@ public class GiaoCaDAO {
             return false;
         }
 
-        String sql = "INSERT INTO LichSuGiaoCa (maNV, thoiGianBatDau, tienDauCa) " +
+        String sql = "INSERT INTO GiaoCa (maNV, thoiGianBatDau, tienDauCa) " +
                 "VALUES (?, GETDATE(), ?)";
 
         try (Connection conn = SQLConnection.getConnection();
@@ -80,7 +80,7 @@ public class GiaoCaDAO {
             return null;
         }
 
-        String sql = "SELECT TOP 1 * FROM LichSuGiaoCa " +
+        String sql = "SELECT TOP 1 * FROM GiaoCa " +
                 "WHERE maNV = ? AND thoiGianKetThuc IS NULL " +
                 "ORDER BY thoiGianBatDau DESC";
 
@@ -123,7 +123,7 @@ public class GiaoCaDAO {
             conn = SQLConnection.getConnection();
             conn.setAutoCommit(false);
 
-            String sqlGetInfo = "SELECT maNV, thoiGianBatDau, tienDauCa FROM LichSuGiaoCa WHERE maGiaoCa = ?";
+            String sqlGetInfo = "SELECT maNV, thoiGianBatDau, tienDauCa FROM GiaoCa WHERE maGiaoCa = ?";
             String maNV = null;
             LocalDateTime thoiGianBatDau = null;
             double tienDauCa = 0;
@@ -163,7 +163,7 @@ public class GiaoCaDAO {
 
             double chenhLech = tienCuoiCa - tienDauCa - tienHeThong;
 
-            String sqlUpdate = "UPDATE LichSuGiaoCa SET " +
+            String sqlUpdate = "UPDATE GiaoCa SET " +
                     "thoiGianKetThuc = GETDATE(), " +
                     "tienCuoiCa = ?, " +
                     "tienHeThongTinh = ?, " +
@@ -212,51 +212,6 @@ public class GiaoCaDAO {
         }
     }
 
-    public List<GiaoCa> getLichSuGiaoCa(String maNV, int limit) {
-        List<GiaoCa> list = new ArrayList<>();
-
-        if (maNV == null || maNV.trim().isEmpty()) {
-            return list;
-        }
-
-        String sql = "SELECT TOP (?) * FROM LichSuGiaoCa " +
-                "WHERE maNV = ? " +
-                "ORDER BY thoiGianBatDau DESC";
-
-        try (Connection conn = SQLConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, limit);
-            ps.setString(2, maNV);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    GiaoCa gc = new GiaoCa(
-                            rs.getInt("maGiaoCa"),
-                            rs.getString("maNV"),
-                            rs.getTimestamp("thoiGianBatDau").toLocalDateTime(),
-                            rs.getDouble("tienDauCa")
-                    );
-
-                    Timestamp ketThuc = rs.getTimestamp("thoiGianKetThuc");
-                    if (ketThuc != null) {
-                        gc.setThoiGianKetThuc(ketThuc.toLocalDateTime());
-                    }
-
-                    gc.setTienCuoiCa(rs.getDouble("tienCuoiCa"));
-                    gc.setTienHeThongTinh(rs.getDouble("tienHeThongTinh"));
-                    gc.setGhiChu(rs.getString("ghiChu"));
-
-                    list.add(gc);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi getLichSuGiaoCa: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return list;
-    }
-
     public double getTongGioLamTheoThang(String maNV, java.time.LocalDate startOfMonth) {
         if (maNV == null || maNV.trim().isEmpty() || startOfMonth == null) {
             return 0;
@@ -264,7 +219,7 @@ public class GiaoCaDAO {
 
         String sql = "SELECT ISNULL(SUM(DATEDIFF(MINUTE, thoiGianBatDau, " +
                 "CASE WHEN thoiGianKetThuc IS NULL THEN GETDATE() ELSE thoiGianKetThuc END)), 0) AS TongPhut " +
-                "FROM LichSuGiaoCa " +
+                "FROM GiaoCa " +
                 "WHERE maNV = ? " +
                 "AND MONTH(thoiGianBatDau) = ? " +
                 "AND YEAR(thoiGianBatDau) = ? " +
@@ -297,11 +252,11 @@ public class GiaoCaDAO {
 
         String sql = "SELECT ISNULL(SUM(DATEDIFF(MINUTE, thoiGianBatDau, " +
                 "CASE WHEN thoiGianKetThuc IS NULL THEN GETDATE() ELSE thoiGianKetThuc END)), 0) AS TongPhut " +
-                "FROM LichSuGiaoCa " +
+                "FROM GiaoCa " +
                 "WHERE maNV = ? " +
                 "AND CAST(thoiGianBatDau AS DATE) >= ? " +
                 "AND CAST(thoiGianBatDau AS DATE) < DATEADD(DAY, 7, ?) " +
-                "AND thoiGianBatDau <= GETDATE()"; // Chặn lỗi dữ liệu tương lai
+                "AND thoiGianBatDau <= GETDATE()";
 
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -323,37 +278,10 @@ public class GiaoCaDAO {
         return 0;
     }
 
-    public List<Map<String, Object>> get3CaLamGanNhat(String maNV) {
-        List<Map<String, Object>> list = new ArrayList<>();
-        if (maNV == null) return list;
-
-        String sql = "SELECT TOP 3 maGiaoCa, thoiGianBatDau, thoiGianKetThuc, chenhLech, " +
-                "DATEDIFF(MINUTE, thoiGianBatDau, thoiGianKetThuc) / 60.0 AS GioLam " +
-                "FROM LichSuGiaoCa " +
-                "WHERE maNV = ? AND thoiGianKetThuc IS NOT NULL " +
-                "AND thoiGianBatDau <= GETDATE() " +
-                "ORDER BY thoiGianBatDau DESC";
-
-        try (Connection conn = SQLConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, maNV);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                Map<String, Object> map = new java.util.HashMap<>();
-                map.put("ngay", rs.getTimestamp("thoiGianBatDau").toLocalDateTime());
-                map.put("gioLam", rs.getDouble("GioLam"));
-                map.put("chenhLech", rs.getDouble("chenhLech"));
-                list.add(map);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return list;
-    }
     public List<String> getNhanVienDangLamViecChiTiet() {
         List<String> list = new ArrayList<>();
         String sql = "SELECT nv.hoTen, cl.tenCa, cl.gioBatDau, cl.gioKetThuc " +
-                "FROM LichSuGiaoCa ls " +
+                "FROM GiaoCa ls " +
                 "JOIN NhanVien nv ON ls.maNV = nv.maNV " +
                 "LEFT JOIN PhanCongCa pc ON ls.maNV = pc.maNV AND pc.ngayLam = CAST(GETDATE() AS DATE) " +
                 "LEFT JOIN CaLam cl ON pc.maCa = cl.maCa " +
@@ -371,7 +299,6 @@ public class GiaoCaDAO {
                 Time end = rs.getTime("gioKetThuc");
 
                 if (tenCa != null && start != null && end != null) {
-                    // Format: Nguyễn Văn A (Ca Sáng: 06:00 - 14:00)
                     String timeStr = start.toString().substring(0, 5) + " - " + end.toString().substring(0, 5);
                     list.add(String.format("%s (%s: %s)", tenNV, tenCa, timeStr));
                 } else {
@@ -394,7 +321,7 @@ public class GiaoCaDAO {
                 "        WHEN ls.thoiGianKetThuc > GETDATE() THEN GETDATE() " +
                 "        ELSE ls.thoiGianKetThuc " +
                 "    END)) / 60.0 AS TongGio " +
-                "FROM LichSuGiaoCa ls " +
+                "FROM GiaoCa ls " +
                 "JOIN NhanVien nv ON ls.maNV = nv.maNV " +
                 "WHERE ls.thoiGianBatDau >= ? " +
                 "AND ls.thoiGianBatDau < ? " +
@@ -418,7 +345,6 @@ public class GiaoCaDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     double hours = rs.getDouble("TongGio");
-                    // [AN TOÀN] Double-check không âm
                     if (hours > 0) {
                         result.put(rs.getString("hoTen"), hours);
                     }
@@ -430,31 +356,7 @@ public class GiaoCaDAO {
         }
         return result;
     }
-    public List<String> getNhanVienDangLamViec() {
-        List<String> list = new ArrayList<>();
-        String sql = "SELECT nv.hoTen, cl.tenCa " +
-                "FROM LichSuGiaoCa ls " +
-                "JOIN NhanVien nv ON ls.maNV = nv.maNV " +
-                "LEFT JOIN PhanCongCa pc ON ls.maNV = pc.maNV AND CAST(ls.thoiGianBatDau AS DATE) = pc.ngayLam " +
-                "LEFT JOIN CaLam cl ON pc.maCa = cl.maCa " +
-                "WHERE ls.thoiGianKetThuc IS NULL " +
-                "ORDER BY ls.thoiGianBatDau DESC";
 
-        try (Connection conn = SQLConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                String tenNV = rs.getString("hoTen");
-                String tenCa = rs.getString("tenCa");
-                if (tenCa == null) tenCa = "Ca bổ sung";
-                list.add(tenNV + " (" + tenCa + ")");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return list;
-    }
     public Map<String, Double> getGioLamTheoNgay(String maNV, int soNgay) {
         Map<String, Double> data = new LinkedHashMap<>();
 
@@ -472,7 +374,7 @@ public class GiaoCaDAO {
 
         String sql = "SELECT CAST(thoiGianBatDau AS DATE) AS Ngay, " +
                 "SUM(DATEDIFF(MINUTE, thoiGianBatDau, ISNULL(thoiGianKetThuc, GETDATE()))) / 60.0 AS GioLam " +
-                "FROM LichSuGiaoCa " +
+                "FROM GiaoCa " +
                 "WHERE maNV = ? " +
                 "AND thoiGianBatDau >= DATEADD(DAY, -?, CAST(GETDATE() AS DATE)) " +
                 "AND thoiGianBatDau <= GETDATE() " +
@@ -542,108 +444,9 @@ public class GiaoCaDAO {
         return list;
     }
 
-    public double getTongGioLamTheoKhoangThoiGian(String maNV, java.time.LocalDate tuNgay, java.time.LocalDate denNgay) {
-        if (maNV == null || maNV.trim().isEmpty() || tuNgay == null || denNgay == null) {
-            return 0;
-        }
-
-        String sql = "SELECT ISNULL(SUM(DATEDIFF(MINUTE, thoiGianBatDau, " +
-                "ISNULL(thoiGianKetThuc, GETDATE()))), 0) AS TongPhut " +
-                "FROM LichSuGiaoCa " +
-                "WHERE maNV = ? " +
-                "AND CAST(thoiGianBatDau AS DATE) >= ? " +
-                "AND CAST(thoiGianBatDau AS DATE) <= ?";
-
-        try (Connection conn = SQLConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, maNV);
-            ps.setDate(2, java.sql.Date.valueOf(tuNgay));
-            ps.setDate(3, java.sql.Date.valueOf(denNgay));
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    double totalMinutes = rs.getDouble("TongPhut");
-                    return totalMinutes / 60.0;
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi getTongGioLamTheoKhoangThoiGian: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return 0;
-    }
-
-    public List<Map<String, Object>> getLichSuGiaoCaChiTiet(String maNV, java.time.LocalDate start, java.time.LocalDate end) {
-        List<Map<String, Object>> list = new ArrayList<>();
-
-        if (maNV == null || maNV.trim().isEmpty()) {
-            return list;
-        }
-
-        String sql = "SELECT * FROM LichSuGiaoCa " +
-                "WHERE maNV = ? " +
-                "AND CAST(thoiGianBatDau AS DATE) >= ? " +
-                "AND CAST(thoiGianBatDau AS DATE) <= ? " +
-                "ORDER BY thoiGianBatDau DESC";
-
-        try (Connection conn = SQLConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, maNV);
-            ps.setDate(2, java.sql.Date.valueOf(start));
-            ps.setDate(3, java.sql.Date.valueOf(end));
-
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    Map<String, Object> row = new java.util.HashMap<>();
-
-                    Timestamp tsStart = rs.getTimestamp("thoiGianBatDau");
-                    Timestamp tsEnd = rs.getTimestamp("thoiGianKetThuc");
-
-                    row.put("maGiaoCa", rs.getInt("maGiaoCa"));
-                    row.put("thoiGianBatDau", tsStart != null ? tsStart.toLocalDateTime() : null);
-                    row.put("thoiGianKetThuc", tsEnd != null ? tsEnd.toLocalDateTime() : null);
-                    row.put("tienDauCa", rs.getDouble("tienDauCa"));
-
-                    double tienCuoi = rs.getDouble("tienCuoiCa");
-                    row.put("tienCuoiCa", rs.wasNull() ? null : tienCuoi);
-
-                    double tienHeThong = rs.getDouble("tienHeThongTinh");
-                    row.put("tienHeThongTinh", rs.wasNull() ? null : tienHeThong);
-
-                    double chenhLech = rs.getDouble("chenhLech");
-                    row.put("chenhLech", rs.wasNull() ? null : chenhLech);
-
-                    row.put("ghiChu", rs.getString("ghiChu"));
-
-                    if (tsStart != null) {
-                        int hour = tsStart.toLocalDateTime().getHour();
-                        String tenCa = (hour >= 6 && hour < 14) ? "Ca Sáng" :
-                                (hour >= 14 && hour < 18) ? "Ca Chiều" : "Ca Tối";
-                        row.put("tenCa", tenCa);
-                    } else {
-                        row.put("tenCa", "N/A");
-                    }
-
-                    list.add(row);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi getLichSuGiaoCaChiTiet: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return list;
-    }
-
-    public double getTongGioLamTheoKhoang(String maNV, java.time.LocalDate start, java.time.LocalDate end) {
-        return getTongGioLamTheoKhoangThoiGian(maNV, start, end);
-    }
-
-
-    public java.util.List<entity.LichSuGiaoCa> getLichSuGiaoCa(java.time.LocalDate tuNgay, java.time.LocalDate denNgay) {
-        java.util.List<entity.LichSuGiaoCa> list = new java.util.ArrayList<>();
-        String sql = "SELECT * FROM LichSuGiaoCa WHERE CAST(thoiGianBatDau AS DATE) BETWEEN ? AND ? ORDER BY thoiGianBatDau DESC";
+    public java.util.List<entity.GiaoCa> getLichSuGiaoCa(java.time.LocalDate tuNgay, java.time.LocalDate denNgay) {
+        java.util.List<entity.GiaoCa> list = new java.util.ArrayList<>();
+        String sql = "SELECT * FROM GiaoCa WHERE CAST(thoiGianBatDau AS DATE) BETWEEN ? AND ? ORDER BY thoiGianBatDau DESC";
 
         try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
              java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -656,8 +459,8 @@ public class GiaoCaDAO {
                     java.time.LocalDateTime kt = rs.getTimestamp("thoiGianKetThuc") != null ?
                             rs.getTimestamp("thoiGianKetThuc").toLocalDateTime() : null;
 
-                    list.add(new entity.LichSuGiaoCa(
-                            rs.getString("maGiaoCa"),
+                    list.add(new entity.GiaoCa(
+                            rs.getInt("maGiaoCa"),
                             rs.getString("maNV"),
                             rs.getTimestamp("thoiGianBatDau").toLocalDateTime(),
                             kt,

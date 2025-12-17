@@ -5,7 +5,7 @@ import dao.BanDAO;
 import dao.ChiTietHoaDonDAO;
 import dao.GiaoCaDAO;
 import dao.HoaDonDAO;
-import entity.LichSuGiaoCa;
+import entity.GiaoCa;
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.markers.SeriesMarkers;
 
@@ -46,7 +46,7 @@ public class DashboardQuanLyGUI extends JPanel {
     private JDateChooser dateChooserStart;
     private JDateChooser dateChooserEnd;
     private JButton btnRefreshData;
-    private JButton btnLichSuGiaoCa; // Nút mới
+    private JButton btnLichSuGiaoCa;
 
     private JPanel pnlRevenueChart;
     private JLabel lblTotalRevenue, lblOrderCount, lblAvgOrderValue;
@@ -137,7 +137,7 @@ public class DashboardQuanLyGUI extends JPanel {
         headerPanel.add(btnRefreshData);
 
         btnLichSuGiaoCa = new JButton("Lịch sử giao ca");
-        styleButton(btnLichSuGiaoCa, new Color(40, 167, 69)); // Màu xanh lá
+        styleButton(btnLichSuGiaoCa, new Color(40, 167, 69));
         btnLichSuGiaoCa.addActionListener(e -> showLichSuGiaoCaDialog());
         headerPanel.add(btnLichSuGiaoCa);
 
@@ -164,10 +164,10 @@ public class DashboardQuanLyGUI extends JPanel {
         LocalDate from = sDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
         LocalDate to = eDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 
-        List<LichSuGiaoCa> historyList = giaoCaDAO.getLichSuGiaoCa(from, to);
+        List<GiaoCa> historyList = giaoCaDAO.getLichSuGiaoCa(from, to);
 
         JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Lịch sử giao ca", Dialog.ModalityType.APPLICATION_MODAL);
-        dialog.setSize(1000, 600);
+        dialog.setSize(1100, 600);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout());
 
@@ -177,17 +177,17 @@ public class DashboardQuanLyGUI extends JPanel {
             public boolean isCellEditable(int row, int column) { return false; }
         };
 
-        for (LichSuGiaoCa ls : historyList) {
+        for (GiaoCa gc : historyList) {
             model.addRow(new Object[]{
-                    ls.getMaGiaoCa(),
-                    ls.getMaNV(),
-                    ls.getThoiGianBatDau().format(dateTimeFormatter),
-                    ls.getThoiGianKetThuc() != null ? ls.getThoiGianKetThuc().format(dateTimeFormatter) : "Chưa kết thúc",
-                    currencyFormatter.format(ls.getTienDauCa()),
-                    currencyFormatter.format(ls.getTienCuoiCa()),
-                    currencyFormatter.format(ls.getTienHeThongTinh()),
-                    currencyFormatter.format(ls.getChenhLech()),
-                    ls.getGhiChu()
+                    gc.getMaGiaoCa(),
+                    gc.getMaNV(),
+                    gc.getThoiGianBatDau().format(dateTimeFormatter),
+                    gc.getThoiGianKetThuc() != null ? gc.getThoiGianKetThuc().format(dateTimeFormatter) : "Chưa kết thúc",
+                    currencyFormatter.format(gc.getTienDauCa()),
+                    currencyFormatter.format(gc.getTienCuoiCa()),
+                    currencyFormatter.format(gc.getTienHeThongTinh()),
+                    currencyFormatter.format(gc.getChenhLech()),
+                    gc.getGhiChu()
             });
         }
 
@@ -220,10 +220,10 @@ public class DashboardQuanLyGUI extends JPanel {
             }
         });
 
-        table.getColumnModel().getColumn(0).setPreferredWidth(50); // Mã GC
-        table.getColumnModel().getColumn(2).setPreferredWidth(130); // Bắt đầu
-        table.getColumnModel().getColumn(3).setPreferredWidth(130); // Kết thúc
-        table.getColumnModel().getColumn(8).setPreferredWidth(200); // Ghi chú
+        table.getColumnModel().getColumn(0).setPreferredWidth(50);
+        table.getColumnModel().getColumn(2).setPreferredWidth(130);
+        table.getColumnModel().getColumn(3).setPreferredWidth(130);
+        table.getColumnModel().getColumn(8).setPreferredWidth(250);
 
         dialog.add(new JScrollPane(table), BorderLayout.CENTER);
 
@@ -323,7 +323,7 @@ public class DashboardQuanLyGUI extends JPanel {
         sectionPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
 
         sectionPanel.add(createTopItemsTabbedPane());
-        sectionPanel.add(createStaffChartPanel()); // Chart nhân viên chăm chỉ
+        sectionPanel.add(createStaffChartPanel());
 
         return sectionPanel;
     }
@@ -639,7 +639,7 @@ public class DashboardQuanLyGUI extends JPanel {
         }
 
         public void setMaxCount(int max) {
-            this.maxCount = Math.max(1, max); // Tránh chia cho 0
+            this.maxCount = Math.max(1, max);
         }
 
         @Override
