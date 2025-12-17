@@ -1,6 +1,5 @@
 package dao;
 
-// ⭐️ CHUẨN HÓA SANG JAKARTA MAIL
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
@@ -16,7 +15,6 @@ public class MailService {
         props.put("mail.smtp.host", MailConfig.SMTP_HOST);
         props.put("mail.smtp.port", MailConfig.SMTP_PORT);
 
-        // ⭐️ Sử dụng Jakarta.mail.Session
         Session session = Session.getInstance(props, new Authenticator() {
             @Override
             // ⭐️ Sử dụng Jakarta.mail.PasswordAuthentication
@@ -26,9 +24,7 @@ public class MailService {
         });
 
         try {
-            // ⭐️ Sử dụng Jakarta.mail.internet.MimeMessage
             Message message = new MimeMessage(session);
-            // ⭐️ Sử dụng Jakarta.mail.internet.InternetAddress
             message.setFrom(new InternetAddress(MailConfig.EMAIL_USERNAME));
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail));
             message.setSubject(subject);
@@ -45,13 +41,10 @@ public class MailService {
                     + "</html>";
 
             message.setContent(htmlContent, "text/html; charset=UTF-8");
-
-            // ⭐️ Sử dụng Jakarta.mail.Transport
             Transport.send(message);
             return true;
 
         } catch (MessagingException e) {
-            System.err.println("Lỗi gửi Email: " + e.getMessage());
             e.printStackTrace();
             return false;
         }

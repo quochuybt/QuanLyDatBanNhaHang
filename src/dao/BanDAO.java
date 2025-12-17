@@ -13,25 +13,13 @@ import java.util.Map; // Thêm import này
 
 public class BanDAO {
 
-    /**
-     * Chuyển đổi chuỗi trạng thái từ CSDL (ví dụ: "Đang có khách")
-     * sang kiểu Enum (TrangThaiBan.DANG_PHUC_VU).
-     */
     private TrangThaiBan convertStringToTrangThai(String trangThaiDB) {
-        // 1. Nếu null -> Trống
         if (trangThaiDB == null) {
             return TrangThaiBan.TRONG;
         }
-
-        // 2. Cắt khoảng trắng thừa
-        String original = trangThaiDB; // Lưu lại để debug
+        String original = trangThaiDB;
         trangThaiDB = trangThaiDB.trim();
 
-        // 3. DEBUG: In ra xem Java thực sự đọc được cái gì
-        // (Sau khi chạy ngon thì bạn có thể comment dòng này lại)
-        // System.out.println("DEBUG DAO: Đọc từ DB: '" + original + "' -> Trim: '" + trangThaiDB + "'");
-
-        // 4. So sánh mềm dẻo (equalsIgnoreCase) thay vì switch-case
         if (trangThaiDB.equalsIgnoreCase("Đang có khách") ||
                 trangThaiDB.equalsIgnoreCase("Đang phục vụ") ||
                 trangThaiDB.equalsIgnoreCase("Có người")) {
@@ -44,12 +32,10 @@ public class BanDAO {
             return TrangThaiBan.DA_DAT_TRUOC;
         }
 
-        // 5. Kiểm tra trường hợp đặc biệt (nếu CSDL lưu không dấu hoặc lỗi font)
+        // 5. Kiểm tra trường hợp đặc biệt
         else if (trangThaiDB.contains("t tr") || trangThaiDB.contains("at truoc")) {
-            // Mẹo: Nếu chuỗi chứa cụm từ đặc trưng cũng cho là Đặt trước
             return TrangThaiBan.DA_DAT_TRUOC;
         }
-
         return TrangThaiBan.TRONG;
     }
     public boolean updateBan(Ban ban) {
@@ -111,7 +97,6 @@ public class BanDAO {
             String sqlUpdateLink = "UPDATE DonDatMon SET ghiChu = REPLACE(ghiChu, ?, ?) " +
                     "WHERE maBan != ? AND trangThai = N'Chưa thanh toán' AND ghiChu LIKE ?";
 
-            // Dùng try-with-resources nhỏ ở đây để tự đóng PreparedStatement này cho gọn
             try (java.sql.PreparedStatement psLink = conn.prepareStatement(sqlUpdateLink)) {
                 String oldTag = "LINKED:" + banCu.getMaBan(); // VD: LINKED:BAN09
                 String newTag = "LINKED:" + banMoi.getMaBan(); // VD: LINKED:BAN01
@@ -124,22 +109,15 @@ public class BanDAO {
                 psLink.executeUpdate();
             }
 
-            // --- BƯỚC 1: Chuyển Đơn Đặt Món ---
             psUpdateDon = conn.prepareStatement(sqlUpdateDon);
             psUpdateDon.setString(1, banMoi.getMaBan());
             psUpdateDon.setString(2, banCu.getMaBan());
             int donAffected = psUpdateDon.executeUpdate();
-            System.out.println("Đã chuyển đơn: " + donAffected + " dòng.");
-
-            // --- BƯỚC 2: Cập nhật trạng thái Bàn Mới ---
-            // SỬA LỖI Ở ĐÂY: Chuyển Enum sang Chuỗi Tiếng Việt chuẩn của CSDL
             String trangThaiTiengViet = "Đang có khách"; // Mặc định
             if (banCu.getTrangThai() == entity.TrangThaiBan.DA_DAT_TRUOC) {
                 trangThaiTiengViet = "Đã đặt trước";
             } else if (banCu.getTrangThai() == entity.TrangThaiBan.DANG_PHUC_VU) {
-                // Kiểm tra lại trong CSDL của bạn dùng "Đang phục vụ" hay "Đang có khách"
-                // Theo script insert trước đó của bạn là "Đang có khách", nhưng chuẩn thường là "Đang phục vụ"
-                // Hãy dùng chuỗi mà các hàm load dữ liệu khác đang dùng. Tôi dùng "Đang phục vụ" (hoặc "Đang có khách")
+                // Kiểm tra lại Đang phục vụ hay Đang có khách
                 trangThaiTiengViet = "Đang có khách";
             }
 
@@ -156,7 +134,7 @@ public class BanDAO {
             psUpdateBanMoi.setString(3, banMoi.getMaBan());
             psUpdateBanMoi.executeUpdate();
 
-            // --- BƯỚC 3: Cập nhật trạng thái Bàn Cũ ---
+            //trạng thái Bàn Cũ
             psUpdateBanCu = conn.prepareStatement(sqlUpdateBanCu);
             psUpdateBanCu.setString(1, banCu.getMaBan());
             psUpdateBanCu.executeUpdate();
@@ -195,8 +173,8 @@ public class BanDAO {
         try {
             conn = connectDB.SQLConnection.getConnection();
 
-            // 1. Kiểm tra xem bàn này là Bàn Phụ (Slave) hay Bàn Chính (Master)?
-            // Tìm xem bàn này có đang trỏ tới ai không?
+            // xem bàn này là Bàn Phụ  hay Bàn Chính
+            // xem bàn này có nguời không
             String sqlCheckSlave = "SELECT ghiChu FROM DonDatMon WHERE maBan = ? AND trangThai = N'Chưa thanh toán' AND ghiChu LIKE '%LINKED:%'";
             String maBanMaster = maBanCheck; // Mặc định mình là master
 
@@ -207,13 +185,11 @@ public class BanDAO {
                     String ghiChu = rs.getString("ghiChu");
                     int index = ghiChu.indexOf("LINKED:");
                     if (index != -1) {
-                        // Cắt bỏ mọi thứ phía trước chữ LINKED:, chỉ lấy mã bàn phía sau
                         maBanMaster = ghiChu.substring(index + 7).trim().split(" ")[0];
                     }
                 }
             }
 
-            // 2. Lấy tên của Bàn Master
             String sqlGetMasterName = "SELECT tenBan FROM Ban WHERE maBan = ?";
             try(java.sql.PreparedStatement ps = conn.prepareStatement(sqlGetMasterName)) {
                 ps.setString(1, maBanMaster);
@@ -221,7 +197,6 @@ public class BanDAO {
                 if (rs.next()) tenGoc = rs.getString("tenBan");
             }
 
-            // 3. Lấy tên các Bàn Phụ đang trỏ tới Master
             String sqlGetSlaves =
                     "SELECT b.tenBan FROM DonDatMon d " +
                             "JOIN Ban b ON d.maBan = b.maBan " +
@@ -232,7 +207,6 @@ public class BanDAO {
                 java.sql.ResultSet rs = ps.executeQuery();
                 while(rs.next()) {
                     String t = rs.getString("tenBan").replace("Bàn ", ""); // Bỏ chữ "Bàn" cho gọn
-                    // Nếu chính là bàn đang check thì bỏ qua (để tránh lặp nếu logic sai)
                     if (!tenGoc.contains(t)) {
                         tenBanPhu.add(t);
                     }
@@ -241,7 +215,7 @@ public class BanDAO {
 
         } catch (Exception e) { e.printStackTrace(); }
 
-        // 4. Ghép chuỗi: "Bàn 9 + 7 + 8"
+        //Ghép chuỗi Bàn 9 + 7 + 8
         StringBuilder sb = new StringBuilder(tenGoc);
         for (String t : tenBanPhu) {
             sb.append(" + ").append(t);
@@ -250,7 +224,7 @@ public class BanDAO {
         return sb.toString();
     }
 
-    // Hàm hỗ trợ: Lấy Mã Bàn Chính (nếu đang là bàn phụ)
+    //Lấy Mã Bàn Chính nếu đang là bàn phụ
     public String getMaBanChinh(String maBanCheck) {
         String sql = "SELECT ghiChu FROM DonDatMon WHERE maBan = ? AND trangThai = N'Chưa thanh toán' AND ghiChu LIKE 'LINKED:%'";
         try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
@@ -264,7 +238,6 @@ public class BanDAO {
         return maBanCheck; // Nếu không ghép thì chính là nó
     }
     public boolean ghepBanLienKet(List<Ban> listBanNguon, Ban banDich) {
-        System.out.println("=== BẮT ĐẦU GỘP BÀN (PHIÊN BẢN FINAL) ===");
         java.sql.Connection conn = null;
         try {
             conn = connectDB.SQLConnection.getConnection();
@@ -277,10 +250,8 @@ public class BanDAO {
                     break;
                 }
             }
-            // Nếu có ai đang ăn -> Đỏ ("Đang có khách"). Nếu toàn bộ là đặt trước -> Vàng ("Đã đặt trước")
             String trangThaiSauGop = coKhachDangAn ? "Đang có khách" : "Đã đặt trước";
 
-            // 1. TÌM ĐƠN ĐÍCH (Bàn 10)
             String maDonDich = null;
             String sqlFindDest = "SELECT TOP 1 maDon FROM DonDatMon WHERE maBan = ? AND trangThai = N'Chưa thanh toán' AND trangThai != N'Đã hủy'";
             try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlFindDest)) {
@@ -289,7 +260,6 @@ public class BanDAO {
                 if (rs.next()) maDonDich = rs.getString("maDon");
             }
 
-            // Nếu đích chưa có đơn, tạo mới
             if (maDonDich == null) {
                 maDonDich = "DON" + System.currentTimeMillis();
                 String sqlNew = "INSERT INTO DonDatMon(maDon, ngayKhoiTao, thoiGianDen, maNV, maBan, trangThai) VALUES(?, GETDATE(), GETDATE(), 'NV01102', ?, N'Chưa thanh toán')";
@@ -298,11 +268,9 @@ public class BanDAO {
                 }
             }
 
-            // 2. DUYỆT CÁC BÀN NGUỒN (Bàn 2)
             for (Ban bNguon : listBanNguon) {
                 if (bNguon.getMaBan().equals(banDich.getMaBan())) continue;
 
-                // Lấy đơn nguồn
                 String maDonNguon = null;
                 try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlFindDest)) {
                     ps.setString(1, bNguon.getMaBan());
@@ -312,7 +280,6 @@ public class BanDAO {
 
                 if (maDonNguon != null && !maDonNguon.equals(maDonDich)) {
 
-                    // A. COPY MÓN TỪ NGUỒN VÀO RAM
                     List<MonAnTam> listItems = new ArrayList<>();
                     String sqlGetItems = "SELECT maMonAn, soLuong, donGia FROM ChiTietHoaDon WHERE maDon = ?";
                     try (java.sql.PreparedStatement psItems = conn.prepareStatement(sqlGetItems)) {
@@ -323,13 +290,12 @@ public class BanDAO {
                         }
                     }
 
-                    // B. XÓA SẠCH CHI TIẾT BÊN NGUỒN
                     String sqlDel = "DELETE FROM ChiTietHoaDon WHERE maDon = ?";
                     try (java.sql.PreparedStatement psDel = conn.prepareStatement(sqlDel)) {
                         psDel.setString(1, maDonNguon); psDel.executeUpdate();
                     }
 
-                    // C. GHI VÀO ĐÍCH (CỘNG DỒN HOẶC THÊM MỚI)
+                    // GHI VÀO ĐÍCH CỘNG DỒN HOẶC THÊM MỚI
                     String sqlCheck = "SELECT COUNT(*) FROM ChiTietHoaDon WHERE maDon = ? AND maMonAn = ?";
                     String sqlUpdate = "UPDATE ChiTietHoaDon SET soLuong = soLuong + ? WHERE maDon = ? AND maMonAn = ?";
                     String sqlInsert = "INSERT INTO ChiTietHoaDon(maDon, maMonAn, soLuong, donGia) VALUES(?, ?, ?, ?)";
@@ -347,7 +313,7 @@ public class BanDAO {
                         }
                     }
 
-                    // D. HỦY ĐƠN & BILL NGUỒN
+                    //HỦY ĐƠN BILL NGUỒN
                     try (java.sql.PreparedStatement ps = conn.prepareStatement("UPDATE DonDatMon SET trangThai = N'Đã hủy' WHERE maDon = ?")) {
                         ps.setString(1, maDonNguon); ps.executeUpdate();
                     }
@@ -356,7 +322,7 @@ public class BanDAO {
                     }
                 }
 
-                // 3. TẠO ĐƠN DUMMY TRÊN BÀN NGUỒN
+                // TẠO ĐƠN DUMMY TRÊN BÀN NGUỒN
                 String dummyID = "L" + (System.currentTimeMillis() % 100000000) + bNguon.getMaBan();
                 // Ghi chú dạng: "LINKED:BAN09" (Bàn 9 là bàn đích)
                 String sqlDummy = "INSERT INTO DonDatMon(maDon, ngayKhoiTao, thoiGianDen, maNV, maBan, trangThai, ghiChu) VALUES(?, GETDATE(), GETDATE(), 'NV01102', ?, N'Chưa thanh toán', ?)";
@@ -367,7 +333,7 @@ public class BanDAO {
                     psDum.executeUpdate();
                 }
 
-                // 4. CẬP NHẬT TÊN BÀN NGUỒN
+                // CẬP NHẬT TÊN BÀN NGUỒN
                 String sqlUpSrc = "UPDATE Ban SET  trangThai = ? WHERE maBan = ?";
                 try(java.sql.PreparedStatement psUp = conn.prepareStatement(sqlUpSrc)){
                     psUp.setNString(1, trangThaiSauGop);
@@ -376,7 +342,6 @@ public class BanDAO {
                 }
             }
 
-            // 5. CẬP NHẬT TÊN BÀN ĐÍCH
             String sqlUpDest = "UPDATE Ban SET trangThai = ? WHERE maBan = ?";
             try(java.sql.PreparedStatement psUp = conn.prepareStatement(sqlUpDest)){
                 psUp.setNString(1, trangThaiSauGop);
@@ -385,7 +350,6 @@ public class BanDAO {
             }
 
             conn.commit();
-            System.out.println("✅ ĐÃ GỘP XONG!");
             return true;
 
         } catch (Exception e) {
@@ -439,9 +403,7 @@ public class BanDAO {
         }
         return ban;
     }
-    /**
-     * Lấy toàn bộ danh sách Bàn từ CSDL
-     */
+
     public List<Ban> getAllBan() {
         List<Ban> dsBan = new ArrayList<>();
         Connection con = null;
@@ -462,7 +424,6 @@ public class BanDAO {
                 Timestamp gioMoBanTS = rs.getTimestamp("gioMoBan");
                 String khuVuc = rs.getString("khuVuc");
 
-                // Chuyển đổi kiểu dữ liệu
                 TrangThaiBan trangThai = convertStringToTrangThai(trangThaiStr);
                 LocalDateTime gioMoBan = null;
                 if (gioMoBanTS != null) {
@@ -475,11 +436,9 @@ public class BanDAO {
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
-            // Đóng tài nguyên
             try {
                 if (rs != null) rs.close();
                 if (stmt != null) stmt.close();
-                // Không đóng 'con' nếu nó được quản lý bởi ConnectDB singleton
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -487,10 +446,7 @@ public class BanDAO {
         return dsBan;
     }
 
-    /**
-     * Lấy số thứ tự (phần số) lớn nhất của mã bàn (ví dụ: BAN10 -> 10)
-     * Dùng để cập nhật lại bộ đếm static trong class Ban
-     */
+
     public int getSoThuTuBanLonNhat() {
         int maxSoThuTu = 0;
         Connection con = SQLConnection.getConnection();
@@ -517,14 +473,8 @@ public class BanDAO {
         return maxSoThuTu;
     }
 
-    // --- HÀM MỚI CHO DASHBOARD ---
-    /**
-     * (MỚI) Đếm số lượng bàn theo từng trạng thái (real-time).
-     * @return Map<String, Integer> (Key: Tên trạng thái, Value: Số lượng)
-     */
     public Map<String, Integer> getTableStatusCounts() {
         Map<String, Integer> counts = new HashMap<>();
-        // Khởi tạo các giá trị mặc định dựa trên CSDL của bạn
         counts.put("Trống", 0);
         counts.put("Đang có khách", 0);
         counts.put("Đã đặt trước", 0);
@@ -539,19 +489,13 @@ public class BanDAO {
                 String trangThai = rs.getString("trangThai");
                 int soLuong = rs.getInt("SoLuong");
                 if (trangThai != null) {
-                    // Ghi đè giá trị 0 nếu tìm thấy
-                    // Cần đảm bảo key khớp chính xác với CSDL (ví dụ: "Đang có khách")
                     counts.put(trangThai, soLuong);
                 }
             }
         } catch (SQLException e) {
-            System.err.println("SQL Error while counting table status: " + e.getMessage());
             e.printStackTrace();
-            // Ném lỗi để báo cho SwingWorker biết
             throw new RuntimeException("Lỗi truy vấn trạng thái bàn", e);
         }
         return counts;
     }
-
-
-} // Kết thúc class BanDAO
+}

@@ -12,10 +12,6 @@ import java.util.Map;
 
 public class GiaoCaDAO {
 
-    /**
-     * [ĐÃ SỬA] Kiểm tra xem nhân viên có đang trong ca làm việc không
-     * @return maGiaoCa nếu đang có ca, -1 nếu không có
-     */
     public int getMaCaDangLamViec(String maNV) {
         if (maNV == null || maNV.trim().isEmpty()) {
             return -1;
@@ -42,10 +38,6 @@ public class GiaoCaDAO {
         return -1;
     }
 
-    /**
-     * [ĐÃ SỬA] Bắt đầu ca mới cho nhân viên
-     * Kiểm tra trùng lặp trước khi thêm
-     */
     public boolean batDauCa(String maNV, double tienDauCa) {
         if (maNV == null || maNV.trim().isEmpty()) {
             System.err.println("Mã NV không hợp lệ");
@@ -57,7 +49,6 @@ public class GiaoCaDAO {
             return false;
         }
 
-        // Kiểm tra xem đã có ca đang mở chưa
         if (getMaCaDangLamViec(maNV) > 0) {
             System.err.println("Nhân viên đang trong ca làm việc");
             return false;
@@ -84,10 +75,6 @@ public class GiaoCaDAO {
         return false;
     }
 
-    /**
-     * [ĐÃ SỬA] Lấy thông tin ca đang làm việc
-     * Bao gồm validation và error handling
-     */
     public GiaoCa getThongTinCaDangLam(String maNV) {
         if (maNV == null || maNV.trim().isEmpty()) {
             return null;
@@ -120,10 +107,6 @@ public class GiaoCaDAO {
         return null;
     }
 
-    /**
-     * [ĐÃ SỬA HOÀN TOÀN] Kết thúc ca với tính toán chính xác
-     * Sửa lỗi query tính tiền hệ thống
-     */
     public boolean ketThucCa(int maGiaoCa, double tienCuoiCa, String ghiChu) {
         if (maGiaoCa <= 0) {
             System.err.println("Mã giao ca không hợp lệ");
@@ -140,7 +123,6 @@ public class GiaoCaDAO {
             conn = SQLConnection.getConnection();
             conn.setAutoCommit(false);
 
-            // Lấy thông tin ca hiện tại
             String sqlGetInfo = "SELECT maNV, thoiGianBatDau, tienDauCa FROM LichSuGiaoCa WHERE maGiaoCa = ?";
             String maNV = null;
             LocalDateTime thoiGianBatDau = null;
@@ -160,7 +142,6 @@ public class GiaoCaDAO {
                 }
             }
 
-            // Tính tiền hệ thống (chỉ tính hóa đơn tiền mặt đã thanh toán)
             String sqlTinhTien = "SELECT ISNULL(SUM(tongTien - ISNULL(giamGia, 0)), 0) AS TienHeThong " +
                     "FROM HoaDon " +
                     "WHERE maNV = ? " +
@@ -180,10 +161,8 @@ public class GiaoCaDAO {
                 }
             }
 
-            // Tính chênh lệch
             double chenhLech = tienCuoiCa - tienDauCa - tienHeThong;
 
-            // Cập nhật kết thúc ca
             String sqlUpdate = "UPDATE LichSuGiaoCa SET " +
                     "thoiGianKetThuc = GETDATE(), " +
                     "tienCuoiCa = ?, " +
@@ -233,9 +212,6 @@ public class GiaoCaDAO {
         }
     }
 
-    /**
-     * [ĐÃ SỬA] Lấy danh sách lịch sử giao ca
-     */
     public List<GiaoCa> getLichSuGiaoCa(String maNV, int limit) {
         List<GiaoCa> list = new ArrayList<>();
 
@@ -281,17 +257,11 @@ public class GiaoCaDAO {
         return list;
     }
 
-    /**
-     * [ĐÃ SỬA] Tổng giờ làm theo tuần
-     * Sửa lỗi tính toán thời gian
-     */
     public double getTongGioLamTheoThang(String maNV, java.time.LocalDate startOfMonth) {
         if (maNV == null || maNV.trim().isEmpty() || startOfMonth == null) {
             return 0;
         }
 
-        // Logic: Chỉ lấy các ca đã bắt đầu trong quá khứ hoặc hiện tại.
-        // Nếu ca chưa kết thúc (NULL), dùng GETDATE() để tính, nhưng đảm bảo start <= GETDATE()
         String sql = "SELECT ISNULL(SUM(DATEDIFF(MINUTE, thoiGianBatDau, " +
                 "CASE WHEN thoiGianKetThuc IS NULL THEN GETDATE() ELSE thoiGianKetThuc END)), 0) AS TongPhut " +
                 "FROM LichSuGiaoCa " +
@@ -320,9 +290,6 @@ public class GiaoCaDAO {
         return 0;
     }
 
-    /**
-     * [ĐÃ SỬA LỖI ÂM GIỜ] Tổng giờ làm theo tuần
-     */
     public double getTongGioLamTheoTuan(String maNV, java.time.LocalDate startOfWeek) {
         if (maNV == null || maNV.trim().isEmpty() || startOfWeek == null) {
             return 0;
@@ -356,10 +323,6 @@ public class GiaoCaDAO {
         return 0;
     }
 
-    /**
-     * [MỚI] Lấy danh sách 3 ca làm việc GẦN NHẤT ĐÃ HOÀN THÀNH (để hiển thị lịch sử)
-     * Dùng để hiển thị chi tiết hiệu suất làm việc
-     */
     public List<Map<String, Object>> get3CaLamGanNhat(String maNV) {
         List<Map<String, Object>> list = new ArrayList<>();
         if (maNV == null) return list;
@@ -387,19 +350,14 @@ public class GiaoCaDAO {
         }
         return list;
     }
-    /**
-     * [MỚI] Lấy danh sách tên nhân viên đang trong ca làm việc (chưa kết thúc ca)
-     */
     public List<String> getNhanVienDangLamViecChiTiet() {
         List<String> list = new ArrayList<>();
-        // Logic: Lấy nhân viên chưa kết thúc ca trong LichSuGiaoCa
-        // Join với PhanCongCa & CaLam của ngày hôm nay để lấy giờ chuẩn
         String sql = "SELECT nv.hoTen, cl.tenCa, cl.gioBatDau, cl.gioKetThuc " +
                 "FROM LichSuGiaoCa ls " +
                 "JOIN NhanVien nv ON ls.maNV = nv.maNV " +
                 "LEFT JOIN PhanCongCa pc ON ls.maNV = pc.maNV AND pc.ngayLam = CAST(GETDATE() AS DATE) " +
                 "LEFT JOIN CaLam cl ON pc.maCa = cl.maCa " +
-                "WHERE ls.thoiGianKetThuc IS NULL " + // Đang làm việc
+                "WHERE ls.thoiGianKetThuc IS NULL " +
                 "ORDER BY ls.thoiGianBatDau DESC";
 
         try (Connection conn = SQLConnection.getConnection();
@@ -426,18 +384,28 @@ public class GiaoCaDAO {
         return list;
     }
 
-    /**
-     * [MỚI] Lấy Top nhân viên chăm chỉ (theo tổng giờ làm) trong khoảng thời gian
-     */
     public Map<String, Double> getTopStaffByWorkHours(LocalDate startDate, LocalDate endDate, int limit) {
         Map<String, Double> result = new LinkedHashMap<>();
 
         String sql = "SELECT TOP (?) nv.hoTen, " +
-                "SUM(DATEDIFF(MINUTE, ls.thoiGianBatDau, ISNULL(ls.thoiGianKetThuc, GETDATE()))) / 60.0 AS TongGio " +
+                "SUM(DATEDIFF(MINUTE, ls.thoiGianBatDau, " +
+                "    CASE " +
+                "        WHEN ls.thoiGianKetThuc IS NULL THEN GETDATE() " +
+                "        WHEN ls.thoiGianKetThuc > GETDATE() THEN GETDATE() " +
+                "        ELSE ls.thoiGianKetThuc " +
+                "    END)) / 60.0 AS TongGio " +
                 "FROM LichSuGiaoCa ls " +
                 "JOIN NhanVien nv ON ls.maNV = nv.maNV " +
-                "WHERE ls.thoiGianBatDau >= ? AND ls.thoiGianBatDau < ? " +
+                "WHERE ls.thoiGianBatDau >= ? " +
+                "AND ls.thoiGianBatDau < ? " +
+                "AND ls.thoiGianBatDau <= GETDATE() " +
                 "GROUP BY nv.hoTen " +
+                "HAVING SUM(DATEDIFF(MINUTE, ls.thoiGianBatDau, " +
+                "    CASE " +
+                "        WHEN ls.thoiGianKetThuc IS NULL THEN GETDATE() " +
+                "        WHEN ls.thoiGianKetThuc > GETDATE() THEN GETDATE() " +
+                "        ELSE ls.thoiGianKetThuc " +
+                "    END)) > 0 " +
                 "ORDER BY TongGio DESC";
 
         try (Connection conn = SQLConnection.getConnection();
@@ -449,10 +417,15 @@ public class GiaoCaDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    result.put(rs.getString("hoTen"), rs.getDouble("TongGio"));
+                    double hours = rs.getDouble("TongGio");
+                    // [AN TOÀN] Double-check không âm
+                    if (hours > 0) {
+                        result.put(rs.getString("hoTen"), hours);
+                    }
                 }
             }
         } catch (Exception e) {
+            System.err.println("Lỗi getTopStaffByWorkHours: " + e.getMessage());
             e.printStackTrace();
         }
         return result;
@@ -462,10 +435,9 @@ public class GiaoCaDAO {
         String sql = "SELECT nv.hoTen, cl.tenCa " +
                 "FROM LichSuGiaoCa ls " +
                 "JOIN NhanVien nv ON ls.maNV = nv.maNV " +
-                // Join thêm PhanCongCa để lấy tên ca dự kiến (hoặc tự định nghĩa theo giờ)
                 "LEFT JOIN PhanCongCa pc ON ls.maNV = pc.maNV AND CAST(ls.thoiGianBatDau AS DATE) = pc.ngayLam " +
                 "LEFT JOIN CaLam cl ON pc.maCa = cl.maCa " +
-                "WHERE ls.thoiGianKetThuc IS NULL " + // Ca chưa đóng
+                "WHERE ls.thoiGianKetThuc IS NULL " +
                 "ORDER BY ls.thoiGianBatDau DESC";
 
         try (Connection conn = SQLConnection.getConnection();
@@ -483,17 +455,6 @@ public class GiaoCaDAO {
         }
         return list;
     }
-    /**
-     * [ĐÃ SỬA HOÀN TOÀN] Lấy giờ làm theo ngày cho biểu đồ
-     * Sử dụng CAST AS DATE và đảm bảo đúng format
-     */
-    // File: dao/GiaoCaDAO.java
-
-    /**
-     * [ĐÃ SỬA] Lấy giờ làm theo ngày cho biểu đồ
-     * - Fix lỗi: Chỉ lấy dữ liệu quá khứ và hiện tại (<= GETDATE())
-     * - Fix lỗi: Đảm bảo số lượng ngày trả về đúng bằng tham số soNgay
-     */
     public Map<String, Double> getGioLamTheoNgay(String maNV, int soNgay) {
         Map<String, Double> data = new LinkedHashMap<>();
 
@@ -501,23 +462,20 @@ public class GiaoCaDAO {
             return data;
         }
 
-        // 1. Khởi tạo khung dữ liệu (trục X) cho 'soNgay' gần nhất
         java.time.LocalDate today = java.time.LocalDate.now();
         java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM");
 
-        // Loop ngược từ ngày xa nhất đến hôm nay để LinkedHashMap giữ đúng thứ tự
         for (int i = soNgay - 1; i >= 0; i--) {
             java.time.LocalDate date = today.minusDays(i);
             data.put(date.format(formatter), 0.0);
         }
 
-        // 2. Query dữ liệu thực tế (Đã thêm điều kiện chặn ngày tương lai)
         String sql = "SELECT CAST(thoiGianBatDau AS DATE) AS Ngay, " +
                 "SUM(DATEDIFF(MINUTE, thoiGianBatDau, ISNULL(thoiGianKetThuc, GETDATE()))) / 60.0 AS GioLam " +
                 "FROM LichSuGiaoCa " +
                 "WHERE maNV = ? " +
                 "AND thoiGianBatDau >= DATEADD(DAY, -?, CAST(GETDATE() AS DATE)) " +
-                "AND thoiGianBatDau <= GETDATE() " + // [QUAN TRỌNG] Chặn dữ liệu tương lai
+                "AND thoiGianBatDau <= GETDATE() " +
                 "GROUP BY CAST(thoiGianBatDau AS DATE) " +
                 "ORDER BY CAST(thoiGianBatDau AS DATE)";
 
@@ -525,7 +483,7 @@ public class GiaoCaDAO {
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, maNV);
-            ps.setInt(2, soNgay); // Truyền tham số giới hạn ngày
+            ps.setInt(2, soNgay);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -534,7 +492,6 @@ public class GiaoCaDAO {
                     String dateStr = localDate.format(formatter);
                     double gioLam = rs.getDouble("GioLam");
 
-                    // Chỉ cập nhật nếu ngày đó nằm trong map (an toàn)
                     if (data.containsKey(dateStr)) {
                         data.put(dateStr, gioLam);
                     }
@@ -547,9 +504,6 @@ public class GiaoCaDAO {
         return data;
     }
 
-    /**
-     * [ĐÃ SỬA] Lấy 3 ca làm việc sắp tới
-     */
     public List<String> getCacCaLamSapToi(String maNV) {
         List<String> list = new ArrayList<>();
 
@@ -588,9 +542,6 @@ public class GiaoCaDAO {
         return list;
     }
 
-    /**
-     * [MỚI] Lấy tổng giờ làm theo khoảng thời gian tùy chỉnh
-     */
     public double getTongGioLamTheoKhoangThoiGian(String maNV, java.time.LocalDate tuNgay, java.time.LocalDate denNgay) {
         if (maNV == null || maNV.trim().isEmpty() || tuNgay == null || denNgay == null) {
             return 0;
@@ -623,9 +574,6 @@ public class GiaoCaDAO {
         return 0;
     }
 
-    /**
-     * [MỚI] Lấy danh sách lịch sử giao ca chi tiết theo khoảng thời gian
-     */
     public List<Map<String, Object>> getLichSuGiaoCaChiTiet(String maNV, java.time.LocalDate start, java.time.LocalDate end) {
         List<Map<String, Object>> list = new ArrayList<>();
 
@@ -669,7 +617,6 @@ public class GiaoCaDAO {
 
                     row.put("ghiChu", rs.getString("ghiChu"));
 
-                    // Giả định tên ca dựa vào giờ bắt đầu
                     if (tsStart != null) {
                         int hour = tsStart.toLocalDateTime().getHour();
                         String tenCa = (hour >= 6 && hour < 14) ? "Ca Sáng" :
@@ -689,10 +636,42 @@ public class GiaoCaDAO {
         return list;
     }
 
-    /**
-     * [MỚI] Tính tổng số giờ làm việc trong một khoảng thời gian (Alias cho hàm đã có)
-     */
     public double getTongGioLamTheoKhoang(String maNV, java.time.LocalDate start, java.time.LocalDate end) {
         return getTongGioLamTheoKhoangThoiGian(maNV, start, end);
+    }
+
+
+    public java.util.List<entity.LichSuGiaoCa> getLichSuGiaoCa(java.time.LocalDate tuNgay, java.time.LocalDate denNgay) {
+        java.util.List<entity.LichSuGiaoCa> list = new java.util.ArrayList<>();
+        String sql = "SELECT * FROM LichSuGiaoCa WHERE CAST(thoiGianBatDau AS DATE) BETWEEN ? AND ? ORDER BY thoiGianBatDau DESC";
+
+        try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setDate(1, java.sql.Date.valueOf(tuNgay));
+            ps.setDate(2, java.sql.Date.valueOf(denNgay));
+
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    java.time.LocalDateTime kt = rs.getTimestamp("thoiGianKetThuc") != null ?
+                            rs.getTimestamp("thoiGianKetThuc").toLocalDateTime() : null;
+
+                    list.add(new entity.LichSuGiaoCa(
+                            rs.getString("maGiaoCa"),
+                            rs.getString("maNV"),
+                            rs.getTimestamp("thoiGianBatDau").toLocalDateTime(),
+                            kt,
+                            rs.getDouble("tienDauCa"),
+                            rs.getDouble("tienCuoiCa"),
+                            rs.getDouble("tienHeThongTinh"),
+                            rs.getDouble("chenhLech"),
+                            rs.getString("ghiChu")
+                    ));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
     }
 }

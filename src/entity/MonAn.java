@@ -10,9 +10,8 @@ public class MonAn {
     private String hinhAnh;
     private String maDM;
 
-    // Constructor rỗng
     public MonAn() {
-        this.maMonAn = ""; // Sẽ được set bởi DAO hoặc GUI
+        this.maMonAn = "";
         this.tenMon = "";
         this.donGia = 0;
         this.donViTinh = "";
@@ -22,7 +21,6 @@ public class MonAn {
         this.maDM = "";
     }
 
-    // Constructor đầy đủ
     public MonAn(String maMonAn, String tenMon, String mota, float donGia,
                  String donViTinh, String trangThai, String hinhAnh, String maDM) {
         this.maMonAn = maMonAn;
@@ -35,7 +33,6 @@ public class MonAn {
         this.maDM = maDM;
     }
 
-    // Getters and Setters
     public String getMaMonAn() { return maMonAn; }
     public void setMaMonAn(String maMonAn) { this.maMonAn = maMonAn; }
 

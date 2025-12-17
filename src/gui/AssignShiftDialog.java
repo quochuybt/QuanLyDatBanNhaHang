@@ -23,7 +23,6 @@ public class AssignShiftDialog extends JDialog {
     private static final Font FONT_LABEL = new Font("Arial", Font.BOLD, 14);
     private static final Font FONT_COMPONENT = new Font("Arial", Font.PLAIN, 14);
 
-    // Components
     private JDateChooser dateChooser;
     private JComboBox<CaLam> cbCaLam;
     private JList<NhanVien> listNhanVien;
@@ -31,65 +30,55 @@ public class AssignShiftDialog extends JDialog {
     private JButton btnAssign;
     private JButton btnCancel;
 
-    // DAOs
     private final CaLamDAO caLamDAO;
     private final NhanVienDAO nhanVienDAO;
     private final PhanCongDAO phanCongDAO;
 
     public AssignShiftDialog(Frame owner) {
-        super(owner, "Phân công ca làm", true); // true: modal dialog
+        super(owner, "Phân công ca làm", true);
 
-        // Khởi tạo DAOs
         this.caLamDAO = new CaLamDAO();
         this.nhanVienDAO = new NhanVienDAO();
         this.phanCongDAO = new PhanCongDAO();
 
-        // --- Cấu hình Dialog ---
         setSize(450, 550);
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout(10, 10));
         ((JPanel) getContentPane()).setBorder(new EmptyBorder(15, 15, 15, 15)); // Padding
 
-        // --- Tạo giao diện ---
         add(createFormPanel(), BorderLayout.CENTER);
         add(createButtonPanel(), BorderLayout.SOUTH);
 
-        // --- Load dữ liệu ban đầu ---
         loadCaLam();
         loadNhanVien();
 
         addEventHandlers();
     }
 
-    /**
-     * Tạo panel chứa form nhập liệu (Ngày, Ca, Nhân viên)
-     */
     private JPanel createFormPanel() {
         JPanel formPanel = new JPanel();
         formPanel.setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL; // Component fill theo chiều ngang
-        gbc.insets = new Insets(5, 5, 5, 5); // Khoảng cách
-        gbc.anchor = GridBagConstraints.WEST; // Căn lề trái
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.anchor = GridBagConstraints.WEST;
 
-        // --- Hàng 1: Chọn Ngày ---
         JLabel lblNgay = new JLabel("Chọn ngày:");
         lblNgay.setFont(FONT_LABEL);
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.weightx = 0.2; // Tỷ lệ chiều rộng label
+        gbc.weightx = 0.2;
         formPanel.add(lblNgay, gbc);
 
         dateChooser = new JDateChooser();
         dateChooser.setDateFormatString("dd/MM/yyyy");
         dateChooser.setFont(FONT_COMPONENT);
-        dateChooser.setDate(new Date()); // Mặc định là ngày hôm nay
+        dateChooser.setDate(new Date());
         gbc.gridx = 1;
         gbc.gridy = 0;
-        gbc.weightx = 0.8; // Tỷ lệ chiều rộng date chooser
+        gbc.weightx = 0.8;
         formPanel.add(dateChooser, gbc);
 
-        // --- Hàng 2: Chọn Ca ---
         JLabel lblCa = new JLabel("Chọn ca:");
         lblCa.setFont(FONT_LABEL);
         gbc.gridx = 0;
@@ -116,12 +105,11 @@ public class AssignShiftDialog extends JDialog {
         gbc.gridy = 1;
         formPanel.add(cbCaLam, gbc);
 
-        // --- Hàng 3: Chọn Nhân viên ---
         JLabel lblNV = new JLabel("Chọn nhân viên:");
         lblNV.setFont(FONT_LABEL);
         gbc.gridx = 0;
         gbc.gridy = 2;
-        gbc.gridwidth = 2; // Label chiếm cả 2 cột
+        gbc.gridwidth = 2;
         formPanel.add(lblNV, gbc);
 
         modelNhanVien = new DefaultListModel<>();
@@ -142,17 +130,14 @@ public class AssignShiftDialog extends JDialog {
         JScrollPane scrollPaneNV = new JScrollPane(listNhanVien);
         gbc.gridx = 0;
         gbc.gridy = 3;
-        gbc.gridwidth = 2; // JList chiếm cả 2 cột
-        gbc.weighty = 1.0; // Cho phép JList giãn theo chiều dọc
-        gbc.fill = GridBagConstraints.BOTH; // Fill cả ngang và dọc
+        gbc.gridwidth = 2;
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
         formPanel.add(scrollPaneNV, gbc);
 
         return formPanel;
     }
 
-    /**
-     * Tạo panel chứa nút "Phân công" và "Hủy"
-     */
     private JPanel createButtonPanel() {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
 
@@ -171,9 +156,6 @@ public class AssignShiftDialog extends JDialog {
         return buttonPanel;
     }
 
-    /**
-     * Load danh sách ca làm vào ComboBox
-     */
     private void loadCaLam() {
         List<CaLam> dsCaLam = caLamDAO.getAllCaLam();
         for (CaLam ca : dsCaLam) {
@@ -181,35 +163,22 @@ public class AssignShiftDialog extends JDialog {
         }
     }
 
-    /**
-     * Load danh sách nhân viên vào JList
-     */
     private void loadNhanVien() {
         List<NhanVien> dsNhanVien = nhanVienDAO.getAllNhanVien(); // Lấy tất cả NV
         modelNhanVien.addAll(dsNhanVien);
     }
 
-    /**
-     * Gắn sự kiện cho các nút
-     */
     private void addEventHandlers() {
-        // Sự kiện nút "Phân công"
         btnAssign.addActionListener(e -> assignShifts());
 
-        // Sự kiện nút "Hủy"
         btnCancel.addActionListener(e -> dispose()); // Đóng dialog
     }
 
-    /**
-     * Xử lý logic khi nhấn nút "Phân công"
-     */
     private void assignShifts() {
-        // 1. Lấy thông tin đã chọn
         Date selectedUtilDate = dateChooser.getDate();
         CaLam selectedCaLam = (CaLam) cbCaLam.getSelectedItem();
         List<NhanVien> selectedNhanViens = listNhanVien.getSelectedValuesList();
 
-        // 2. Kiểm tra dữ liệu
         if (selectedUtilDate == null) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn ngày.", "Lỗi", JOptionPane.WARNING_MESSAGE);
             return;
@@ -227,7 +196,6 @@ public class AssignShiftDialog extends JDialog {
         LocalDate selectedDate = selectedUtilDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
         String maCa = selectedCaLam.getMaCa();
 
-        // Thực hiện phân công cho từng nhân viên được chọn
         int successCount = 0;
         int failCount = 0;
         List<String> failedNames = new ArrayList<>();
@@ -242,7 +210,6 @@ public class AssignShiftDialog extends JDialog {
             }
         }
 
-        //  Hiển thị kết quả
         StringBuilder message = new StringBuilder();
         if (successCount > 0) {
             message.append("Đã phân công thành công cho ").append(successCount).append(" nhân viên.\n");
@@ -255,9 +222,8 @@ public class AssignShiftDialog extends JDialog {
         JOptionPane.showMessageDialog(this, message.toString(), "Kết quả phân công",
                 (failCount == 0) ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.WARNING_MESSAGE);
 
-        //  Đóng dialog nếu không có lỗi nào nghiêm trọng
-        if (failCount < selectedNhanViens.size()) { // Nếu có ít nhất 1 thành công
-            dispose(); // Đóng dialog
+        if (failCount < selectedNhanViens.size()) {
+            dispose();
         }
     }
 }

@@ -5,18 +5,21 @@ import dao.BanDAO;
 import dao.ChiTietHoaDonDAO;
 import dao.GiaoCaDAO;
 import dao.HoaDonDAO;
+import entity.LichSuGiaoCa;
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.markers.SeriesMarkers;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -24,8 +27,7 @@ import java.util.stream.Collectors;
 
 public class DashboardQuanLyGUI extends JPanel {
 
-    // --- Màu sắc và Fonts ---
-    private static final Color COLOR_LEAST_SOLD = new Color(217, 83, 79); // Màu đỏ
+    private static final Color COLOR_LEAST_SOLD = new Color(217, 83, 79);
     private static final Color COLOR_BACKGROUND = new Color(244, 247, 252);
     private static final Color COLOR_SECTION_BG = Color.WHITE;
     private static final Color COLOR_ACCENT_BLUE = new Color(56, 118, 243);
@@ -41,14 +43,13 @@ public class DashboardQuanLyGUI extends JPanel {
     private static final Font FONT_BUTTON = new Font("Segoe UI", Font.BOLD, 13);
     private static final Font FONT_LIST_ITEM = new Font("Segoe UI", Font.PLAIN, 14);
 
-    // --- Components ---
     private JDateChooser dateChooserStart;
     private JDateChooser dateChooserEnd;
     private JButton btnRefreshData;
+    private JButton btnLichSuGiaoCa; // Nút mới
 
     private JPanel pnlRevenueChart;
     private JLabel lblTotalRevenue, lblOrderCount, lblAvgOrderValue;
-
     private JLabel lblBanTrong, lblBanPhucVu, lblBanDatTruoc;
 
     private DefaultListModel<String> modelActiveStaff;
@@ -60,7 +61,6 @@ public class DashboardQuanLyGUI extends JPanel {
 
     private JPanel pnlStaffHoursChart;
 
-    // --- DAOs ---
     private final HoaDonDAO hoaDonDAO;
     private final BanDAO banDAO;
     private final ChiTietHoaDonDAO chiTietHoaDonDAO;
@@ -68,6 +68,7 @@ public class DashboardQuanLyGUI extends JPanel {
 
     private final DecimalFormat currencyFormatter = new DecimalFormat("#,##0 ₫");
     private final DecimalFormat numberFormatter = new DecimalFormat("#,##0");
+    private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     public DashboardQuanLyGUI() {
         this.hoaDonDAO = new HoaDonDAO();
@@ -86,7 +87,6 @@ public class DashboardQuanLyGUI extends JPanel {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
 
-        // 1. Doanh thu
         gbc.insets = new Insets(0, 0, 15, 15);
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -94,7 +94,6 @@ public class DashboardQuanLyGUI extends JPanel {
         gbc.weighty = 0.6;
         mainContentPanel.add(createRevenueSection(), gbc);
 
-        // 2. Hoạt động hiện tại (Real-time)
         gbc.insets = new Insets(0, 0, 15, 0);
         gbc.gridx = 1;
         gbc.gridy = 0;
@@ -102,7 +101,6 @@ public class DashboardQuanLyGUI extends JPanel {
         gbc.weighty = 0.6;
         mainContentPanel.add(createCurrentActivitySection(), gbc);
 
-        // 3. Hiệu suất (Món ăn & Nhân viên chăm chỉ)
         gbc.insets = new Insets(0, 0, 0, 0);
         gbc.gridx = 0;
         gbc.gridy = 1;
@@ -134,15 +132,110 @@ public class DashboardQuanLyGUI extends JPanel {
         headerPanel.add(dateChooserEnd);
 
         btnRefreshData = new JButton("Xem thống kê");
-        btnRefreshData.setFont(FONT_BUTTON);
-        btnRefreshData.setBackground(COLOR_ACCENT_BLUE);
-        btnRefreshData.setForeground(Color.WHITE);
-        btnRefreshData.setFocusPainted(false);
-        btnRefreshData.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        styleButton(btnRefreshData, COLOR_ACCENT_BLUE);
         btnRefreshData.addActionListener(e -> loadDashboardData());
         headerPanel.add(btnRefreshData);
 
+        btnLichSuGiaoCa = new JButton("Lịch sử giao ca");
+        styleButton(btnLichSuGiaoCa, new Color(40, 167, 69)); // Màu xanh lá
+        btnLichSuGiaoCa.addActionListener(e -> showLichSuGiaoCaDialog());
+        headerPanel.add(btnLichSuGiaoCa);
+
         return headerPanel;
+    }
+
+    private void styleButton(JButton btn, Color color) {
+        btn.setFont(FONT_BUTTON);
+        btn.setBackground(color);
+        btn.setForeground(Color.WHITE);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
+
+    private void showLichSuGiaoCaDialog() {
+        Date sDate = dateChooserStart.getDate();
+        Date eDate = dateChooserEnd.getDate();
+
+        if (sDate == null || eDate == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn khoảng thời gian trước.");
+            return;
+        }
+
+        LocalDate from = sDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalDate to = eDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+
+        List<LichSuGiaoCa> historyList = giaoCaDAO.getLichSuGiaoCa(from, to);
+
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Lịch sử giao ca", Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setSize(1000, 600);
+        dialog.setLocationRelativeTo(this);
+        dialog.setLayout(new BorderLayout());
+
+        String[] columns = {"Mã GC", "Mã NV", "Bắt đầu", "Kết thúc", "Tiền đầu ca", "Tiền cuối ca", "Doanh thu ca", "Chênh lệch", "Ghi chú"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
+
+        for (LichSuGiaoCa ls : historyList) {
+            model.addRow(new Object[]{
+                    ls.getMaGiaoCa(),
+                    ls.getMaNV(),
+                    ls.getThoiGianBatDau().format(dateTimeFormatter),
+                    ls.getThoiGianKetThuc() != null ? ls.getThoiGianKetThuc().format(dateTimeFormatter) : "Chưa kết thúc",
+                    currencyFormatter.format(ls.getTienDauCa()),
+                    currencyFormatter.format(ls.getTienCuoiCa()),
+                    currencyFormatter.format(ls.getTienHeThongTinh()),
+                    currencyFormatter.format(ls.getChenhLech()),
+                    ls.getGhiChu()
+            });
+        }
+
+        JTable table = new JTable(model);
+        table.setRowHeight(30);
+        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+
+        DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
+        rightRenderer.setHorizontalAlignment(JLabel.RIGHT);
+        for(int i=4; i<=7; i++) {
+            table.getColumnModel().getColumn(i).setCellRenderer(rightRenderer);
+        }
+
+        table.getColumnModel().getColumn(7).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (!isSelected) {
+                    try {
+                        String s = value.toString().replaceAll("[^\\d-]", "");
+                        double val = Double.parseDouble(s);
+                        if (val < 0) c.setForeground(Color.RED);
+                        else if (val > 0) c.setForeground(new Color(0, 150, 0));
+                        else c.setForeground(Color.BLACK);
+                    } catch (Exception e) { c.setForeground(Color.BLACK); }
+                }
+                setHorizontalAlignment(JLabel.RIGHT);
+                return c;
+            }
+        });
+
+        table.getColumnModel().getColumn(0).setPreferredWidth(50); // Mã GC
+        table.getColumnModel().getColumn(2).setPreferredWidth(130); // Bắt đầu
+        table.getColumnModel().getColumn(3).setPreferredWidth(130); // Kết thúc
+        table.getColumnModel().getColumn(8).setPreferredWidth(200); // Ghi chú
+
+        dialog.add(new JScrollPane(table), BorderLayout.CENTER);
+
+        JPanel header = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        header.setBorder(new EmptyBorder(10,10,10,10));
+        JLabel lblInfo = new JLabel("Lịch sử từ " + from.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                + " đến " + to.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        lblInfo.setFont(FONT_TITLE);
+        header.add(lblInfo);
+        dialog.add(header, BorderLayout.NORTH);
+
+        dialog.setVisible(true);
     }
 
     private JPanel createRevenueSection() {
@@ -188,7 +281,6 @@ public class DashboardQuanLyGUI extends JPanel {
         JPanel contentPanel = new JPanel(new GridLayout(2, 1, 0, 15));
         contentPanel.setOpaque(false);
 
-        // 1. Trạng thái bàn
         JPanel tableStatusPanel = new JPanel(new GridLayout(1, 3, 10, 0));
         tableStatusPanel.setOpaque(false);
 
@@ -201,7 +293,6 @@ public class DashboardQuanLyGUI extends JPanel {
         tableStatusPanel.add(createStatBox("Đã Đặt", lblBanDatTruoc, COLOR_YELLOW_STAT));
         contentPanel.add(tableStatusPanel);
 
-        // 2. Danh sách nhân viên
         JPanel staffPanel = new JPanel(new BorderLayout(0, 5));
         staffPanel.setOpaque(false);
         JLabel lblStaffTitle = new JLabel("Nhân viên đang trong ca:");
@@ -328,7 +419,6 @@ public class DashboardQuanLyGUI extends JPanel {
             @Override
             protected Void doInBackground() {
                 try {
-                    // 1. Doanh thu
                     Date sDate = dateChooserStart.getDate();
                     Date eDate = dateChooserEnd.getDate();
                     if (sDate == null || eDate == null) throw new IllegalArgumentException("Vui lòng chọn ngày.");
@@ -339,17 +429,13 @@ public class DashboardQuanLyGUI extends JPanel {
                     revenueData = hoaDonDAO.getDailyRevenue(startDate, endDate);
                     orderCount = hoaDonDAO.getOrderCount(startDate, endDate);
 
-                    // 2. Nhân viên
                     LocalDate today = LocalDate.now();
                     LocalDate startOfWeek = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
                     LocalDate endOfWeek = today.with(TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SUNDAY));
                     topStaffHours = giaoCaDAO.getTopStaffByWorkHours(startOfWeek, endOfWeek, 5);
-
-                    // 3. Real-time
                     tableStatusCounts = banDAO.getTableStatusCounts();
                     activeStaffList = giaoCaDAO.getNhanVienDangLamViecChiTiet();
 
-                    // 4. Top món (7 ngày qua)
                     LocalDate sevenDaysAgo = LocalDate.now().minusDays(7);
                     topSellingItems = chiTietHoaDonDAO.getTopSellingItems(sevenDaysAgo, today, 5);
                     leastSellingItems = chiTietHoaDonDAO.getLeastSellingItems(sevenDaysAgo, today, 5);
@@ -403,29 +489,25 @@ public class DashboardQuanLyGUI extends JPanel {
     }
 
     private void updateTopItemsUI(Map<String, Integer> best, Map<String, Integer> least) {
-        // --- XỬ LÝ BÁN CHẠY NHẤT ---
         modelBestSellers.clear();
         if (best.isEmpty()) {
             modelBestSellers.addElement("Chưa có dữ liệu tuần này.");
             ((ItemRenderer) listBestSellers.getCellRenderer()).setMaxCount(1);
         } else {
-            int maxBest = best.values().stream().max(Integer::compare).orElse(1); // Tìm số lượng bán max
-            ((ItemRenderer) listBestSellers.getCellRenderer()).setMaxCount(maxBest); // Set vào Renderer
-
+            int maxBest = best.values().stream().max(Integer::compare).orElse(1);
+            ((ItemRenderer) listBestSellers.getCellRenderer()).setMaxCount(maxBest);
             int rank = 1;
             for (Map.Entry<String, Integer> e : best.entrySet()) {
                 modelBestSellers.addElement(String.format("#%d  %s (%d)", rank++, e.getKey(), e.getValue()));
             }
         }
-        listBestSellers.repaint(); // Vẽ lại
+        listBestSellers.repaint();
 
-        // --- XỬ LÝ ÍT GỌI NHẤT ---
         modelLeastSellers.clear();
         if (least.isEmpty()) {
             modelLeastSellers.addElement("Chưa có dữ liệu tuần này.");
             ((ItemRenderer) listLeastSellers.getCellRenderer()).setMaxCount(1);
         } else {
-            // Với danh sách "Ít gọi", ta vẫn cần tìm max trong list đó để thanh progress bar không bị full hết
             int maxLeast = least.values().stream().max(Integer::compare).orElse(1);
             ((ItemRenderer) listLeastSellers.getCellRenderer()).setMaxCount(maxLeast);
 
@@ -434,7 +516,7 @@ public class DashboardQuanLyGUI extends JPanel {
                 modelLeastSellers.addElement(String.format("#%d  %s (%d)", rank++, e.getKey(), e.getValue()));
             }
         }
-        listLeastSellers.repaint(); // Vẽ lại
+        listLeastSellers.repaint();
     }
 
     private void updateRevenueChart(Map<LocalDate, Double> data) {
@@ -460,7 +542,7 @@ public class DashboardQuanLyGUI extends JPanel {
         chart.getStyler().setPlotBackgroundColor(COLOR_SECTION_BG);
         chart.getStyler().setSeriesColors(new Color[]{COLOR_ACCENT_BLUE});
         chart.getStyler().setToolTipsEnabled(true);
-        chart.getStyler().setYAxisDecimalPattern("#,###"); // Format tiền tệ
+        chart.getStyler().setYAxisDecimalPattern("#,###");
 
         List<Date> xData = data.keySet().stream().sorted()
                 .map(d -> Date.from(d.atStartOfDay(ZoneId.systemDefault()).toInstant()))
@@ -511,14 +593,13 @@ public class DashboardQuanLyGUI extends JPanel {
         pnlStaffHoursChart.repaint();
     }
 
-    // --- [SỬA LỖI] ItemRenderer chuẩn Generic ---
     private class ItemRenderer extends JPanel implements ListCellRenderer<String> {
         private JLabel lblRank;
         private JLabel lblName;
         private JLabel lblCount;
         private JProgressBar progressBar;
         private Color barColor;
-        private int maxCount = 1; // Giá trị tham chiếu để tính %
+        private int maxCount = 1;
 
         public ItemRenderer(Color barColor) {
             this.barColor = barColor;
@@ -557,15 +638,12 @@ public class DashboardQuanLyGUI extends JPanel {
             add(lblCount, BorderLayout.EAST);
         }
 
-        // Phương thức để cập nhật maxCount từ bên ngoài
         public void setMaxCount(int max) {
             this.maxCount = Math.max(1, max); // Tránh chia cho 0
         }
 
-        // [SỬA LỖI] Đổi Object value -> String value và sửa logic lấy ListModel
         @Override
         public Component getListCellRendererComponent(JList<? extends String> list, String value, int index, boolean isSelected, boolean cellHasFocus) {
-            // Xử lý màu nền
             if (isSelected) {
                 setBackground(new Color(220, 235, 255));
             } else {
@@ -597,7 +675,6 @@ public class DashboardQuanLyGUI extends JPanel {
                         lblRank.setForeground(COLOR_TEXT_DARK);
                     }
 
-                    // Tính % dựa trên maxCount đã được set từ bên ngoài
                     progressBar.setVisible(true);
                     progressBar.setValue((int) ((double) count / maxCount * 100));
 

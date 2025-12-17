@@ -102,9 +102,6 @@ public class PhanCongDAO {
         return tongGioLamMap;
     }
 
-    /**
-     * Lấy thông tin ca làm việc hiện tại của nhân viên (Giờ bắt đầu, Giờ kết thúc chuẩn)
-     */
     public entity.CaLam getCaLamViecCuaNhanVien(String maNV, LocalDate date) {
         String sql = "SELECT cl.maCa, cl.tenCa, cl.gioBatDau, cl.gioKetThuc " +
                 "FROM PhanCongCa pc JOIN CaLam cl ON pc.maCa = cl.maCa " +
@@ -127,25 +124,9 @@ public class PhanCongDAO {
         return null;
     }
 
-    /**
-     * Lấy thông tin nhân viên làm ca trước và ca sau so với thời điểm hiện tại trong ngày.
-     * @param maNVHienTai Mã nhân viên hiện tại (để không lấy chính họ)
-     * @param ngayLam Ngày cần tra cứu (thường là LocalDate.now())
-     * @return String[] { "Thông tin ca trước", "Thông tin ca sau" }
-     */
-    // [ĐÃ SỬA LỖI] Ép kiểu tham số thời gian thành TIME để so sánh
-    // Thêm/Sửa trong PhanCongDAO
-
-    /**
-     * [ĐÃ SỬA] Lấy thông tin nhân viên làm ca trước và ca sau
-     * Sửa lỗi cast thời gian
-     */
     public String[] getThongTinCaTruocSau(String maNV, LocalDate today) {
         String[] result = new String[]{"<html><center>-- Trống --</center></html>", "<html><center>-- Trống --</center></html>"};
 
-        // 1. Tìm Ca Trước (Ca gần nhất đã/đang kết thúc so với hiện tại)
-        // Logic: Lấy ca có (Ngày < Hôm nay) HOẶC (Ngày = Hôm nay VÀ Giờ Kết Thúc <= Giờ hiện tại)
-        // Sắp xếp: Ngày giảm dần, Giờ kết thúc giảm dần -> Lấy Top 1
         String sqlPrev = "SELECT TOP 1 pc.maCa, pc.ngayLam, cl.tenCa, cl.gioBatDau, cl.gioKetThuc " +
                 "FROM PhanCongCa pc " +
                 "JOIN CaLam cl ON pc.maCa = cl.maCa " +
@@ -153,9 +134,6 @@ public class PhanCongDAO {
                 "OR (pc.ngayLam = CAST(GETDATE() AS DATE) AND cl.gioKetThuc <= CAST(GETDATE() AS TIME)) " +
                 "ORDER BY pc.ngayLam DESC, cl.gioKetThuc DESC";
 
-        // 2. Tìm Ca Sau (Ca gần nhất sắp bắt đầu)
-        // Logic: Lấy ca có (Ngày > Hôm nay) HOẶC (Ngày = Hôm nay VÀ Giờ Bắt Đầu >= Giờ hiện tại)
-        // Sắp xếp: Ngày tăng dần, Giờ bắt đầu tăng dần -> Lấy Top 1
         String sqlNext = "SELECT TOP 1 pc.maCa, pc.ngayLam, cl.tenCa, cl.gioBatDau, cl.gioKetThuc " +
                 "FROM PhanCongCa pc " +
                 "JOIN CaLam cl ON pc.maCa = cl.maCa " +
@@ -164,7 +142,7 @@ public class PhanCongDAO {
                 "ORDER BY pc.ngayLam ASC, cl.gioBatDau ASC";
 
         try (Connection conn = SQLConnection.getConnection()) {
-            // --- XỬ LÝ CA TRƯỚC ---
+
             try (PreparedStatement ps = conn.prepareStatement(sqlPrev);
                  ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -180,7 +158,6 @@ public class PhanCongDAO {
                 }
             }
 
-            // --- XỬ LÝ CA SAU ---
             try (PreparedStatement ps = conn.prepareStatement(sqlNext);
                  ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -211,7 +188,6 @@ public class PhanCongDAO {
             ps.setDate(2, java.sql.Date.valueOf(ngayLam));
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    // Lấy tên, có thể tách lấy HỌ hoặc TÊN nếu muốn ngắn gọn
                     list.add(rs.getString("hoTen"));
                 }
             }
@@ -221,14 +197,12 @@ public class PhanCongDAO {
         return list;
     }
 
-    // [Hàm phụ] Format chuỗi HTML hiển thị
     private String formatShiftInfo(LocalDate date, String tenCa, Time start, Time end, List<String> names) {
-        // 1. Xử lý ngày tháng: "Hôm qua (Thứ 2)"
+
         LocalDate today = LocalDate.now();
         String dateStr;
-        String dayOfWeek = date.getDayOfWeek().getDisplayName(TextStyle.FULL, new Locale("vi", "VN")); // Thứ Hai, Thứ Ba...
+        String dayOfWeek = date.getDayOfWeek().getDisplayName(TextStyle.FULL, new Locale("vi", "VN"));
 
-        // Chuẩn hóa "Thứ Hai" -> "thứ 2" cho giống văn nói (tùy chọn)
         dayOfWeek = dayOfWeek.replace("Thứ Hai", "thứ 2").replace("Thứ Ba", "thứ 3")
                 .replace("Thứ Tư", "thứ 4").replace("Thứ Năm", "thứ 5")
                 .replace("Thứ Sáu", "thứ 6").replace("Thứ Bảy", "thứ 7")
@@ -244,21 +218,16 @@ public class PhanCongDAO {
             dateStr = date.format(DateTimeFormatter.ofPattern("dd/MM")) + " (" + dayOfWeek + ")";
         }
 
-        // 2. Xử lý giờ: "06h-14h"
         String timeStr = start.toString().substring(0, 2) + "h-" + end.toString().substring(0, 2) + "h";
 
-        // 3. Xử lý danh sách tên (Nối chuỗi bằng dấu phẩy)
         String staffListStr;
         if (names.isEmpty()) {
             staffListStr = "<i style='color:gray'>Chưa phân công</i>";
         } else {
-            // Nối tên bằng dấu phẩy và ngắt dòng nếu quá dài (HTML xử lý tự động)
             staffListStr = String.join(", ", names);
         }
 
-        // 4. Tạo chuỗi HTML
-        // Dùng CSS inline để format đẹp: Tiêu đề in đậm màu xanh, Danh sách tên màu đen thường
-        return "<html><div style='text-align: center; width: 180px;'>" + // width cố định để text tự xuống dòng
+        return "<html><div style='text-align: center; width: 180px;'>" +
                 "<span style='color:#2980b9; font-weight:bold; font-size:10px;'>" + dateStr + "</span><br/>" +
                 "<span style='color:#2c3e50; font-weight:bold; font-size:11px;'>" + tenCa + " " + timeStr + "</span><br/>" +
                 "<div style='margin-top:4px; color:#555; font-size:12px;'>" + staffListStr + "</div>" +

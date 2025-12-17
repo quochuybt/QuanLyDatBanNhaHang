@@ -101,8 +101,6 @@ public class NhanVienGUI extends JPanel {
         table.setFont(new Font("Arial", Font.PLAIN, 14));
         table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 14));
         table.getColumn("Xem chi tiết").setCellRenderer(new ButtonRenderer());
-
-        // [KÍCH HOẠT]
         table.getColumn("Xem chi tiết").setCellEditor(new ButtonEditor(new JCheckBox(), table));
 
         JScrollPane scrollPane = new JScrollPane(table);
@@ -178,7 +176,6 @@ public class NhanVienGUI extends JPanel {
     }
 
 
-    // --- (Các lớp ButtonRenderer và ButtonEditor ) ---
     private static class ButtonRenderer extends JButton implements TableCellRenderer {
         public ButtonRenderer() {
             setOpaque(true);
@@ -191,8 +188,7 @@ public class NhanVienGUI extends JPanel {
             setFont(new Font("Arial", Font.PLAIN, 14));
         }
         @Override
-        public Component getTableCellRendererComponent(JTable table, Object value,
-                                                       boolean isSelected, boolean hasFocus, int row, int column) {
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             setText("Xem chi tiết >>");
             return this;
         }
@@ -209,25 +205,19 @@ public class NhanVienGUI extends JPanel {
             this.table = table;
             button = new JButton("Xem chi tiết >>");
 
-            // [ĐÃ SỬA]: Logic mở Dialog được chuyển vào đây
             button.addActionListener((ActionEvent e) -> {
-                // 1. Phải dừng chỉnh sửa trước khi mở dialog
                 fireEditingStopped();
-
-                // 2. Lấy Mã NV an toàn
                 int currentRow = table.convertRowIndexToModel(editingRow);
                 int maNVColumnIndex = table.getColumn("Xem chi tiết").getModelIndex();
                 String maNV = (String) table.getModel().getValueAt(currentRow, maNVColumnIndex);
 
-                // 3. Mở Dialog
                 ChiTietNhanVienDialog dialog = new ChiTietNhanVienDialog(NhanVienGUI.this, maNV);
                 dialog.setVisible(true);
             });
         }
 
         @Override
-        public Component getTableCellEditorComponent(JTable table, Object value,
-                                                     boolean isSelected, int row, int column) {
+        public Component getTableCellEditorComponent(JTable table, Object value,boolean isSelected, int row, int column) {
             isPushed = true;
             this.editingRow = row;
             return button;
@@ -235,7 +225,6 @@ public class NhanVienGUI extends JPanel {
 
         @Override
         public Object getCellEditorValue() {
-            // [ĐÃ SỬA]: Chỉ trả về giá trị để JTable kết thúc chỉnh sửa
             if (isPushed) {
                 int maNVColumnIndex = table.getColumn("Xem chi tiết").getModelIndex();
                 return table.getValueAt(editingRow, maNVColumnIndex);

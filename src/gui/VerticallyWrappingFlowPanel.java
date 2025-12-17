@@ -3,9 +3,6 @@ package gui;
 import javax.swing.*;
 import java.awt.*;
 
-/**
- * Lớp Panel tùy chỉnh để FlowLayout tự động xuống dòng (wrap).
- */
 public class VerticallyWrappingFlowPanel extends JPanel implements Scrollable {
     public VerticallyWrappingFlowPanel(LayoutManager layout) {
         super(layout);

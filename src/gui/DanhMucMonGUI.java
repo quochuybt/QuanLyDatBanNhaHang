@@ -18,13 +18,11 @@ import java.util.List;
 
 public class DanhMucMonGUI extends JPanel {
 
-    // --- Components ---
     private JPanel pnlMenuItemContainer;
     private JTextField txtTimKiem;
     private JScrollPane scrollPane;
     private JPanel filterButtonPanel;
 
-    // --- Data & DAO ---
     private MonAnDAO monAnDAO;
     private DanhMucMonDAO danhMucMonDAO;
     private List<MonAn> dsMonAnFull;
@@ -32,7 +30,6 @@ public class DanhMucMonGUI extends JPanel {
     private String currentCategoryFilter = "Tất cả";
     private String currentKeywordFilter = "";
 
-    // --- Constants ---
     private static final Color COLOR_BACKGROUND = new Color(244, 247, 252);
     private static final Color COLOR_ACCENT_BLUE = new Color(56, 118, 243);
 
@@ -49,7 +46,6 @@ public class DanhMucMonGUI extends JPanel {
         add(createHeaderPanel(), BorderLayout.NORTH);
         add(createMenuPanel(), BorderLayout.CENTER);
 
-        // Load dữ liệu khi khởi chạy
         SwingUtilities.invokeLater(() -> {
             loadFilterButtons();
             loadDataFromDB();
@@ -65,11 +61,9 @@ public class DanhMucMonGUI extends JPanel {
         lblTitle.setForeground(new Color(50, 50, 50));
         headerPanel.add(lblTitle, BorderLayout.WEST);
 
-        // --- Panel chứa: Tìm kiếm + Nút Thêm ---
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
         rightPanel.setOpaque(false);
 
-        // 1. Ô tìm kiếm
         JPanel searchWrapper = new JPanel(new BorderLayout(8, 0));
         searchWrapper.setBackground(Color.WHITE);
         searchWrapper.setPreferredSize(new Dimension(280, 40));
@@ -96,11 +90,9 @@ public class DanhMucMonGUI extends JPanel {
         searchWrapper.add(txtTimKiem, BorderLayout.CENTER);
         rightPanel.add(searchWrapper);
 
-        // 2. Nút Thêm Món
         JButton btnThem = new JButton("Thêm món");
         styleMainButton(btnThem, new Color(40, 167, 69)); // Màu xanh lá
 
-        // Logic khi bấm nút Thêm
         btnThem.addActionListener(e -> showAddMonAnDialog());
         rightPanel.add(btnThem);
 
@@ -112,7 +104,9 @@ public class DanhMucMonGUI extends JPanel {
         JPanel panel = new JPanel(new BorderLayout(0, 15));
         panel.setOpaque(false);
 
-        // Thanh lọc danh mục
+        JPanel topContainer = new JPanel(new BorderLayout(10, 0));
+        topContainer.setOpaque(false);
+
         filterButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         filterButtonPanel.setOpaque(false);
 
@@ -125,9 +119,28 @@ public class DanhMucMonGUI extends JPanel {
         filterScrollPane.setPreferredSize(new Dimension(0, 55));
         filterScrollPane.getHorizontalScrollBar().setUnitIncrement(20);
 
-        panel.add(filterScrollPane, BorderLayout.NORTH);
+        topContainer.add(filterScrollPane, BorderLayout.CENTER);
 
-        // CENTER: Lưới chứa món ăn (Sử dụng Layout Wrap)
+        JButton btnAddCategory = new JButton("...");
+        btnAddCategory.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        btnAddCategory.setForeground(Color.WHITE);
+        btnAddCategory.setBackground(COLOR_ACCENT_BLUE);
+        btnAddCategory.setFocusPainted(false);
+        btnAddCategory.setBorderPainted(false);
+        btnAddCategory.setPreferredSize(new Dimension(55, 55));
+        btnAddCategory.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        btnAddCategory.addActionListener(e -> {
+            QuanLyDanhMucDialog qlDialog = new QuanLyDanhMucDialog((Frame) SwingUtilities.getWindowAncestor(this));
+            qlDialog.setVisible(true);
+            if (qlDialog.isDataChanged()) {
+                loadFilterButtons();
+            }
+        });
+
+        topContainer.add(btnAddCategory, BorderLayout.EAST);
+
+        panel.add(topContainer, BorderLayout.NORTH);
         pnlMenuItemContainer = new VerticallyWrappingFlowPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
         pnlMenuItemContainer.setBorder(new EmptyBorder(10, 10, 10, 10));
         pnlMenuItemContainer.setBackground(Color.WHITE);
@@ -142,17 +155,14 @@ public class DanhMucMonGUI extends JPanel {
         return panel;
     }
 
-    // --- LOGIC LOAD DỮ LIỆU ---
     private void loadDataFromDB() {
         dsMonAnFull = monAnDAO.getAllMonAn();
         pnlMenuItemContainer.removeAll();
         dsMonAnPanel.clear();
 
         for (MonAn mon : dsMonAnFull) {
-            // Tạo Panel con cho từng món (Class ở dưới)
             MonAnItemPanel itemPanel = new MonAnItemPanel(mon);
 
-            // Context Menu (Chuột phải)
             JPopupMenu popupMenu = new JPopupMenu();
             JMenuItem editItem = new JMenuItem("Sửa món ăn");
             JMenuItem deleteItem = new JMenuItem("Xóa món ăn");
@@ -165,7 +175,6 @@ public class DanhMucMonGUI extends JPanel {
 
             itemPanel.setComponentPopupMenu(popupMenu);
 
-            // Sự kiện Click đúp để sửa
             itemPanel.addMouseListener(new MouseAdapter() {
                 public void mouseReleased(MouseEvent e) {
                     if (e.isPopupTrigger()) popupMenu.show(e.getComponent(), e.getX(), e.getY());
@@ -181,7 +190,7 @@ public class DanhMucMonGUI extends JPanel {
             dsMonAnPanel.add(itemPanel);
             pnlMenuItemContainer.add(itemPanel);
         }
-        filterMonAn(); // Áp dụng lọc ngay sau khi load
+        filterMonAn();
     }
 
     private void filterMonAn() {
@@ -189,11 +198,9 @@ public class DanhMucMonGUI extends JPanel {
         for (MonAnItemPanel itemPanel : dsMonAnPanel) {
             MonAn mon = itemPanel.getMonAn();
             boolean show = true;
-            // Lọc theo danh mục
             if (!currentCategoryFilter.equals("Tất cả")) {
                 if (mon.getMaDM() == null || !mon.getMaDM().equals(currentCategoryFilter)) show = false;
             }
-            // Lọc theo từ khóa
             if (show && !currentKeywordFilter.isEmpty()) {
                 if (!mon.getTenMon().toLowerCase().contains(currentKeywordFilter)) show = false;
             }
@@ -203,8 +210,6 @@ public class DanhMucMonGUI extends JPanel {
         pnlMenuItemContainer.revalidate();
         pnlMenuItemContainer.repaint();
     }
-
-    // --- CÁC HÀM XỬ LÝ SỰ KIỆN ---
 
     private void showAddMonAnDialog() {
         MonAnDialog dialog = new MonAnDialog((Frame) SwingUtilities.getWindowAncestor(this));
@@ -246,7 +251,6 @@ public class DanhMucMonGUI extends JPanel {
         }
     }
 
-    // --- UI HELPERS ---
     private void loadFilterButtons() {
         filterButtonPanel.removeAll();
         ButtonGroup group = new ButtonGroup();

@@ -11,14 +11,13 @@ public class GiaoCa {
     private double tienHeThongTinh;
     private String ghiChu;
 
-    // Constructor đầy đủ
     public GiaoCa(int maGiaoCa, String maNV, LocalDateTime thoiGianBatDau, double tienDauCa) {
         this.maGiaoCa = maGiaoCa;
         this.maNV = maNV;
         this.thoiGianBatDau = thoiGianBatDau;
         this.tienDauCa = tienDauCa;
     }
-    // ... Getter & Setter ...
+
     public int getMaGiaoCa() { return maGiaoCa; }
 
     public void setMaGiaoCa(int maGiaoCa) {

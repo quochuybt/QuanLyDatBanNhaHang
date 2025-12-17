@@ -39,12 +39,10 @@ public class GhepBanDialog extends JDialog {
             this.allTablesFromDB = new ArrayList<>();
         }
 
-        // --- Thiết lập cho JDialog (thay vì JPanel) ---
         setUndecorated(true);
         setBackground(new Color(0, 0, 0, 100)); // Hiệu ứng mờ
         setLayout(new GridBagLayout()); // Để căn giữa
 
-        // Panel nội dung chính
         JPanel contentPanel = new JPanel(new BorderLayout(0, 10));
         contentPanel.setPreferredSize(new Dimension(900, 600));
         contentPanel.setBackground(Color.WHITE);
@@ -64,12 +62,10 @@ public class GhepBanDialog extends JDialog {
         contentPanel.add(splitPane, BorderLayout.CENTER);
         contentPanel.add(createBottomBar(), BorderLayout.SOUTH);
 
-        // Thêm panel nội dung vào JDialog
         add(contentPanel);
         setSize(parent.getSize());
         setLocationRelativeTo(parent);
 
-        // Populate
         populateLeftPanel(currentLeftFilter);
         populateRightPanel(currentRightFilter);
     }
@@ -176,7 +172,6 @@ public class GhepBanDialog extends JDialog {
         button.setForeground(Color.BLACK);
         button.addChangeListener(e -> {
             if (button.isSelected()) {
-                // Sử dụng hằng số từ BanPanel
                 button.setBackground(BanPanel.COLOR_ACCENT_BLUE);
                 button.setForeground(Color.WHITE);
                 button.setBorder(new EmptyBorder(5, 15, 5, 15));
@@ -223,7 +218,6 @@ public class GhepBanDialog extends JDialog {
         rightBanPanelList.clear();
 
         for (Ban ban : allTablesFromDB) {
-            // Chỉ hiện bàn Đang phục vụ hoặc Đã đặt
             boolean khuVucMatch = khuVucFilter.equals("Tất cả") || ban.getKhuVuc().equals(khuVucFilter);
             boolean statusMatch = (ban.getTrangThai() == TrangThaiBan.DANG_PHUC_VU || ban.getTrangThai() == TrangThaiBan.DA_DAT_TRUOC);
 
@@ -246,11 +240,8 @@ public class GhepBanDialog extends JDialog {
         rightTableContainer.repaint();
     }
     private void handleSelectSource(Ban ban, BanPanel clickedPanel) {
-        // --- LOGIC MỚI: TỰ ĐỘNG GỠ KHỎI ĐÍCH ---
-        // Nếu bàn này đang là Đích -> Hủy chọn Đích
         if (selectedTargetTable != null && selectedTargetTable.equals(ban)) {
             selectedTargetTable = null;
-            // Cập nhật giao diện bên phải (Bỏ highlight bàn này bên phải)
             for (BanPanel p : rightBanPanelList) {
                 if (p.getBan().equals(ban)) {
                     p.setSelected(false);
@@ -258,9 +249,6 @@ public class GhepBanDialog extends JDialog {
                 }
             }
         }
-        // ----------------------------------------
-
-        // Logic toggle chọn nhiều (giữ nguyên)
         if (selectedSourceTables.contains(ban)) {
             selectedSourceTables.remove(ban);
             clickedPanel.setSelected(false);
@@ -295,7 +283,6 @@ public class GhepBanDialog extends JDialog {
             return;
         }
 
-        // Gọi DAO
         boolean kq = banDAO.ghepBanLienKet(selectedSourceTables, selectedTargetTable);
 
         if (kq) {
@@ -307,7 +294,6 @@ public class GhepBanDialog extends JDialog {
     }
 
     private void stylePrimaryButton(JButton b) {
-        // Sử dụng hằng số từ BanPanel
         b.setBackground(BanPanel.COLOR_ACCENT_BLUE);
         b.setForeground(Color.WHITE);
         b.setFont(new Font("Segoe UI", Font.BOLD, 13));
