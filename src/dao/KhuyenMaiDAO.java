@@ -245,54 +245,41 @@ public class KhuyenMaiDAO {
         }
     }
 
-    /**
-     * Ghi nhận việc sử dụng mã:
-     * 1. Tăng số lượt đã dùng trong bảng KhuyenMai.
-     * 2. Lưu lịch sử vào bảng LichSuSuDungKM.
-     * 3. [MỚI] Tự động khóa mã (Ngưng áp dụng) nếu đạt giới hạn.
-     */
-    public void ghiNhanSuDung(String maKM, String maKH) {
-        Connection conn = null;
-        try {
-            conn = SQLConnection.getConnection();
-            conn.setAutoCommit(false); // Bắt đầu Transaction
 
-            // 1. Tăng số lượt đã dùng
-            String sqlUpdateCount = "UPDATE KhuyenMai SET soLuotDaDung = soLuotDaDung + 1 WHERE maKM = ?";
+    public void ghiNhanSuDung(String maKM, String maKH) {
+        try (Connection conn = SQLConnection.getConnection()) {
+            conn.setAutoCommit(false);
+
+            String sqlUpdateCount = "UPDATE KhuyenMai SET soLuotDaDung = ISNULL(soLuotDaDung, 0) + 1 WHERE maKM = ?";
             try (PreparedStatement ps = conn.prepareStatement(sqlUpdateCount)) {
                 ps.setString(1, maKM);
                 ps.executeUpdate();
             }
 
-            // 2. Lưu lịch sử sử dụng
-            String sqlHist = "INSERT INTO LichSuSuDungKM (maKH, maKM) VALUES (?, ?)";
-            try (PreparedStatement ps = conn.prepareStatement(sqlHist)) {
-                ps.setString(1, maKH);
-                ps.setString(2, maKM);
-                ps.executeUpdate();
+
+            if (maKH != null && !maKH.trim().isEmpty() && !maKH.equals("KH_VANGLAI")) {
+                String sqlHist = "INSERT INTO LichSuSuDungKM (maKH, maKM) VALUES (?, ?)";
+                try (PreparedStatement ps = conn.prepareStatement(sqlHist)) {
+                    ps.setString(1, maKH);
+                    ps.setString(2, maKM);
+                    ps.executeUpdate();
+                } catch (SQLException ex) {
+                    System.err.println("Cảnh báo: Không thể lưu lịch sử dùng KM cho khách " + maKH + ": " + ex.getMessage());
+                }
             }
 
-            // --- [THÊM MỚI] 3. Tự động chuyển trạng thái nếu đạt giới hạn ---
-            // Câu lệnh này sẽ chuyển trạng thái thành "Ngưng áp dụng" NẾU:
-            // - Có thiết lập giới hạn (soLuongGioiHan > 0)
-            // - VÀ Số lượt đã dùng (vừa tăng ở bước 1) đã lớn hơn hoặc bằng giới hạn
+            // 3. Tự động chuyển trạng thái nếu đạt giới hạn
             String sqlAutoStop = "UPDATE KhuyenMai SET trangThai = N'Ngưng áp dụng' " +
                     "WHERE maKM = ? AND soLuongGioiHan > 0 AND soLuotDaDung >= soLuongGioiHan";
             try (PreparedStatement ps = conn.prepareStatement(sqlAutoStop)) {
                 ps.setString(1, maKM);
-                int rowsAffected = ps.executeUpdate();
-                if (rowsAffected > 0) {
-                    System.out.println("Mã KM " + maKM + " đã đạt giới hạn và được chuyển sang 'Ngưng áp dụng'.");
-                }
+                ps.executeUpdate();
             }
-            // -------------------------------------------------------------
 
-            conn.commit(); // Xác nhận tất cả thay đổi
+            conn.commit();
+            System.out.println("Đã ghi nhận lượt dùng cho mã: " + maKM);
+
         } catch (Exception e) {
-            try { if (conn != null) conn.rollback(); } catch (SQLException ex) {}
             e.printStackTrace();
-        } finally {
-            try { if (conn != null) conn.close(); } catch (SQLException e) {}
         }
-    }
-}
+    }}
