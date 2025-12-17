@@ -22,8 +22,6 @@ public class MonAnDialog extends JDialog {
     private JComboBox<String> cboTrangThai;
     private JComboBox<DanhMucMon> cboDanhMuc;
     private JLabel lblHinhAnhPreview;
-
-    // Lưu tên file ảnh (ví dụ: "1732000_pho.jpg")
     private String selectedImageFileName = "";
     private boolean succeeded = false;
     private MonAn monAn;
@@ -34,7 +32,7 @@ public class MonAnDialog extends JDialog {
     public MonAnDialog(Frame parent) {
         super(parent, "Thêm Món Ăn", true);
         this.monAn = new MonAn();
-        this.monAn.setMaMonAn(monAnDAO.getNextMaMonAn()); // Lấy mã tự động
+        this.monAn.setMaMonAn(monAnDAO.getNextMaMonAn());
         initUI();
     }
 
@@ -52,7 +50,6 @@ public class MonAnDialog extends JDialog {
         setLayout(new BorderLayout());
         getContentPane().setBackground(Color.WHITE);
 
-        // --- LEFT: FORM ---
         JPanel pnlForm = new JPanel(new GridBagLayout());
         pnlForm.setBackground(Color.WHITE);
         pnlForm.setBorder(new EmptyBorder(20, 20, 20, 20));
@@ -61,7 +58,7 @@ public class MonAnDialog extends JDialog {
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         txtMaMon = addField(pnlForm, gbc, 0, "Mã món:", false);
-        txtMaMon.setText(monAn.getMaMonAn()); // Hiển thị mã
+        txtMaMon.setText(monAn.getMaMonAn());
         txtTenMon = addField(pnlForm, gbc, 1, "Tên món (*):", true);
 
         gbc.gridx=0; gbc.gridy=2; pnlForm.add(new JLabel("Danh mục:"), gbc);
@@ -83,7 +80,6 @@ public class MonAnDialog extends JDialog {
 
         add(pnlForm, BorderLayout.CENTER);
 
-        // --- RIGHT: ẢNH ---
         JPanel pnlImage = new JPanel(new BorderLayout(0, 10));
         pnlImage.setBackground(Color.WHITE);
         pnlImage.setBorder(new EmptyBorder(20, 0, 20, 20));
@@ -99,7 +95,6 @@ public class MonAnDialog extends JDialog {
         pnlImage.add(btnUpload, BorderLayout.SOUTH);
         add(pnlImage, BorderLayout.EAST);
 
-        // --- BOTTOM: BUTTONS ---
         JPanel pnlBtn = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton btnSave = new JButton("Lưu");
         JButton btnCancel = new JButton("Hủy");
@@ -115,30 +110,35 @@ public class MonAnDialog extends JDialog {
         add(pnlBtn, BorderLayout.SOUTH);
     }
 
-    // --- LOGIC XỬ LÝ ẢNH ---
     private void chooseImage() {
         JFileChooser fc = new JFileChooser();
-        fc.setFileFilter(new FileNameExtensionFilter("Ảnh (JPG, PNG)", "jpg", "png", "jpeg"));
+        fc.setFileFilter(new FileNameExtensionFilter(
+                "Hình ảnh (JPG, PNG, GIF, BMP)",
+                "jpg", "jpeg", "png", "gif", "bmp"
+        ));
 
         if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             File srcFile = fc.getSelectedFile();
 
-            // Đường dẫn đến thư mục dự án: src/img/MonAn
-            String projectPath = System.getProperty("user.dir");
-            File destFolder = new File(projectPath + "/src/img/MonAn");
-            if (!destFolder.exists()) destFolder.mkdirs();
+            if (srcFile == null || !srcFile.exists()) {
+                JOptionPane.showMessageDialog(this, "File không tồn tại hoặc chưa chọn file!");
+                return;
+            }
 
-            // Tạo tên file mới: time_tenfilegoc.jpg (tránh trùng)
+            String projectPath = System.getProperty("user.dir");
+            File destFolder = new File(projectPath + "/resources/img/MonAn");
+            if (!destFolder.exists()) {
+                destFolder.mkdirs();
+            }
+
             String newName = System.currentTimeMillis() + "_" + srcFile.getName();
             File destFile = new File(destFolder, newName);
 
             try {
-                // COPY FILE
                 Files.copy(srcFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
-                // Cập nhật biến và hiển thị
                 this.selectedImageFileName = newName;
-                displayImage(destFile.getAbsolutePath()); // Hiển thị file vừa copy
+                displayImage(destFile.getAbsolutePath());
 
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(this, "Lỗi copy ảnh: " + e.getMessage());
@@ -155,18 +155,15 @@ public class MonAnDialog extends JDialog {
 
         ImageIcon icon = null;
         try {
-            // 1. Thử đọc đường dẫn tuyệt đối (khi vừa chọn ảnh xong)
             File f = new File(pathOrName);
             if (f.exists() && f.isAbsolute()) {
                 icon = new ImageIcon(f.getAbsolutePath());
             } else {
-                // 2. Thử đọc từ thư mục dự án (khi load từ DB)
-                String localPath = System.getProperty("user.dir") + "/src/img/MonAn/" + pathOrName;
+                String localPath = System.getProperty("user.dir") + "/resources/img/MonAn/" + pathOrName;
                 File localFile = new File(localPath);
                 if (localFile.exists()) {
                     icon = new ImageIcon(localPath);
                 } else {
-                    // 3. Fallback: Thử đọc từ resources (khi đã build JAR)
                     java.net.URL imgURL = getClass().getResource("/img/MonAn/" + pathOrName);
                     if (imgURL != null) icon = new ImageIcon(imgURL);
                 }
@@ -185,25 +182,36 @@ public class MonAnDialog extends JDialog {
 
     private void onSave(ActionEvent e) {
         try {
-            if (txtTenMon.getText().trim().isEmpty()) throw new Exception("Tên món không được rỗng");
-            if (txtDonGia.getText().trim().isEmpty()) throw new Exception("Đơn giá không được rỗng");
+            if (txtTenMon.getText().trim().isEmpty()) {
+                throw new Exception("Tên món không được để trống!");
+            }
+            if (txtDonGia.getText().trim().isEmpty()) {
+                throw new Exception("Đơn giá không được để trống!");
+            }
+
+            float giaBan = Float.parseFloat(txtDonGia.getText().trim());
+
+            if (giaBan < 0) {
+                throw new Exception("Giá bán không được âm!");
+            }
 
             monAn.setTenMon(txtTenMon.getText().trim());
-            monAn.setDonGia(Float.parseFloat(txtDonGia.getText().trim()));
+            monAn.setDonGia(giaBan);
             monAn.setDonViTinh(txtDonViTinh.getText().trim());
             monAn.setTrangThai(cboTrangThai.getSelectedItem().toString());
             monAn.setMota(txtMoTa.getText().trim());
-            monAn.setHinhAnh(selectedImageFileName); // Lưu tên file vào DB
+            monAn.setHinhAnh(selectedImageFileName);
 
             DanhMucMon dm = (DanhMucMon) cboDanhMuc.getSelectedItem();
             if (dm != null) monAn.setMaDM(dm.getMadm());
 
             succeeded = true;
             dispose();
+
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Đơn giá phải là số!");
+            JOptionPane.showMessageDialog(this, "Đơn giá phải là số hợp lệ!", "Lỗi nhập liệu", JOptionPane.WARNING_MESSAGE);
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Lỗi: " + ex.getMessage());
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi nhập liệu", JOptionPane.WARNING_MESSAGE);
         }
     }
 
@@ -234,7 +242,6 @@ public class MonAnDialog extends JDialog {
         txtMoTa.setText(monAn.getMota());
         cboTrangThai.setSelectedItem(monAn.getTrangThai());
 
-        // Chọn danh mục tương ứng
         for (int i=0; i<cboDanhMuc.getItemCount(); i++) {
             if (cboDanhMuc.getItemAt(i).getMadm().equals(monAn.getMaDM())) {
                 cboDanhMuc.setSelectedIndex(i); break;

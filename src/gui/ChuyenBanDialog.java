@@ -37,10 +37,8 @@ public class ChuyenBanDialog extends JDialog {
 
 
         try {
-            // Tải danh sách bàn từ CSDL
             this.allTablesFromDB = banDAO.getAllBan();
 
-            // Cập nhật lại bộ đếm static (giống ManHinhBanGUI)
             int maxSoThuTu = banDAO.getSoThuTuBanLonNhat();
             Ban.setSoThuTuBanHienTai(maxSoThuTu);
 
@@ -51,12 +49,10 @@ public class ChuyenBanDialog extends JDialog {
             this.allTablesFromDB = new ArrayList<>();
         }
 
-        // --- Thiết lập cho JDialog (thay vì JPanel) ---
         setUndecorated(true);
         setBackground(new Color(0, 0, 0, 100)); // Hiệu ứng mờ
         setLayout(new GridBagLayout()); // Để căn giữa
 
-        // Panel nội dung chính
         JPanel contentPanel = new JPanel(new BorderLayout(0, 10));
         contentPanel.setPreferredSize(new Dimension(1000, 600));
         contentPanel.setBackground(Color.WHITE);
@@ -75,12 +71,10 @@ public class ChuyenBanDialog extends JDialog {
         contentPanel.add(splitPane, BorderLayout.CENTER);
         contentPanel.add(createBottomBar(), BorderLayout.SOUTH);
 
-        // Thêm panel nội dung vào JDialog
         add(contentPanel);
         setSize(parent.getSize());
         setLocationRelativeTo(parent);
 
-        // Populate
         populateLeftPanel(currentLeftFilter);
         populateRightPanel(currentRightFilter);
     }
@@ -133,7 +127,6 @@ public class ChuyenBanDialog extends JDialog {
         headerPanel.add(createFilterPanel(isLeftPanel), BorderLayout.CENTER);
         panel.add(headerPanel, BorderLayout.NORTH);
 
-        // Sử dụng class công khai
         JPanel tableContainer = new VerticallyWrappingFlowPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
         tableContainer.setBackground(Color.WHITE);
         tableContainer.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -187,7 +180,6 @@ public class ChuyenBanDialog extends JDialog {
         button.setForeground(Color.BLACK);
         button.addChangeListener(e -> {
             if (button.isSelected()) {
-                // Sử dụng hằng số từ BanPanel
                 button.setBackground(BanPanel.COLOR_ACCENT_BLUE);
                 button.setForeground(Color.WHITE);
                 button.setBorder(new EmptyBorder(5, 15, 5, 15));
@@ -277,39 +269,34 @@ public class ChuyenBanDialog extends JDialog {
     }
 
     private void handleSelectSource(Ban ban, BanPanel clickedPanel) {
-        // 1. Nếu click vào bàn đang chọn -> Bỏ chọn
         if (selectedSourceTable != null && selectedSourceTable.equals(ban)) {
             selectedSourceTable = null;
             clickedPanel.setSelected(false);
             return;
         }
 
-        // 2. Chọn bàn mới -> Bỏ chọn tất cả bàn cũ trong panel phải
         selectedSourceTable = ban;
         for (BanPanel p : rightBanPanelList) {
-            p.setSelected(false); // Reset hết
+            p.setSelected(false);
         }
-        clickedPanel.setSelected(true); // Highlight bàn mới
+        clickedPanel.setSelected(true);
     }
 
     private void handleSelectTarget(Ban ban, BanPanel clickedPanel) {
-        // 1. Nếu click vào bàn đang chọn -> Bỏ chọn
         if (selectedTargetTable != null && selectedTargetTable.equals(ban)) {
             selectedTargetTable = null;
             clickedPanel.setSelected(false);
             return;
         }
 
-        // 2. Chọn bàn mới -> Bỏ chọn tất cả bàn cũ trong panel trái
         selectedTargetTable = ban;
         for (BanPanel p : leftBanPanelList) {
-            p.setSelected(false); // Reset hết
+            p.setSelected(false);
         }
-        clickedPanel.setSelected(true); // Highlight bàn mới
+        clickedPanel.setSelected(true);
     }
 
     private void xuLyChuyenBan() {
-        // 1. Validate
         if (selectedSourceTable == null) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn bàn cần chuyển (Bên trái)!", "Chưa chọn bàn nguồn", JOptionPane.WARNING_MESSAGE);
             return;
@@ -319,7 +306,6 @@ public class ChuyenBanDialog extends JDialog {
             return;
         }
 
-        // 2. Xác nhận
         int confirm = JOptionPane.showConfirmDialog(this,
                 String.format("Xác nhận chuyển toàn bộ đơn từ bàn [%s] sang bàn [%s]?",
                         selectedSourceTable.getTenBan(), selectedTargetTable.getTenBan()),
@@ -328,38 +314,21 @@ public class ChuyenBanDialog extends JDialog {
 
         if (confirm != JOptionPane.YES_OPTION) return;
 
-        // 3. Thực hiện chuyển trong CSDL
         boolean ketQua = thucHienChuyenBanTrongDB(selectedSourceTable, selectedTargetTable);
 
         if (ketQua) {
             JOptionPane.showMessageDialog(this, "Chuyển bàn thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
 
-            // Cập nhật lại giao diện cha (ManHinhBanGUI)
-            if (getParent() instanceof RootPaneContainer) { // Hoặc cách nào đó để gọi refreshManHinhBan
-                // Tạm thời dispose, ManHinhBanGUI cần tự refresh khi dialog đóng
+            if (getParent() instanceof RootPaneContainer) {
             }
-            dispose(); // Đóng dialog
+            dispose();
         } else {
             JOptionPane.showMessageDialog(this, "Chuyển bàn thất bại! Vui lòng kiểm tra lại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private boolean thucHienChuyenBanTrongDB(Ban banCu, Ban banMoi) {
-        // Logic chuyển bàn:
-        // 1. Tìm đơn đặt món (DonDatMon) đang hoạt động của banCu
-        // 2. Update maBan của đơn đó thành banMoi.getMaBan()
-        // 3. Update trạng thái banCu thành TRONG
-        // 4. Update trạng thái banMoi thành trạng thái cũ của banCu (DANG_PHUC_VU hoặc DA_DAT_TRUOC)
-        // 5. Update gioMoBan của banMoi = gioMoBan của banCu, banCu = null
-
-        // Bạn cần viết hàm này trong BanDAO hoặc DonDatMonDAO
-        // Ví dụ gọi: return banDAO.chuyenBan(banCu.getMaBan(), banMoi.getMaBan());
-
-        System.out.println("Đang thực hiện chuyển DB: " + banCu.getMaBan() + " -> " + banMoi.getMaBan());
-
-        // --- CHỖ NÀY CẦN GỌI DAO THỰC SỰ ---
         return banDAO.chuyenBan(banCu, banMoi);
-        // -----------------------------------
     }
 
     private void stylePrimaryButton(JButton b) {

@@ -183,7 +183,7 @@ public class KhachHangDAO {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return null; // Không tìm thấy
+        return null;
     }
     public KhachHang timTheoSDT(String sdt) {
         // Câu lệnh SQL tìm chính xác 1 người
@@ -213,6 +213,6 @@ public class KhachHangDAO {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return null; // Không tìm thấy
+        return null;
     }
 }

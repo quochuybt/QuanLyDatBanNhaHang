@@ -69,65 +69,46 @@ public class ChiTietNhanVienDialog extends JDialog {
         gbc.insets = new Insets(5, 10, 5, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // Hiển thị mã NV
         JLabel lblMaNV = new JLabel("Mã NV: " + nhanVienGoc.getManv());
         lblMaNV.setFont(new Font("Arial", Font.BOLD, 14));
         gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 4; gbc.anchor = GridBagConstraints.WEST; mainPanel.add(lblMaNV, gbc);
 
-        // Hàng 1: Họ Tên | Ngày Sinh
         addComponent(mainPanel, new JLabel("Họ Tên:"), txtHoTen, gbc, 1, 0);
         addComponent(mainPanel, new JLabel("Ngày Sinh:"), txtNgaySinh, gbc, 1, 1);
 
-        // Hàng 2: Giới Tính | SĐT
         addComponent(mainPanel, new JLabel("Giới Tính:"), cmbGioiTinh, gbc, 2, 0);
         addComponent(mainPanel, new JLabel("SĐT:"), txtSdt, gbc, 2, 1);
 
-        // Hàng 3: Tên Tài khoản | Email
         addComponent(mainPanel, new JLabel("Tên Tài khoản:"), txtTenTK, gbc, 3, 0);
         addComponent(mainPanel, new JLabel("Email:"), txtEmail, gbc, 3, 1);
 
-        // Hàng 4: Mật khẩu mới | Vai Trò
         addComponent(mainPanel, new JLabel("Nhập Mật khẩu MỚI (để trống nếu không đổi):"), txtMatKhauMoi, gbc, 4, 0);
         addComponent(mainPanel, new JLabel("Vai Trò:"), cmbVaiTro, gbc, 4, 1);
 
-        // 🌟 SỬA: Hàng 5: Lương
         addComponent(mainPanel, new JLabel("Lương:"), txtLuong, gbc, 5, 0);
-        // Hàng 5, Cột 1 để trống, hoặc có thể dùng để căn chỉnh nếu cần:
-        // mainPanel.add(Box.createRigidArea(new Dimension(100, 20)), gbc);
-
-        // Hàng 6: Địa chỉ
         gbc.gridx = 0; gbc.gridy = 6; gbc.gridwidth = 1; gbc.weightx = 0; mainPanel.add(new JLabel("Địa Chỉ:"), gbc);
         gbc.gridx = 1; gbc.gridy = 6; gbc.gridwidth = 3; gbc.weightx = 1.0;
         mainPanel.add(txtDiaChi, gbc);
 
-
-        // --- PANEL NÚT BẤM ---
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
         JButton btnLuu = new JButton("Lưu Thay Đổi");
         btnLuu.addActionListener(e -> capNhatNhanVien());
 
-        // 🌟 NÚT TẠM NGƯNG
         JButton btnTamNgung = new JButton("Tạm Ngưng Hoạt Động");
         btnTamNgung.setBackground(Color.ORANGE);
         btnTamNgung.addActionListener(e -> tamNgungNhanVien());
 
-        // 🌟 NÚT KÍCH HOẠT LẠI
         JButton btnKichHoat = new JButton("KÍCH HOẠT LẠI");
-        btnKichHoat.setBackground(new Color(0, 150, 0)); // Màu xanh lá cây
-        btnKichHoat.addActionListener(e -> kichHoatNhanVien()); // Gọi hàm mới
+        btnKichHoat.setBackground(new Color(0, 150, 0));
+        btnKichHoat.addActionListener(e -> kichHoatNhanVien());
 
-        // --- Logic Hiển thị nút ---
-        // Nếu Vai trò là QUANLY thì không cho phép tạm ngưng/kích hoạt
         if (nhanVienGoc.getVaiTro() == VaiTro.NHANVIEN) {
             if (accountStatus == 1) {
-                // Đang hoạt động -> Hiển thị nút Tạm Ngưng
                 buttonPanel.add(btnTamNgung);
             } else if (accountStatus == 0) {
-                // Đang tạm ngưng -> Hiển thị nút Kích Hoạt Lại
                 buttonPanel.add(btnKichHoat);
             }
-            // Nếu accountStatus là -1 (lỗi) thì không hiển thị nút nào liên quan đến trạng thái
         }
 
         buttonPanel.add(btnLuu);
@@ -147,7 +128,6 @@ public class ChiTietNhanVienDialog extends JDialog {
 
     private void capNhatNhanVien() {
         try {
-            // 1. Lấy và Validate dữ liệu
             String hoTen = txtHoTen.getText().trim();
             LocalDate ngaySinh;
             try {
@@ -171,14 +151,11 @@ public class ChiTietNhanVienDialog extends JDialog {
                 JOptionPane.showMessageDialog(this, "Tên tài khoản không được rỗng.", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-
-            // 2. Tạo đối tượng NhanVien mới (dùng validation)
             NhanVien nvUpdate = new NhanVien(
                     nhanVienGoc.getManv(),
                     hoTen, ngaySinh, gioiTinh, sdt, diaChi, nhanVienGoc.getNgayvaolam(), luong, vaiTro, email // Truyền email
             );
 
-            // 3. Thực hiện cập nhật
             boolean success = nhanVienDAO.updateNhanVienAndAccount(nvUpdate, oldTenTK, newTenTK, newMatKhau);
 
             if (success) {
@@ -227,7 +204,6 @@ public class ChiTietNhanVienDialog extends JDialog {
         }
     }
     private void tamNgungNhanVien() {
-        // Kiểm tra điều kiện chỉ cho phép tạm ngưng VaiTro.NHANVIEN
         if (nhanVienGoc.getVaiTro() != VaiTro.NHANVIEN) {
             JOptionPane.showMessageDialog(this,
                     "Chỉ có thể TẠM NGƯNG hoạt động đối với nhân viên có Vai trò NHANVIEN (hiện tại là " + nhanVienGoc.getVaiTro().name() + ").",
@@ -251,7 +227,6 @@ public class ChiTietNhanVienDialog extends JDialog {
             VaiTro vaiTro = nhanVienGoc.getVaiTro();
 
             try {
-                // 🌟 GỌI PHƯƠNG THỨC MỚI
                 boolean success = nhanVienDAO.suspendNhanVienAndAccount(maNV, tenTK, vaiTro);
 
                 if (success) {
@@ -262,7 +237,6 @@ public class ChiTietNhanVienDialog extends JDialog {
                     JOptionPane.showMessageDialog(this, "Tạm ngưng thất bại. Vui lòng kiểm tra lại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
             } catch (IllegalArgumentException e) {
-                // Bắt lỗi nếu vai trò không phải NHANVIEN (mặc dù đã kiểm tra ở trên)
                 JOptionPane.showMessageDialog(this, "Lỗi: " + e.getMessage(), "Lỗi Tác Vụ", JOptionPane.ERROR_MESSAGE);
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(this, "Lỗi hệ thống khi tạm ngưng: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);

@@ -8,11 +8,7 @@
     import javax.swing.border.EmptyBorder;
     import java.awt.*;
 
-    /**
-     * Panel hiển thị 1 Bàn
-     */
     public class BanPanel extends JPanel {
-        // --- Di chuyển các hằng số màu vào đây ---
         public static final Color COLOR_ACCENT_BLUE = new Color(56, 118, 243);
         public static final Color COLOR_STATUS_FREE = new Color(138, 177, 254); // TRONG
         public static final Color COLOR_STATUS_OCCUPIED = new Color(239, 68, 68); // DANG_PHUC_VU
@@ -31,49 +27,39 @@
             setBorder(defaultBorder);
             setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-            // --- 1. THÊM TOOLTIP (Khi rê chuột vào sẽ hiện tên đầy đủ) ---
             setToolTipText(ban.getTenBan() + " (" + ban.getSoGhe() + " ghế)");
 
             JPanel infoPanel = new JPanel();
             infoPanel.setOpaque(false);
             infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
 
-            // --- 2. GIẢM PADDING (Để có nhiều chỗ trống hơn) ---
-            // Cũ: EmptyBorder(25, 5, 5, 5) -> Mới: EmptyBorder(10, 2, 2, 2)
             infoPanel.setBorder(new EmptyBorder(10, 2, 2, 2));
 
-            // --- 3. SỬ DỤNG HTML ĐỂ TỰ ĐỘNG XUỐNG DÒNG ---
-            // Logic: Dùng thẻ <html><center>...<br>...</center></html>
             String tenBanHienThi = ban.getTenBan();
 
-            // Mẹo nhỏ: Nếu tên quá dài (như bàn ghép), ta cho font nhỏ lại một chút
             String fontSizeStyle = "font-size:11px"; // Mặc định to
             if (tenBanHienThi.length() > 10) {
                 fontSizeStyle = "font-size:8px"; // Chữ dài thì nhỏ lại xíu
             }
 
-            // Tạo chuỗi HTML
             String htmlText = "<html><div style='text-align: center; width: 85px; " + fontSizeStyle + "'>"
                     + tenBanHienThi + "</div></html>";
 
             JLabel tenBanLabel = new JLabel(htmlText);
-            // tenBanLabel.setFont(...) -> Không cần set font ở đây nữa vì đã set trong HTML
-            // Nhưng nếu muốn set font gốc:
             tenBanLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
             tenBanLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
             tenBanLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
             JLabel soGheLabel = new JLabel(ban.getSoGhe() + " ghế");
-            soGheLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11)); // Giảm size ghế xíu cho gọn
+            soGheLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
             soGheLabel.setForeground(Color.BLACK);
             soGheLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-            // Canh giữa theo chiều dọc
             infoPanel.add(Box.createVerticalGlue()); // Đẩy xuống
             infoPanel.add(tenBanLabel);
             infoPanel.add(Box.createVerticalStrut(2));
             infoPanel.add(soGheLabel);
-            infoPanel.add(Box.createVerticalGlue()); // Đẩy lên (Kết hợp Glue trên dưới sẽ căn giữa nội dung)
+            infoPanel.add(Box.createVerticalGlue());
 
             add(infoPanel, BorderLayout.CENTER);
         }

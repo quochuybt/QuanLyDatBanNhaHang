@@ -18,12 +18,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Dashboard Nhân Viên - Version 2.2 Final
- */
 public class DashboardNhanVienGUI extends JPanel {
 
-    // =============== CONSTANTS ===============
     private static final Color PRIMARY_COLOR = new Color(41, 128, 185);
     private static final Color SUCCESS_COLOR = new Color(39, 174, 96);
     private static final Color WARNING_COLOR = new Color(243, 156, 18);
@@ -36,34 +32,27 @@ public class DashboardNhanVienGUI extends JPanel {
     private static final Font BODY_FONT = new Font("Segoe UI", Font.PLAIN, 14);
     private static final Font METRIC_FONT = new Font("Segoe UI", Font.BOLD, 32);
 
-    // Cấu hình biểu đồ
     private static final int CHART_DAYS_COUNT = 7;
     private static final Color CHART_BAR_COLOR = PRIMARY_COLOR;
     private static final Color CHART_AVG_COLOR = new Color(149, 165, 166);
 
-    // =============== DAOs ===============
     private final GiaoCaDAO giaoCaDAO;
     private final PhanCongDAO phanCongDAO;
     private final HoaDonDAO hoaDonDAO;
 
-    // =============== DATA ===============
     private final String maNV;
     private final String tenNV;
     private NhanVien nhanVienInfo;
 
-    // =============== UI COMPONENTS ===============
-    // Header
     private JLabel lblWelcome;
     private JLabel lblCurrentTime;
     private JLabel lblShiftStatus;
 
-    // Stats
     private JLabel lblTotalHoursWeek;
     private JLabel lblTotalHoursMonth;
     private JLabel lblRevenueToday;
     private JLabel lblCashInDrawer;
 
-    // Shift Control
     private JLabel lblCurrentShift;
     private JLabel lblShiftTime;
     private JLabel lblStartMoney;
@@ -72,15 +61,12 @@ public class DashboardNhanVienGUI extends JPanel {
     private JButton btnEndShift;
     private JPanel shiftControlInfoPanel;
 
-    // Charts Container
     private JPanel chartPanel;
     private JPanel upcomingShiftsPanel;
 
-    // Timers
     private Timer clockTimer;
     private Timer dataRefreshTimer;
 
-    // =============== CONSTRUCTOR ===============
     public DashboardNhanVienGUI(String maNV, String tenNV) {
         this.maNV = maNV;
         this.tenNV = tenNV;
@@ -90,10 +76,8 @@ public class DashboardNhanVienGUI extends JPanel {
 
         initComponents();
         loadEmployeeData();
-//        startTimers();
     }
 
-    // =============== INIT UI ===============
     private void initComponents() {
         setLayout(new BorderLayout(0, 0));
         setBackground(BACKGROUND_COLOR);
@@ -119,14 +103,8 @@ public class DashboardNhanVienGUI extends JPanel {
         lblWelcome.setFont(TITLE_FONT);
         lblWelcome.setForeground(new Color(44, 62, 80));
 
-//        lblCurrentTime = new JLabel();
-//        lblCurrentTime.setFont(BODY_FONT);
-//        lblCurrentTime.setForeground(new Color(127, 140, 141));
-//        updateClock();
 
         welcomePanel.add(lblWelcome);
-//        welcomePanel.add(lblCurrentTime);
-
         lblShiftStatus = new JLabel("Chưa bắt đầu ca", JLabel.CENTER);
         lblShiftStatus.setFont(HEADER_FONT);
         lblShiftStatus.setOpaque(true);
@@ -162,13 +140,11 @@ public class DashboardNhanVienGUI extends JPanel {
         return centerPanel;
     }
 
-    // =============== QUICK STATS ===============
     private JPanel createQuickStatsPanel() {
         JPanel statsPanel = new JPanel(new GridLayout(1, 4, 15, 0));
         statsPanel.setBackground(BACKGROUND_COLOR);
         statsPanel.setPreferredSize(new Dimension(0, 130));
 
-        // Card 1: Giờ làm tuần
         statsPanel.add(createStatCard(
                 "Giờ làm tuần",
                 "0.0 giờ",
@@ -177,7 +153,6 @@ public class DashboardNhanVienGUI extends JPanel {
                 l -> lblTotalHoursWeek = l
         ));
 
-        // Card 2: Giờ làm tháng
         statsPanel.add(createStatCard(
                 "Giờ làm tháng",
                 "0.0 giờ",
@@ -186,7 +161,6 @@ public class DashboardNhanVienGUI extends JPanel {
                 l -> lblTotalHoursMonth = l
         ));
 
-        // Card 3: Doanh thu hôm nay
         statsPanel.add(createStatCard(
                 "Doanh thu hôm nay",
                 "0 ₫",
@@ -195,7 +169,6 @@ public class DashboardNhanVienGUI extends JPanel {
                 l -> lblRevenueToday = l
         ));
 
-        // Card 4: Tiền trong két
         statsPanel.add(createStatCard(
                 "Tiền trong két",
                 "0 ₫",
@@ -215,21 +188,17 @@ public class DashboardNhanVienGUI extends JPanel {
                 new EmptyBorder(15, 15, 15, 15)
         ));
 
-        // --- PHẦN THAY ĐỔI: Xử lý Icon ảnh ---
         JLabel lblIcon = new JLabel("", JLabel.CENTER);
-        // Load ảnh kích thước 50x50 pixel
         ImageIcon icon = loadIcon(iconPath, 50, 50);
 
         if (icon != null) {
             lblIcon.setIcon(icon);
         } else {
-            // Fallback: Nếu không thấy ảnh thì hiện tạm chữ cái đầu hoặc dấu hỏi
             lblIcon.setText("?");
             lblIcon.setFont(new Font("Segoe UI", Font.BOLD, 30));
             lblIcon.setForeground(accentColor);
         }
-        lblIcon.setPreferredSize(new Dimension(60, 60)); // Tăng size container chứa icon
-        // -------------------------------------
+        lblIcon.setPreferredSize(new Dimension(60, 60));
 
         JPanel textPanel = new JPanel(new GridLayout(2, 1, 0, 5));
         textPanel.setBackground(CARD_COLOR);
@@ -302,10 +271,8 @@ public class DashboardNhanVienGUI extends JPanel {
         centerContent.add(Box.createVerticalStrut(20));
         centerContent.add(shiftControlInfoPanel);
 
-        // Thêm Glue để đẩy mọi thứ lên trên nếu còn dư chỗ (Tránh bị dàn trải)
         centerContent.add(Box.createVerticalGlue());
 
-        // --- 3. CÁC NÚT BẤM (VÙNG SOUTH) ---
         JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 15, 0));
         buttonPanel.setBackground(CARD_COLOR);
 
@@ -319,7 +286,6 @@ public class DashboardNhanVienGUI extends JPanel {
         buttonPanel.add(btnStartShift);
         buttonPanel.add(btnEndShift);
 
-        // --- RÁP VÀO PANEL TỔNG ---
         shiftPanel.add(lblTitle, BorderLayout.NORTH);
         shiftPanel.add(centerContent, BorderLayout.CENTER);
         shiftPanel.add(buttonPanel, BorderLayout.SOUTH);
@@ -331,12 +297,10 @@ public class DashboardNhanVienGUI extends JPanel {
         JPanel infoPanel = new JPanel(new GridLayout(1, 2, 20, 0));
         infoPanel.setBackground(CARD_COLOR);
 
-        // TitledBorder
         infoPanel.setBorder(new TitledBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)),
                 "Đồng nghiệp làm ca gần nhất", TitledBorder.LEFT, TitledBorder.TOP,
                 BODY_FONT, new Color(127, 140, 141)));
 
-        // --- CỘT TRÁI: CA TRƯỚC ---
         JPanel pnlPrev = new JPanel(new BorderLayout());
         pnlPrev.setBackground(CARD_COLOR);
         pnlPrev.add(createInfoLabel("Ca trước:"), BorderLayout.NORTH);
@@ -346,7 +310,6 @@ public class DashboardNhanVienGUI extends JPanel {
         lblPrevShift.setVerticalAlignment(JLabel.TOP);
         pnlPrev.add(lblPrevShift, BorderLayout.CENTER);
 
-        // --- CỘT PHẢI: CA SAU ---
         JPanel pnlNext = new JPanel(new BorderLayout());
         pnlNext.setBackground(CARD_COLOR);
         pnlNext.add(createInfoLabel("Ca sau:"), BorderLayout.NORTH);
@@ -381,7 +344,6 @@ public class DashboardNhanVienGUI extends JPanel {
 
     private JButton createActionButton(String text, Color bgColor) {
         JButton btn = new JButton(text);
-        // Tăng font size một chút và in đậm để cân đối với nút to
         btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btn.setBackground(bgColor);
         btn.setForeground(Color.WHITE);
@@ -389,7 +351,6 @@ public class DashboardNhanVienGUI extends JPanel {
         btn.setBorderPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        // Chiều cao 45px: To, rõ, dễ bấm
         btn.setPreferredSize(new Dimension(0, 100));
 
         btn.addMouseListener(new MouseAdapter() {
@@ -403,7 +364,6 @@ public class DashboardNhanVienGUI extends JPanel {
         return btn;
     }
 
-    // =============== CHARTS & SCHEDULE ===============
     private JPanel createChartsPanel() {
         JPanel chartsContainer = new JPanel(new GridLayout(2, 1, 0, 15));
         chartsContainer.setBackground(BACKGROUND_COLOR);
@@ -457,7 +417,6 @@ public class DashboardNhanVienGUI extends JPanel {
                     return;
                 }
 
-                // === 1. LỌC DỮ LIỆU ===
                 Map<String, Double> filteredData = data.entrySet().stream()
                         .skip(Math.max(0, data.size() - 7))
                         .collect(java.util.stream.Collectors.toMap(
@@ -467,12 +426,10 @@ public class DashboardNhanVienGUI extends JPanel {
                                 java.util.LinkedHashMap::new
                         ));
 
-                // === 2. CẤU HÌNH KÍCH THƯỚC ===
                 final double REFERENCE_LINE = 8.0;
 
-                // Tăng paddingBottom để có chỗ cho Chú thích ở dưới
                 int paddingTop = 30;
-                int paddingBottom = 60; // Tăng từ 40 lên 60
+                int paddingBottom = 60;
                 int paddingLeft = 40;
                 int paddingRight = 40;
 
@@ -488,11 +445,8 @@ public class DashboardNhanVienGUI extends JPanel {
                         REFERENCE_LINE + 1.0
                 );
 
-                // Tính vị trí Y của đường 8h
                 int refY = paddingTop + (int) ((1 - REFERENCE_LINE / maxValue) * chartHeight);
 
-                // === 3. VẼ NỀN (BACKGROUND ZONES) ===
-                // Vùng đạt chuẩn (Xanh nhạt)
                 g2.setPaint(new GradientPaint(
                         paddingLeft, paddingTop, new Color(39, 174, 96, 10),
                         paddingLeft, refY, new Color(39, 174, 96, 20)
@@ -513,13 +467,11 @@ public class DashboardNhanVienGUI extends JPanel {
                 g2.drawLine(paddingLeft, refY, getWidth() - paddingRight, refY);
                 g2.setStroke(new BasicStroke(1.0f)); // Reset về nét liền
 
-                // === 5. VẼ CỘT (BARS) ===
                 int x = paddingLeft;
                 for (Map.Entry<String, Double> entry : filteredData.entrySet()) {
                     double value = entry.getValue();
                     int barHeight = (int) ((value / maxValue) * chartHeight);
 
-                    // Chọn màu cột
                     Color barColor, barColorDark;
                     if (value >= REFERENCE_LINE) {
                         barColor = new Color(39, 174, 96); // Xanh lá
@@ -534,15 +486,12 @@ public class DashboardNhanVienGUI extends JPanel {
 
                     int yPos = getHeight() - paddingBottom - barHeight;
 
-                    // Vẽ cột (Gradient)
                     g2.setPaint(new GradientPaint(x, yPos, barColor, x, yPos + barHeight, barColorDark));
                     g2.fillRoundRect(x, yPos, barWidth, barHeight, 8, 8);
 
-                    // Viền cột
                     g2.setColor(barColorDark);
                     g2.drawRoundRect(x, yPos, barWidth, barHeight, 8, 8);
 
-                    // Hiển thị giá trị trên đầu cột
                     g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
                     String valueStr = String.format("%.1fh", value);
                     FontMetrics fmVal = g2.getFontMetrics();
@@ -550,7 +499,6 @@ public class DashboardNhanVienGUI extends JPanel {
                     g2.setColor(new Color(44, 62, 80));
                     g2.drawString(valueStr, txtX, yPos - 3);
 
-                    // Hiển thị ngày (Trục X)
                     g2.setFont(new Font("Segoe UI", Font.PLAIN, 11));
                     String dateLabel = entry.getKey();
                     int dateX = x + (barWidth - g2.getFontMetrics().stringWidth(dateLabel)) / 2;
@@ -559,11 +507,10 @@ public class DashboardNhanVienGUI extends JPanel {
                     x += barWidth + barMargin;
                 }
 
-                // === 6. VẼ TRỤC TỌA ĐỘ ===
                 g2.setColor(new Color(189, 195, 199));
                 g2.drawLine(paddingLeft, getHeight() - paddingBottom, getWidth() - paddingRight, getHeight() - paddingBottom);
 
-                int legendY = getHeight() - 15; // Cách đáy 15px
+                int legendY = getHeight() - 15;
                 int centerX = getWidth() / 2;
 
                 g2.setColor(new Color(41, 128, 185));
@@ -626,7 +573,6 @@ public class DashboardNhanVienGUI extends JPanel {
         return item;
     }
 
-    // =============== DATA LOADING & LOGIC ===============
     private void loadEmployeeData() {
         SwingWorker<Void, Void> worker = new SwingWorker<>() {
             @Override
@@ -670,7 +616,6 @@ public class DashboardNhanVienGUI extends JPanel {
 
                 lblStartMoney.setText(String.format("%,.0f ₫", caHienTai.getTienDauCa()));
 
-                // Tính tiền trong két
                 double revenueAll = hoaDonDAO.getDoanhThuTheoHinhThuc(maNV, caHienTai.getThoiGianBatDau(), "Tiền mặt") +
                         hoaDonDAO.getDoanhThuTheoHinhThuc(maNV, caHienTai.getThoiGianBatDau(), "Chuyển khoản") +
                         hoaDonDAO.getDoanhThuTheoHinhThuc(maNV, caHienTai.getThoiGianBatDau(), "Thẻ");
@@ -773,7 +718,6 @@ public class DashboardNhanVienGUI extends JPanel {
         return null;
     }
 
-    // =============== ACTIONS ===============
     private void handleStartShift() {
         String input = JOptionPane.showInputDialog(this, "Nhập số tiền đầu ca:", "Bắt đầu ca làm", JOptionPane.QUESTION_MESSAGE);
         if (input == null) return;
@@ -811,34 +755,14 @@ public class DashboardNhanVienGUI extends JPanel {
         }
     }
 
-//    private void updateClock() {
-//        lblCurrentTime.setText(LocalDateTime.now().format(DateTimeFormatter.ofPattern("EEEE, dd/MM/yyyy - HH:mm:ss")));
-//    }
-
-//    private void startTimers() {
-//        clockTimer = new Timer(1000, e -> updateClock());
-//        clockTimer.start();
-//        dataRefreshTimer = new Timer(30000, e -> loadEmployeeData());
-//        dataRefreshTimer.start();
-//    }
-
-    public void stopTimers() {
-        if (clockTimer != null) clockTimer.stop();
-        if (dataRefreshTimer != null) dataRefreshTimer.stop();
-    }
-
-    // Hàm hỗ trợ tải và resize icon
     private ImageIcon loadIcon(String path, int width, int height) {
         try {
-            // Tải ảnh từ đường dẫn resource
             java.net.URL imgURL = getClass().getResource(path);
             if (imgURL != null) {
                 ImageIcon originalIcon = new ImageIcon(imgURL);
-                // Resize ảnh cho mượt (Smooth)
                 Image scaledImage = originalIcon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
                 return new ImageIcon(scaledImage);
             } else {
-                System.err.println("Không tìm thấy icon: " + path);
                 return null;
             }
         } catch (Exception e) {

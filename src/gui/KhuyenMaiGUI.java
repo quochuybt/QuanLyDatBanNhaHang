@@ -18,7 +18,6 @@ import java.util.List;
 
 public class KhuyenMaiGUI extends JPanel {
 
-    // --- Định nghĩa màu sắc và Font ---
     private static final Color COLOR_BACKGROUND = new Color(244, 247, 252);
     private static final Color COLOR_BUTTON_BLUE = new Color(40, 28, 244);
     private static final Color COLOR_BUTTON_RED = new Color(220, 53, 69);
@@ -28,15 +27,13 @@ public class KhuyenMaiGUI extends JPanel {
     private static final Font FONT_TEXT = new Font("Arial", Font.PLAIN, 14);
     private static final Font FONT_BOLD = new Font("Arial", Font.BOLD, 14);
 
-    // --- Components ---
     private JTable tblKhuyenMai;
     private DefaultTableModel modelKhuyenMai;
     private JButton btnThemKhuyenMai;
-    private JButton btnXoaKhuyenMai; // Thực chất là nút Ngưng áp dụng
+    private JButton btnXoaKhuyenMai;
     private JComboBox<String> cbxLoc;
     private JTextField txtTimKiem;
 
-    // --- DAO & Data ---
     private final KhuyenMaiDAO khuyenMaiDAO;
     private List<KhuyenMai> dsKhuyenMai;
     private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -52,14 +49,10 @@ public class KhuyenMaiGUI extends JPanel {
         add(createMainPanel(), BorderLayout.CENTER);
         add(createFooterPanel(), BorderLayout.SOUTH);
 
-        loadDataToTable(); // Nạp dữ liệu ban đầu
-        addEventListeners(); // Gắn sự kiện nút bấm
-        addSearchAndFilterListeners(); // Gắn sự kiện tìm kiếm
+        loadDataToTable();
+        addEventListeners();
+        addSearchAndFilterListeners();
     }
-
-    // ==========================================================================
-    //                              XỬ LÝ DỮ LIỆU
-    // ==========================================================================
 
     private void loadDataToTable() {
         List<KhuyenMai> ds = khuyenMaiDAO.getAllKhuyenMai();
@@ -73,7 +66,6 @@ public class KhuyenMaiGUI extends JPanel {
         if (ds == null) return;
 
         for (KhuyenMai km : dsKhuyenMai) {
-            // Tạo mô tả chi tiết (HTML để xuống dòng đẹp hơn)
             String moTa = String.format("<html><b>%s</b><br>%s<br><i style='color:gray'>ĐK: >%.0f VNĐ</i></html>",
                     km.getTenChuongTrinh(),
                     generateMoTaGiaTri(km),
@@ -81,8 +73,6 @@ public class KhuyenMaiGUI extends JPanel {
 
             String ngayKT = (km.getNgayKetThuc() != null) ? km.getNgayKetThuc().format(dtf) : "Vô thời hạn";
 
-            // [TÍNH NĂNG MỚI] Hiển thị số lượng: Đã dùng / Tổng
-            // Nếu giới hạn = 0 nghĩa là Vô hạn (∞)
             String soLuongHienThi = km.getSoLuotDaDung() + " / " +
                     (km.getSoLuongGioiHan() > 0 ? km.getSoLuongGioiHan() : "∞");
 
@@ -91,7 +81,7 @@ public class KhuyenMaiGUI extends JPanel {
                     km.getLoaiKhuyenMai(),
                     km.getNgayBatDau().format(dtf),
                     ngayKT,
-                    soLuongHienThi, // Cột mới
+                    soLuongHienThi,
                     km.getTrangThai()
             });
         }
@@ -109,10 +99,6 @@ public class KhuyenMaiGUI extends JPanel {
                 return km.getMoTa();
         }
     }
-
-    // ==========================================================================
-    //                              GIAO DIỆN (VIEW)
-    // ==========================================================================
 
     private JPanel createHeaderPanel() {
         JPanel headerPanel = new JPanel(new BorderLayout());
@@ -172,7 +158,6 @@ public class KhuyenMaiGUI extends JPanel {
     }
 
     private JScrollPane createTablePanel() {
-        // [TÍNH NĂNG MỚI] Thêm cột "Đã dùng / Tổng"
         String[] columnNames = {"Chương trình", "Loại", "Ngày Bắt đầu", "Ngày Kết thúc", "Đã dùng / Tổng", "Trạng thái"};
 
         modelKhuyenMai = new DefaultTableModel(columnNames, 0) {
@@ -183,7 +168,7 @@ public class KhuyenMaiGUI extends JPanel {
         };
         tblKhuyenMai = new JTable(modelKhuyenMai);
 
-        tblKhuyenMai.setRowHeight(70); // Tăng chiều cao hàng để hiển thị mô tả chi tiết
+        tblKhuyenMai.setRowHeight(70);
         tblKhuyenMai.setFont(FONT_TEXT);
         tblKhuyenMai.setGridColor(COLOR_TABLE_GRID);
         tblKhuyenMai.setShowGrid(true);
@@ -191,14 +176,11 @@ public class KhuyenMaiGUI extends JPanel {
         tblKhuyenMai.getTableHeader().setBackground(COLOR_TABLE_HEADER_BG);
         tblKhuyenMai.getTableHeader().setPreferredSize(new Dimension(0, 40));
 
-        // Cột trạng thái (index 5) dùng Renderer riêng
         tblKhuyenMai.getColumnModel().getColumn(5).setCellRenderer(new TrangThaiRenderer());
 
-        // Chỉnh độ rộng cột
-        tblKhuyenMai.getColumnModel().getColumn(0).setPreferredWidth(300); // Chương trình
-        tblKhuyenMai.getColumnModel().getColumn(4).setPreferredWidth(100); // Số lượng
-
-        addTableClickListener(); // Sự kiện click để sửa
+        tblKhuyenMai.getColumnModel().getColumn(0).setPreferredWidth(300);
+        tblKhuyenMai.getColumnModel().getColumn(4).setPreferredWidth(100);
+        addTableClickListener();
 
         JScrollPane scrollPane = new JScrollPane(tblKhuyenMai);
         scrollPane.getViewport().setBackground(Color.WHITE);
@@ -207,13 +189,8 @@ public class KhuyenMaiGUI extends JPanel {
     }
 
     private JPanel createFooterPanel() {
-        // Placeholder cho phân trang (nếu cần sau này)
         return new JPanel();
     }
-
-    // ==========================================================================
-    //                              XỬ LÝ SỰ KIỆN
-    // ==========================================================================
 
     private void addEventListeners() {
         btnThemKhuyenMai.addActionListener(e -> showKhuyenMaiDialog(null)); // Thêm mới
@@ -281,10 +258,6 @@ public class KhuyenMaiGUI extends JPanel {
         });
     }
 
-    // ==========================================================================
-    //                      DIALOG THÊM / SỬA (QUAN TRỌNG)
-    // ==========================================================================
-
     private void showKhuyenMaiDialog(KhuyenMai km) {
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this),
                 (km == null ? "Thêm Khuyến Mãi Mới" : "Cập Nhật Khuyến Mãi"), true);
@@ -295,9 +268,8 @@ public class KhuyenMaiGUI extends JPanel {
         JPanel formPanel = new JPanel(new GridLayout(0, 2, 10, 10));
         formPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        // --- Khởi tạo các components ---
         JTextField txtMaKM = new JTextField(km != null ? km.getMaKM() : "");
-        if (km != null) txtMaKM.setEditable(false); // Không sửa mã
+        if (km != null) txtMaKM.setEditable(false);
 
         JTextField txtTenCT = new JTextField(km != null ? km.getTenChuongTrinh() : "");
         JTextField txtMoTa = new JTextField(km != null ? km.getMoTa() : "");
@@ -308,8 +280,6 @@ public class KhuyenMaiGUI extends JPanel {
         JTextField txtGiaTri = new JTextField(km != null ? String.valueOf(km.getGiaTri()) : "0");
         JTextField txtDieuKien = new JTextField(km != null ? String.valueOf(km.getDieuKienApDung()) : "0");
 
-        // [TÍNH NĂNG MỚI] Ô nhập số lượng
-        // Nếu km != null và có giới hạn (>0) thì hiện, nếu 0 hoặc null thì để trống
         String slText = (km != null && km.getSoLuongGioiHan() > 0) ? String.valueOf(km.getSoLuongGioiHan()) : "";
         JTextField txtSoLuong = new JTextField(slText);
         txtSoLuong.setToolTipText("Để trống hoặc nhập 0 nếu không giới hạn số lượng");
@@ -324,8 +294,6 @@ public class KhuyenMaiGUI extends JPanel {
 
         JComboBox<String> cbTrangThai = new JComboBox<>(new String[]{"Đang áp dụng", "Ngưng áp dụng"});
         if (km != null) cbTrangThai.setSelectedItem(km.getTrangThai());
-
-        // --- Thêm vào Form ---
         formPanel.add(new JLabel("Mã khuyến mãi (*):")); formPanel.add(txtMaKM);
         formPanel.add(new JLabel("Tên chương trình (*):")); formPanel.add(txtTenCT);
         formPanel.add(new JLabel("Mô tả chi tiết:")); formPanel.add(txtMoTa);
@@ -333,7 +301,6 @@ public class KhuyenMaiGUI extends JPanel {
         formPanel.add(new JLabel("Giá trị giảm:")); formPanel.add(txtGiaTri);
         formPanel.add(new JLabel("Đơn tối thiểu (VNĐ):")); formPanel.add(txtDieuKien);
 
-        // [THÊM] Label và Field số lượng
         formPanel.add(new JLabel("Số lượng giới hạn (Trống = Vô hạn):")); formPanel.add(txtSoLuong);
 
         formPanel.add(new JLabel("Ngày bắt đầu (*):")); formPanel.add(dcNgayBD);
@@ -342,13 +309,11 @@ public class KhuyenMaiGUI extends JPanel {
 
         dialog.add(formPanel, BorderLayout.CENTER);
 
-        // --- Nút Lưu ---
         JButton btnLuu = new JButton("Lưu lại");
         setupButton(btnLuu, COLOR_BUTTON_BLUE);
 
         btnLuu.addActionListener(e -> {
             try {
-                // 1. Lấy và Validate dữ liệu
                 String ma = txtMaKM.getText().trim();
                 String ten = txtTenCT.getText().trim();
                 if (ma.isEmpty() || ten.isEmpty()) throw new Exception("Mã và Tên không được để trống.");
@@ -358,8 +323,7 @@ public class KhuyenMaiGUI extends JPanel {
                 double dieuKien = Double.parseDouble(txtDieuKien.getText().trim());
                 if (giaTri < 0 || dieuKien < 0) throw new Exception("Giá trị tiền không được âm.");
 
-                // [XỬ LÝ SỐ LƯỢNG]
-                int soLuongGioiHan = 0; // Mặc định 0 (vô hạn)
+                int soLuongGioiHan = 0;
                 if (!txtSoLuong.getText().trim().isEmpty()) {
                     try {
                         soLuongGioiHan = Integer.parseInt(txtSoLuong.getText().trim());
@@ -376,8 +340,6 @@ public class KhuyenMaiGUI extends JPanel {
                     if (ngayKT.isBefore(ngayBD)) throw new Exception("Ngày kết thúc phải sau ngày bắt đầu.");
                 }
 
-                // 2. Tạo đối tượng (DÙNG CONSTRUCTOR CŨ NHƯ BẠN YÊU CẦU)
-                // Chúng ta tạo đối tượng với constructor cũ, sau đó dùng setter để gán thuộc tính mới
                 KhuyenMai kmMoi = new KhuyenMai(
                         ma, ten, txtMoTa.getText(),
                         (String)cbLoaiKM.getSelectedItem(),
@@ -386,14 +348,11 @@ public class KhuyenMaiGUI extends JPanel {
                         (String)cbTrangThai.getSelectedItem()
                 );
 
-                // [QUAN TRỌNG] Sử dụng Setter để gán dữ liệu mới
                 kmMoi.setSoLuongGioiHan(soLuongGioiHan);
-                // Nếu đang sửa, giữ nguyên số lượt đã dùng cũ. Nếu thêm mới, để mặc định 0.
                 if (km != null) {
                     kmMoi.setSoLuotDaDung(km.getSoLuotDaDung());
                 }
 
-                // 3. Gọi DAO
                 boolean success = (km == null) ? khuyenMaiDAO.themKhuyenMai(kmMoi) : khuyenMaiDAO.updateKhuyenMai(kmMoi);
 
                 if (success) {
@@ -418,7 +377,6 @@ public class KhuyenMaiGUI extends JPanel {
         dialog.setVisible(true);
     }
 
-    // --- Helpers ---
     private void setupButton(JButton btn, Color bg) {
         btn.setFont(FONT_BOLD);
         btn.setBackground(bg);
@@ -436,7 +394,6 @@ public class KhuyenMaiGUI extends JPanel {
         });
     }
 
-    // --- Renderer Cột Trạng Thái ---
     private class TrangThaiRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {

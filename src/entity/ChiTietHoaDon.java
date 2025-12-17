@@ -18,9 +18,9 @@ public class ChiTietHoaDon {
     public ChiTietHoaDon(String maDon, String maMon, String tenMon, int soluong, float dongia) {
         setMaDon(maDon);
         setMaMon(maMon);
-        setTenMon(tenMon); // Set tên món
-        setDongia(dongia); // (đã tự gọi tinhThanhTien)
-        setSoluong(soluong); // (đã tự gọi tinhThanhTien)
+        setTenMon(tenMon);
+        setDongia(dongia);
+        setSoluong(soluong);
     }
 
     public ChiTietHoaDon(ChiTietHoaDon other) {

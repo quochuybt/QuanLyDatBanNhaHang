@@ -27,7 +27,6 @@ public class ForgotPasswordDialog extends JDialog {
     private JPasswordField txtNewPassword;
     private JPasswordField txtConfirmPassword;
 
-    // Biến thành viên để cập nhật nhãn email ở bước 2
     private JLabel emailDisplayLabel;
 
     private static Map<String, String> otpStorage = new HashMap<>();
@@ -41,7 +40,6 @@ public class ForgotPasswordDialog extends JDialog {
         cardLayout = new CardLayout();
         cardPanel = new JPanel(cardLayout);
 
-        // Khởi tạo các panel
         JPanel step1 = createStep1Panel();
         JPanel step2 = createStep2Panel();
         JPanel step3 = createStep3Panel();
@@ -100,8 +98,6 @@ public class ForgotPasswordDialog extends JDialog {
                 currentEmail = email;
 
                 if (sendOTP(currentTenTK, currentEmail)) {
-
-                    // ⭐️ FIX LỖI: Cập nhật nhãn email trước khi chuyển thẻ
                     if (emailDisplayLabel != null) {
                         emailDisplayLabel.setText("<html><h3>2. Nhập Mã OTP</h3><p>Mã đã gửi tới Email: <b>" + maskEmail(currentEmail) + "</b></p></html>");
                     }
@@ -140,7 +136,6 @@ public class ForgotPasswordDialog extends JDialog {
         panel.add(emailDisplayLabel, BorderLayout.NORTH);
         panel.add(centerPanel, BorderLayout.CENTER);
 
-        // ⭐️ Đã xóa đoạn addWindowListener gây lỗi getConstraints ⭐️
 
         btnVerifyOTP.addActionListener(e -> {
             String inputOTP = txtOTP.getText().trim();

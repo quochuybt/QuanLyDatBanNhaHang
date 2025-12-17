@@ -17,26 +17,22 @@ import java.util.Map;
 import javax.swing.Timer;
 
 public class MainGUI extends JFrame {
-    // --- Constants ---
+
     private static final Color COLOR_ACCENT_BLUE = new Color(56, 118, 243);
     private static final Color COLOR_BUTTON_ACTIVE = new Color(40, 28, 244);
 
-    // --- UI Components ---
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel mainContentPanel = new JPanel(cardLayout);
     private final Map<String, JPanel> menuButtons = new LinkedHashMap<>();
     private JPanel currentActiveButton = null;
 
-    // --- User Information ---
     private final String userRole;
     private final String userName;
     private final String maNVDangNhap;
 
-    // --- Child Panels ---
     private DanhSachBanGUI danhSachBanGUI;
     private KhachHangGUI khachHangGUI;
 
-    // --- DAO ---
     private final GiaoCaDAO giaoCaDAO = new GiaoCaDAO(); // [MỚI] Khởi tạo DAO để check ca
 
     public MainGUI(String userRole, String userName, String maNVDangNhap) {
@@ -44,7 +40,6 @@ public class MainGUI extends JFrame {
         this.userName = userName;
         this.maNVDangNhap = maNVDangNhap;
 
-        // --- Cài đặt cửa sổ chính ---
         setTitle("StarGuardian Restaurant - Quản lý Nhà hàng");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -54,10 +49,8 @@ public class MainGUI extends JFrame {
         try {
             this.setIconImage(util.AppResource.getAppIcon());
         } catch (Exception e) {
-            // Ignore if icon not found
         }
 
-        // ===== TẠO CÁC THÀNH PHẦN GIAO DIỆN =====
         JPanel menuPanel = createMenuPanel();
         setupMainContentPanel();
         JPanel contentWrapperPanel = new JPanel(new BorderLayout());
@@ -239,7 +232,6 @@ public class MainGUI extends JFrame {
             @Override
             public void mousePressed(MouseEvent e) {
                 if ("Đăng xuất".equals(text)) {
-                    // [QUAN TRỌNG] Logic kiểm tra ca làm việc trước khi đăng xuất
                     if ("NHANVIEN".equalsIgnoreCase(userRole)) {
                         int maCa = giaoCaDAO.getMaCaDangLamViec(maNVDangNhap);
                         if (maCa > 0) {
@@ -249,13 +241,11 @@ public class MainGUI extends JFrame {
                                     "Cảnh báo chưa kết ca",
                                     JOptionPane.WARNING_MESSAGE);
 
-                            // Tự động chuyển hướng người dùng về Dashboard
                             showCard("Dashboard");
-                            return; // Dừng việc đăng xuất lại
+                            return;
                         }
                     }
 
-                    // Nếu không có ca (hoặc là Quản lý), tiến hành hỏi xác nhận
                     int choice = JOptionPane.showConfirmDialog(
                             MainGUI.this,
                             "Bạn có chắc chắn muốn đăng xuất?",
@@ -310,9 +300,6 @@ public class MainGUI extends JFrame {
         }
     }
 
-    public void refreshKhachHangScreen() {
-        if (khachHangGUI != null) khachHangGUI.refreshKhachHangTable();
-    }
 
     private void showCard(String name) {
         cardLayout.show(mainContentPanel, name);

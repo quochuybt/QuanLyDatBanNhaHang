@@ -962,4 +962,11 @@ public class ManHinhBanGUI extends JPanel {
             }
         }
     }
+
+    public String getHinhThucThanhToan() {
+        if (cmbPTThanhToan != null && cmbPTThanhToan.getSelectedItem() != null) {
+            return cmbPTThanhToan.getSelectedItem().toString();
+        }
+        return "Tiền mặt"; // Giá trị mặc định nếu bị lỗi
+    }
 }

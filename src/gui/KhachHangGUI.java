@@ -18,66 +18,52 @@ import java.util.List;
 
 public class KhachHangGUI extends JPanel {
 
-    // 🌟 THAY ĐỔI MỚI 1: Thêm biến static để lưu trữ đối tượng KhachHangGUI đang hoạt động
     private static KhachHangGUI instance;
 
-    // --- Định nghĩa màu sắc ---
     private static final Color COLOR_BACKGROUND = new Color(244, 247, 252);
     private static final Color COLOR_ACCENT_BLUE = new Color(56, 118, 243);
     private static final Color COLOR_BUTTON_BLUE = new Color(40, 28, 244);
     private static final Color COLOR_TEXT_WHITE = Color.WHITE;
     private static final Color COLOR_TABLE_GRID = new Color(220, 220, 220);
 
-    // --- Components Form ---
     private JTextField txtMaKH, txtTenKH, txtSDT, txtEmail, txtDiaChi, txtTongChiTieu;
     private JComboBox<String> cbGioiTinh, cbHangTV;
     private JTextField txtNgaySinh, txtNgayThamGia;
     private JButton btnThem, btnSua, btnTimKiem, btnLamMoiForm;
 
-    // --- Components Bảng ---
     private JTable tblKhachHang;
     private DefaultTableModel modelKhachHang;
     private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private final DecimalFormat currencyFormat = new DecimalFormat("#,##0' VND'");
 
-    // --- DAO & Data ---
     private final KhachHangDAO khachHangDAO;
     private List<KhachHang> dsKhachHang;
     private KhachHang khachHangDangChon = null;
 
-    // --- THÊM: Hằng số cho Placeholder ---
     private final String PLACEHOLDER_NGAY_SINH = "dd/MM/yyyy";
 
     public KhachHangGUI() {
         this.khachHangDAO = new KhachHangDAO();
 
-        // 🌟 THAY ĐỔI MỚI 2: Lưu tham chiếu của chính nó khi tạo đối tượng
         instance = this;
 
         setLayout(new BorderLayout(10, 15));
         setBackground(COLOR_BACKGROUND);
         setBorder(new EmptyBorder(15, 20, 15, 20));
 
-        // === NORTH: Header (Thao tác & Form) ===
         add(createHeaderPanel(), BorderLayout.NORTH);
 
-        // === CENTER: Bảng ===
         add(createTablePanel(), BorderLayout.CENTER);
 
-        // --- Gán sự kiện ---
         addEventListeners();
 
-        // --- Tải dữ liệu từ CSDL lên bảng ---
         loadDataToTable(khachHangDAO.getAllKhachHang());
 
-        // --- Thiết lập form và trạng thái mặc định ---
         lamMoiForm();
 
-        // THAY ĐỔI MỚI 1: Gán Placeholder Listener
         addPlaceholderListener(txtNgaySinh, PLACEHOLDER_NGAY_SINH);
     }
 
-    // 🌟 THAY ĐỔI MỚI 3: Phương thức static để các class khác gọi làm mới
     public static void reloadKhachHangTableIfAvailable() {
         if (instance != null) {
             SwingUtilities.invokeLater(() -> {
@@ -86,18 +72,13 @@ public class KhachHangGUI extends JPanel {
         }
     }
 
-    /**
-     * Phương thức mô phỏng Placeholder cho JTextField
-     */
     private void addPlaceholderListener(JTextField textField, String placeholder) {
-        // Khởi tạo trạng thái ban đầu
         if (textField.getText().isEmpty() || textField.getText().equals(placeholder)) {
             textField.setText(placeholder);
             textField.setForeground(Color.GRAY.brighter());
         }
 
         textField.addFocusListener(new java.awt.event.FocusAdapter() {
-            // Khi ô nhập liệu được chọn (focus)
             @Override
             public void focusGained(java.awt.event.FocusEvent evt) {
                 if (textField.getText().equals(placeholder)) {
@@ -106,7 +87,6 @@ public class KhachHangGUI extends JPanel {
                 }
             }
 
-            // Khi ô nhập liệu mất focus
             @Override
             public void focusLost(java.awt.event.FocusEvent evt) {
                 if (textField.getText().isEmpty()) {
@@ -117,13 +97,6 @@ public class KhachHangGUI extends JPanel {
         });
     }
 
-    // =========================================================================
-    // I. LOGIC TẢI DỮ LIỆU & RENDER
-    // =========================================================================
-
-    /**
-     * Tải dữ liệu từ danh sách (được lấy từ DAO) lên JTable
-     */
     public void refreshKhachHangTable() {
         System.out.println("KhachHangGUI: Yêu cầu làm mới bảng khách hàng...");
         try {
@@ -211,14 +184,6 @@ public class KhachHangGUI extends JPanel {
         }
     }
 
-
-    // =========================================================================
-    // II. LOGIC THAO TÁC (CRUD & EVENT)
-    // =========================================================================
-
-    /**
-     * Gắn sự kiện cho các nút
-     */
     private void addEventListeners() {
         btnLamMoiForm.addActionListener(e -> lamMoiForm());
 
@@ -250,9 +215,6 @@ public class KhachHangGUI extends JPanel {
         });
     }
 
-    /**
-     * Lấy dữ liệu từ Form và kiểm tra tính hợp lệ
-     */
     private KhachHang getKhachHangTuForm(boolean isNew) throws Exception {
         String ma = txtMaKH.getText().trim();
         String ten = txtTenKH.getText().trim();
@@ -266,7 +228,6 @@ public class KhachHangGUI extends JPanel {
         if (ten.isEmpty()) throw new Exception("Tên khách hàng không được rỗng!");
         if (sdt.isEmpty() || !sdt.matches("\\d{10}")) throw new Exception("Số điện thoại không hợp lệ (10 chữ số)!");
 
-        // THAY ĐỔI MỚI 2: Xử lý kiểm tra Ngày Sinh có Placeholder
         if (ngaySinhStr.isEmpty() || ngaySinhStr.equals(PLACEHOLDER_NGAY_SINH)) {
             throw new Exception("Ngày sinh không được rỗng!");
         }
@@ -294,9 +255,6 @@ public class KhachHangGUI extends JPanel {
         return kh;
     }
 
-    /**
-     * Xử lý sự kiện Thêm Khách hàng (Sử dụng DAO CSDL)
-     */
     private void themKhachHang() {
         try {
             KhachHang khMoi = getKhachHangTuForm(true);
@@ -315,9 +273,6 @@ public class KhachHangGUI extends JPanel {
         }
     }
 
-    /**
-     * Xử lý sự kiện Sửa Khách hàng (Sử dụng DAO CSDL)
-     */
     private void suaKhachHang() {
         if (khachHangDangChon == null) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn khách hàng cần sửa!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
@@ -345,9 +300,6 @@ public class KhachHangGUI extends JPanel {
         }
     }
 
-    /**
-     * Xử lý sự kiện Tìm kiếm (Sử dụng DAO CSDL)
-     */
     private void timKhachHang() {
         String tuKhoa = JOptionPane.showInputDialog(this, "Nhập Tên hoặc Số điện thoại để tìm kiếm:", "Tìm kiếm khách hàng", JOptionPane.PLAIN_MESSAGE);
 
@@ -365,11 +317,6 @@ public class KhachHangGUI extends JPanel {
             lamMoiForm();
         }
     }
-
-
-    // =========================================================================
-    // III. KHỞI TẠO GIAO DIỆN & HELPER
-    // =========================================================================
 
     private JPanel createHeaderPanel() {
         JPanel headerPanel = new JPanel(new BorderLayout(10, 0));
@@ -401,7 +348,6 @@ public class KhachHangGUI extends JPanel {
         final double WEIGHT_LABEL = 0.01;
         final double WEIGHT_INPUT = 1.0;
 
-        // Hàng 0: Mã khách hàng / Ngày sinh
         gbc.gridx = 0; gbc.gridy = row; gbc.weightx = WEIGHT_LABEL;
         formContainer.add(new JLabel("Mã khách hàng:"), gbc);
 
@@ -414,7 +360,6 @@ public class KhachHangGUI extends JPanel {
         gbc.gridx = 3; gbc.gridy = row; gbc.weightx = WEIGHT_INPUT;
         txtNgaySinh = new JTextField(); formContainer.add(txtNgaySinh, gbc);
 
-        // Hàng 1: Tên khách hàng / Địa chỉ
         row++;
         gbc.gridx = 0; gbc.gridy = row; gbc.weightx = WEIGHT_LABEL;
         formContainer.add(new JLabel("Tên khách hàng:"), gbc);
@@ -426,7 +371,6 @@ public class KhachHangGUI extends JPanel {
         gbc.gridx = 3; gbc.gridy = row; gbc.weightx = WEIGHT_INPUT;
         txtDiaChi = new JTextField(); formContainer.add(txtDiaChi, gbc);
 
-        // Hàng 2: Giới tính / Ngày tham gia
         row++;
         gbc.gridx = 0; gbc.gridy = row; gbc.weightx = WEIGHT_LABEL;
         formContainer.add(new JLabel("Giới tính:"), gbc);
@@ -440,7 +384,6 @@ public class KhachHangGUI extends JPanel {
         gbc.gridx = 3; gbc.gridy = row; gbc.weightx = WEIGHT_INPUT;
         txtNgayThamGia = new JTextField(); txtNgayThamGia.setEditable(false); formContainer.add(txtNgayThamGia, gbc);
 
-        // Hàng 3: Số điện thoại / Tổng chi tiêu
         row++;
         gbc.gridx = 0; gbc.gridy = row; gbc.weightx = WEIGHT_LABEL;
         formContainer.add(new JLabel("Số điện thoại:"), gbc);
@@ -452,7 +395,6 @@ public class KhachHangGUI extends JPanel {
         gbc.gridx = 3; gbc.gridy = row; gbc.weightx = WEIGHT_INPUT;
         txtTongChiTieu = new JTextField(); txtTongChiTieu.setEditable(false); formContainer.add(txtTongChiTieu, gbc);
 
-        // Hàng 4: Email / Hạng thành viên
         row++;
         gbc.gridx = 0; gbc.gridy = row; gbc.weightx = WEIGHT_LABEL;
         formContainer.add(new JLabel("Email:"), gbc);
@@ -575,7 +517,7 @@ public class KhachHangGUI extends JPanel {
         txtDiaChi.setText(kh.getDiaChi());
 
         txtNgaySinh.setText(kh.getNgaySinh() != null ? kh.getNgaySinh().format(dtf) : "");
-        txtNgaySinh.setForeground(Color.BLACK); // THAY ĐỔI MỚI: Đặt lại màu chữ
+        txtNgaySinh.setForeground(Color.BLACK);
 
         txtNgayThamGia.setText(kh.getNgayThamGia() != null ? kh.getNgayThamGia().format(dtf) : "");
 
@@ -597,7 +539,6 @@ public class KhachHangGUI extends JPanel {
         txtEmail.setText("");
         txtDiaChi.setText("");
 
-        // THAY ĐỔI MỚI: Để rỗng. Listener sẽ tự thêm placeholder
         txtNgaySinh.setText("");
 
         txtNgayThamGia.setText(LocalDate.now().format(dtf));

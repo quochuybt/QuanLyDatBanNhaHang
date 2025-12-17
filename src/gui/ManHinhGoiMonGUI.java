@@ -24,12 +24,9 @@ public class ManHinhGoiMonGUI extends JPanel {
     private HoaDon activeHoaDon;
     private HoaDonDAO hoaDonDAO_GoiMon;
     private final NumberFormat nf = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
-
-    // 🌟 BIẾN MỚI: LƯU MÃ NV ĐANG ĐĂNG NHẬP
     private final String maNVDangNhap;
 
     private DanhSachBanGUI parentDanhSachBanGUI_GoiMon;
-    // Panel bên trái
     private MonAnDAO monAnDAO;
     private List<MonAn> dsMonAnFull;
     private List<MonAnItemPanel> dsMonAnPanel;
@@ -43,20 +40,19 @@ public class ManHinhGoiMonGUI extends JPanel {
     private KhachHangDAO khachHangDAO;
     private KhuyenMaiDAO maKhuyenMaiDAO;
 
-    // Panel bên phải
     private JLabel lblTenBanHeader;
     private JTable tblChiTietHoaDon;
     private DefaultTableModel modelChiTietHoaDon;
     private BillPanel billPanel;
 
     public ManHinhGoiMonGUI(DanhSachBanGUI parent) {
-        this(parent, "NV_UNKNOWN"); // Dùng giá trị mặc định nếu không truyền
+        this(parent, "NV_UNKNOWN");
     }
 
-    public ManHinhGoiMonGUI(DanhSachBanGUI parent, String maNVDangNhap) { // 🌟 CONSTRUCTOR MỚI
+    public ManHinhGoiMonGUI(DanhSachBanGUI parent, String maNVDangNhap) {
         super(new BorderLayout());
         this.parentDanhSachBanGUI_GoiMon = parent;
-        this.maNVDangNhap = maNVDangNhap; // 🌟 LƯU MÃ NV
+        this.maNVDangNhap = maNVDangNhap;
         this.monAnDAO = new MonAnDAO();
         this.dsMonAnFull = new ArrayList<>();
         this.hoaDonDAO_GoiMon = new HoaDonDAO();
@@ -75,7 +71,7 @@ public class ManHinhGoiMonGUI extends JPanel {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyy");
         String datePart = LocalDateTime.now().format(formatter);
         java.util.concurrent.ThreadLocalRandom current = java.util.concurrent.ThreadLocalRandom.current();
-        int randomPart = current.nextInt(1000, 10000); // 4 chữ số ngẫu nhiên
+        int randomPart = current.nextInt(1000, 10000);
         return "HD" + datePart + randomPart;
     }
     private void moBanMoi(Ban ban) throws Exception {
@@ -106,29 +102,19 @@ public class ManHinhGoiMonGUI extends JPanel {
         if (maBanDich != null) {
             Ban banDich = banDAO.getBanByMa(maBanDich);
             if (banDich != null) {
-                banThucSu = banDich; // Chuyển sang làm việc với Bàn Đích
-//                System.out.println("-> Đây là bàn ghép. Chuyển hướng sang bàn chính: " + banDich.getTenBan());
-//
-//                // Cập nhật Header để báo hiệu
-//                lblTenBanHeader.setText(banDuocChon.getTenBan() + " (Liên kết -> " + banDich.getTenBan() + ")");
+                banThucSu = banDich;
             }
         }
-//        else {
-//            lblTenBanHeader.setText(banDuocChon.getTenBan() + " -- " + banDuocChon.getKhuVuc());
-//        }
         this.banHienTai = banThucSu;
         String tenHienThi = banDAO.getTenHienThiGhep(banThucSu.getMaBan());
         if (tenHienThi == null || tenHienThi.isEmpty()) {
             tenHienThi = banThucSu.getTenBan();
         }
-        // 3. Set Text cho Header: "Bàn 2 + 1 -- Tầng Trệt"
         lblTenBanHeader.setText(tenHienThi + " -- " + banThucSu.getKhuVuc());
         if (billPanel != null) {
             billPanel.setCustomHeader(lblTenBanHeader.getText());
         }
 
-        // 1. Cập nhật Header và Màu sắc
-//        lblTenBanHeader.setText(banDuocChon.getTenBan() + " - " + banDuocChon.getKhuVuc());
         Color statusColor;
         switch (banThucSu.getTrangThai()) {
             case TRONG: statusColor = ManHinhBanGUI.COLOR_STATUS_FREE; break;
@@ -137,37 +123,31 @@ public class ManHinhGoiMonGUI extends JPanel {
         }
         statusColorBox.setBackground(statusColor);
 
-        // 2. Xóa chi tiết đơn hàng cũ trên bảng
         modelChiTietHoaDon.setRowCount(0);
 
         this.activeHoaDon = null;
         boolean requireBanRefresh = false;
 
         try {
-            // --- TRƯỜNG HỢP 1: BÀN ĐANG PHỤC VỤ (ĐỎ) ---
             if (banThucSu.getTrangThai() == TrangThaiBan.DANG_PHUC_VU) {
                 activeHoaDon = hoaDonDAO_GoiMon.getHoaDonChuaThanhToan(banThucSu.getMaBan());
 
                 if (activeHoaDon == null) {
                     System.err.println("Lỗi logic: Bàn ĐPV nhưng không có HĐ!");
-                    // Nếu lỗi thì thử reset bàn về trống hoặc báo lỗi
                     JOptionPane.showMessageDialog(this, "Lỗi dữ liệu: Bàn đang phục vụ nhưng mất hóa đơn.", "Lỗi", JOptionPane.ERROR_MESSAGE);
                     return false;
                 }
 
-                // Gán vào biến toàn cục
                 this.activeHoaDon = activeHoaDon;
                 System.out.println("Đang tải hóa đơn: " + activeHoaDon.getMaHD());
             }
 
-            // --- TRƯỜNG HỢP 2: BÀN TRỐNG (XANH) ---
             else if (banThucSu.getTrangThai() == TrangThaiBan.TRONG) {
                 int confirm = JOptionPane.showConfirmDialog(this,
                         "Bạn có muốn mở bàn '" + banThucSu.getTenBan() + "' cho khách không?",
                         "Mở bàn mới", JOptionPane.YES_NO_OPTION);
 
                 if (confirm == JOptionPane.YES_OPTION) {
-                    // Bàn trống -> Gọi hàm Mở bàn mới (Không phải Nhận bàn đặt)
                     moBanMoi(banThucSu);
                     requireBanRefresh = true;
                 } else {
@@ -175,14 +155,11 @@ public class ManHinhGoiMonGUI extends JPanel {
                 }
             }
 
-            // --- TRƯỜNG HỢP 3: BÀN ĐẶT TRƯỚC (VÀNG) ---
             else if (banThucSu.getTrangThai() == TrangThaiBan.DA_DAT_TRUOC) {
-                // Lấy thông tin hiển thị confirm
                 DonDatMon ddmPreview = donDatMonDAO.getDonDatMonDatTruoc(banThucSu.getMaBan());
                 String msg = "Bàn '" + banThucSu.getTenBan() + "' đã được đặt trước.\nBạn có muốn nhận bàn này không?";
 
                 if (ddmPreview != null) {
-                    // Logic hiển thị tên khách cho đẹp (Optional)
                     String tenKhach = "Khách";
                     if (ddmPreview.getMaKH() != null) {
                         entity.KhachHang kh = khachHangDAO.timTheoMaKH(ddmPreview.getMaKH());
@@ -194,8 +171,6 @@ public class ManHinhGoiMonGUI extends JPanel {
                 int confirm = JOptionPane.showConfirmDialog(this, msg, "Nhận bàn đặt", JOptionPane.YES_NO_OPTION);
 
                 if (confirm == JOptionPane.YES_OPTION) {
-                    // --- SỬA LỖI Ở ĐÂY ---
-                    // Thay vì viết code thủ công, BẮT BUỘC gọi hàm này để kích hoạt logic gộp
                     nhanBanDatTruoc(banThucSu);
 
                     requireBanRefresh = true;
@@ -204,7 +179,6 @@ public class ManHinhGoiMonGUI extends JPanel {
                 }
             }
 
-            // --- 4. LOAD CHI TIẾT MÓN (CHUNG CHO MỌI TRƯỜNG HỢP) ---
             if (this.activeHoaDon != null) {
                 List<ChiTietHoaDon> dsChiTiet = chiTietDAO.getChiTietTheoMaDon(this.activeHoaDon.getMaDon());
                 if (dsChiTiet != null) {
@@ -221,7 +195,6 @@ public class ManHinhGoiMonGUI extends JPanel {
             JOptionPane.showMessageDialog(this, "Lỗi: " + ex.getMessage());
             return false;
         } finally {
-            // Cập nhật BillPanel cuối cùng
             updateBillPanelTotals();
         }
 
@@ -277,61 +250,41 @@ public class ManHinhGoiMonGUI extends JPanel {
     }
     private List<ChiTietHoaDon> layChiTietTuTable() {
         List<ChiTietHoaDon> dsChiTiet = new ArrayList<>();
-        HoaDon currentHD = getActiveHoaDon(); // Lấy HĐ hiện tại để lấy maDon
+        HoaDon currentHD = getActiveHoaDon();
 
         String maDon = null;
         if (currentHD != null) {
             maDon = currentHD.getMaDon();
         }
 
-        // Nếu không có mã đơn (ví dụ: bàn chưa mở), không thể tạo chi tiết
         if (maDon == null) {
             System.err.println("layChiTietTuTable: Không tìm thấy maDon, không thể tạo List ChiTietHoaDon.");
-            return dsChiTiet; // Trả về danh sách rỗng
+            return dsChiTiet;
         }
 
-        // Lặp qua các dòng trong JTable
         for (int i = 0; i < modelChiTietHoaDon.getRowCount(); i++) {
             try {
-                // Lấy dữ liệu từ các cột (dựa trên thứ tự bạn đã định nghĩa)
-                // 0: "X"
-                String maMon = (String) modelChiTietHoaDon.getValueAt(i, 1);    // Cột 1: Mã Món
-                String tenMon = (String) modelChiTietHoaDon.getValueAt(i, 2);   // Cột 2: Tên Món
-                Integer soLuong = (Integer) modelChiTietHoaDon.getValueAt(i, 3); // Cột 3: SL
-                Float donGia = (Float) modelChiTietHoaDon.getValueAt(i, 4);   // Cột 4: Đơn Giá
+                String maMon = (String) modelChiTietHoaDon.getValueAt(i, 1);
+                String tenMon = (String) modelChiTietHoaDon.getValueAt(i, 2);
+                Integer soLuong = (Integer) modelChiTietHoaDon.getValueAt(i, 3);
+                Float donGia = (Float) modelChiTietHoaDon.getValueAt(i, 4);
 
-                // Kiểm tra null (dù getColumnClass đã định nghĩa)
                 if (maMon != null && tenMon != null && soLuong != null && donGia != null) {
-                    // Tạo đối tượng ChiTietHoaDon
-                    // Giả sử ChiTietHoaDon có constructor (maDon, maMon, tenMon, soLuong, donGia)
-                    // (Vì ChiTietHoaDonDAO của bạn cũng dùng constructor này)
                     ChiTietHoaDon ct = new ChiTietHoaDon(maDon, maMon, tenMon, soLuong.intValue(), donGia.floatValue());
-
-                    // Hàm tạo ChiTietHoaDon đã tự động gọi tinhThanhTien() bên trong
-
                     dsChiTiet.add(ct);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
                 System.err.println("Lỗi khi đọc dữ liệu từ JTable hàng " + i + ": " + e.getMessage());
-                // Có thể bỏ qua hàng này hoặc ném lỗi
             }
         }
-        System.out.println("layChiTietTuTable: Đã tạo được list " + dsChiTiet.size() + " chi tiết."); // Debug
         return dsChiTiet;
     }
     public void updateBillPanelTotals() {
-        // Lấy hóa đơn hiện tại
-        HoaDon currentHD = getActiveHoaDon(); // Dùng hàm getter đã có
-
+        HoaDon currentHD = getActiveHoaDon();
         if (currentHD != null) {
-            // 1. Cập nhật danh sách chi tiết trong HĐ từ bảng
-            currentHD.setDsChiTiet(layChiTietTuTable()); // Hàm này lấy dữ liệu từ modelChiTietHoaDon
-
-            // 2. Gọi hàm tính toán mới trong HoaDon (truyền DAO vào)
+            currentHD.setDsChiTiet(layChiTietTuTable());
             currentHD.tinhLaiGiamGiaVaTongTien(khachHangDAO, maKhuyenMaiDAO);
-
-            // 3. Lấy tổng số lượng từ dsChiTiet đã cập nhật
             int tongSoLuong = 0;
             if(currentHD.getDsChiTiet() != null){
                 for(ChiTietHoaDon ct : currentHD.getDsChiTiet()) {
@@ -339,7 +292,6 @@ public class ManHinhGoiMonGUI extends JPanel {
                 }
             }
 
-            // 4. Cập nhật BillPanel với các giá trị đã tính toán từ HoaDon
             billPanel.loadBillTotals(
                     (long) currentHD.getTongTien(),
                     (long) currentHD.getGiamGia(),
@@ -347,7 +299,6 @@ public class ManHinhGoiMonGUI extends JPanel {
                     tongSoLuong
             );
         } else {
-            // Không có hóa đơn -> Xóa trắng BillPanel
             billPanel.clearBill();
         }
     }
@@ -356,13 +307,10 @@ public class ManHinhGoiMonGUI extends JPanel {
         this.setBackground(Color.WHITE);
         this.setBorder(new EmptyBorder(10, 0, 10, 10));
 
-        // 1. Panel bên trái (Menu)
         JPanel pnlLeft = createMenuPanel();
 
-        // 2. Panel bên phải (Hóa đơn)
         JPanel pnlRight = createOrderPanel();
 
-        // 3. Tạo JSplitPane
         JSplitPane splitPane = new JSplitPane(
                 JSplitPane.HORIZONTAL_SPLIT,
                 pnlLeft,
@@ -374,11 +322,8 @@ public class ManHinhGoiMonGUI extends JPanel {
         this.add(splitPane, BorderLayout.CENTER);
     }
     private void loadDataFromDB() {
-        // 1. Tải danh sách từ DAO
         this.dsMonAnFull = monAnDAO.getMonAnDangKinhDoanh();
-        System.out.println("Đã tải " + dsMonAnFull.size() + " món ăn từ CSDL.");
 
-        // 2. Tạo các Panel Item và thêm vào container
         pnlMenuItemContainer.removeAll();
         dsMonAnPanel.clear();
 
@@ -388,28 +333,21 @@ public class ManHinhGoiMonGUI extends JPanel {
             for (MonAn mon : dsMonAnFull) {
                 MonAnItemPanel itemPanel = new MonAnItemPanel(mon);
 
-                // --- THÊM SỰ KIỆN CLICK VÀO MÓN ĂN ---
                 itemPanel.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
-                        // Chỉ xử lý click chuột trái
                         if (e.getButton() == MouseEvent.BUTTON1) {
-                            System.out.println("Clicked on: " + itemPanel.getMonAn().getTenMon());
                             addMonAnToOrder(itemPanel.getMonAn());
                         }
                     }
                 });
-                // ----------------------------------------
 
                 dsMonAnPanel.add(itemPanel);
                 pnlMenuItemContainer.add(itemPanel);
             }
         }
 
-        // Lọc hiển thị theo danh mục mặc định ban đầu
         filterMonAn();
-
-        // Cập nhật lại giao diện panel cuộn
         pnlMenuItemContainer.revalidate();
         pnlMenuItemContainer.repaint();
     }
@@ -421,14 +359,12 @@ public class ManHinhGoiMonGUI extends JPanel {
             MonAn mon = itemPanel.getMonAn();
             boolean show = true;
 
-            // 1. Lọc theo Danh mục (currentCategoryFilter là mã DM)
             if (!currentCategoryFilter.equals("Tất cả")) {
                 if (mon.getMaDM() == null || !mon.getMaDM().equals(currentCategoryFilter)) {
                     show = false;
                 }
             }
 
-            // 2. Lọc theo Từ khóa (chỉ lọc nếu show vẫn là true)
             if (show && !tuKhoa.isEmpty()) {
                 if (!mon.getTenMon().toLowerCase().contains(tuKhoa)) {
                     show = false;
@@ -437,26 +373,20 @@ public class ManHinhGoiMonGUI extends JPanel {
 
             itemPanel.setVisible(show);
         }
-        // Cập nhật lại layout sau khi ẩn/hiện
         pnlMenuItemContainer.revalidate();
         pnlMenuItemContainer.repaint();
     }
 
-    /**
-     * Tạo Panel Menu bên trái
-     */
     private JPanel createMenuPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBackground(Color.WHITE);
 
-        // 1. NORTH: Bộ lọc (Category + Search)
         JPanel pnlFilter = new JPanel(new BorderLayout(0, 5));
         pnlFilter.setOpaque(false);
         pnlFilter.add(createCategoryFilterPanel(), BorderLayout.NORTH);
         pnlFilter.add(createSearchPanel(), BorderLayout.SOUTH);
         panel.add(pnlFilter, BorderLayout.NORTH);
 
-        // 2. CENTER: Danh sách món ăn
         pnlMenuItemContainer = new VerticallyWrappingFlowPanel(new FlowLayout(FlowLayout.LEFT, 15, 15));
         pnlMenuItemContainer.setBackground(Color.WHITE);
         pnlMenuItemContainer.setBorder(new EmptyBorder(10, 10, 10, 10));
@@ -472,22 +402,16 @@ public class ManHinhGoiMonGUI extends JPanel {
         return panel;
     }
 
-    /**
-     * Tạo Panel Hóa đơn bên phải
-     */
     private JPanel createOrderPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 10));
         panel.setBorder(new EmptyBorder(10, 5, 10, 10));
         panel.setBackground(Color.WHITE);
 
-        // 1. NORTH: Header (Tên bàn)
         panel.add(createOrderHeaderPanel(), BorderLayout.NORTH);
 
-        // 2. SOUTH: Panel thanh toán (Tái sử dụng BillPanel)
         this.billPanel = new BillPanel(this);
         panel.add(billPanel, BorderLayout.SOUTH);
 
-        // 3. CENTER: Bảng chi tiết hóa đơn
         String[] cols = {"X", "Mã Món", "Tên món", "SL", "Đơn giá", "Thành tiền"};
         modelChiTietHoaDon = new DefaultTableModel(cols, 0) {
             @Override
@@ -516,7 +440,6 @@ public class ManHinhGoiMonGUI extends JPanel {
         columnSL.setCellRenderer(new SpinnerRenderer());
         columnSL.setCellEditor(new SpinnerEditor());
 
-        // Cấu hình cột
         tblChiTietHoaDon.setRowHeight(30);
 
         TableColumn colMaMon = tblChiTietHoaDon.getColumnModel().getColumn(1);
@@ -565,7 +488,6 @@ public class ManHinhGoiMonGUI extends JPanel {
         return null;
     }
 
-    // 🌟 HÀM GETTER MỚI CHO MA_NV
     public String getMaNVDangNhap() {
         return maNVDangNhap;
     }
@@ -650,7 +572,6 @@ public class ManHinhGoiMonGUI extends JPanel {
         txtTimKiem.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         txtTimKiem.setPreferredSize(new Dimension(0, 35));
 
-        // Thêm sự kiện gõ phím để lọc
         txtTimKiem.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 filterMonAn();
@@ -666,14 +587,11 @@ public class ManHinhGoiMonGUI extends JPanel {
         panel.setOpaque(false);
         panel.setBorder(new EmptyBorder(0, 0, 10, 0));
 
-        // --- TẠO Ô MÀU ---
         statusColorBox = new JLabel();
         statusColorBox.setPreferredSize(new Dimension(48, 48));
         statusColorBox.setBackground(ManHinhBanGUI.COLOR_STATUS_FREE);
         statusColorBox.setOpaque(true);
-        // --- KẾT THÚC TẠO Ô MÀU ---
 
-        // Tên bàn
         lblTenBanHeader = new JLabel("Chưa chọn bàn");
         lblTenBanHeader.setFont(new Font("Segoe UI", Font.BOLD, 24));
 
@@ -693,8 +611,7 @@ public class ManHinhGoiMonGUI extends JPanel {
         }
 
         @Override
-        public Component getTableCellRendererComponent(JTable table, Object value,
-                                                       boolean isSelected, boolean hasFocus, int row, int column) {
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             return this;
         }
     }
@@ -719,8 +636,7 @@ public class ManHinhGoiMonGUI extends JPanel {
         }
 
         @Override
-        public Component getTableCellEditorComponent(JTable table, Object value,
-                                                     boolean isSelected, int row, int column) {
+        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
             this.table = table;
             this.editingRow = row;
             label = (value == null) ? "" : value.toString();
@@ -764,7 +680,6 @@ public class ManHinhGoiMonGUI extends JPanel {
         }
     }
 
-    // --- Inner class cho Spinner Số lượng ---
     class SpinnerRenderer extends JSpinner implements TableCellRenderer {
         public SpinnerRenderer() {
             super(new SpinnerNumberModel(1, 1, 100, 1));
@@ -826,8 +741,7 @@ public class ManHinhGoiMonGUI extends JPanel {
         }
 
         @Override
-        public Component getTableCellEditorComponent(JTable table, Object value,
-                                                     boolean isSelected, int row, int column) {
+        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
             this.table = table;
             this.editingRow = row;
 
@@ -859,16 +773,13 @@ public class ManHinhGoiMonGUI extends JPanel {
     private void nhanBanDatTruoc(Ban banChinh) throws Exception {
         System.out.println("--- BẮT ĐẦU NHẬN BÀN " + banChinh.getTenBan() + " ---");
 
-        // 1. Lấy đơn đặt
         DonDatMon ddm = donDatMonDAO.getDonDatMonDatTruoc(banChinh.getMaBan());
         if (ddm == null) throw new Exception("Không tìm thấy đơn đặt trước!");
 
-        // 2. Mở Bàn Chính
         banChinh.setTrangThai(TrangThaiBan.DANG_PHUC_VU);
         banChinh.setGioMoBan(LocalDateTime.now());
         if (!banDAO.updateBan(banChinh)) throw new Exception("Lỗi update bàn chính!");
 
-        // Tạo hóa đơn
         String newMaHD = phatSinhMaHD();
         HoaDon hd = new HoaDon(newMaHD, LocalDateTime.now(), "Chưa thanh toán", "Tiền mặt", ddm.getMaDon(), ddm.getMaNV(), null);
         hd.setMaKH(ddm.getMaKH());
@@ -878,12 +789,9 @@ public class ManHinhGoiMonGUI extends JPanel {
         this.activeHoaDon = hd;
         statusColorBox.setBackground(ManHinhBanGUI.COLOR_STATUS_OCCUPIED);
 
-        // --- 3. TÌM BÀN CÙNG NHÓM ---
         if (ddm.getMaKH() != null) {
-            // Chuẩn bị thời gian (tránh null)
             LocalDateTime timeCheck = ddm.getThoiGianDen() != null ? ddm.getThoiGianDen() : ddm.getNgayKhoiTao();
 
-            // Gọi DAO
             List<String> dsMaBanLienQuan = donDatMonDAO.getMaBanCungDotDat(
                     ddm.getMaKH(),
                     timeCheck,
@@ -895,14 +803,11 @@ public class ManHinhGoiMonGUI extends JPanel {
                 List<String> tenBanPhu = new ArrayList<>();
 
                 for (String maBan : dsMaBanLienQuan) {
-                    // QUAN TRỌNG: Gọi DAO để lấy trạng thái bàn TƯƠI MỚI NHẤT từ CSDL
-                    // Đừng dùng danh sách bàn cũ trong RAM
                     Ban b = banDAO.getBanByMa(maBan);
 
                     if (b != null) {
                         System.out.println("Check bàn " + b.getTenBan() + " -> Trạng thái: " + b.getTrangThai());
 
-                        // Chỉ gộp bàn đang có màu VÀNG
                         if (b.getTrangThai() == TrangThaiBan.DA_DAT_TRUOC) {
                             dsBanPhu.add(b);
                             tenBanPhu.add(b.getTenBan());
@@ -920,14 +825,11 @@ public class ManHinhGoiMonGUI extends JPanel {
                         boolean ketQua = banDAO.ghepBanLienKet(dsBanPhu, banChinh);
 
                         if (ketQua) {
-                            // Refresh lại giao diện nếu cần
                             if (parentDanhSachBanGUI_GoiMon != null) parentDanhSachBanGUI_GoiMon.refreshManHinhBan();
                         } else {
                             JOptionPane.showMessageDialog(this, "Lỗi khi gộp bàn.", "Lỗi", JOptionPane.ERROR_MESSAGE);
                         }
                     }
-                } else {
-                    System.out.println("Có tìm thấy bàn liên quan nhưng trạng thái không phải Đặt Trước.");
                 }
             }
         }

@@ -177,13 +177,13 @@ public class KhachHang {
             return; // Không tự động nâng cấp từ NONE chỉ dựa vào hàm này
         }
 
-        if (tongChiTieu > 5500000) {
+        if (tongChiTieu > 50000000) {
             hangThanhVien = HangThanhVien.DIAMOND;
-        } else if (tongChiTieu > 3500000) {
+        } else if (tongChiTieu > 25000000) {
             hangThanhVien = HangThanhVien.GOLD;
-        } else if (tongChiTieu > 1500000) {
+        } else if (tongChiTieu > 10000000) {
             hangThanhVien = HangThanhVien.SILVER;
-        } else if (tongChiTieu > 800000) {
+        } else if (tongChiTieu > 5000000) {
             hangThanhVien = HangThanhVien.BRONZE;
         } else {
             if (hangThanhVien.ordinal() < HangThanhVien.MEMBER.ordinal()) {

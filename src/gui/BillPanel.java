@@ -233,7 +233,17 @@ public class BillPanel extends JPanel {
 
         // 4. Cập nhật CSDL
         try {
-            String hinhThucTT = "Tiền mặt"; // Nên lấy từ Combobox bên ManHinhBanGUI nếu có thể
+            String hinhThucTT = "Tiền mặt";
+            if (parentBanGUI != null) {
+                // Gọi hàm vừa viết bên ManHinhBanGUI
+                hinhThucTT = parentBanGUI.getHinhThucThanhToan();
+            }
+            else if (parentGoiMonGUI != null) {
+                // Nếu đang ở màn hình gọi món mà chưa có combobox thanh toán
+                // thì mặc định là Tiền mặt hoặc bạn phải thêm logic tương tự cho ManHinhGoiMonGUI
+                hinhThucTT = "Tiền mặt";
+            }
+// Nên lấy từ Combobox bên ManHinhBanGUI nếu có thể
             double tienGiamGia = activeHoaDon.getGiamGia();
             String maKM = activeHoaDon.getMaKM();
             long tongThanhToanFinal = this.currentTotal;

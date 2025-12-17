@@ -10,7 +10,6 @@ import java.util.List;
 
 public class KhuyenMaiDAO {
 
-    // [GIỮ NGUYÊN] Hàm tự động cập nhật
     public void autoUpdateExpiredStatuses() {
         String sql = "UPDATE KhuyenMai SET trangThai = N'Ngưng áp dụng' WHERE ngayKetThuc < ? AND trangThai = N'Đang áp dụng'";
         try (Connection conn = SQLConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -19,9 +18,6 @@ public class KhuyenMaiDAO {
         } catch (Exception e) { e.printStackTrace(); }
     }
 
-    /**
-     * [GIỮ NGUYÊN] Lấy danh sách
-     */
     public List<KhuyenMai> getAllKhuyenMai() {
         autoUpdateExpiredStatuses();
         List<KhuyenMai> dsKhuyenMai = new ArrayList<>();
@@ -54,9 +50,6 @@ public class KhuyenMaiDAO {
         return dsKhuyenMai;
     }
 
-    /**
-     * [GIỮ NGUYÊN] Thêm khuyến mãi
-     */
     public boolean themKhuyenMai(KhuyenMai km) {
         String sql = "INSERT INTO KhuyenMai (maKM, tenKM, moTa, loaiGiam, giaTriGiam, ngayBatDau, ngayKetThuc, trangThai, dieuKienApDung, soLuongGioiHan, soLuotDaDung) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -79,9 +72,6 @@ public class KhuyenMaiDAO {
         } catch (Exception e) { e.printStackTrace(); return false; }
     }
 
-    /**
-     * [GIỮ NGUYÊN] Cập nhật khuyến mãi
-     */
     public boolean updateKhuyenMai(KhuyenMai km) {
         String sql = "UPDATE KhuyenMai SET tenKM=?, moTa=?, loaiGiam=?, giaTriGiam=?, ngayBatDau=?, ngayKetThuc=?, trangThai=?, dieuKienApDung=?, soLuongGioiHan=? WHERE maKM=?";
         try (Connection conn = SQLConnection.getConnection();
@@ -102,7 +92,6 @@ public class KhuyenMaiDAO {
         } catch (Exception e) { e.printStackTrace(); return false; }
     }
 
-    // [GIỮ NGUYÊN] Xóa
     public boolean xoaKhuyenMai(String maKM) {
         String sql = "DELETE FROM KhuyenMai WHERE maKM = ?";
         try (Connection conn = SQLConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -111,7 +100,7 @@ public class KhuyenMaiDAO {
         } catch (Exception e) { e.printStackTrace(); return false; }
     }
 
-    // [GIỮ NGUYÊN] Tìm kiếm
+
     public List<KhuyenMai> timKiemVaLoc(String tuKhoa, String trangThai) {
         autoUpdateExpiredStatuses();
         List<KhuyenMai> dsKhuyenMai = new ArrayList<>();
@@ -157,12 +146,7 @@ public class KhuyenMaiDAO {
         return dsKhuyenMai;
     }
 
-    /**
-     * [ĐÃ SỬA] Lấy thông tin Khuyến Mãi hợp lệ dựa trên Mã KM.
-     * Hàm này dùng để hiển thị thông tin khi áp dụng mã.
-     * Chỉ kiểm tra cơ bản (tồn tại, ngày, trạng thái).
-     * Việc kiểm tra chi tiết (số lượng, lịch sử khách) sẽ dùng hàm kiemTraDieuKienSuDung.
-     */
+
     public KhuyenMai getKhuyenMaiHopLeByMa(String maKM) {
         autoUpdateExpiredStatuses(); // Cập nhật trạng thái trước
         String sql = "SELECT * FROM KhuyenMai WHERE maKM = ? AND trangThai = N'Đang áp dụng'";
@@ -203,9 +187,8 @@ public class KhuyenMaiDAO {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return null; // Không tìm thấy hoặc không hợp lệ
+        return null;
     }
-
 
 
     public String kiemTraDieuKienSuDung(String maKM, String maKH, double tongTien) {
@@ -245,26 +228,19 @@ public class KhuyenMaiDAO {
         }
     }
 
-    /**
-     * Ghi nhận việc sử dụng mã:
-     * 1. Tăng số lượt đã dùng trong bảng KhuyenMai.
-     * 2. Lưu lịch sử vào bảng LichSuSuDungKM.
-     * 3. [MỚI] Tự động khóa mã (Ngưng áp dụng) nếu đạt giới hạn.
-     */
+
     public void ghiNhanSuDung(String maKM, String maKH) {
         Connection conn = null;
         try {
             conn = SQLConnection.getConnection();
-            conn.setAutoCommit(false); // Bắt đầu Transaction
+            conn.setAutoCommit(false);
 
-            // 1. Tăng số lượt đã dùng
             String sqlUpdateCount = "UPDATE KhuyenMai SET soLuotDaDung = soLuotDaDung + 1 WHERE maKM = ?";
             try (PreparedStatement ps = conn.prepareStatement(sqlUpdateCount)) {
                 ps.setString(1, maKM);
                 ps.executeUpdate();
             }
 
-            // 2. Lưu lịch sử sử dụng
             String sqlHist = "INSERT INTO LichSuSuDungKM (maKH, maKM) VALUES (?, ?)";
             try (PreparedStatement ps = conn.prepareStatement(sqlHist)) {
                 ps.setString(1, maKH);
@@ -272,10 +248,6 @@ public class KhuyenMaiDAO {
                 ps.executeUpdate();
             }
 
-            // --- [THÊM MỚI] 3. Tự động chuyển trạng thái nếu đạt giới hạn ---
-            // Câu lệnh này sẽ chuyển trạng thái thành "Ngưng áp dụng" NẾU:
-            // - Có thiết lập giới hạn (soLuongGioiHan > 0)
-            // - VÀ Số lượt đã dùng (vừa tăng ở bước 1) đã lớn hơn hoặc bằng giới hạn
             String sqlAutoStop = "UPDATE KhuyenMai SET trangThai = N'Ngưng áp dụng' " +
                     "WHERE maKM = ? AND soLuongGioiHan > 0 AND soLuotDaDung >= soLuongGioiHan";
             try (PreparedStatement ps = conn.prepareStatement(sqlAutoStop)) {
@@ -285,9 +257,8 @@ public class KhuyenMaiDAO {
                     System.out.println("Mã KM " + maKM + " đã đạt giới hạn và được chuyển sang 'Ngưng áp dụng'.");
                 }
             }
-            // -------------------------------------------------------------
 
-            conn.commit(); // Xác nhận tất cả thay đổi
+            conn.commit();
         } catch (Exception e) {
             try { if (conn != null) conn.rollback(); } catch (SQLException ex) {}
             e.printStackTrace();

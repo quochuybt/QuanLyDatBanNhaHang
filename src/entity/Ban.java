@@ -16,15 +16,14 @@ public class Ban {
     private String khuVuc;
 
     public static void setSoThuTuBanHienTai(int maxSoThuTu) {
-        // Nếu maxSoThuTu là 10 (từ BAN10), thì số tiếp theo phải là 11
         soThuTuBan = maxSoThuTu + 1;
     }
     public Ban(String maBan, String tenBan, int soGhe, TrangThaiBan trangThai, LocalDateTime gioMoBan, String khuVuc) {
-        this.maBan = maBan; // Gán mã trực tiếp từ DB
+        this.maBan = maBan;
         this.tenBan = tenBan;
         this.soGhe = soGhe;
         this.trangThai = trangThai;
-        this.gioMoBan = gioMoBan; // Gán giờ trực tiếp từ DB (có thể null hoặc quá khứ)
+        this.gioMoBan = gioMoBan;
         this.khuVuc = khuVuc;
     }
     public Ban() {
@@ -55,7 +54,6 @@ public class Ban {
     }
 
     private String phatSinhMaBan() {
-        // Format mã bàn thành dạng BANXX (ví dụ: BAN01, BAN02)
         return String.format("BAN%02d", soThuTuBan++);
     }
 
@@ -107,7 +105,6 @@ public class Ban {
                 throw new IllegalArgumentException("Giờ đặt trước phải lớn hơn giờ hiện tại.");
             }
         }
-        // Nếu là trạng thái khác (Trống, Đang phục vụ), chấp nhận null hoặc giờ quá khứ
         this.gioMoBan = gioMoBan;
     }
     public String getKhuVuc() {
