@@ -152,7 +152,6 @@ public class PhanCongDAO {
                     Time start = rs.getTime("gioBatDau");
                     Time end = rs.getTime("gioKetThuc");
 
-                    // Lấy danh sách nhân viên trong ca này
                     List<String> dsTenNV = getDsNhanVienTrongCa(conn, maCa, ngayLam);
                     result[0] = formatShiftInfo(ngayLam, tenCa, start, end, dsTenNV);
                 }

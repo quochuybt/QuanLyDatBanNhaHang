@@ -7,8 +7,8 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
-import java.net.URI;          // [MỚI] Import URI
+
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
@@ -35,7 +35,6 @@ public class MainGUI extends JFrame {
 
     private final GiaoCaDAO giaoCaDAO = new GiaoCaDAO();
 
-    // [MỚI] Link HDSD
     private static final String HDSD_URL = "https://huyhkhanh205.github.io/HDSD/index.html";
 
     public MainGUI(String userRole, String userName, String maNVDangNhap) {
@@ -63,7 +62,6 @@ public class MainGUI extends JFrame {
         add(menuPanel, BorderLayout.WEST);
         add(contentWrapperPanel, BorderLayout.CENTER);
 
-        // Cài đặt phím tắt "?" (Shift + /) để mở HDSD
         setupHelpShortcut();
 
         this.setExtendedState(JFrame.MAXIMIZED_BOTH);
@@ -74,7 +72,6 @@ public class MainGUI extends JFrame {
         this(userRole, userName, null);
     }
 
-    // --- Hàm thiết lập phím tắt ---
     private void setupHelpShortcut() {
         JRootPane rootPane = this.getRootPane();
         InputMap inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
@@ -89,20 +86,16 @@ public class MainGUI extends JFrame {
             }
         });
     }
-
-    // --- [CẬP NHẬT] Hàm mở Link Web Hướng dẫn sử dụng ---
     private void openUserManual() {
         try {
             if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                 Desktop.getDesktop().browse(new URI(HDSD_URL));
             } else {
-                // Fallback nếu hệ điều hành không hỗ trợ mở trình duyệt
                 JOptionPane.showMessageDialog(this,
                         "Hệ thống không hỗ trợ mở trình duyệt tự động.\n" +
                                 "Vui lòng truy cập thủ công: \n" + HDSD_URL,
                         "Thông báo", JOptionPane.INFORMATION_MESSAGE);
 
-                // Copy link vào clipboard cho tiện
                 java.awt.datatransfer.StringSelection stringSelection = new java.awt.datatransfer.StringSelection(HDSD_URL);
                 java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stringSelection, null);
             }
