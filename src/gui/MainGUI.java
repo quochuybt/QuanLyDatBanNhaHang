@@ -1,14 +1,14 @@
 package gui;
 
-import dao.GiaoCaDAO; // [MỚI] Import để kiểm tra ca làm
+import dao.GiaoCaDAO;
 import entity.VaiTro;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
+import java.io.File;
+import java.net.URI;          // [MỚI] Import URI
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
@@ -33,7 +33,10 @@ public class MainGUI extends JFrame {
     private DanhSachBanGUI danhSachBanGUI;
     private KhachHangGUI khachHangGUI;
 
-    private final GiaoCaDAO giaoCaDAO = new GiaoCaDAO(); // [MỚI] Khởi tạo DAO để check ca
+    private final GiaoCaDAO giaoCaDAO = new GiaoCaDAO();
+
+    // [MỚI] Link HDSD
+    private static final String HDSD_URL = "https://huyhkhanh205.github.io/HDSD/index.html";
 
     public MainGUI(String userRole, String userName, String maNVDangNhap) {
         this.userRole = userRole;
@@ -60,12 +63,53 @@ public class MainGUI extends JFrame {
         add(menuPanel, BorderLayout.WEST);
         add(contentWrapperPanel, BorderLayout.CENTER);
 
+        // Cài đặt phím tắt "?" (Shift + /) để mở HDSD
+        setupHelpShortcut();
+
         this.setExtendedState(JFrame.MAXIMIZED_BOTH);
         showCard("Dashboard");
     }
 
     public MainGUI(String userRole, String userName) {
         this(userRole, userName, null);
+    }
+
+    // --- Hàm thiết lập phím tắt ---
+    private void setupHelpShortcut() {
+        JRootPane rootPane = this.getRootPane();
+        InputMap inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        ActionMap actionMap = rootPane.getActionMap();
+
+        KeyStroke keyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_SLASH, KeyEvent.SHIFT_DOWN_MASK);
+        inputMap.put(keyStroke, "openHelp");
+        actionMap.put("openHelp", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                openUserManual();
+            }
+        });
+    }
+
+    // --- [CẬP NHẬT] Hàm mở Link Web Hướng dẫn sử dụng ---
+    private void openUserManual() {
+        try {
+            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                Desktop.getDesktop().browse(new URI(HDSD_URL));
+            } else {
+                // Fallback nếu hệ điều hành không hỗ trợ mở trình duyệt
+                JOptionPane.showMessageDialog(this,
+                        "Hệ thống không hỗ trợ mở trình duyệt tự động.\n" +
+                                "Vui lòng truy cập thủ công: \n" + HDSD_URL,
+                        "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+
+                // Copy link vào clipboard cho tiện
+                java.awt.datatransfer.StringSelection stringSelection = new java.awt.datatransfer.StringSelection(HDSD_URL);
+                java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stringSelection, null);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi mở đường dẫn: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private JLabel createIconLabel(String iconPath, int width, int height) {
@@ -97,6 +141,7 @@ public class MainGUI extends JFrame {
         else if (iconPath.contains("table")) return "🪑";
         else if (iconPath.contains("customer")) return "🧑";
         else if (iconPath.contains("logout")) return "🚪";
+        else if (iconPath.contains("help")) return "❓";
         return "⚪";
     }
 
@@ -211,7 +256,13 @@ public class MainGUI extends JFrame {
             menuPanel.add(button);
             menuPanel.add(Box.createRigidArea(new Dimension(0, 1)));
         }
+
+        // Đẩy nút HDSD xuống đáy
         menuPanel.add(Box.createVerticalGlue());
+
+        JPanel helpButton = createMenuButton("Hướng dẫn sử dụng", "/img/icon/help.png");
+        menuPanel.add(helpButton);
+
         return menuPanel;
     }
 
@@ -240,24 +291,21 @@ public class MainGUI extends JFrame {
                                             "Vui lòng quay lại Dashboard để kết thúc ca và kiểm tiền trước khi đăng xuất.",
                                     "Cảnh báo chưa kết ca",
                                     JOptionPane.WARNING_MESSAGE);
-
                             showCard("Dashboard");
                             return;
                         }
                     }
-
-                    int choice = JOptionPane.showConfirmDialog(
-                            MainGUI.this,
-                            "Bạn có chắc chắn muốn đăng xuất?",
-                            "Xác nhận đăng xuất",
-                            JOptionPane.YES_NO_OPTION,
-                            JOptionPane.QUESTION_MESSAGE
-                    );
+                    int choice = JOptionPane.showConfirmDialog(MainGUI.this, "Bạn có chắc chắn muốn đăng xuất?", "Xác nhận", JOptionPane.YES_NO_OPTION);
                     if (choice == JOptionPane.YES_OPTION) {
                         dispose();
                         SwingUtilities.invokeLater(() -> new TaiKhoanGUI().setVisible(true));
                     }
-                } else {
+                }
+                // [CẬP NHẬT] Xử lý mở HDSD
+                else if ("Hướng dẫn sử dụng".equals(text)) {
+                    openUserManual();
+                }
+                else {
                     showCard(text);
                 }
             }
@@ -299,7 +347,6 @@ public class MainGUI extends JFrame {
             mainContentPanel.add(this.khachHangGUI, "Thành viên");
         }
     }
-
 
     private void showCard(String name) {
         cardLayout.show(mainContentPanel, name);

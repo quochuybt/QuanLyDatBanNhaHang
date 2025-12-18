@@ -10,6 +10,7 @@ import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.text.DecimalFormat;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -159,8 +160,14 @@ public class NhanVienGUI extends JPanel {
             }
             return;
         }
+        LocalDate now = LocalDate.now();
+        int currentMonth = now.getMonthValue();
+        int currentYear = now.getYear();
 
-        Map<String, Double> tongGioLamMap = phanCongDAO.getTongGioLamChoTatCaNV();
+        table.getColumnModel().getColumn(2).setHeaderValue("Giờ làm (T" + currentMonth + ")");
+        table.getTableHeader().repaint();
+
+        Map<String, Double> tongGioLamMap = phanCongDAO.getTongGioLamTheoThang(currentMonth, currentYear);
 
         for (NhanVien nv : results) {
             Double tongGio = tongGioLamMap.getOrDefault(nv.getManv(), 0.0);
