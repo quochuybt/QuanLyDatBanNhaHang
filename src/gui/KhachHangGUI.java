@@ -266,7 +266,7 @@ public class KhachHangGUI extends JPanel {
                 refreshKhachHangTable();
                 lamMoiForm();
             } else {
-                JOptionPane.showMessageDialog(this, "Thêm khách hàng thất bại (Mã KH có thể bị trùng hoặc lỗi CSDL)!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Thêm khách hàng thất bại (Mã KH có thể bị trùng hoặc trùng SDT)!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);

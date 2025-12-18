@@ -152,7 +152,6 @@ public class PhanCongDAO {
                     Time start = rs.getTime("gioBatDau");
                     Time end = rs.getTime("gioKetThuc");
 
-                    // Lấy danh sách nhân viên trong ca này
                     List<String> dsTenNV = getDsNhanVienTrongCa(conn, maCa, ngayLam);
                     result[0] = formatShiftInfo(ngayLam, tenCa, start, end, dsTenNV);
                 }
@@ -195,6 +194,34 @@ public class PhanCongDAO {
             e.printStackTrace();
         }
         return list;
+    }
+
+    public java.util.Map<String, Double> getTongGioLamTheoThang(int thang, int nam) {
+        java.util.Map<String, Double> map = new java.util.HashMap<>();
+
+
+        String sql = "SELECT pc.maNV, " +
+                "SUM(DATEDIFF(MINUTE, c.gioBatDau, c.gioKetThuc))/60.0 as tongGio " +
+                "FROM PhanCongCa pc " +
+                "JOIN CaLam c ON pc.maCa = c.maCa " +
+                "WHERE MONTH(pc.ngayLam) = ? AND YEAR(pc.ngayLam) = ? " +
+                "GROUP BY pc.maNV";
+
+        try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, thang);
+            ps.setInt(2, nam);
+
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    map.put(rs.getString("maNV"), rs.getDouble("tongGio"));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return map;
     }
 
     private String formatShiftInfo(LocalDate date, String tenCa, Time start, Time end, List<String> names) {

@@ -230,41 +230,40 @@ public class KhuyenMaiDAO {
 
 
     public void ghiNhanSuDung(String maKM, String maKH) {
-        try (Connection conn = SQLConnection.getConnection()) {
-            conn.setAutoCommit(false); // Bắt đầu Transaction
+        Connection conn = null;
+        try {
+            conn = SQLConnection.getConnection();
+            conn.setAutoCommit(false);
 
-
-            String sqlUpdateCount = "UPDATE KhuyenMai SET soLuotDaDung = ISNULL(soLuotDaDung, 0) + 1 WHERE maKM = ?";
+            String sqlUpdateCount = "UPDATE KhuyenMai SET soLuotDaDung = soLuotDaDung + 1 WHERE maKM = ?";
             try (PreparedStatement ps = conn.prepareStatement(sqlUpdateCount)) {
                 ps.setString(1, maKM);
                 ps.executeUpdate();
             }
 
-
-            if (maKH != null && !maKH.trim().isEmpty() && !maKH.equals("KH_VANGLAI")) {
-                String sqlHist = "INSERT INTO LichSuSuDungKM (maKH, maKM) VALUES (?, ?)";
-                try (PreparedStatement ps = conn.prepareStatement(sqlHist)) {
-                    ps.setString(1, maKH);
-                    ps.setString(2, maKM);
-                    ps.executeUpdate();
-                } catch (SQLException ex) {
-
-                    System.err.println("Cảnh báo: Không thể lưu lịch sử dùng KM cho khách " + maKH + ": " + ex.getMessage());
-                }
+            String sqlHist = "INSERT INTO LichSuSuDungKM (maKH, maKM) VALUES (?, ?)";
+            try (PreparedStatement ps = conn.prepareStatement(sqlHist)) {
+                ps.setString(1, maKH);
+                ps.setString(2, maKM);
+                ps.executeUpdate();
             }
 
             String sqlAutoStop = "UPDATE KhuyenMai SET trangThai = N'Ngưng áp dụng' " +
                     "WHERE maKM = ? AND soLuongGioiHan > 0 AND soLuotDaDung >= soLuongGioiHan";
             try (PreparedStatement ps = conn.prepareStatement(sqlAutoStop)) {
                 ps.setString(1, maKM);
-                ps.executeUpdate();
+                int rowsAffected = ps.executeUpdate();
+                if (rowsAffected > 0) {
+                    System.out.println("Mã KM " + maKM + " đã đạt giới hạn và được chuyển sang 'Ngưng áp dụng'.");
+                }
             }
 
             conn.commit();
-            System.out.println("Đã ghi nhận lượt dùng cho mã: " + maKM);
-
         } catch (Exception e) {
+            try { if (conn != null) conn.rollback(); } catch (SQLException ex) {}
             e.printStackTrace();
+        } finally {
+            try { if (conn != null) conn.close(); } catch (SQLException e) {}
         }
     }
 }

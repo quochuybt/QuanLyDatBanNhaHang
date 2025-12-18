@@ -2,6 +2,7 @@
   <library name="lib">
     <CLASSES>
       <root url="file://$PROJECT_DIR$/src/lib" />
+      <root url="jar://$PROJECT_DIR$/src/ooxml-lib/jakarta.mail-2.0.1.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
