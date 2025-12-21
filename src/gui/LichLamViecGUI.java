@@ -53,7 +53,7 @@ public class LichLamViecGUI extends JPanel {
     private JLabel lblWeekRange;
     private JButton btnPrevWeek;
     private JButton btnNextWeek;
-    private JPanel weekDisplayPanel; // Panel chứa lịch tuần (CENTER)
+    private JPanel weekDisplayPanel;
 
 
     public LichLamViecGUI(VaiTro role) {
@@ -63,7 +63,7 @@ public class LichLamViecGUI extends JPanel {
 
         this.currentWeekStartDate = LocalDate.now().with(DayOfWeek.MONDAY);
 
-        this.setLayout(new BorderLayout(0, 15)); // Tăng khoảng cách dọc
+        this.setLayout(new BorderLayout(0, 15));
         this.setBackground(COLOR_MAIN_BACKGROUND);
         this.setBorder(new EmptyBorder(20, 25, 20, 25));
 
@@ -133,7 +133,7 @@ public class LichLamViecGUI extends JPanel {
 
     private void navigateWeek(int weeksToAdd) {
         currentWeekStartDate = currentWeekStartDate.plusWeeks(weeksToAdd);
-        refreshWeekPanel(); // Tải lại lịch cho tuần mới
+        refreshWeekPanel();
     }
 
     private void updateWeekRangeLabel() {

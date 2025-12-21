@@ -139,12 +139,9 @@ public class DonDatMonDAO {
                         String maDon = item[0];
                         String maBan = item[1];
 
-                        // Cập nhật Đơn
                         psUpDon.setString(1, maDon);
                         psUpDon.executeUpdate();
 
-                        //update nếu bàn đó đang ở trạng thái Đặt trước
-                        //set Trống nếu nó đang Đã đặt.
                         String sqlSafeUpdateBan = "UPDATE Ban SET trangThai = N'Trống', gioMoBan = NULL WHERE maBan = ? AND trangThai = N'Đã đặt trước'";
                         try(java.sql.PreparedStatement psSafe = conn.prepareStatement(sqlSafeUpdateBan)) {
                             psSafe.setString(1, maBan);

@@ -95,7 +95,7 @@ CREATE TABLE NhanVien (
     luong DECIMAL(18, 2) NOT NULL,
     tenTK NVARCHAR(50) NOT NULL UNIQUE,
     vaiTro NVARCHAR(20) NOT NULL,
-    email NVARCHAR(100) UNIQUE, -- 🌟 THÊM: Cột email (UNIQUE để đảm bảo mỗi NV có 1 email duy nhất)
+    email NVARCHAR(100) UNIQUE,
     CONSTRAINT FK_NhanVien_TaiKhoan FOREIGN KEY (tenTK) REFERENCES TaiKhoan(tenTK),
     CONSTRAINT FK_NhanVien_VaiTro FOREIGN KEY (vaiTro) REFERENCES VaiTro(tenVaiTro)
 );

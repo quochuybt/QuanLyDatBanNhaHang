@@ -90,7 +90,7 @@ public class KhachHangDAO {
             ps.setDate(7, Date.valueOf(kh.getNgayThamGia()));
             ps.setFloat(8, kh.getTongChiTieu());
             ps.setString(9, kh.getHangThanhVien().toString());
-            ps.setString(10, kh.getMaKH()); // Điều kiện WHERE
+            ps.setString(10, kh.getMaKH());
 
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
@@ -101,7 +101,7 @@ public class KhachHangDAO {
 
     public List<KhachHang> timKhachHang(String tuKhoa) {
         List<KhachHang> dsKetQua = new ArrayList<>();
-        // Tìm kiếm theo tên hoặc số điện thoại
+
         String sql = "SELECT * FROM KhachHang WHERE tenKH LIKE ? OR sdt LIKE ?";
 
         try (Connection conn = SQLConnection.getConnection();
@@ -170,7 +170,7 @@ public class KhachHangDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    // (Copy logic từ hàm getAllKhachHang của bạn)
+
                     String maKH = rs.getString("maKH");
                     String tenKH = rs.getString("tenKH");
                     String gioitinh = rs.getString("gioitinh");

@@ -52,7 +52,7 @@ public class ChiTietHoaDonDAO {
             ps.setString(1, ct.getMaDon());
             ps.setString(2, ct.getMaMon());
             ps.setInt(3, ct.getSoluong());
-            ps.setFloat(4, ct.getDongia()); // Lưu đơn giá tại thời điểm thêm
+            ps.setFloat(4, ct.getDongia());
 
             return ps.executeUpdate() > 0;
         } catch (java.sql.SQLIntegrityConstraintViolationException e) {
@@ -110,7 +110,7 @@ public class ChiTietHoaDonDAO {
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sqlTop)) {
 
-            ps.setInt(1, limit); // Tham số cho TOP (?)
+            ps.setInt(1, limit);
             ps.setTimestamp(2, Timestamp.valueOf(startDate.atStartOfDay()));
             ps.setTimestamp(3, Timestamp.valueOf(endDate.plusDays(1).atStartOfDay()));
 
@@ -155,7 +155,7 @@ public class ChiTietHoaDonDAO {
 
         String sql = "SELECT TOP (?) ma.tenMon, SUM(ct.soLuong) as SoLuongBan " +
                 "FROM ChiTietHoaDon ct " +
-                "JOIN MonAn ma ON ct.maMonAn = ma.maMonAn " + // <--- SỬA TẠI ĐÂY
+                "JOIN MonAn ma ON ct.maMonAn = ma.maMonAn " +
                 "JOIN HoaDon hd ON ct.maDon = hd.maDon " +
                 "WHERE hd.ngayLap >= ? AND hd.ngayLap < ? " +
                 "AND hd.trangThai = N'Đã thanh toán' " +

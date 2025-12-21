@@ -26,7 +26,7 @@ public class ThemNhanVienDialog extends JDialog {
     private final JComboBox<VaiTro> cmbVaiTro = new JComboBox<>(VaiTro.values());
     private final JTextField txtTenTK = new JTextField(10);
     private final JPasswordField txtMatKhau = new JPasswordField(10);
-    private final JTextField txtEmail = new JTextField(15); // 🌟 THÊM: Trường nhập Email
+    private final JTextField txtEmail = new JTextField(15);
 
     public ThemNhanVienDialog(NhanVienGUI parentPanel) {
         super(SwingUtilities.getWindowAncestor(parentPanel) instanceof Frame ? (Frame) SwingUtilities.getWindowAncestor(parentPanel) : null,

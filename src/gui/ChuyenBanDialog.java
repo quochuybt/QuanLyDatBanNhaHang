@@ -92,7 +92,7 @@ public class ChuyenBanDialog extends JDialog {
         closeButton.setContentAreaFilled(false);
         closeButton.setBorder(new EmptyBorder(5, 10, 5, 10));
         closeButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        closeButton.addActionListener(e -> dispose()); // <-- Sửa: dispose()
+        closeButton.addActionListener(e -> dispose());
         titlePanel.add(closeButton, BorderLayout.EAST);
         return titlePanel;
     }
@@ -218,7 +218,7 @@ public class ChuyenBanDialog extends JDialog {
                     @Override
                     public void mouseClicked(MouseEvent e) {
                         if (e.getButton() == MouseEvent.BUTTON1) {
-                            handleSelectTarget(ban, banPanel); // Hàm xử lý chọn đơn
+                            handleSelectTarget(ban, banPanel);
                         }
                     }
                 });
@@ -254,7 +254,7 @@ public class ChuyenBanDialog extends JDialog {
                     @Override
                     public void mouseClicked(MouseEvent e) {
                         if (e.getButton() == MouseEvent.BUTTON1) {
-                            handleSelectSource(ban, banPanel); // Hàm xử lý chọn đơn
+                            handleSelectSource(ban, banPanel);
                         }
                     }
                 });

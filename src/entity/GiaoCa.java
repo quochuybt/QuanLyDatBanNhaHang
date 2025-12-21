@@ -9,7 +9,7 @@ public class GiaoCa {
     private double tienDauCa;
     private double tienCuoiCa;
     private double tienHeThongTinh;
-    private double chenhLech; // Mới thêm
+    private double chenhLech;
     private String ghiChu;
 
     public GiaoCa(int maGiaoCa, String maNV, LocalDateTime thoiGianBatDau, double tienDauCa) {

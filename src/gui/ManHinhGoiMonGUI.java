@@ -353,8 +353,6 @@ public class ManHinhGoiMonGUI extends JPanel {
     }
     private void filterMonAn() {
         String tuKhoa = txtTimKiem.getText().trim().toLowerCase();
-        System.out.println("Filtering: Category='" + currentCategoryFilter + "', Keyword='" + tuKhoa + "'");
-
         for (MonAnItemPanel itemPanel : dsMonAnPanel) {
             MonAn mon = itemPanel.getMonAn();
             boolean show = true;

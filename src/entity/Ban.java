@@ -134,12 +134,12 @@ public class Ban {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Ban ban = (Ban) o;
-        return Objects.equals(maBan, ban.maBan); // So sánh bằng mã bàn
+        return Objects.equals(maBan, ban.maBan);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maBan); // Hash theo mã bàn
+        return Objects.hash(maBan);
     }
 
 }

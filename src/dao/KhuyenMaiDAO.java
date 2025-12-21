@@ -92,13 +92,6 @@ public class KhuyenMaiDAO {
         } catch (Exception e) { e.printStackTrace(); return false; }
     }
 
-    public boolean xoaKhuyenMai(String maKM) {
-        String sql = "DELETE FROM KhuyenMai WHERE maKM = ?";
-        try (Connection conn = SQLConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, maKM);
-            return ps.executeUpdate() > 0;
-        } catch (Exception e) { e.printStackTrace(); return false; }
-    }
 
 
     public List<KhuyenMai> timKiemVaLoc(String tuKhoa, String trangThai) {
@@ -148,7 +141,7 @@ public class KhuyenMaiDAO {
 
 
     public KhuyenMai getKhuyenMaiHopLeByMa(String maKM) {
-        autoUpdateExpiredStatuses(); // Cập nhật trạng thái trước
+        autoUpdateExpiredStatuses();
         String sql = "SELECT * FROM KhuyenMai WHERE maKM = ? AND trangThai = N'Đang áp dụng'";
 
         try (Connection conn = SQLConnection.getConnection();
@@ -158,7 +151,6 @@ public class KhuyenMaiDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    // Kiểm tra ngày hiệu lực
                     LocalDate now = LocalDate.now();
                     LocalDate ngayBD = rs.getDate("ngayBatDau").toLocalDate();
                     Date dateKT = rs.getDate("ngayKetThuc");

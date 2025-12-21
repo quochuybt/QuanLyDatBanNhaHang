@@ -16,7 +16,7 @@ public class HoaDon {
     private float tongTien;
     private String trangThai;
     private String hinhThucThanhToan;
-    private float tienKhachDua; // 🌟 ĐÃ KHAI BÁO
+    private float tienKhachDua;
     private String tenBan;
 
 

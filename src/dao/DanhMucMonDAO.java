@@ -61,7 +61,6 @@ public class DanhMucMonDAO {
     }
 
     public boolean xoaDanhMuc(String maDM) {
-        // Lưu ý: Cần xử lý ràng buộc khóa ngoại bên SQL hoặc xóa món ăn thuộc danh mục này trước
         String sql = "DELETE FROM DanhMucMon WHERE maDM = ?";
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -73,7 +72,6 @@ public class DanhMucMonDAO {
         }
     }
 
-    // Hàm sinh mã tự động: DM0001, DM0002...
     private String generateNewMaDM() {
         String sql = "SELECT MAX(maDM) FROM DanhMucMon";
         try (Connection conn = SQLConnection.getConnection();

@@ -96,7 +96,7 @@ public class ChiTietHoaDon {
     public String toString() {
         return "ChiTietHoaDon{" +
                 "maMon='" + maMon + '\'' +
-                ", tenMon='" + tenMon + '\'' + // Thêm
+                ", tenMon='" + tenMon + '\'' +
                 ", soluong=" + soluong +
                 ", thanhtien=" + thanhtien +
                 '}';

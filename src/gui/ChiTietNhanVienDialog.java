@@ -25,7 +25,7 @@ public class ChiTietNhanVienDialog extends JDialog {
     private final JComboBox<VaiTro> cmbVaiTro = new JComboBox<>(VaiTro.values());
     private final JTextField txtTenTK = new JTextField(10);
     private final JPasswordField txtMatKhauMoi = new JPasswordField(10);
-    private final JTextField txtEmail = new JTextField(15); // Trường nhập Email
+    private final JTextField txtEmail = new JTextField(15);
     private int accountStatus;
 
     public ChiTietNhanVienDialog(NhanVienGUI parentPanel, String maNV) {
@@ -58,7 +58,7 @@ public class ChiTietNhanVienDialog extends JDialog {
 
         txtTenTK.setText(nhanVienGoc.getTenTK());
         txtMatKhauMoi.setText("");
-        txtEmail.setText(nhanVienGoc.getEmail()); // Load Email
+        txtEmail.setText(nhanVienGoc.getEmail());
     }
 
     private void setupUI() {
@@ -153,7 +153,7 @@ public class ChiTietNhanVienDialog extends JDialog {
             }
             NhanVien nvUpdate = new NhanVien(
                     nhanVienGoc.getManv(),
-                    hoTen, ngaySinh, gioiTinh, sdt, diaChi, nhanVienGoc.getNgayvaolam(), luong, vaiTro, email // Truyền email
+                    hoTen, ngaySinh, gioiTinh, sdt, diaChi, nhanVienGoc.getNgayvaolam(), luong, vaiTro, email
             );
 
             boolean success = nhanVienDAO.updateNhanVienAndAccount(nvUpdate, oldTenTK, newTenTK, newMatKhau);

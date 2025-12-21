@@ -148,7 +148,7 @@ public class DashboardNhanVienGUI extends JPanel {
         statsPanel.add(createStatCard(
                 "Giờ làm tuần",
                 "0.0 giờ",
-                "/img/icon/calendar_month.png", // Đường dẫn ảnh của bạn
+                "/img/icon/calendar_month.png",
                 PRIMARY_COLOR,
                 l -> lblTotalHoursWeek = l
         ));
@@ -156,7 +156,7 @@ public class DashboardNhanVienGUI extends JPanel {
         statsPanel.add(createStatCard(
                 "Giờ làm tháng",
                 "0.0 giờ",
-                "/img/icon/date_range.png", // Đường dẫn ảnh của bạn
+                "/img/icon/date_range.png",
                 SUCCESS_COLOR,
                 l -> lblTotalHoursMonth = l
         ));
@@ -164,7 +164,7 @@ public class DashboardNhanVienGUI extends JPanel {
         statsPanel.add(createStatCard(
                 "Doanh thu hôm nay",
                 "0 ₫",
-                "/img/icon/attach_money.png", // Đường dẫn ảnh của bạn
+                "/img/icon/attach_money.png",
                 WARNING_COLOR,
                 l -> lblRevenueToday = l
         ));
@@ -172,7 +172,7 @@ public class DashboardNhanVienGUI extends JPanel {
         statsPanel.add(createStatCard(
                 "Tiền trong két",
                 "0 ₫",
-                "/img/icon/account_balance_wallet.png", // Đường dẫn ảnh của bạn
+                "/img/icon/account_balance_wallet.png",
                 DANGER_COLOR,
                 l -> lblCashInDrawer = l
         ));
@@ -459,13 +459,13 @@ public class DashboardNhanVienGUI extends JPanel {
                 ));
                 g2.fillRect(paddingLeft, refY, getWidth() - paddingLeft - paddingRight, getHeight() - paddingBottom - refY);
 
-                g2.setColor(new Color(41, 128, 185, 180)); // Màu xanh dương
+                g2.setColor(new Color(41, 128, 185, 180));
                 // Nét đứt
                 Stroke dashed = new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
                         10.0f, new float[]{8.0f, 5.0f}, 0.0f);
                 g2.setStroke(dashed);
                 g2.drawLine(paddingLeft, refY, getWidth() - paddingRight, refY);
-                g2.setStroke(new BasicStroke(1.0f)); // Reset về nét liền
+                g2.setStroke(new BasicStroke(1.0f));
 
                 int x = paddingLeft;
                 for (Map.Entry<String, Double> entry : filteredData.entrySet()) {
@@ -474,13 +474,13 @@ public class DashboardNhanVienGUI extends JPanel {
 
                     Color barColor, barColorDark;
                     if (value >= REFERENCE_LINE) {
-                        barColor = new Color(39, 174, 96); // Xanh lá
+                        barColor = new Color(39, 174, 96);
                         barColorDark = new Color(30, 132, 73);
                     } else if (value >= 6.0) {
-                        barColor = new Color(243, 156, 18); // Cam
+                        barColor = new Color(243, 156, 18);
                         barColorDark = new Color(211, 84, 0);
                     } else {
-                        barColor = new Color(231, 76, 60); // Đỏ
+                        barColor = new Color(231, 76, 60);
                         barColorDark = new Color(192, 57, 43);
                     }
 

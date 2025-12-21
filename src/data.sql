@@ -20,16 +20,47 @@ GO
 
 -- 3. Bàn
 INSERT INTO Ban (maBan, tenBan, soGhe, trangThai, gioMoBan, khuVuc) VALUES
+INSERT INTO Ban (maBan, tenBan, soGhe, trangThai, ghiChu, khuVuc) VALUES
 (N'BAN01', N'Bàn 1', 4, N'Trống', NULL, N'Tầng trệt'),
 (N'BAN02', N'Bàn 2', 4, N'Trống', NULL, N'Tầng trệt'),
 (N'BAN03', N'Bàn 3', 2, N'Trống', NULL, N'Tầng trệt'),
 (N'BAN04', N'Bàn 4', 2, N'Trống', NULL, N'Tầng trệt'),
-(N'BAN05', N'Bàn 5', 6, N'Trống', NULL, N'Tầng 1'),
-(N'BAN06', N'Bàn 6', 6, N'Trống', NULL, N'Tầng 1'),
-(N'BAN07', N'Bàn 7', 4, N'Trống', NULL, N'Tầng 1'),
-(N'BAN08', N'Bàn 8', 4, N'Trống', NULL, N'Tầng 1'),
-(N'BAN09', N'Bàn 9', 8, N'Trống', NULL, N'Tầng 1'),
-(N'BAN10', N'Bàn 10', 2, N'Trống', NULL, N'Tầng trệt');
+(N'BAN05', N'Bàn 5', 4, N'Trống', NULL, N'Tầng trệt'),
+(N'BAN06', N'Bàn 6', 4, N'Trống', NULL, N'Tầng trệt'),
+(N'BAN07', N'Bàn 7', 4, N'Trống', NULL, N'Tầng trệt'),
+(N'BAN08', N'Bàn 8', 4, N'Trống', NULL, N'Tầng trệt'),
+(N'BAN09', N'Bàn 9', 8, N'Trống', NULL, N'Tầng trệt'),
+(N'BAN10', N'Bàn 10', 8, N'Trống', NULL, N'Tầng trệt'),
+(N'BAN11', N'Bàn 11', 4, N'Trống', NULL, N'Tầng trệt'),
+(N'BAN12', N'Bàn 12', 4, N'Trống', NULL, N'Tầng trệt'),
+(N'BAN13', N'Bàn 13', 2, N'Trống', NULL, N'Tầng trệt'),
+(N'BAN14', N'Bàn 14', 2, N'Trống', NULL, N'Tầng trệt'),
+(N'BAN15', N'Bàn 15', 6, N'Trống', NULL, N'Tầng trệt'),
+(N'BAN16', N'Bàn 16', 6, N'Trống', NULL, N'Tầng trệt'),
+(N'BAN17', N'Bàn 17', 4, N'Trống', NULL, N'Tầng trệt'),
+(N'BAN18', N'Bàn 18', 4, N'Trống', NULL, N'Tầng trệt'),
+(N'BAN19', N'Bàn 19', 2, N'Trống', NULL, N'Tầng trệt'),
+(N'BAN20', N'Bàn 20', 2, N'Trống', NULL, N'Tầng trệt'),
+(N'BAN21', N'Bàn 21', 6, N'Trống', NULL, N'Tầng 1'),
+(N'BAN22', N'Bàn 22', 6, N'Trống', NULL, N'Tầng 1'),
+(N'BAN23', N'Bàn 23', 4, N'Trống', NULL, N'Tầng 1'),
+(N'BAN24', N'Bàn 24', 4, N'Trống', NULL, N'Tầng 1'),
+(N'BAN25', N'Bàn 25', 8, N'Trống', NULL, N'Tầng 1'),
+(N'BAN26', N'Bàn 26', 8, N'Trống', NULL, N'Tầng 1'),
+(N'BAN27', N'Bàn 27', 4, N'Trống', NULL, N'Tầng 1'),
+(N'BAN28', N'Bàn 28', 4, N'Trống', NULL, N'Tầng 1'),
+(N'BAN29', N'Bàn 29', 2, N'Trống', NULL, N'Tầng 1'),
+(N'BAN30', N'Bàn 30', 2, N'Trống', NULL, N'Tầng 1'),
+(N'BAN31', N'Bàn 31', 6, N'Trống', NULL, N'Tầng 1'),
+(N'BAN32', N'Bàn 32', 6, N'Trống', NULL, N'Tầng 1'),
+(N'BAN33', N'Bàn 33', 4, N'Trống', NULL, N'Tầng 1'),
+(N'BAN34', N'Bàn 34', 4, N'Trống', NULL, N'Tầng 1'),
+(N'BAN35', N'Bàn 35', 4, N'Trống', NULL, N'Tầng 1'),
+(N'BAN36', N'Bàn 36', 4, N'Trống', NULL, N'Tầng 1'),
+(N'BAN37', N'Bàn 37', 2, N'Trống', NULL, N'Tầng 1'),
+(N'BAN38', N'Bàn 38', 2, N'Trống', NULL, N'Tầng 1'),
+(N'BAN39', N'Bàn 39', 8, N'Trống', NULL, N'Tầng 1'),
+(N'BAN40', N'Bàn 40', 8, N'Trống', NULL, N'Tầng 1');
 GO
 
 -- 4. Nhân viên

@@ -474,7 +474,7 @@ public class ManHinhDatBanGUI extends JPanel {
     private void taiDanhSachBanTrong() {
         try {
             dsTatCaBan = banDAO.getAllBan();
-            System.out.println("Đã tải " + dsTatCaBan.size() + " bàn trống.");
+
         } catch (Exception e) {
             e.printStackTrace();
         }

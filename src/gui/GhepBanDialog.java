@@ -40,8 +40,8 @@ public class GhepBanDialog extends JDialog {
         }
 
         setUndecorated(true);
-        setBackground(new Color(0, 0, 0, 100)); // Hiệu ứng mờ
-        setLayout(new GridBagLayout()); // Để căn giữa
+        setBackground(new Color(0, 0, 0, 100));
+        setLayout(new GridBagLayout());
 
         JPanel contentPanel = new JPanel(new BorderLayout(0, 10));
         contentPanel.setPreferredSize(new Dimension(900, 600));
@@ -118,7 +118,6 @@ public class GhepBanDialog extends JDialog {
         headerPanel.add(createFilterPanel(isLeftPanel), BorderLayout.CENTER);
         panel.add(headerPanel, BorderLayout.NORTH);
 
-        // Sử dụng class công khai
         JPanel tableContainer = new VerticallyWrappingFlowPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
         tableContainer.setBackground(Color.WHITE);
         tableContainer.setBorder(new EmptyBorder(5, 5, 5, 5));

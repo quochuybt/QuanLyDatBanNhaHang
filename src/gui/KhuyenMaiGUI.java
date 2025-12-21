@@ -193,8 +193,8 @@ public class KhuyenMaiGUI extends JPanel {
     }
 
     private void addEventListeners() {
-        btnThemKhuyenMai.addActionListener(e -> showKhuyenMaiDialog(null)); // Thêm mới
-        btnXoaKhuyenMai.addActionListener(e -> xoaKhuyenMai()); // Ngưng áp dụng
+        btnThemKhuyenMai.addActionListener(e -> showKhuyenMaiDialog(null));
+        btnXoaKhuyenMai.addActionListener(e -> xoaKhuyenMai());
     }
 
     private void addSearchAndFilterListeners() {

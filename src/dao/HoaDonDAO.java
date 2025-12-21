@@ -105,7 +105,7 @@ public class HoaDonDAO {
         }
 
         sql += " ORDER BY hd.ngayLap DESC " +
-                "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"; // SQL Server Syntax
+                "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
 
         try (Connection conn = SQLConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -289,7 +289,6 @@ public class HoaDonDAO {
 
                     String trangThaiMoi = (soDonCho > 0) ? "Đã đặt trước" : "Trống";
 
-                    // Update Bàn (bao gồm cả trả tên gốc)
                     psUpBan.setNString(1, trangThaiMoi);
                     psUpBan.setString(2, mb);
                     psUpBan.executeUpdate();
@@ -351,7 +350,7 @@ public class HoaDonDAO {
 
 
         hd.setTienKhachDua(tienKhachDua);
-        hd.setTongTienTuDB(tongTienGoc); // Gán tổng tiền gốc
+        hd.setTongTienTuDB(tongTienGoc);
         hd.setGiamGia(rs.getFloat("giamGia"));
         hd.capNhatTongThanhToanTuCacThanhPhan();
 
@@ -367,7 +366,7 @@ public class HoaDonDAO {
 
             ps.setString(1, hd.getMaHD());
             ps.setTimestamp(2, Timestamp.valueOf(hd.getNgayLap()));
-            ps.setFloat(3, hd.getTongTien()); // Tổng tiền gốc
+            ps.setFloat(3, hd.getTongTien());
             ps.setString(4, hd.getTrangThai());
             ps.setString(5, hd.getHinhThucThanhToan());
             ps.setFloat(6, hd.getTienKhachDua());
@@ -396,7 +395,6 @@ public class HoaDonDAO {
 
         double total = 0;
 
-        // Sửa: Tính chính xác (tongTien - giamGia)
         String sql = "SELECT ISNULL(SUM(tongTien - ISNULL(giamGia, 0)), 0) AS DoanhThu " +
                 "FROM HoaDon " +
                 "WHERE maNV = ? " +
