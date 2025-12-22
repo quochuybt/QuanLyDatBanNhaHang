@@ -20,7 +20,6 @@ GO
 
 -- 3. Bàn
 INSERT INTO Ban (maBan, tenBan, soGhe, trangThai, gioMoBan, khuVuc) VALUES
-INSERT INTO Ban (maBan, tenBan, soGhe, trangThai, ghiChu, khuVuc) VALUES
 (N'BAN01', N'Bàn 1', 4, N'Trống', NULL, N'Tầng trệt'),
 (N'BAN02', N'Bàn 2', 4, N'Trống', NULL, N'Tầng trệt'),
 (N'BAN03', N'Bàn 3', 2, N'Trống', NULL, N'Tầng trệt'),
@@ -105,10 +104,9 @@ INSERT INTO KhuyenMai (maKM, tenKM, moTa, ngayBatDau, ngayKetThuc, loaiGiam, gia
 (N'GIAM20K', N'Giảm 20.000đ', N'Giảm 20.000đ cho hóa đơn từ 100.000đ', '2025-10-01', '2026-01-31', N'Giảm giá số tiền', 20000.00, N'Đang áp dụng', 100000),
 (N'SINHNHAT', N'Chúc mừng sinh nhật', N'Giảm 30% cho khách hàng thành viên', '2025-01-01', '2026-12-31', N'Giảm theo phần trăm', 30.00, N'Đang áp dụng', 0);
 GO
-USE StarGuardianDB;
-GO
 
 INSERT INTO KhachHang (maKH, tenKH, gioiTinh, sdt, hangThanhVien, tongChiTieu, ngaySinh, diaChi, ngayThamGia, email) VALUES
+(N'KH20251025001', N'Trần Minh Hoài', N'Nam', '0987656442', N'MEMBER', 0.00, '1990-01-01', N'TP.HCM', '2025-01-01', N'hoaiminh@email.com'),
 (N'KH20251025002', N'Trần Văn Bảo', N'Nam', '0912345678', N'MEMBER', 0.00, '1995-05-15', N'123 Lê Lợi, Q1', '2025-02-10', N'bao.tran@email.com'),
 (N'KH20251025003', N'Nguyễn Thị Lan', N'Nữ', '0987654321', N'MEMBER', 0.00, '1992-11-30', N'456 Hai Bà Trưng, Q3', '2025-03-11', N'lan.nguyen@email.com'),
 (N'KH20251025004', N'Lê Minh Hùng', N'Nam', '0933445566', N'MEMBER', 0.00, '1988-02-10', N'789 Nguyễn Trãi, Q5', '2025-04-12', N'hung.le@email.com'),

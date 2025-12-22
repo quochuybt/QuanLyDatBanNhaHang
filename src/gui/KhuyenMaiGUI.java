@@ -93,8 +93,6 @@ public class KhuyenMaiGUI extends JPanel {
                 return String.format("Giảm %.0f%% hóa đơn", km.getGiaTri());
             case "Giảm giá số tiền":
                 return String.format("Giảm %.0f VNĐ", km.getGiaTri());
-            case "Tặng món":
-                return "Tặng: " + km.getMoTa();
             default:
                 return km.getMoTa();
         }
@@ -274,7 +272,7 @@ public class KhuyenMaiGUI extends JPanel {
         JTextField txtTenCT = new JTextField(km != null ? km.getTenChuongTrinh() : "");
         JTextField txtMoTa = new JTextField(km != null ? km.getMoTa() : "");
 
-        JComboBox<String> cbLoaiKM = new JComboBox<>(new String[]{"Giảm theo phần trăm", "Giảm giá số tiền", "Tặng món"});
+        JComboBox<String> cbLoaiKM = new JComboBox<>(new String[]{"Giảm theo phần trăm", "Giảm giá số tiền"});
         if (km != null) cbLoaiKM.setSelectedItem(km.getLoaiKhuyenMai());
 
         JTextField txtGiaTri = new JTextField(km != null ? String.valueOf(km.getGiaTri()) : "0");
