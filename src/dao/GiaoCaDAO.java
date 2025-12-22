@@ -1,14 +1,6 @@
 package dao;
 
-import connectDB.SQLConnection;
-import entity.GiaoCa;
-import java.sql.*;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import connectDB.SQLConnection; import entity.GiaoCa; import java.sql.*; import java.time.LocalDate; import java.time.LocalDateTime; import java.util.ArrayList; import java.util.LinkedHashMap; import java.util.List; import java.util.Map;
 
 public class GiaoCaDAO {
 
@@ -32,7 +24,6 @@ public class GiaoCaDAO {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Lỗi getMaCaDangLamViec: " + e.getMessage());
             e.printStackTrace();
         }
         return -1;
@@ -40,17 +31,14 @@ public class GiaoCaDAO {
 
     public boolean batDauCa(String maNV, double tienDauCa) {
         if (maNV == null || maNV.trim().isEmpty()) {
-            System.err.println("Mã NV không hợp lệ");
             return false;
         }
 
         if (tienDauCa < 0) {
-            System.err.println("Tiền đầu ca không được âm");
             return false;
         }
 
         if (getMaCaDangLamViec(maNV) > 0) {
-            System.err.println("Nhân viên đang trong ca làm việc");
             return false;
         }
 
@@ -65,11 +53,9 @@ public class GiaoCaDAO {
 
             int result = ps.executeUpdate();
             if (result > 0) {
-                System.out.println("Bắt đầu ca thành công cho NV: " + maNV);
                 return true;
             }
         } catch (SQLException e) {
-            System.err.println("Lỗi batDauCa: " + e.getMessage());
             e.printStackTrace();
         }
         return false;
@@ -91,30 +77,22 @@ public class GiaoCaDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    GiaoCa gc = new GiaoCa(
+                    return new GiaoCa(
                             rs.getInt("maGiaoCa"),
                             rs.getString("maNV"),
                             rs.getTimestamp("thoiGianBatDau").toLocalDateTime(),
                             rs.getDouble("tienDauCa")
                     );
-                    return gc;
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Lỗi getThongTinCaDangLam: " + e.getMessage());
             e.printStackTrace();
         }
         return null;
     }
 
     public boolean ketThucCa(int maGiaoCa, double tienCuoiCa, String ghiChu) {
-        if (maGiaoCa <= 0) {
-            System.err.println("Mã giao ca không hợp lệ");
-            return false;
-        }
-
-        if (tienCuoiCa < 0) {
-            System.err.println("Tiền cuối ca không được âm");
+        if (maGiaoCa <= 0 || tienCuoiCa < 0) {
             return false;
         }
 
@@ -161,7 +139,7 @@ public class GiaoCaDAO {
                 }
             }
 
-            double chenhLech = tienCuoiCa - tienDauCa - tienHeThong;
+            double chenhLech = tienCuoiCa - (tienDauCa + tienHeThong);
 
             String sqlUpdate = "UPDATE GiaoCa SET " +
                     "thoiGianKetThuc = GETDATE(), " +
@@ -181,7 +159,6 @@ public class GiaoCaDAO {
                 int result = ps.executeUpdate();
                 if (result > 0) {
                     conn.commit();
-                    System.out.println("Kết thúc ca thành công. Chênh lệch: " + chenhLech);
                     return true;
                 } else {
                     conn.rollback();
@@ -190,7 +167,6 @@ public class GiaoCaDAO {
             }
 
         } catch (SQLException e) {
-            System.err.println("Lỗi ketThucCa: " + e.getMessage());
             e.printStackTrace();
             if (conn != null) {
                 try {
@@ -217,8 +193,10 @@ public class GiaoCaDAO {
             return 0;
         }
 
-        String sql = "SELECT ISNULL(SUM(DATEDIFF(MINUTE, thoiGianBatDau, " +
-                "CASE WHEN thoiGianKetThuc IS NULL THEN GETDATE() ELSE thoiGianKetThuc END)), 0) AS TongPhut " +
+        String sql = "SELECT ISNULL(SUM(CASE " +
+                "WHEN DATEDIFF(MINUTE, thoiGianBatDau, ISNULL(thoiGianKetThuc, GETDATE())) < 0 THEN 0 " +
+                "ELSE DATEDIFF(MINUTE, thoiGianBatDau, ISNULL(thoiGianKetThuc, GETDATE())) " +
+                "END), 0) AS TongPhut " +
                 "FROM GiaoCa " +
                 "WHERE maNV = ? " +
                 "AND MONTH(thoiGianBatDau) = ? " +
@@ -234,12 +212,10 @@ public class GiaoCaDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    double totalMinutes = rs.getDouble("TongPhut");
-                    return totalMinutes / 60.0;
+                    return rs.getDouble("TongPhut") / 60.0;
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Lỗi getTongGioLamTheoThang: " + e.getMessage());
             e.printStackTrace();
         }
         return 0;
@@ -250,8 +226,10 @@ public class GiaoCaDAO {
             return 0;
         }
 
-        String sql = "SELECT ISNULL(SUM(DATEDIFF(MINUTE, thoiGianBatDau, " +
-                "CASE WHEN thoiGianKetThuc IS NULL THEN GETDATE() ELSE thoiGianKetThuc END)), 0) AS TongPhut " +
+        String sql = "SELECT ISNULL(SUM(CASE " +
+                "WHEN DATEDIFF(MINUTE, thoiGianBatDau, ISNULL(thoiGianKetThuc, GETDATE())) < 0 THEN 0 " +
+                "ELSE DATEDIFF(MINUTE, thoiGianBatDau, ISNULL(thoiGianKetThuc, GETDATE())) " +
+                "END), 0) AS TongPhut " +
                 "FROM GiaoCa " +
                 "WHERE maNV = ? " +
                 "AND CAST(thoiGianBatDau AS DATE) >= ? " +
@@ -267,12 +245,10 @@ public class GiaoCaDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    double totalMinutes = rs.getDouble("TongPhut");
-                    return totalMinutes / 60.0;
+                    return rs.getDouble("TongPhut") / 60.0;
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Lỗi getTongGioLamTheoTuan: " + e.getMessage());
             e.printStackTrace();
         }
         return 0;
@@ -315,24 +291,15 @@ public class GiaoCaDAO {
         Map<String, Double> result = new LinkedHashMap<>();
 
         String sql = "SELECT TOP (?) nv.hoTen, " +
-                "SUM(DATEDIFF(MINUTE, ls.thoiGianBatDau, " +
-                "    CASE " +
-                "        WHEN ls.thoiGianKetThuc IS NULL THEN GETDATE() " +
-                "        WHEN ls.thoiGianKetThuc > GETDATE() THEN GETDATE() " +
-                "        ELSE ls.thoiGianKetThuc " +
-                "    END)) / 60.0 AS TongGio " +
+                "SUM(CASE WHEN DATEDIFF(MINUTE, ls.thoiGianBatDau, ISNULL(ls.thoiGianKetThuc, GETDATE())) < 0 THEN 0 " +
+                "ELSE DATEDIFF(MINUTE, ls.thoiGianBatDau, ISNULL(ls.thoiGianKetThuc, GETDATE())) END) / 60.0 AS TongGio " +
                 "FROM GiaoCa ls " +
                 "JOIN NhanVien nv ON ls.maNV = nv.maNV " +
                 "WHERE ls.thoiGianBatDau >= ? " +
                 "AND ls.thoiGianBatDau < ? " +
                 "AND ls.thoiGianBatDau <= GETDATE() " +
+                "AND nv.vaiTro = N'NHANVIEN' " +
                 "GROUP BY nv.hoTen " +
-                "HAVING SUM(DATEDIFF(MINUTE, ls.thoiGianBatDau, " +
-                "    CASE " +
-                "        WHEN ls.thoiGianKetThuc IS NULL THEN GETDATE() " +
-                "        WHEN ls.thoiGianKetThuc > GETDATE() THEN GETDATE() " +
-                "        ELSE ls.thoiGianKetThuc " +
-                "    END)) > 0 " +
                 "ORDER BY TongGio DESC";
 
         try (Connection conn = SQLConnection.getConnection();
@@ -344,14 +311,10 @@ public class GiaoCaDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    double hours = rs.getDouble("TongGio");
-                    if (hours > 0) {
-                        result.put(rs.getString("hoTen"), hours);
-                    }
+                    result.put(rs.getString("hoTen"), rs.getDouble("TongGio"));
                 }
             }
         } catch (Exception e) {
-            System.err.println("Lỗi getTopStaffByWorkHours: " + e.getMessage());
             e.printStackTrace();
         }
         return result;
@@ -368,12 +331,12 @@ public class GiaoCaDAO {
         java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM");
 
         for (int i = soNgay - 1; i >= 0; i--) {
-            java.time.LocalDate date = today.minusDays(i);
-            data.put(date.format(formatter), 0.0);
+            data.put(today.minusDays(i).format(formatter), 0.0);
         }
 
         String sql = "SELECT CAST(thoiGianBatDau AS DATE) AS Ngay, " +
-                "SUM(DATEDIFF(MINUTE, thoiGianBatDau, ISNULL(thoiGianKetThuc, GETDATE()))) / 60.0 AS GioLam " +
+                "SUM(CASE WHEN DATEDIFF(MINUTE, thoiGianBatDau, ISNULL(thoiGianKetThuc, GETDATE())) < 0 THEN 0 " +
+                "ELSE DATEDIFF(MINUTE, thoiGianBatDau, ISNULL(thoiGianKetThuc, GETDATE())) END) / 60.0 AS GioLam " +
                 "FROM GiaoCa " +
                 "WHERE maNV = ? " +
                 "AND thoiGianBatDau >= DATEADD(DAY, -?, CAST(GETDATE() AS DATE)) " +
@@ -389,18 +352,13 @@ public class GiaoCaDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    java.sql.Date sqlDate = rs.getDate("Ngay");
-                    java.time.LocalDate localDate = sqlDate.toLocalDate();
-                    String dateStr = localDate.format(formatter);
-                    double gioLam = rs.getDouble("GioLam");
-
+                    String dateStr = rs.getDate("Ngay").toLocalDate().format(formatter);
                     if (data.containsKey(dateStr)) {
-                        data.put(dateStr, gioLam);
+                        data.put(dateStr, rs.getDouble("GioLam"));
                     }
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Lỗi getGioLamTheoNgay: " + e.getMessage());
             e.printStackTrace();
         }
         return data;
@@ -433,12 +391,10 @@ public class GiaoCaDAO {
                     String ca = rs.getString("tenCa");
                     String gioBD = rs.getTime("gioBatDau").toString().substring(0, 5);
                     String gioKT = rs.getTime("gioKetThuc").toString().substring(0, 5);
-
                     list.add(String.format("%s: %s (%s - %s)", ngay, ca, gioBD, gioKT));
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Lỗi getCacCaLamSapToi: " + e.getMessage());
             e.printStackTrace();
         }
         return list;
