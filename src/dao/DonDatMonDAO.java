@@ -275,20 +275,7 @@ public class DonDatMonDAO {
         }
         return false;
     }
-    public boolean huyDonDatMon(String maDon) {
-        String sql = "UPDATE DonDatMon SET trangThai = N'Đã hủy' WHERE maDon = ?";
 
-        try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
-             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, maDon);
-            return ps.executeUpdate() > 0;
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
     public List<String> getMaBanDaDatTrongKhoang(LocalDateTime tuGio, LocalDateTime denGio) {
         List<String> dsMaBan = new ArrayList<>();
 

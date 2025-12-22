@@ -29,9 +29,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import entity.DonDatMon; // ⭐ ĐÃ THÊM: Import DonDatMon
 
-/**
- * Panel này hiển thị chi tiết hóa đơn (JTable) VÀ BẢNG ĐIỀU KHIỂN THANH TOÁN.
- */
 public class BillPanel extends JPanel {
 
     private static final Color COLOR_BUTTON_BLUE = new Color(56, 118, 243);
@@ -258,8 +255,6 @@ public class BillPanel extends JPanel {
                         khachHang.capNhatTongChiTieu(soTienCongThem);
 
                         if (khachHangDAO.updateKhachHang(khachHang)) {
-                            System.out.println("Cập nhật KH " + maKH + " thành công. Tổng chi tiêu mới: " + khachHang.getTongChiTieu());
-
                             KhachHangGUI.reloadKhachHangTableIfAvailable();
 
                         } else {
@@ -313,8 +308,6 @@ public class BillPanel extends JPanel {
 
                     String maKHGhiNhan = (maKH != null) ? maKH : "KH_VANGLAI";
                     maKhuyenMaiDAO.ghiNhanSuDung(maKM, maKHGhiNhan);
-
-                    System.out.println("Đã ghi nhận lượt dùng cho mã: " + maKM);
                 }
             } else {
                 JOptionPane.showMessageDialog(this, "Lỗi cập nhật CSDL!", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
@@ -423,7 +416,6 @@ public class BillPanel extends JPanel {
                 tongTienMoiGUI += thanhTien;
             }
         }
-        System.out.println("Items trên GUI: " + itemsTrenGUI); // Debug
 
         List<ChiTietHoaDon> itemsTrongDB_List = chiTietDAO.getChiTietTheoMaDon(maDon);
 
@@ -431,7 +423,6 @@ public class BillPanel extends JPanel {
         for (ChiTietHoaDon ct : itemsTrongDB_List) {
             itemsTrongDB.put(ct.getMaMon(), ct);
         }
-        System.out.println("Items trong DB: " + itemsTrongDB.keySet()); // Debug
 
         boolean coLoi = false;
 
@@ -486,7 +477,6 @@ public class BillPanel extends JPanel {
                 for (int i = 0; i < model.getRowCount(); i++) {
                     tongTienGoc += (Float) model.getValueAt(i, 4) * (Integer) model.getValueAt(i, 3);
                 }
-                System.out.println("Cập nhật tổng tiền GỐC Hóa đơn " + activeHoaDon.getMaHD() + " thành: " + tongTienGoc);
                 if (!hoaDonDAO.capNhatTongTien(activeHoaDon.getMaHD(), tongTienGoc)) {
                     coLoi = true;
                     System.err.println("Lỗi khi cập nhật tổng tiền hóa đơn!");

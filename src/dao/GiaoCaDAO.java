@@ -1,6 +1,19 @@
 package dao;
 
-import connectDB.SQLConnection; import entity.GiaoCa; import java.sql.*; import java.time.LocalDate; import java.time.LocalDateTime; import java.util.ArrayList; import java.util.LinkedHashMap; import java.util.List; import java.util.Map;
+import connectDB.SQLConnection;
+import entity.GiaoCa;
+import java.sql.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
 
 public class GiaoCaDAO {
 
@@ -400,22 +413,22 @@ public class GiaoCaDAO {
         return list;
     }
 
-    public java.util.List<entity.GiaoCa> getLichSuGiaoCa(java.time.LocalDate tuNgay, java.time.LocalDate denNgay) {
-        java.util.List<entity.GiaoCa> list = new java.util.ArrayList<>();
+    public List<GiaoCa> getLichSuGiaoCa(LocalDate tuNgay, LocalDate denNgay) {
+        List<GiaoCa> list = new ArrayList<>();
         String sql = "SELECT * FROM GiaoCa WHERE CAST(thoiGianBatDau AS DATE) BETWEEN ? AND ? ORDER BY thoiGianBatDau DESC";
 
-        try (java.sql.Connection conn = connectDB.SQLConnection.getConnection();
-             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = SQLConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setDate(1, java.sql.Date.valueOf(tuNgay));
             ps.setDate(2, java.sql.Date.valueOf(denNgay));
 
-            try (java.sql.ResultSet rs = ps.executeQuery()) {
+            try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    java.time.LocalDateTime kt = rs.getTimestamp("thoiGianKetThuc") != null ?
+                    LocalDateTime kt = rs.getTimestamp("thoiGianKetThuc") != null ?
                             rs.getTimestamp("thoiGianKetThuc").toLocalDateTime() : null;
 
-                    list.add(new entity.GiaoCa(
+                    list.add(new GiaoCa(
                             rs.getInt("maGiaoCa"),
                             rs.getString("maNV"),
                             rs.getTimestamp("thoiGianBatDau").toLocalDateTime(),

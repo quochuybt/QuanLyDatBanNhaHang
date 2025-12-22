@@ -45,7 +45,6 @@ public class DashboardNhanVienGUI extends JPanel {
     private NhanVien nhanVienInfo;
 
     private JLabel lblWelcome;
-    private JLabel lblCurrentTime;
     private JLabel lblShiftStatus;
 
     private JLabel lblTotalHoursWeek;
@@ -63,9 +62,6 @@ public class DashboardNhanVienGUI extends JPanel {
 
     private JPanel chartPanel;
     private JPanel upcomingShiftsPanel;
-
-    private Timer clockTimer;
-    private Timer dataRefreshTimer;
 
     public DashboardNhanVienGUI(String maNV, String tenNV) {
         this.maNV = maNV;

@@ -78,29 +78,6 @@ public class PhanCongDAO {
         }
     }
 
-    public Map<String, Double> getTongGioLamChoTatCaNV() {
-        Map<String, Double> tongGioLamMap = new HashMap<>();
-        String sql = "SELECT pc.maNV, SUM(DATEDIFF(MINUTE, c.gioBatDau, c.gioKetThuc)) AS TongSoPhut " +
-                "FROM PhanCongCa pc " +
-                "JOIN CaLam c ON pc.maCa = c.maCa " +
-                "GROUP BY pc.maNV";
-
-        try (Connection conn = SQLConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                String maNV = rs.getString("maNV");
-                int tongSoPhut = rs.getInt("TongSoPhut");
-                double tongSoGio = tongSoPhut / 60.0;
-                tongGioLamMap.put(maNV, tongSoGio);
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi tính tổng giờ làm: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return tongGioLamMap;
-    }
 
     public entity.CaLam getCaLamViecCuaNhanVien(String maNV, LocalDate date) {
         String sql = "SELECT cl.maCa, cl.tenCa, cl.gioBatDau, cl.gioKetThuc " +
