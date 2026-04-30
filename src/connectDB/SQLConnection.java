@@ -10,7 +10,7 @@ public class SQLConnection {
     private static final String DB_NAME = "StarGuardianDB";
     private static final String PORT = "1433";
     private static final String SQL_USER = "sa";
-    private static final String SQL_PASSWORD = "sapassword";
+    private static final String SQL_PASSWORD = "Sa@123456";
 
     private static final String URL =
             String.format("jdbc:sqlserver://%s:%s;databaseName=%s;encrypt=true;trustServerCertificate=true;user=%s;password=%s;",

@@ -1,0 +1,143 @@
+package iuh.fit.gui;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.awt.event.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
+
+public class DashboardGUI extends JFrame {
+
+    private static final Color COLOR_BLUE = new Color(56, 118, 243);
+    private static final Color COLOR_DARK_BLUE = new Color(40, 28, 244);
+
+    private final String userRole;
+    private final String userName;
+    private final String maNV;
+
+    public DashboardGUI(String userRole, String userName, String maNV) {
+        this.userRole = userRole;
+        this.userName = userName;
+        this.maNV = maNV;
+
+        setTitle("StarGuardian Restaurant");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
+
+        add(buildHeader(), BorderLayout.NORTH);
+        add(buildMenu(), BorderLayout.WEST);
+        add(buildContent(), BorderLayout.CENTER);
+    }
+
+    private JPanel buildHeader() {
+        JPanel header = new JPanel(new BorderLayout()) {
+            @Override protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(COLOR_BLUE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+            }
+        };
+        header.setOpaque(false);
+        header.setPreferredSize(new Dimension(0, 50));
+        header.setBorder(new EmptyBorder(0, 10, 0, 10));
+
+        JLabel lblTime = new JLabel();
+        lblTime.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        lblTime.setForeground(Color.WHITE);
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("EEEE, dd/MM/yyyy - HH:mm:ss", new Locale("vi", "VN"));
+        Timer timer = new Timer(1000, e -> lblTime.setText(LocalDateTime.now().format(dtf)));
+        timer.setInitialDelay(0);
+        timer.start();
+        header.add(lblTime, BorderLayout.WEST);
+
+        JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 8));
+        userPanel.setOpaque(false);
+        JLabel lblUser = new JLabel(userName + "  |  " + userRole);
+        lblUser.setFont(new Font("Arial", Font.BOLD, 14));
+        lblUser.setForeground(Color.WHITE);
+        userPanel.add(lblUser);
+        header.add(userPanel, BorderLayout.EAST);
+
+        return header;
+    }
+
+    private JPanel buildMenu() {
+        JPanel menu = new JPanel();
+        menu.setLayout(new BoxLayout(menu, BoxLayout.Y_AXIS));
+        menu.setBackground(COLOR_BLUE);
+        menu.setPreferredSize(new Dimension(220, 0));
+        menu.setBorder(new EmptyBorder(20, 0, 10, 0));
+
+        JLabel lblApp = new JLabel("StarGuardian");
+        lblApp.setFont(new Font("Arial", Font.BOLD, 18));
+        lblApp.setForeground(Color.WHITE);
+        lblApp.setAlignmentX(Component.CENTER_ALIGNMENT);
+        menu.add(lblApp);
+        menu.add(Box.createRigidArea(new Dimension(0, 30)));
+
+        String[] items = "QUANLY".equalsIgnoreCase(userRole)
+                ? new String[]{"Dashboard", "Nhân viên", "Lịch làm việc", "Hóa đơn", "Khuyến mãi"}
+                : new String[]{"Dashboard", "Danh sách bàn", "Thành viên", "Lịch làm việc", "Hóa đơn"};
+
+        for (String item : items) {
+            menu.add(createMenuBtn(item));
+            menu.add(Box.createRigidArea(new Dimension(0, 2)));
+        }
+
+        menu.add(Box.createVerticalGlue());
+
+        JButton btnLogout = new JButton("Đăng xuất");
+        btnLogout.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnLogout.setFont(new Font("Arial", Font.BOLD, 14));
+        btnLogout.setForeground(Color.WHITE);
+        btnLogout.setBackground(COLOR_DARK_BLUE);
+        btnLogout.setBorder(new EmptyBorder(10, 20, 10, 20));
+        btnLogout.setFocusPainted(false);
+        btnLogout.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnLogout.setMaximumSize(new Dimension(200, 40));
+        btnLogout.addActionListener(e -> {
+            int choice = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn đăng xuất?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+            if (choice == JOptionPane.YES_OPTION) {
+                dispose();
+                SwingUtilities.invokeLater(() -> new LoginGUI().setVisible(true));
+            }
+        });
+        menu.add(btnLogout);
+        menu.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        return menu;
+    }
+
+    private JPanel createMenuBtn(String text) {
+        JPanel btn = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 12));
+        btn.setBackground(COLOR_BLUE);
+        btn.setMaximumSize(new Dimension(220, 48));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font("Arial", Font.BOLD, 14));
+        lbl.setForeground(Color.WHITE);
+        btn.add(lbl);
+        btn.addMouseListener(new MouseAdapter() {
+            @Override public void mouseEntered(MouseEvent e) { btn.setBackground(COLOR_DARK_BLUE); }
+            @Override public void mouseExited(MouseEvent e)  { btn.setBackground(COLOR_BLUE); }
+        });
+        return btn;
+    }
+
+    private JPanel buildContent() {
+        JPanel content = new JPanel(new BorderLayout());
+        content.setBackground(new Color(245, 247, 250));
+
+        JLabel lbl = new JLabel("Xin chào, " + userName + " (" + userRole + ")", SwingConstants.CENTER);
+        lbl.setFont(new Font("Arial", Font.BOLD, 28));
+        lbl.setForeground(COLOR_DARK_BLUE);
+        content.add(lbl, BorderLayout.CENTER);
+
+        return content;
+    }
+}
