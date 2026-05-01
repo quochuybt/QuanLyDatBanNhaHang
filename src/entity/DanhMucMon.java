@@ -1,29 +1,21 @@
 package entity;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.*;
+
+@Entity
+@Setter
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@ToString
+@Table(name = "DanhMucMon")
 public class DanhMucMon {
+    @Id
     private String madm;
     private String tendm;
     private String mota;
-
-    public DanhMucMon(String madm, String tendm, String mota) {
-        this.madm = madm;
-        this.tendm = tendm;
-        this.mota = mota;
-    }
-
-    public DanhMucMon() {}
-
-    public String getMadm() { return madm; }
-    public void setMadm(String madm) { this.madm = madm; }
-
-    public String getTendm() { return tendm; }
-    public void setTenDM(String tendm) { this.tendm = tendm; }
-
-    public String getMota() { return mota; }
-    public void setMota(String mota) { this.mota = mota; }
-
-    @Override
-    public String toString() {
-        return tendm;
-    }
 }
