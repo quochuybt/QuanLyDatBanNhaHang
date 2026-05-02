@@ -1,6 +1,6 @@
-package iuh.fit.core.repository;
+package iuh.fit.core.dao;
 
-import iuh.fit.infrastructure.persistence.JPAUtil;
+import iuh.fit.core.db.JPAUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 import java.util.List;

@@ -1,7 +1,7 @@
 package iuh.fit.core.service;
 
 import iuh.fit.core.entity.KhachHang;
-import iuh.fit.core.repository.KhachHangRepository;
+import iuh.fit.core.dao.KhachHangRepository;
 
 import java.util.List;
 

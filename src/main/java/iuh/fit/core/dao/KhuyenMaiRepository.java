@@ -1,7 +1,7 @@
-package iuh.fit.core.repository;
+package iuh.fit.core.dao;
 
 import iuh.fit.core.entity.KhuyenMai;
-import java.time.LocalDate;
+
 import java.util.List;
 
 public class KhuyenMaiRepository extends GenericRepository<KhuyenMai, String> {

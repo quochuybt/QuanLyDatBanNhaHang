@@ -1,7 +1,7 @@
 package iuh.fit.core.service;
 
 import iuh.fit.core.entity.GiaoCa;
-import iuh.fit.core.repository.GiaoCaRepository;
+import iuh.fit.core.dao.GiaoCaRepository;
 
 import java.util.List;
 

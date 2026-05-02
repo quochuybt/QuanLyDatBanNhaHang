@@ -1,4 +1,4 @@
-package iuh.fit.core.repository;
+package iuh.fit.core.dao;
 
 import iuh.fit.core.entity.CaLam;
 

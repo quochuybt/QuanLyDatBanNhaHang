@@ -1,7 +1,7 @@
 package iuh.fit.core.service;
 
 import iuh.fit.core.entity.TaiKhoan;
-import iuh.fit.core.repository.TaiKhoanRepository;
+import iuh.fit.core.dao.TaiKhoanRepository;
 
 public class TaiKhoanService {
 

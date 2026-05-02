@@ -1,7 +1,7 @@
 package iuh.fit.core.service;
 
 import iuh.fit.core.entity.DonDatMon;
-import iuh.fit.core.repository.DonDatMonRepository;
+import iuh.fit.core.dao.DonDatMonRepository;
 
 import java.util.List;
 
