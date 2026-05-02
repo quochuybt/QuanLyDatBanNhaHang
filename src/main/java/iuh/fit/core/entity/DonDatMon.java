@@ -42,8 +42,8 @@ public class DonDatMon {
     @Column(name = "ghiChu", columnDefinition = "NVARCHAR(255)")
     private String ghiChu;
 
-    @OneToOne(mappedBy = "donDatMon")
-    private HoaDon hoaDon;
+//    @OneToOne(mappedBy = "donDatMon")
+//    private HoaDon hoaDon;
 
     private String generateMaDon() {
         Random rand = new Random();
@@ -90,32 +90,5 @@ public class DonDatMon {
             throw new IllegalArgumentException("Ngày khởi tạo không được rỗng.");
         }
         this.ngayKhoiTao = ngayKhoiTao;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        DonDatMon that = (DonDatMon) o;
-        return Objects.equals(maDon, that.maDon);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(maDon);
-    }
-
-    @Override
-    public String toString() {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss dd-MM-yyyy");
-        String ngayStr = (this.ngayKhoiTao != null) ? this.ngayKhoiTao.format(formatter) : "null";
-
-        return "DonDatMon{" +
-                "maDon='" + maDon + '\'' +
-                ", ngayKhoiTao='" + ngayStr + '\'' +
-                ", maKH='" + maKH + '\'' +
-                ", maBan='" + maBan + '\'' +
-                ", ghiChu='" + ghiChu + '\'' +
-                '}';
     }
 }

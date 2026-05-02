@@ -1,6 +1,5 @@
 package iuh.fit.core.entity;
 
-import entity.TrangThaiBan;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;

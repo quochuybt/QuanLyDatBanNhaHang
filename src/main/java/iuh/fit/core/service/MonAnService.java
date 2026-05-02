@@ -1,7 +1,7 @@
 package iuh.fit.core.service;
 
 import iuh.fit.core.entity.MonAn;
-import iuh.fit.core.dao.MonAnRepository;
+import iuh.fit.core.repository.MonAnRepository;
 
 import java.util.List;
 

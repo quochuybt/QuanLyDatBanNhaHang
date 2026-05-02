@@ -1,7 +1,7 @@
 package iuh.fit.core.service;
 
 import iuh.fit.core.entity.HoaDon;
-import iuh.fit.core.dao.HoaDonRepository;
+import iuh.fit.core.repository.HoaDonRepository;
 
 import java.util.List;
 

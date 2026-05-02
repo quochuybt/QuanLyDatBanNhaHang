@@ -1,7 +1,6 @@
 package iuh.fit.core.entity;
 
-import entity.DonDatMon;
-import entity.MonAn;
+
 import jakarta.persistence.*;
 import lombok.*;
 

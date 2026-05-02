@@ -57,9 +57,9 @@ public class HoaDon {
     @Column(name = "tongThanhToan")
     private float tongThanhToan;
 
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "maDon", unique = true, nullable = false)
-    private DonDatMon donDatMon;
+//    @OneToOne(cascade = CascadeType.ALL)
+//    @JoinColumn(name = "maDon", unique = true, nullable = false)
+//    private DonDatMon donDatMon;
 
     public HoaDon(String maHD, LocalDateTime ngayLap, String trangThai,
                   String hinhThucThanhToan, String maDon,
@@ -86,27 +86,5 @@ public class HoaDon {
         String datePart = LocalDateTime.now().format(formatter);
         int randomPart = ThreadLocalRandom.current().nextInt(1000, 10000);
         return "HD" + datePart + randomPart;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        HoaDon hoaDon = (HoaDon) o;
-        return Objects.equals(maHD, hoaDon.maHD);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(maHD);
-    }
-
-    @Override
-    public String toString() {
-        return "HoaDon{" +
-                "maHD='" + maHD + '\'' +
-                ", trangThai='" + trangThai + '\'' +
-                ", tongThanhToan=" + tongThanhToan +
-                '}';
     }
 }

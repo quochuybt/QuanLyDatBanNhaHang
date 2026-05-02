@@ -1,7 +1,7 @@
 package iuh.fit.core.service;
 
 import iuh.fit.core.entity.KhuyenMai;
-import iuh.fit.core.dao.KhuyenMaiRepository;
+import iuh.fit.core.repository.KhuyenMaiRepository;
 
 import java.time.LocalDate;
 import java.util.List;
