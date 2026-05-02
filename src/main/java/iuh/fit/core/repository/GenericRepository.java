@@ -1,5 +1,6 @@
 package iuh.fit.core.repository;
 
+
 import iuh.fit.infrastructure.persistence.JPAUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
