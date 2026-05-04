@@ -9,18 +9,45 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 // [THÊM MỚI] Import thư viện Objects để dùng cho equals/hashCode
 import java.util.Objects;
-@Entity
-@Setter
-@Getter
-@AllArgsConstructor
-@NoArgsConstructor
-@Builder
-@ToString
-@Table(name = "CaLam")
+
 public class CaLam {
-    @Id
     private String maCa;
     private String tenCa;
     private LocalTime gioBatDau;
     private LocalTime gioKetThuc;
+
+    public CaLam(String maCa, String tenCa, LocalTime gioBatDau, LocalTime gioKetThuc) {
+        this.maCa = maCa;
+        this.tenCa = tenCa;
+        this.gioBatDau = gioBatDau;
+        this.gioKetThuc = gioKetThuc;
+    }
+
+    public String getMaCa() {
+        return maCa;
+    }
+
+    public String getTenCa() {
+        return tenCa;
+    }
+
+    public LocalTime getGioBatDau() {
+        return gioBatDau;
+    }
+
+    public LocalTime getGioKetThuc() {
+        return gioKetThuc;
+    }
+
+    public void setTenCa(String tenCa) {
+        this.tenCa = tenCa;
+    }
+
+    public void setGioBatDau(LocalTime gioBatDau) {
+        this.gioBatDau = gioBatDau;
+    }
+
+    public void setGioKetThuc(LocalTime gioKetThuc) {
+        this.gioKetThuc = gioKetThuc;
+    }
 }

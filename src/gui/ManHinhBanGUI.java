@@ -187,7 +187,7 @@ public class ManHinhBanGUI extends JPanel {
         try {
             this.allTablesFromDB = banDAO.getAllBan();
             int maxSoThuTu = banDAO.getSoThuTuBanLonNhat();
-            Ban.setSoThuTuBanHienTai(maxSoThuTu);
+            Ban.setSoThuTuBan(maxSoThuTu);
 
         } catch (Exception e) {
             e.printStackTrace();

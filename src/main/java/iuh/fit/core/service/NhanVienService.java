@@ -2,8 +2,8 @@ package iuh.fit.core.service;
 
 import iuh.fit.core.entity.NhanVien;
 import iuh.fit.core.entity.TaiKhoan;
-import iuh.fit.core.dao.NhanVienRepository;
-import iuh.fit.core.dao.TaiKhoanRepository;
+import iuh.fit.core.repository.NhanVienRepository;
+import iuh.fit.core.repository.TaiKhoanRepository;
 import java.util.List;
 
 public class NhanVienService {

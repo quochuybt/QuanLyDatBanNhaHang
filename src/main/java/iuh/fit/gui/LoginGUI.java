@@ -2,7 +2,7 @@ package iuh.fit.gui;
 
 import iuh.fit.core.entity.NhanVien;
 import iuh.fit.core.entity.TaiKhoan;
-import iuh.fit.core.dao.NhanVienRepository;
+import iuh.fit.core.repository.NhanVienRepository;
 import iuh.fit.core.service.TaiKhoanService;
 
 import javax.swing.*;

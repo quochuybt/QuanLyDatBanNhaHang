@@ -4,7 +4,7 @@ import iuh.fit.core.entity.CaLam;
 import iuh.fit.core.entity.NhanVien;
 import iuh.fit.core.entity.PhanCong;
 import iuh.fit.core.entity.PhanCongId;
-import iuh.fit.core.dao.PhanCongRepository;
+import iuh.fit.core.repository.PhanCongRepository;
 import iuh.fit.core.db.JPAUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;

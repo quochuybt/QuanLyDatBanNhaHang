@@ -1,4 +1,4 @@
-package iuh.fit.core.dao;
+package iuh.fit.core.repository;
 
 import iuh.fit.core.entity.PhanCong;
 import iuh.fit.core.entity.PhanCongId;
