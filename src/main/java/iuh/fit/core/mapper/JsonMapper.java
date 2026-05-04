@@ -1,4 +1,4 @@
-package iuh.fit.infrastructure.mapper;
+package iuh.fit.core.mapper;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;

@@ -40,7 +40,7 @@ public class ChuyenBanDialog extends JDialog {
             this.allTablesFromDB = banDAO.getAllBan();
 
             int maxSoThuTu = banDAO.getSoThuTuBanLonNhat();
-            Ban.setSoThuTuBanHienTai(maxSoThuTu);
+            Ban.setSoThuTuBan(maxSoThuTu);
 
             System.out.println("Dialog Chuyển Bàn: Tải thành công " + allTablesFromDB.size() + " bàn.");
 

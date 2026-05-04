@@ -1,5 +1,11 @@
 package entity;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.*;
+
+
 public class DanhMucMon {
     private String madm;
     private String tendm;
@@ -11,19 +17,26 @@ public class DanhMucMon {
         this.mota = mota;
     }
 
-    public DanhMucMon() {}
+    public String getMadm() {
+        return madm;
+    }
 
-    public String getMadm() { return madm; }
-    public void setMadm(String madm) { this.madm = madm; }
-
-    public String getTendm() { return tendm; }
-    public void setTenDM(String tendm) { this.tendm = tendm; }
-
-    public String getMota() { return mota; }
-    public void setMota(String mota) { this.mota = mota; }
-
-    @Override
-    public String toString() {
+    public String getTendm() {
         return tendm;
+    }
+
+    public String getMota() {
+        return mota;
+    }
+
+    public void setMadm(String madm) {
+        this.madm = madm;
+    }
+    public void setTendm(String tendm) {
+        this.tendm = tendm;
+    }
+
+    public void setMota(String mota) {
+        this.mota = mota;
     }
 }

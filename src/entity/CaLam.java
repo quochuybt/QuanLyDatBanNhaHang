@@ -1,38 +1,26 @@
 package entity;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.*;
+
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 // [THÊM MỚI] Import thư viện Objects để dùng cho equals/hashCode
 import java.util.Objects;
 
 public class CaLam {
-
     private String maCa;
     private String tenCa;
     private LocalTime gioBatDau;
     private LocalTime gioKetThuc;
 
-
-    public CaLam() {
-        this.maCa = "Chưa có mã";
-        this.tenCa = "Chưa đặt tên";
-        this.gioBatDau = LocalTime.now();
-        this.gioKetThuc = this.gioBatDau.plusHours(1);
-    }
-
-    public CaLam(String maCa, String tenCa, LocalTime gioBatDau, LocalTime gioKetThuc)
-            throws IllegalArgumentException {
-        setMaCa(maCa);
-        setTenCa(tenCa);
-        setGioBatDau(gioBatDau);
-        setGioKetThuc(gioKetThuc);
-    }
-
-    public CaLam(CaLam ca) {
-        this.maCa = ca.maCa;
-        this.tenCa = ca.tenCa;
-        this.gioBatDau = ca.gioBatDau;
-        this.gioKetThuc = ca.gioKetThuc;
+    public CaLam(String maCa, String tenCa, LocalTime gioBatDau, LocalTime gioKetThuc) {
+        this.maCa = maCa;
+        this.tenCa = tenCa;
+        this.gioBatDau = gioBatDau;
+        this.gioKetThuc = gioKetThuc;
     }
 
     public String getMaCa() {
@@ -51,60 +39,15 @@ public class CaLam {
         return gioKetThuc;
     }
 
-    public void setMaCa(String maCa) {
-        if (maCa == null || maCa.trim().isEmpty()) {
-            throw new IllegalArgumentException("Mã ca không được rỗng.");
-        }
-        this.maCa = maCa;
-    }
-
-    public void setTenCa(String tenCa) throws IllegalArgumentException {
-        if (tenCa == null || tenCa.trim().isEmpty()) {
-            throw new IllegalArgumentException("Tên ca không được rỗng");
-        }
+    public void setTenCa(String tenCa) {
         this.tenCa = tenCa;
     }
 
     public void setGioBatDau(LocalTime gioBatDau) {
-        if (gioBatDau == null) {
-            throw new IllegalArgumentException("Giờ bắt đầu không được rỗng.");
-        }
         this.gioBatDau = gioBatDau;
     }
 
-    public void setGioKetThuc(LocalTime gioKetThuc) throws IllegalArgumentException {
-        if (gioKetThuc == null) {
-            throw new IllegalArgumentException("Giờ kết thúc không được rỗng.");
-        }
-        if (this.gioBatDau != null && !gioKetThuc.isAfter(this.gioBatDau)) {
-        }
+    public void setGioKetThuc(LocalTime gioKetThuc) {
         this.gioKetThuc = gioKetThuc;
-    }
-
-    @Override
-    public String toString() {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
-        String batDauStr = (gioBatDau != null) ? gioBatDau.format(formatter) : "null";
-        String ketThucStr = (gioKetThuc != null) ? gioKetThuc.format(formatter) : "null";
-
-        return "Ca lam{" +
-                "maCa='" + maCa + '\'' +
-                ", tenCa='" + tenCa + '\'' +
-                ", gioBatDau='" + batDauStr + '\'' +
-                ", gioKetThuc='" + ketThucStr + '\'' +
-                '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        CaLam caLam = (CaLam) o;
-        return Objects.equals(maCa, caLam.maCa);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(maCa);
     }
 }

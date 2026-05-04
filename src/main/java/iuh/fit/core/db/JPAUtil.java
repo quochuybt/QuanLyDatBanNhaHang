@@ -1,4 +1,4 @@
-package iuh.fit.infrastructure.persistence;
+package iuh.fit.core.db;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
