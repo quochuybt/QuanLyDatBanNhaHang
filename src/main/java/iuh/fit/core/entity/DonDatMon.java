@@ -42,8 +42,20 @@ public class DonDatMon {
     @Column(name = "ghiChu", columnDefinition = "NVARCHAR(255)")
     private String ghiChu;
 
-//    @OneToOne(mappedBy = "donDatMon")
-//    private HoaDon hoaDon;
+    @OneToOne(mappedBy = "donDatMon")
+    private HoaDon hoaDon;
+
+    @ManyToOne
+    @JoinColumn(name = "mNV")
+    private NhanVien nhanVien;
+
+    @ManyToOne
+    @JoinColumn(name = "mBan")
+    private Ban ban;
+
+    @ManyToOne
+    @JoinColumn(name = "mKH")
+    private KhachHang khachHang;
 
     private String generateMaDon() {
         Random rand = new Random();

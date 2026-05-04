@@ -7,7 +7,9 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -47,6 +49,9 @@ public class KhachHang {
 
     @Column(name = "email", unique = true, length = 100)
     private String email;
+
+    @OneToMany(mappedBy = "khachHang")
+    private Set<DonDatMon> donDatMons = new HashSet<>();
 
     public KhachHang(String tenKH, String gioitinh, String sdt,
                      LocalDate ngaySinh, String diaChi, String email) {

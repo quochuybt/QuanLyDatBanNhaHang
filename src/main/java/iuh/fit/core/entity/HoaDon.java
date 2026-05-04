@@ -57,9 +57,9 @@ public class HoaDon {
     @Column(name = "tongThanhToan")
     private float tongThanhToan;
 
-//    @OneToOne(cascade = CascadeType.ALL)
-//    @JoinColumn(name = "maDon", unique = true, nullable = false)
-//    private DonDatMon donDatMon;
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "maDonDatMon", unique = true, nullable = false)
+    private DonDatMon donDatMon;
 
     public HoaDon(String maHD, LocalDateTime ngayLap, String trangThai,
                   String hinhThucThanhToan, String maDon,

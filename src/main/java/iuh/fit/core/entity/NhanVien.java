@@ -8,6 +8,8 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Getter
@@ -52,6 +54,12 @@ public class NhanVien {
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "tenTK", unique = true, nullable = false)
     private TaiKhoan taiKhoan;
+
+    @OneToMany(mappedBy = "nhanVien")
+    private Set<DonDatMon> donDatMons = new HashSet<>();
+
+    @OneToMany(mappedBy = "nhanVien")
+    private Set<GiaoCa> giaoCas = new HashSet<>();
 
     public NhanVien(String hoTen, LocalDate ngaySinh, String gioiTinh, String sdt,
                     String diaChi, LocalDate ngayVaoLam, float luong, VaiTro vaiTro, String email) {

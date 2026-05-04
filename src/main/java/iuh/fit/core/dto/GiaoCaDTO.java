@@ -62,16 +62,20 @@ public class GiaoCaDTO {
     }
 
     public GiaoCa toEntity() {
-        return new GiaoCa(
-                this.maGiaoCa,
-                this.maNV,
-                this.thoiGianBatDau,
-                this.thoiGianKetThuc,
-                this.tienDauCa,
-                this.tienCuoiCa,
-                this.tienHeThongTinh,
-                this.chenhLech,
-                this.ghiChu
-        );
+        iuh.fit.core.entity.NhanVien nvEntity = new iuh.fit.core.entity.NhanVien();
+        nvEntity.setManv(this.maNV);
+
+        return GiaoCa.builder()
+                .maGiaoCa(this.maGiaoCa)
+                .maNV(this.maNV)
+                .thoiGianBatDau(this.thoiGianBatDau)
+                .thoiGianKetThuc(this.thoiGianKetThuc)
+                .tienDauCa(this.tienDauCa)
+                .tienCuoiCa(this.tienCuoiCa)
+                .tienHeThongTinh(this.tienHeThongTinh)
+                .chenhLech(this.chenhLech)
+                .ghiChu(this.ghiChu)
+                .nhanVien(nvEntity)
+                .build();
     }
 }

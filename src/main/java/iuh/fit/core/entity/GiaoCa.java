@@ -10,6 +10,7 @@ import java.util.Objects;
 @Data
 @Entity
 @Table(name = "GiaoCa")
+@Builder
 public class GiaoCa {
 
     @Id
@@ -41,4 +42,7 @@ public class GiaoCa {
     @Column(name = "ghiChu", columnDefinition = "NVARCHAR(255)")
     private String ghiChu;
 
+    @ManyToOne
+    @JoinColumn(name = "mNV")
+    private NhanVien nhanVien;
 }

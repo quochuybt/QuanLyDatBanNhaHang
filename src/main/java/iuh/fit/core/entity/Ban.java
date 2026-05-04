@@ -2,10 +2,13 @@ package iuh.fit.core.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Setter
@@ -24,5 +27,8 @@ public class Ban {
     private TrangThaiBan trangThai;
     private LocalDateTime gioMoBan;
     private String khuVuc;
+
+    @OneToMany(mappedBy = "ban")
+    private Set<DonDatMon> donDatMons =  new HashSet<>();
 
 }
