@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 public class GiaoCaDTO {
 
     @JsonProperty("maGiaoCa")
-    private int maGiaoCa;
+    private String maGiaoCa;
 
     @JsonProperty("maNV")
     private String maNV;

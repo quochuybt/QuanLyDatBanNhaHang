@@ -86,28 +86,28 @@ public class GiaoCaRepository extends GenericRepository<GiaoCa, String> {
      */
     public double getTongGioLam(String maNV, String type, LocalDate date) {
         return doInSession(em -> {
-            StringBuilder sql = new StringBuilder("SELECT SUM(TIMESTAMPDIFF(MINUTE, thoiGianBatDau, COALESCE(thoiGianKetThuc, NOW()))) ");
-            sql.append("FROM GiaoCa WHERE maNV = :maNV ");
-
+            String jpql = "SELECT g FROM GiaoCa g WHERE g.maNV = :maNV ";
             if ("MONTH".equals(type)) {
-                sql.append("AND MONTH(thoiGianBatDau) = :m AND YEAR(thoiGianBatDau) = :y ");
+                jpql += "AND FUNCTION('MONTH', g.thoiGianBatDau) = :m AND FUNCTION('YEAR', g.thoiGianBatDau) = :y";
             } else {
-                sql.append("AND thoiGianBatDau >= :start AND thoiGianBatDau < :end ");
+                jpql += "AND g.thoiGianBatDau >= :start AND g.thoiGianBatDau < :end";
             }
 
-            var query = em.createNativeQuery(sql.toString());
-            query.setParameter("maNV", maNV);
-
+            TypedQuery<GiaoCa> query = em.createQuery(jpql, GiaoCa.class).setParameter("maNV", maNV);
             if ("MONTH".equals(type)) {
-                query.setParameter("m", date.getMonthValue());
-                query.setParameter("y", date.getYear());
+                query.setParameter("m", date.getMonthValue()).setParameter("y", date.getYear());
             } else {
-                query.setParameter("start", date.atStartOfDay());
-                query.setParameter("end", date.plusDays(7).atStartOfDay());
+                query.setParameter("start", date.atStartOfDay()).setParameter("end", date.plusDays(7).atStartOfDay());
             }
 
-            Object result = query.getSingleResult();
-            return result != null ? ((Number) result).doubleValue() / 60.0 : 0.0;
+            List<GiaoCa> list = query.getResultList();
+            long totalMinutes = 0;
+            for (GiaoCa g : list) {
+                LocalDateTime batDau = g.getThoiGianBatDau();
+                LocalDateTime ketThuc = (g.getThoiGianKetThuc() != null) ? g.getThoiGianKetThuc() : LocalDateTime.now();
+                totalMinutes += java.time.Duration.between(batDau, ketThuc).toMinutes();
+            }
+            return totalMinutes / 60.0;
         });
     }
 
@@ -116,14 +116,16 @@ public class GiaoCaRepository extends GenericRepository<GiaoCa, String> {
      */
     public List<Object[]> getNhanVienDangLamViecChiTiet() {
         return doInSession(em -> {
-            String sql = "SELECT nv.hoTen, cl.tenCa, cl.gioBatDau, cl.gioKetThuc " +
+            // Sử dụng JPQL Join thông qua các field đã map trong Entity
+            String jpql = "SELECT nv.hoten, cl.tenCa, cl.gioBatDau, cl.gioKetThuc " +
                     "FROM GiaoCa g " +
-                    "JOIN NhanVien nv ON g.maNV = nv.maNV " +
-                    "LEFT JOIN PhanCongCa pc ON g.maNV = pc.maNV AND pc.ngayLam = CURRENT_DATE " +
-                    "LEFT JOIN CaLam cl ON pc.maCa = cl.maCa " +
+                    "JOIN g.nhanVien nv " +
+                    "LEFT JOIN PhanCong pc ON nv.manv = pc.nhanVien.manv AND pc.id.ngayLam = CURRENT_DATE " +
+                    "LEFT JOIN pc.caLam cl " +
                     "WHERE g.thoiGianKetThuc IS NULL " +
                     "ORDER BY g.thoiGianBatDau DESC";
-            return em.createNativeQuery(sql).getResultList();
+
+            return em.createQuery(jpql).getResultList();
         });
     }
 
@@ -133,29 +135,26 @@ public class GiaoCaRepository extends GenericRepository<GiaoCa, String> {
     public Map<String, Double> getGioLamTheoNgay(String maNV, int soNgay) {
         Map<String, Double> data = new LinkedHashMap<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
-        LocalDate today = LocalDate.now();
+        LocalDateTime limitDate = LocalDateTime.now().minusDays(soNgay).withHour(0).withMinute(0);
 
-        // Khởi tạo các ngày với giá trị 0
+        // Khởi tạo Map
         for (int i = soNgay - 1; i >= 0; i--) {
-            data.put(today.minusDays(i).format(formatter), 0.0);
+            data.put(LocalDate.now().minusDays(i).format(formatter), 0.0);
         }
 
         return doInSession(em -> {
-            String sql = "SELECT DATE(thoiGianBatDau) as Ngay, " +
-                    "SUM(TIMESTAMPDIFF(MINUTE, thoiGianBatDau, COALESCE(thoiGianKetThuc, NOW()))) / 60.0 as GioLam " +
-                    "FROM GiaoCa WHERE maNV = :maNV " +
-                    "AND thoiGianBatDau >= DATE_SUB(CURRENT_DATE, INTERVAL :days DAY) " +
-                    "GROUP BY DATE(thoiGianBatDau)";
-
-            List<Object[]> results = em.createNativeQuery(sql)
+            String jpql = "SELECT g FROM GiaoCa g WHERE g.maNV = :maNV AND g.thoiGianBatDau >= :limitDate";
+            List<GiaoCa> results = em.createQuery(jpql, GiaoCa.class)
                     .setParameter("maNV", maNV)
-                    .setParameter("days", soNgay)
+                    .setParameter("limitDate", limitDate)
                     .getResultList();
 
-            for (Object[] row : results) {
-                String dateStr = ((java.sql.Date) row[0]).toLocalDate().format(formatter);
+            for (GiaoCa g : results) {
+                String dateStr = g.getThoiGianBatDau().format(formatter);
                 if (data.containsKey(dateStr)) {
-                    data.put(dateStr, ((Number) row[1]).doubleValue());
+                    LocalDateTime ketThuc = (g.getThoiGianKetThuc() != null) ? g.getThoiGianKetThuc() : LocalDateTime.now();
+                    double hours = java.time.Duration.between(g.getThoiGianBatDau(), ketThuc).toMinutes() / 60.0;
+                    data.put(dateStr, data.get(dateStr) + hours);
                 }
             }
             return data;

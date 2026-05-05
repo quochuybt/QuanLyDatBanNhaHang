@@ -56,6 +56,9 @@ public class NhanVien {
     private TaiKhoan taiKhoan;
 
     @OneToMany(mappedBy = "nhanVien")
+    private Set<PhanCong> phanCongs = new HashSet<>();
+
+    @OneToMany(mappedBy = "nhanVien")
     private Set<DonDatMon> donDatMons = new HashSet<>();
 
     @OneToMany(mappedBy = "nhanVien")

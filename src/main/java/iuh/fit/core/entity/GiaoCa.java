@@ -16,7 +16,7 @@ public class GiaoCa {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "maGiaoCa")
-    private int maGiaoCa;
+    private String maGiaoCa;
 
     @Column(name = "maNV", length = 20, nullable = false)
     private String maNV;

@@ -74,25 +74,33 @@ public class DonDatMonRepository extends GenericRepository<DonDatMon, String> {
      */
     public void capNhatTrangThaiBanTheoGio() {
         doInTransaction(em -> {
-            // 1. Lock: Cập nhật bàn thành 'Đã đặt trước' (Sử dụng Native SQL)
-            String sqlLock = "UPDATE Ban b SET b.trangThai = 'Đã đặt trước' " +
-                    "WHERE b.trangThai = 'Trống' AND b.maBan IN (" +
-                    "   SELECT d.maBan FROM DonDatMon d " +
-                    "   WHERE d.trangThai = 'Chưa thanh toán' " +
-                    "   AND NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maDon = d.maDon) " +
-                    "   AND TIMESTAMPDIFF(MINUTE, CURRENT_TIMESTAMP, d.thoiGianDen) BETWEEN 0 AND 120" +
-                    ")";
-            em.createNativeQuery(sqlLock).executeUpdate();
+            LocalDateTime bayGio = LocalDateTime.now();
+            LocalDateTime haiTiengNua = bayGio.plusMinutes(120);
 
-            // 2. Unlock: Trả về 'Trống' nếu không còn đơn đặt trong vòng 120p
-            String sqlUnlock = "UPDATE Ban b SET b.trangThai = 'Trống' " +
-                    "WHERE b.trangThai = 'Đã đặt trước' AND b.maBan NOT IN (" +
-                    "   SELECT d.maBan FROM DonDatMon d " +
+            // Lock: Chuyển sang JPQL
+            String jpqlLock = "UPDATE Ban b SET b.trangThai = 'Đã đặt trước' " +
+                    "WHERE b.trangThai = 'Trống' AND b.maBan IN (" +
+                    "   SELECT d.ban.maBan FROM DonDatMon d " +
                     "   WHERE d.trangThai = 'Chưa thanh toán' " +
-                    "   AND NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maDon = d.maDon) " +
-                    "   AND TIMESTAMPDIFF(MINUTE, CURRENT_TIMESTAMP, d.thoiGianDen) BETWEEN 0 AND 120" +
+                    "   AND NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.donDatMon = d) " +
+                    "   AND d.thoiGianDen BETWEEN :bayGio AND :haiTiengNua" +
                     ")";
-            em.createNativeQuery(sqlUnlock).executeUpdate();
+            em.createQuery(jpqlLock)
+                    .setParameter("bayGio", bayGio)
+                    .setParameter("haiTiengNua", haiTiengNua)
+                    .executeUpdate();
+
+            // Unlock: Chuyển sang JPQL
+            String jpqlUnlock = "UPDATE Ban b SET b.trangThai = 'Trống' " +
+                    "WHERE b.trangThai = 'Đã đặt trước' AND b.maBan NOT IN (" +
+                    "   SELECT d.ban.maBan FROM DonDatMon d " +
+                    "   WHERE d.trangThai = 'Chưa thanh toán' " +
+                    "   AND d.thoiGianDen BETWEEN :bayGio AND :haiTiengNua" +
+                    ")";
+            em.createQuery(jpqlUnlock)
+                    .setParameter("bayGio", bayGio)
+                    .setParameter("haiTiengNua", haiTiengNua)
+                    .executeUpdate();
         });
     }
 
