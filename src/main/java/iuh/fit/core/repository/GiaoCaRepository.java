@@ -1,6 +1,7 @@
 package iuh.fit.core.repository;
 
 import iuh.fit.core.entity.GiaoCa;
+import iuh.fit.core.entity.PhanCong;
 import jakarta.persistence.TypedQuery;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -173,5 +174,84 @@ public class GiaoCaRepository extends GenericRepository<GiaoCa, String> {
                     .setParameter("den", denNgay)
                     .getResultList();
         });
+    }
+
+    public List<String> getCacCaLamSapToi(String maNV) {
+        return doInSession(em -> {
+            String jpql = "SELECT cl.tenCa, pc.id.ngayLam, cl.gioBatDau, cl.gioKetThuc " +
+                    "FROM PhanCong pc " +
+                    "JOIN pc.caLam cl " +
+                    "WHERE pc.nhanVien.manv = :maNV " +
+                    "AND pc.id.ngayLam >= CURRENT_DATE " +
+                    "ORDER BY pc.id.ngayLam ASC, cl.gioBatDau ASC";
+
+            List<Object[]> results = em.createQuery(jpql)
+                    .setParameter("maNV", maNV)
+                    .setMaxResults(3)
+                    .getResultList();
+
+            return results.stream().map(row -> {
+                String tenCa = (String) row[0];
+                LocalDate ngay = (LocalDate) row[1];
+                java.time.LocalTime bd = (java.time.LocalTime) row[2];
+                java.time.LocalTime kt = (java.time.LocalTime) row[3];
+                return String.format("%s: %s (%s-%s)",
+                        ngay.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM")),
+                        tenCa, bd.toString().substring(0, 5), kt.toString().substring(0, 5));
+            }).collect(java.util.stream.Collectors.toList());
+        });
+    }
+    public String[] getThongTinCaTruocSau(String maNV, LocalDate ngay) {
+        return doInSession(em -> {
+            // Lấy tất cả phân công của nhân viên trong ngày này, sắp xếp theo giờ bắt đầu
+            String jpql = "SELECT pc FROM PhanCong pc " +
+                    "JOIN FETCH pc.caLam cl " +
+                    "WHERE pc.nhanVien.manv = :maNV AND pc.id.ngayLam = :ngay " +
+                    "ORDER BY cl.gioBatDau ASC";
+
+            List<PhanCong> list = em.createQuery(jpql, PhanCong.class)
+                    .setParameter("maNV", maNV)
+                    .setParameter("ngay", ngay)
+                    .getResultList();
+
+            String caTruoc = "Không có";
+            String caSau = "Không có";
+
+            if (list.isEmpty()) return new String[]{caTruoc, caSau};
+
+            // Lấy thời gian hiện tại để xác định vị trí
+            java.time.LocalTime bayGio = java.time.LocalTime.now();
+
+            for (int i = 0; i < list.size(); i++) {
+                PhanCong hienTai = list.get(i);
+                java.time.LocalTime batDau = hienTai.getCaLam().getGioBatDau();
+                java.time.LocalTime ketThuc = hienTai.getCaLam().getGioKetThuc();
+
+                // Kiểm tra xem có phải đang trong ca này không hoặc ca này sắp tới/vừa qua
+                if (bayGio.isAfter(batDau) && bayGio.isBefore(ketThuc)) {
+                    // Nếu đang trong ca này:
+                    if (i > 0) caTruoc = formatCaInfo(list.get(i - 1));
+                    if (i < list.size() - 1) caSau = formatCaInfo(list.get(i + 1));
+                    break;
+                } else if (bayGio.isBefore(batDau)) {
+                    // Nếu chưa tới ca này (ca này là ca tiếp theo):
+                    if (i > 0) caTruoc = formatCaInfo(list.get(i - 1));
+                    caSau = formatCaInfo(hienTai);
+                    break;
+                } else if (i == list.size() - 1) {
+                    // Nếu đã qua hết các ca
+                    caTruoc = formatCaInfo(hienTai);
+                }
+            }
+
+            return new String[]{caTruoc, caSau};
+        });
+    }
+
+    // Hàm helper để định dạng chuỗi hiển thị
+    private String formatCaInfo(PhanCong pc) {
+        return pc.getCaLam().getTenCa() + " (" +
+                pc.getCaLam().getGioBatDau().toString().substring(0, 5) + "-" +
+                pc.getCaLam().getGioKetThuc().toString().substring(0, 5) + ")";
     }
 }

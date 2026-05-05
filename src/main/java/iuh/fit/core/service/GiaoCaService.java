@@ -119,4 +119,14 @@ public class GiaoCaService {
     public long count() {
         return repository.count();
     }
+
+    public List<String> getCacCaLamSapToi(String maNV) {
+        // Gọi repository để lấy danh sách ca sắp tới
+        return repository.getCacCaLamSapToi(maNV);
+    }
+
+    public String[] getThongTinCaTruocSau(String maNV, LocalDate ngay) {
+        if (maNV == null || ngay == null) return new String[]{"Không có", "Không có"};
+        return repository.getThongTinCaTruocSau(maNV, ngay);
+    }
 }
