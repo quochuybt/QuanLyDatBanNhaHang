@@ -15,6 +15,8 @@ import java.util.Map;
 
 public class ChiTietHoaDonRepository extends GenericRepository<ChiTietHoaDon, Long> {
 
+    public record ChiTietHoaDonItem(String maMonAn, int soLuong, float donGia) {}
+
     private static final String DA_THANH_TOAN = "Đã thanh toán";
 
     public ChiTietHoaDonRepository() {
