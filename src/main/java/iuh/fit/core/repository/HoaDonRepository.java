@@ -1,6 +1,10 @@
 package iuh.fit.core.repository;
 
+import iuh.fit.core.dto.DonDatMonDTO;
 import iuh.fit.core.entity.HoaDon;
+import iuh.fit.core.entity.Ban;
+import iuh.fit.core.entity.DonDatMon;
+import iuh.fit.core.entity.TrangThaiBan;
 import jakarta.persistence.TypedQuery;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -8,6 +12,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public class HoaDonRepository extends GenericRepository<HoaDon, String> {
 
@@ -159,6 +164,68 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
                 return true;
             }
             return false;
+        });
+    }
+
+    public HoaDon moBanVaTaoHoaDon(String maBan, String maNV, String maKH, LocalDateTime thoiGianDen, String ghiChu) {
+        return executeTransaction(em -> {
+            Ban ban = em.find(Ban.class, maBan);
+            if (ban == null) throw new IllegalArgumentException("Không tìm thấy bàn: " + maBan);
+
+            DonDatMon donDangMo = em.createQuery(
+                            "SELECT d FROM DonDatMon d WHERE d.maBan = :maBan AND d.trangThai = 'Chưa thanh toán'", DonDatMon.class)
+                    .setParameter("maBan", maBan)
+                    .setMaxResults(1)
+                    .getResultStream()
+                    .findFirst()
+                    .orElse(null);
+
+            if (donDangMo == null) {
+                DonDatMonDTO dto = DonDatMonDTO.builder()
+                        .maDon(new DonDatMon(true).getMaDon())
+                        .ngayKhoiTao(LocalDateTime.now())
+                        .maNV(maNV)
+                        .maKH(maKH)
+                        .thoiGianDen(thoiGianDen != null ? thoiGianDen : LocalDateTime.now())
+                        .trangThai("Chưa thanh toán")
+                        .maBan(maBan)
+                        .ghiChu(ghiChu)
+                        .build();
+
+                donDangMo = dto.toEntity();
+                donDangMo.setBan(ban);
+                em.persist(donDangMo);
+            }
+
+            HoaDon hd = em.createQuery(
+                            "SELECT h FROM HoaDon h WHERE h.donDatMon.maDon = :maDon AND h.trangThai = 'Chưa thanh toán'", HoaDon.class)
+                    .setParameter("maDon", donDangMo.getMaDon())
+                    .setMaxResults(1)
+                    .getResultStream()
+                    .findFirst()
+                    .orElse(null);
+
+            if (hd == null) {
+                hd = new HoaDon();
+                hd.setMaHD("HD" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+                hd.setNgayLap(LocalDateTime.now());
+                hd.setTrangThai("Chưa thanh toán");
+                hd.setHinhThucThanhToan("Tiền mặt");
+                hd.setMaDon(donDangMo.getMaDon());
+                hd.setMaNV(maNV);
+                hd.setMaKH(maKH);
+                hd.setTongTien(0f);
+                hd.setGiamGia(0f);
+                hd.setTongThanhToan(0f);
+                hd.setDonDatMon(donDangMo);
+                em.persist(hd);
+            }
+
+            ban.setTrangThai(TrangThaiBan.DANG_PHUC_VU);
+            ban.setGioMoBan(LocalDateTime.now());
+            em.merge(ban);
+
+            return hd;
         });
     }
 }

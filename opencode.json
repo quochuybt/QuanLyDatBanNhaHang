@@ -1,0 +1,326 @@
+{
+    "$schema": "https://opencode.ai/config.json",
+    "provider": {
+        "danglamgiau": {
+            "models": {
+                "deepseek-v3.2": {},
+                "deepseek-v4-flash": {},
+                "glm-5.1": {},
+                "gpt-5.2": {
+                    "reasoningEffort": "medium",
+                    "reasoningSummary": "auto",
+                    "textVerbosity": "medium",
+                    "variants": {
+                        "thinking-high": {
+                            "reasoningEffort": "high",
+                            "reasoningSummary": "auto",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-low": {
+                            "reasoningEffort": "low",
+                            "reasoningSummary": "auto",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-medium": {
+                            "reasoningEffort": "medium",
+                            "reasoningSummary": "auto",
+                            "textVerbosity": "medium"
+                        }
+                    }
+                },
+                "gpt-5.3-codex": {
+                    "reasoningEffort": "medium",
+                    "reasoningSummary": "auto",
+                    "textVerbosity": "medium",
+                    "variants": {
+                        "thinking-high": {
+                            "reasoningEffort": "high",
+                            "reasoningSummary": "auto",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-low": {
+                            "reasoningEffort": "low",
+                            "reasoningSummary": "auto",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-medium": {
+                            "reasoningEffort": "medium",
+                            "reasoningSummary": "auto",
+                            "textVerbosity": "medium"
+                        }
+                    }
+                },
+                "gpt-5.3-codex-high": {
+                    "reasoningEffort": "high",
+                    "reasoningSummary": "auto",
+                    "textVerbosity": "medium"
+                },
+                "gpt-5.3-codex-xhigh": {
+                    "reasoningEffort": "xhigh",
+                    "reasoningSummary": "auto",
+                    "textVerbosity": "medium"
+                },
+                "gpt-5.4": {
+                    "reasoningEffort": "medium",
+                    "reasoningSummary": "auto",
+                    "textVerbosity": "medium",
+                    "variants": {
+                        "thinking-high": {
+                            "reasoningEffort": "high",
+                            "reasoningSummary": "auto",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-low": {
+                            "reasoningEffort": "low",
+                            "reasoningSummary": "auto",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-medium": {
+                            "reasoningEffort": "medium",
+                            "reasoningSummary": "auto",
+                            "textVerbosity": "medium"
+                        }
+                    }
+                },
+                "gpt-5.5": {
+                    "reasoningEffort": "medium",
+                    "reasoningSummary": "auto",
+                    "textVerbosity": "medium",
+                    "variants": {
+                        "thinking-high": {
+                            "reasoningEffort": "high",
+                            "reasoningSummary": "auto",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-low": {
+                            "reasoningEffort": "low",
+                            "reasoningSummary": "auto",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-medium": {
+                            "reasoningEffort": "medium",
+                            "reasoningSummary": "auto",
+                            "textVerbosity": "medium"
+                        }
+                    }
+                },
+                "hocai/gpt-5.3-codex-high": {
+                    "reasoningEffort": "high",
+                    "reasoningSummary": "auto",
+                    "textVerbosity": "medium"
+                },
+                "hocai/gpt-5.3-codex-xhigh": {
+                    "reasoningEffort": "xhigh",
+                    "reasoningSummary": "auto",
+                    "textVerbosity": "medium"
+                },
+                "hocai/gpt-5.4": {
+                    "reasoningEffort": "medium",
+                    "reasoningSummary": "auto",
+                    "textVerbosity": "medium",
+                    "variants": {
+                        "thinking-high": {
+                            "reasoningEffort": "high",
+                            "reasoningSummary": "auto",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-low": {
+                            "reasoningEffort": "low",
+                            "reasoningSummary": "auto",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-medium": {
+                            "reasoningEffort": "medium",
+                            "reasoningSummary": "auto",
+                            "textVerbosity": "medium"
+                        }
+                    }
+                },
+                "kimi-k2.6": {},
+                "minimax-m2.7": {},
+                "qwen3.6-plus": {}
+            },
+            "npm": "@ai-sdk/openai-compatible",
+            "options": {
+                "baseURL": "https://danglamgiau.com/v1"
+            }
+        },
+        "danglamgiau-claude": {
+            "models": {
+                "claude-haiku-4-5": {
+                    "reasoningEffort": "medium",
+                    "textVerbosity": "medium"
+                },
+                "claude-opus-4-5": {
+                    "reasoningEffort": "medium",
+                    "textVerbosity": "medium",
+                    "variants": {
+                        "thinking-high": {
+                            "reasoningEffort": "high",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-low": {
+                            "reasoningEffort": "low",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-medium": {
+                            "reasoningEffort": "medium",
+                            "textVerbosity": "medium"
+                        }
+                    }
+                },
+                "claude-opus-4-5-thinking": {
+                    "attachment": true,
+                    "modalities": {
+                        "input": [
+                            "text",
+                            "image"
+                        ],
+                        "output": [
+                            "text"
+                        ]
+                    },
+                    "reasoningEffort": "high",
+                    "textVerbosity": "medium",
+                    "thinking": {
+                        "budget_tokens": 16000
+                    }
+                },
+                "claude-opus-4-6": {
+                    "reasoningEffort": "medium",
+                    "textVerbosity": "medium",
+                    "variants": {
+                        "thinking-high": {
+                            "reasoningEffort": "high",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-low": {
+                            "reasoningEffort": "low",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-medium": {
+                            "reasoningEffort": "medium",
+                            "textVerbosity": "medium"
+                        }
+                    }
+                },
+                "claude-opus-4-6-thinking": {
+                    "attachment": true,
+                    "modalities": {
+                        "input": [
+                            "text",
+                            "image"
+                        ],
+                        "output": [
+                            "text"
+                        ]
+                    },
+                    "reasoningEffort": "high",
+                    "textVerbosity": "medium",
+                    "thinking": {
+                        "budget_tokens": 16000
+                    }
+                },
+                "claude-opus-4-7": {
+                    "reasoningEffort": "medium",
+                    "textVerbosity": "medium",
+                    "variants": {
+                        "thinking-high": {
+                            "reasoningEffort": "high",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-low": {
+                            "reasoningEffort": "low",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-medium": {
+                            "reasoningEffort": "medium",
+                            "textVerbosity": "medium"
+                        }
+                    }
+                },
+                "claude-sonnet-4-5": {
+                    "reasoningEffort": "medium",
+                    "textVerbosity": "medium",
+                    "variants": {
+                        "thinking-high": {
+                            "reasoningEffort": "high",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-low": {
+                            "reasoningEffort": "low",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-medium": {
+                            "reasoningEffort": "medium",
+                            "textVerbosity": "medium"
+                        }
+                    }
+                },
+                "claude-sonnet-4-6": {
+                    "reasoningEffort": "medium",
+                    "textVerbosity": "medium",
+                    "variants": {
+                        "thinking-high": {
+                            "reasoningEffort": "high",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-low": {
+                            "reasoningEffort": "low",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-medium": {
+                            "reasoningEffort": "medium",
+                            "textVerbosity": "medium"
+                        }
+                    }
+                },
+                "claude-sonnet-4-6-thinking": {
+                    "attachment": true,
+                    "modalities": {
+                        "input": [
+                            "text",
+                            "image"
+                        ],
+                        "output": [
+                            "text"
+                        ]
+                    },
+                    "reasoningEffort": "high",
+                    "textVerbosity": "medium",
+                    "thinking": {
+                        "budget_tokens": 12000
+                    }
+                },
+                "hocai/claude-opus-4.6": {
+                    "reasoningEffort": "medium",
+                    "textVerbosity": "medium"
+                },
+                "hocai/claude-sonnet-4-6": {
+                    "reasoningEffort": "medium",
+                    "textVerbosity": "medium",
+                    "variants": {
+                        "thinking-high": {
+                            "reasoningEffort": "high",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-low": {
+                            "reasoningEffort": "low",
+                            "textVerbosity": "medium"
+                        },
+                        "thinking-medium": {
+                            "reasoningEffort": "medium",
+                            "textVerbosity": "medium"
+                        }
+                    }
+                }
+            },
+            "npm": "@ai-sdk/openai-compatible",
+            "options": {
+                "baseURL": "https://danglamgiau.com/v1",
+                "store": false,
+                "textVerbosity": "medium"
+            }
+        }
+    }
+}

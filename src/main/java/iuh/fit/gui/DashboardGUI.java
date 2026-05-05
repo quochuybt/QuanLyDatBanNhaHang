@@ -1,12 +1,16 @@
 package iuh.fit.gui;
 
+import iuh.fit.core.entity.VaiTro;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 
 public class DashboardGUI extends JFrame {
 
@@ -16,6 +20,10 @@ public class DashboardGUI extends JFrame {
     private final String userRole;
     private final String userName;
     private final String maNV;
+    private final CardLayout cardLayout = new CardLayout();
+    private final JPanel contentPanel = new JPanel(cardLayout);
+    private final Map<String, JPanel> menuButtons = new LinkedHashMap<>();
+    private JPanel activeMenuButton;
 
     public DashboardGUI(String userRole, String userName, String maNV) {
         this.userRole = userRole;
@@ -29,7 +37,11 @@ public class DashboardGUI extends JFrame {
 
         add(buildHeader(), BorderLayout.NORTH);
         add(buildMenu(), BorderLayout.WEST);
-        add(buildContent(), BorderLayout.CENTER);
+        setupContentCards();
+        add(contentPanel, BorderLayout.CENTER);
+
+        String defaultCard = "QUANLY".equalsIgnoreCase(userRole) ? "Dashboard" : "Dashboard";
+        showCard(defaultCard);
     }
 
     private JPanel buildHeader() {
@@ -85,7 +97,9 @@ public class DashboardGUI extends JFrame {
                 : new String[]{"Dashboard", "Danh sách bàn", "Thành viên", "Lịch làm việc", "Hóa đơn"};
 
         for (String item : items) {
-            menu.add(createMenuBtn(item));
+            JPanel btn = createMenuBtn(item);
+            menuButtons.put(item, btn);
+            menu.add(btn);
             menu.add(Box.createRigidArea(new Dimension(0, 2)));
         }
 
@@ -123,21 +137,77 @@ public class DashboardGUI extends JFrame {
         lbl.setForeground(Color.WHITE);
         btn.add(lbl);
         btn.addMouseListener(new MouseAdapter() {
-            @Override public void mouseEntered(MouseEvent e) { btn.setBackground(COLOR_DARK_BLUE); }
-            @Override public void mouseExited(MouseEvent e)  { btn.setBackground(COLOR_BLUE); }
+            @Override public void mouseEntered(MouseEvent e) {
+                if (btn != activeMenuButton) btn.setBackground(COLOR_DARK_BLUE);
+            }
+            @Override public void mouseExited(MouseEvent e)  {
+                if (btn != activeMenuButton) btn.setBackground(COLOR_BLUE);
+            }
+            @Override public void mouseClicked(MouseEvent e) {
+                showCard(text);
+            }
         });
         return btn;
     }
 
-    private JPanel buildContent() {
+    private JPanel buildContentPlaceholder(String title) {
         JPanel content = new JPanel(new BorderLayout());
         content.setBackground(new Color(245, 247, 250));
 
-        JLabel lbl = new JLabel("Xin chào, " + userName + " (" + userRole + ")", SwingConstants.CENTER);
+        JLabel lbl = new JLabel(title, SwingConstants.CENTER);
         lbl.setFont(new Font("Arial", Font.BOLD, 28));
         lbl.setForeground(COLOR_DARK_BLUE);
         content.add(lbl, BorderLayout.CENTER);
 
         return content;
+    }
+
+    private void setupContentCards() {
+        boolean isManager = "QUANLY".equalsIgnoreCase(userRole);
+        if (isManager) {
+            addCardSafe("Dashboard", () -> buildContentPlaceholder("Xin chào, " + userName + " (" + userRole + ")"));
+            addCardSafe("Nhân viên", () -> buildContentPlaceholder("Màn hình Nhân viên (đang migrate)"));
+            addCardSafe("Lịch làm việc", () -> new LichLamViecGUI(VaiTro.QUANLY));
+            addCardSafe("Hóa đơn", () -> buildContentPlaceholder("Màn hình Hóa đơn (đang migrate)"));
+            addCardSafe("Khuyến mãi", KhuyenMaiGUI::new);
+        } else {
+            addCardSafe("Dashboard", () -> new DashboardNhanVienGUI(maNV, userName));
+            addCardSafe("Danh sách bàn", ManHinhBanGUI::new);
+            addCardSafe("Thành viên", KhachHangGUI::new);
+            addCardSafe("Lịch làm việc", () -> new LichLamViecGUI(VaiTro.NHANVIEN));
+            addCardSafe("Hóa đơn", () -> buildContentPlaceholder("Màn hình Hóa đơn (đang migrate)"));
+        }
+    }
+
+    private void addCardSafe(String cardName, java.util.function.Supplier<JPanel> supplier) {
+        try {
+            contentPanel.add(supplier.get(), cardName);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            contentPanel.add(buildErrorCard(cardName, ex), cardName);
+        }
+    }
+
+    private JPanel buildErrorCard(String cardName, Exception ex) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(new Color(255, 245, 245));
+        JTextArea area = new JTextArea();
+        area.setEditable(false);
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        area.setText("Không thể tải màn hình: " + cardName + "\n\n" + ex.getClass().getSimpleName() + ": " + ex.getMessage());
+        area.setBorder(new EmptyBorder(20, 20, 20, 20));
+        panel.add(area, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private void showCard(String cardName) {
+        cardLayout.show(contentPanel, cardName);
+        JPanel btn = menuButtons.get(cardName);
+        if (btn != null) {
+            if (activeMenuButton != null) activeMenuButton.setBackground(COLOR_BLUE);
+            activeMenuButton = btn;
+            activeMenuButton.setBackground(COLOR_DARK_BLUE);
+        }
     }
 }

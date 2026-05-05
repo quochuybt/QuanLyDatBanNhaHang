@@ -117,4 +117,12 @@ public class HoaDonService {
             return false;
         }
     }
+
+    /**
+     * Transaction mở bàn + tạo đơn + tạo hóa đơn chưa thanh toán.
+     */
+    public HoaDonDTO moBanVaTaoHoaDon(String maBan, String maNV, String maKH, LocalDateTime thoiGianDen, String ghiChu) {
+        HoaDon hd = repository.moBanVaTaoHoaDon(maBan, maNV, maKH, thoiGianDen, ghiChu);
+        return HoaDonDTO.fromEntity(hd);
+    }
 }

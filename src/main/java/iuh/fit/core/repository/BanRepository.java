@@ -1,5 +1,6 @@
 package iuh.fit.core.repository;
 
+import iuh.fit.core.db.JPAUtil;
 import iuh.fit.core.entity.Ban;
 import iuh.fit.core.entity.TrangThaiBan;
 import jakarta.persistence.*;
@@ -9,14 +10,8 @@ import java.util.function.Function;
 
 public class BanRepository {
 
-    private final EntityManagerFactory emf;
-
-    public BanRepository() {
-        this.emf = Persistence.createEntityManagerFactory("QuanLyNhaHang");
-    }
-
     private <T> T doInTransaction(Function<EntityManager, T> action) {
-        EntityManager em = emf.createEntityManager();
+        EntityManager em = JPAUtil.getEntityManager();
         EntityTransaction tx = em.getTransaction();
 
         try {
