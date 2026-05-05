@@ -1,42 +1,27 @@
 package iuh.fit.core.repository;
 
 import iuh.fit.core.entity.Ban;
+import iuh.fit.core.entity.ChiTietHoaDon;
+import iuh.fit.core.entity.DonDatMon;
+import iuh.fit.core.entity.MonAn;
 import iuh.fit.core.entity.TrangThaiBan;
-import jakarta.persistence.*;
+import jakarta.persistence.EntityManager;
 
+import java.time.LocalDateTime;
 import java.util.*;
-import java.util.function.Function;
 
-public class BanRepository {
+public class BanRepository extends GenericRepository<Ban, String> {
 
-    private final EntityManagerFactory emf;
+    private static final String CHUA_THANH_TOAN = "Chưa thanh toán";
+    private static final String DA_THANH_TOAN = "Đã thanh toán";
+    private static final String DA_HUY = "Đã hủy";
 
     public BanRepository() {
-        this.emf = Persistence.createEntityManagerFactory("QuanLyNhaHang");
-    }
-
-    private <T> T doInTransaction(Function<EntityManager, T> action) {
-        EntityManager em = emf.createEntityManager();
-        EntityTransaction tx = em.getTransaction();
-
-        try {
-            tx.begin();
-            T result = action.apply(em);
-            tx.commit();
-            return result;
-        } catch (RuntimeException e) {
-            if (tx.isActive()) {
-                tx.rollback();
-            }
-            e.printStackTrace();
-            throw e;
-        } finally {
-            em.close();
-        }
+        super(Ban.class);
     }
 
     public boolean updateBan(Ban ban) {
-        return doInTransaction(em -> {
+        return executeTransaction(em -> {
             int updated = em.createQuery("""
                     UPDATE Ban b
                     SET b.tenBan = :tenBan,
@@ -59,32 +44,39 @@ public class BanRepository {
     }
 
     public boolean chuyenBan(Ban banCu, Ban banMoi) {
-        return doInTransaction(em -> {
+        return executeTransaction(em -> {
             String oldTag = "LINKED:" + banCu.getMaBan();
             String newTag = "LINKED:" + banMoi.getMaBan();
 
-            em.createNativeQuery("""
-                    UPDATE DonDatMon
-                    SET ghiChu = REPLACE(ghiChu, :oldTag, :newTag)
-                    WHERE maBan <> :maBanCu
-                      AND trangThai = 'Chưa thanh toán'
-                      AND ghiChu LIKE :likeOldTag
-                    """)
-                    .setParameter("oldTag", oldTag)
-                    .setParameter("newTag", newTag)
+            List<DonDatMon> donLienKet = em.createQuery("""
+                    SELECT d
+                    FROM DonDatMon d
+                    WHERE d.maBan <> :maBanCu
+                      AND d.trangThai = :chuaThanhToan
+                      AND d.ghiChu LIKE :likeOldTag
+                    """, DonDatMon.class)
                     .setParameter("maBanCu", banCu.getMaBan())
+                    .setParameter("chuaThanhToan", CHUA_THANH_TOAN)
                     .setParameter("likeOldTag", "%" + oldTag + "%")
-                    .executeUpdate();
+                    .getResultList();
 
-            em.createNativeQuery("""
-                    UPDATE DonDatMon
-                    SET maBan = :maBanMoi
-                    WHERE maBan = :maBanCu
-                      AND trangThai <> 'Đã thanh toán'
-                      AND trangThai <> 'Đã hủy'
+            for (DonDatMon don : donLienKet) {
+                if (don.getGhiChu() != null) {
+                    don.setGhiChu(don.getGhiChu().replace(oldTag, newTag));
+                }
+            }
+
+            em.createQuery("""
+                    UPDATE DonDatMon d
+                    SET d.maBan = :maBanMoi
+                    WHERE d.maBan = :maBanCu
+                      AND d.trangThai <> :daThanhToan
+                      AND d.trangThai <> :daHuy
                     """)
                     .setParameter("maBanMoi", banMoi.getMaBan())
                     .setParameter("maBanCu", banCu.getMaBan())
+                    .setParameter("daThanhToan", DA_THANH_TOAN)
+                    .setParameter("daHuy", DA_HUY)
                     .executeUpdate();
 
             TrangThaiBan trangThaiMoi = banCu.getTrangThai() == TrangThaiBan.DA_DAT_TRUOC
@@ -99,24 +91,27 @@ public class BanRepository {
     }
 
     public String getTenHienThiGhep(String maBanCheck) {
-        return doInTransaction(em -> {
+        return doInSession(em -> {
             String maBanMaster = maBanCheck;
             List<String> tenBanPhu = new ArrayList<>();
 
-            List<?> ghiChuRows = em.createNativeQuery("""
-                SELECT ghiChu
-                FROM DonDatMon
-                WHERE maBan = :maBan
-                  AND trangThai = 'Chưa thanh toán'
-                  AND ghiChu LIKE '%LINKED:%'
-                """)
+            List<String> ghiChuRows = em.createQuery("""
+                    SELECT d.ghiChu
+                    FROM DonDatMon d
+                    WHERE d.maBan = :maBan
+                      AND d.trangThai = :chuaThanhToan
+                      AND d.ghiChu LIKE :linkedPattern
+                    """, String.class)
                     .setParameter("maBan", maBanCheck)
+                    .setParameter("chuaThanhToan", CHUA_THANH_TOAN)
+                    .setParameter("linkedPattern", "%LINKED:%")
                     .setMaxResults(1)
                     .getResultList();
 
             if (!ghiChuRows.isEmpty() && ghiChuRows.get(0) != null) {
-                String ghiChu = ghiChuRows.get(0).toString();
+                String ghiChu = ghiChuRows.get(0);
                 int index = ghiChu.indexOf("LINKED:");
+
                 if (index != -1) {
                     maBanMaster = ghiChu.substring(index + 7).trim().split(" ")[0];
                 }
@@ -124,26 +119,31 @@ public class BanRepository {
 
             String tenGoc = getTenBanByMaInternal(em, maBanMaster);
 
-            List<?> slaveRows = em.createNativeQuery("""
+            List<String> slaveRows = em.createQuery("""
                     SELECT b.tenBan
-                    FROM DonDatMon d
-                    JOIN Ban b ON d.maBan = b.maBan
-                    WHERE d.ghiChu LIKE :ghiChu
-                      AND d.trangThai = 'Chưa thanh toán'
-                    """)
+                    FROM DonDatMon d, Ban b
+                    WHERE d.maBan = b.maBan
+                      AND d.ghiChu LIKE :ghiChu
+                      AND d.trangThai = :chuaThanhToan
+                    """, String.class)
                     .setParameter("ghiChu", "%LINKED:" + maBanMaster + "%")
+                    .setParameter("chuaThanhToan", CHUA_THANH_TOAN)
                     .getResultList();
 
-            for (Object row : slaveRows) {
-                if (row != null) {
-                    String tenBan = row.toString().replace("Bàn ", "");
-                    if (!tenGoc.contains(tenBan)) {
-                        tenBanPhu.add(tenBan);
-                    }
+            for (String tenBan : slaveRows) {
+                if (tenBan == null) {
+                    continue;
+                }
+
+                String tenRutGon = tenBan.replace("Bàn ", "");
+
+                if (!tenGoc.contains(tenRutGon)) {
+                    tenBanPhu.add(tenRutGon);
                 }
             }
 
             StringBuilder sb = new StringBuilder(tenGoc);
+
             for (String ten : tenBanPhu) {
                 sb.append(" + ").append(ten);
             }
@@ -153,20 +153,22 @@ public class BanRepository {
     }
 
     public String getMaBanChinh(String maBanCheck) {
-        return doInTransaction(em -> {
-            List<?> rows = em.createNativeQuery("""
-                SELECT ghiChu
-                FROM DonDatMon
-                WHERE maBan = :maBan
-                  AND trangThai = 'Chưa thanh toán'
-                  AND ghiChu LIKE 'LINKED:%'
-                """)
+        return doInSession(em -> {
+            List<String> rows = em.createQuery("""
+                    SELECT d.ghiChu
+                    FROM DonDatMon d
+                    WHERE d.maBan = :maBan
+                      AND d.trangThai = :chuaThanhToan
+                      AND d.ghiChu LIKE :linkedPattern
+                    """, String.class)
                     .setParameter("maBan", maBanCheck)
+                    .setParameter("chuaThanhToan", CHUA_THANH_TOAN)
+                    .setParameter("linkedPattern", "LINKED:%")
                     .setMaxResults(1)
                     .getResultList();
 
             if (!rows.isEmpty() && rows.get(0) != null) {
-                return rows.get(0).toString()
+                return rows.get(0)
                         .replace("LINKED:", "")
                         .trim();
             }
@@ -176,7 +178,7 @@ public class BanRepository {
     }
 
     public boolean ghepBanLienKet(List<Ban> listBanNguon, Ban banDich) {
-        return doInTransaction(em -> {
+        return executeTransaction(em -> {
             boolean coKhachDangAn = banDich.getTrangThai() == TrangThaiBan.DANG_PHUC_VU;
 
             for (Ban b : listBanNguon) {
@@ -195,13 +197,16 @@ public class BanRepository {
             if (maDonDich == null) {
                 maDonDich = "DON" + System.currentTimeMillis();
 
-                em.createNativeQuery("""
-                        INSERT INTO DonDatMon(maDon, ngayKhoiTao, thoiGianDen, maNV, maBan, trangThai)
-                        VALUES(:maDon, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'NV01102', :maBan, 'Chưa thanh toán')
-                        """)
-                        .setParameter("maDon", maDonDich)
-                        .setParameter("maBan", banDich.getMaBan())
-                        .executeUpdate();
+                DonDatMon donDich = new DonDatMon();
+                donDich.setMaDon(maDonDich);
+                donDich.setNgayKhoiTao(LocalDateTime.now());
+                donDich.setThoiGianDen(LocalDateTime.now());
+                donDich.setMaNV("NV01102");
+                donDich.setMaBan(banDich.getMaBan());
+                donDich.setTrangThai(CHUA_THANH_TOAN);
+                donDich.setGhiChu("");
+
+                em.persist(donDich);
             }
 
             for (Ban banNguon : listBanNguon) {
@@ -214,75 +219,68 @@ public class BanRepository {
                 if (maDonNguon != null && !maDonNguon.equals(maDonDich)) {
                     List<MonAnTam> listItems = getChiTietMonAnTam(em, maDonNguon);
 
-                    em.createNativeQuery("""
-                            DELETE FROM ChiTietHoaDon
-                            WHERE maDon = :maDon
+                    em.createQuery("""
+                            DELETE FROM ChiTietHoaDonDTO c
+                            WHERE c.donDatMon.maDon = :maDon
                             """)
                             .setParameter("maDon", maDonNguon)
                             .executeUpdate();
 
                     for (MonAnTam item : listItems) {
-                        int count = ((Number) em.createNativeQuery("""
-                                SELECT COUNT(*)
-                                FROM ChiTietHoaDon
-                                WHERE maDon = :maDon
-                                  AND maMonAn = :maMonAn
-                                """)
-                                .setParameter("maDon", maDonDich)
-                                .setParameter("maMonAn", item.maMon)
-                                .getSingleResult()).intValue();
+                        ChiTietHoaDon chiTietDich = findChiTietHoaDon(
+                                em,
+                                maDonDich,
+                                item.monAn
+                        );
 
-                        if (count > 0) {
-                            em.createNativeQuery("""
-                                    UPDATE ChiTietHoaDon
-                                    SET soLuong = soLuong + :soLuong
-                                    WHERE maDon = :maDon
-                                      AND maMonAn = :maMonAn
-                                    """)
-                                    .setParameter("soLuong", item.soLuong)
-                                    .setParameter("maDon", maDonDich)
-                                    .setParameter("maMonAn", item.maMon)
-                                    .executeUpdate();
+                        if (chiTietDich != null) {
+                            chiTietDich.setSoluong(chiTietDich.getSoluong() + item.soLuong);
+                            chiTietDich.setThanhtien(chiTietDich.getSoluong() * chiTietDich.getDongia());
+                            em.merge(chiTietDich);
                         } else {
-                            em.createNativeQuery("""
-                                    INSERT INTO ChiTietHoaDon(maDon, maMonAn, soLuong, donGia)
-                                    VALUES(:maDon, :maMonAn, :soLuong, :donGia)
-                                    """)
-                                    .setParameter("maDon", maDonDich)
-                                    .setParameter("maMonAn", item.maMon)
-                                    .setParameter("soLuong", item.soLuong)
-                                    .setParameter("donGia", item.donGia)
-                                    .executeUpdate();
+                            ChiTietHoaDon chiTietMoi = new ChiTietHoaDon();
+                            chiTietMoi.setDonDatMon(em.getReference(DonDatMon.class, maDonDich));
+                            chiTietMoi.setMonAn(item.monAn);
+                            chiTietMoi.setSoluong(item.soLuong);
+                            chiTietMoi.setDongia(item.donGia);
+                            chiTietMoi.setThanhtien(item.soLuong * item.donGia);
+                            chiTietMoi.setTenMon(item.tenMon);
+
+                            em.persist(chiTietMoi);
                         }
                     }
 
-                    em.createNativeQuery("""
-                            UPDATE DonDatMon
-                            SET trangThai = 'Đã hủy'
-                            WHERE maDon = :maDon
+                    em.createQuery("""
+                            UPDATE DonDatMon d
+                            SET d.trangThai = :daHuy
+                            WHERE d.maDon = :maDon
                             """)
+                            .setParameter("daHuy", DA_HUY)
                             .setParameter("maDon", maDonNguon)
                             .executeUpdate();
 
-                    em.createNativeQuery("""
-                            UPDATE HoaDon
-                            SET trangThai = 'Đã hủy'
-                            WHERE maDon = :maDon
+                    em.createQuery("""
+                            UPDATE HoaDon h
+                            SET h.trangThai = :daHuy
+                            WHERE h.donDatMon.maDon = :maDon
                             """)
+                            .setParameter("daHuy", DA_HUY)
                             .setParameter("maDon", maDonNguon)
                             .executeUpdate();
                 }
 
                 String dummyID = "L" + (System.currentTimeMillis() % 100000000) + banNguon.getMaBan();
 
-                em.createNativeQuery("""
-                        INSERT INTO DonDatMon(maDon, ngayKhoiTao, thoiGianDen, maNV, maBan, trangThai, ghiChu)
-                        VALUES(:maDon, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'NV01102', :maBan, 'Chưa thanh toán', :ghiChu)
-                        """)
-                        .setParameter("maDon", dummyID)
-                        .setParameter("maBan", banNguon.getMaBan())
-                        .setParameter("ghiChu", "LINKED:" + banDich.getMaBan())
-                        .executeUpdate();
+                DonDatMon donLienKet = new DonDatMon();
+                donLienKet.setMaDon(dummyID);
+                donLienKet.setNgayKhoiTao(LocalDateTime.now());
+                donLienKet.setThoiGianDen(LocalDateTime.now());
+                donLienKet.setMaNV("NV01102");
+                donLienKet.setMaBan(banNguon.getMaBan());
+                donLienKet.setTrangThai(CHUA_THANH_TOAN);
+                donLienKet.setGhiChu("LINKED:" + banDich.getMaBan());
+
+                em.persist(donLienKet);
 
                 updateTrangThaiBan(em, banNguon.getMaBan(), trangThaiSauGop, banNguon.getGioMoBan());
             }
@@ -294,15 +292,15 @@ public class BanRepository {
     }
 
     public String getTenBanByMa(String maBan) {
-        return doInTransaction(em -> getTenBanByMaInternal(em, maBan));
+        return doInSession(em -> getTenBanByMaInternal(em, maBan));
     }
 
     public Ban getBanByMa(String maBan) {
-        return doInTransaction(em -> em.find(Ban.class, maBan));
+        return findById(maBan);
     }
 
     public List<Ban> getAllBan() {
-        return doInTransaction(em ->
+        return doInSession(em ->
                 em.createQuery("""
                         SELECT b
                         FROM Ban b
@@ -313,43 +311,67 @@ public class BanRepository {
     }
 
     public int getSoThuTuBanLonNhat() {
-        return doInTransaction(em -> {
-            Object result = em.createNativeQuery("""
-                SELECT COALESCE(MAX(CAST(SUBSTRING(maBan, 4) AS UNSIGNED)), 0)
-                FROM Ban
-                WHERE maBan LIKE 'BAN%'
-                """)
-                    .getSingleResult();
+        return doInSession(em -> {
+            List<String> maBanList = em.createQuery("""
+                    SELECT b.maBan
+                    FROM Ban b
+                    WHERE b.maBan LIKE :prefix
+                    """, String.class)
+                    .setParameter("prefix", "BAN%")
+                    .getResultList();
 
-            return ((Number) result).intValue();
+            int max = 0;
+
+            for (String maBan : maBanList) {
+                if (maBan == null || !maBan.startsWith("BAN")) {
+                    continue;
+                }
+
+                try {
+                    int so = Integer.parseInt(maBan.substring(3));
+
+                    if (so > max) {
+                        max = so;
+                    }
+                } catch (NumberFormatException ignored) {
+                }
+            }
+
+            return max;
         });
     }
 
     public Map<String, Integer> getTableStatusCounts() {
-        return doInTransaction(em -> {
+        return doInSession(em -> {
             Map<String, Integer> counts = new HashMap<>();
             counts.put("Trống", 0);
             counts.put("Đang có khách", 0);
             counts.put("Đã đặt trước", 0);
 
-            List<Object[]> rows = em.createNativeQuery("""
-                    SELECT trangThai, COUNT(maBan) AS SoLuong
-                    FROM Ban
-                    GROUP BY trangThai
-                    """)
+            List<Object[]> rows = em.createQuery("""
+                    SELECT b.trangThai, COUNT(b)
+                    FROM Ban b
+                    GROUP BY b.trangThai
+                    """, Object[].class)
                     .getResultList();
 
             for (Object[] row : rows) {
-                String trangThai = row[0] != null ? row[0].toString() : "Trống";
-                int soLuong = ((Number) row[1]).intValue();
-                counts.put(trangThai, soLuong);
+                TrangThaiBan trangThai = (TrangThaiBan) row[0];
+                int soLuong = ((Long) row[1]).intValue();
+
+                counts.put(convertTrangThaiToString(trangThai), soLuong);
             }
 
             return counts;
         });
     }
 
-    private void updateTrangThaiBan(EntityManager em, String maBan, TrangThaiBan trangThai, Object gioMoBan) {
+    private void updateTrangThaiBan(
+            EntityManager em,
+            String maBan,
+            TrangThaiBan trangThai,
+            LocalDateTime gioMoBan
+    ) {
         em.createQuery("""
                 UPDATE Ban b
                 SET b.trangThai = :trangThai,
@@ -368,55 +390,90 @@ public class BanRepository {
     }
 
     private String findDonChuaThanhToanByMaBan(EntityManager em, String maBan) {
-        List<?> rows = em.createNativeQuery("""
-                SELECT maDon
-                FROM DonDatMon
-                WHERE maBan = :maBan
-                  AND trangThai = 'Chưa thanh toán'
-                  AND trangThai <> 'Đã hủy'
-                """)
+        List<String> rows = em.createQuery("""
+                SELECT d.maDon
+                FROM DonDatMon d
+                WHERE d.maBan = :maBan
+                  AND d.trangThai = :chuaThanhToan
+                """, String.class)
                 .setParameter("maBan", maBan)
+                .setParameter("chuaThanhToan", CHUA_THANH_TOAN)
                 .setMaxResults(1)
                 .getResultList();
 
-        if (rows.isEmpty() || rows.get(0) == null) {
+        if (rows.isEmpty()) {
             return null;
         }
 
-        return rows.get(0).toString();
+        return rows.get(0);
     }
 
     private List<MonAnTam> getChiTietMonAnTam(EntityManager em, String maDon) {
-        List<Object[]> rows = em.createNativeQuery("""
-                SELECT maMonAn, soLuong, donGia
-                FROM ChiTietHoaDon
-                WHERE maDon = :maDon
-                """)
+        List<ChiTietHoaDon> rows = em.createQuery("""
+                SELECT c
+                FROM ChiTietHoaDonDTO c
+                JOIN FETCH c.monAn
+                WHERE c.donDatMon.maDon = :maDon
+                """, ChiTietHoaDon.class)
                 .setParameter("maDon", maDon)
                 .getResultList();
 
         List<MonAnTam> result = new ArrayList<>();
 
-        for (Object[] row : rows) {
-            String maMon = row[0].toString();
-            int soLuong = ((Number) row[1]).intValue();
-            double donGia = ((Number) row[2]).doubleValue();
-
-            result.add(new MonAnTam(maMon, soLuong, donGia));
+        for (ChiTietHoaDon c : rows) {
+            result.add(new MonAnTam(
+                    c.getMonAn(),
+                    c.getSoluong(),
+                    c.getDongia(),
+                    c.getTenMon()
+            ));
         }
 
         return result;
     }
 
-    private static class MonAnTam {
-        String maMon;
-        int soLuong;
-        double donGia;
+    private ChiTietHoaDon findChiTietHoaDon(EntityManager em, String maDon, MonAn monAn) {
+        List<ChiTietHoaDon> rows = em.createQuery("""
+                SELECT c
+                FROM ChiTietHoaDonDTO c
+                WHERE c.donDatMon.maDon = :maDon
+                  AND c.monAn = :monAn
+                """, ChiTietHoaDon.class)
+                .setParameter("maDon", maDon)
+                .setParameter("monAn", monAn)
+                .setMaxResults(1)
+                .getResultList();
 
-        public MonAnTam(String maMon, int soLuong, double donGia) {
-            this.maMon = maMon;
+        if (rows.isEmpty()) {
+            return null;
+        }
+
+        return rows.get(0);
+    }
+
+    private String convertTrangThaiToString(TrangThaiBan trangThai) {
+        if (trangThai == null) {
+            return "Trống";
+        }
+
+        return switch (trangThai) {
+            case TRONG -> "Trống";
+            case DANG_PHUC_VU -> "Đang có khách";
+            case DA_DAT_TRUOC -> "Đã đặt trước";
+        };
+    }
+
+    private static class MonAnTam {
+        private final MonAn monAn;
+        private final int soLuong;
+        private final float donGia;
+        private final String tenMon;
+
+        public MonAnTam(MonAn monAn, int soLuong, float donGia, String tenMon) {
+            this.monAn = monAn;
             this.soLuong = soLuong;
             this.donGia = donGia;
+            this.tenMon = tenMon;
         }
     }
 }

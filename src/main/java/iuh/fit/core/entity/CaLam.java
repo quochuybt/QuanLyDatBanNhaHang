@@ -6,7 +6,6 @@ import jakarta.persistence.Table;
 import lombok.*;
 
 import java.time.LocalTime;
-// [THÊM MỚI] Import thư viện Objects để dùng cho equals/hashCode
 
 @Entity
 @Setter
