@@ -11,6 +11,12 @@ public class DanhMucMonRepository extends GenericRepository<DanhMucMon, String> 
         super(DanhMucMon.class);
     }
 
+    public List<DanhMucMon> findAllByName() {
+        return doInSession(em -> em.createQuery(
+                        "SELECT d FROM DanhMucMon d ORDER BY d.tendm", DanhMucMon.class)
+                .getResultList());
+    }
+
     public List<DanhMucMon> getAllDanhMuc() {
         return doInSession(em ->
                 em.createQuery("""

@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  mariadb:
+    image: mariadb:11.4
+    container_name: qlnh-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: sapassword
+      MARIADB_DATABASE: QuanLyNhaHang
+      MARIADB_USER: qlnh
+      MARIADB_PASSWORD: sapassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./src/main/resources/db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost", "-uroot", "-psapassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mariadb_data:

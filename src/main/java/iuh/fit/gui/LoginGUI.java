@@ -147,7 +147,17 @@ public class LoginGUI extends JFrame {
             final String finalVaiTro = vaiTro;
             final String finalHoTen  = hoTen;
             final String finalMaNV   = maNV;
-            SwingUtilities.invokeLater(() -> new DashboardGUI(finalVaiTro, finalHoTen, finalMaNV).setVisible(true));
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    DashboardGUI dashboard = new DashboardGUI(finalVaiTro, finalHoTen, finalMaNV);
+                    dashboard.setVisible(true);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(null,
+                            "Không thể mở Dashboard.\nChi tiết: " + ex.getMessage(),
+                            "Lỗi khởi tạo giao diện", JOptionPane.ERROR_MESSAGE);
+                }
+            });
 
         } catch (IllegalArgumentException ex) {
             String msg = ex.getMessage();

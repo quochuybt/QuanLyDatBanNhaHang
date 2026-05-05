@@ -4,6 +4,9 @@ import iuh.fit.core.entity.MonAn;
 import iuh.fit.core.repository.MonAnRepository;
 
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class MonAnService {
 
@@ -13,6 +16,10 @@ public class MonAnService {
         if (repo.findById(m.getMaMonAn()) != null)
             throw new IllegalArgumentException("Món ăn đã tồn tại");
         repo.save(m);
+    }
+
+    public void save(MonAn m) {
+        add(m);
     }
 
     public List<MonAn> findAll() {
@@ -35,6 +42,13 @@ public class MonAnService {
         if (repo.findById(m.getMaMonAn()) == null)
             throw new IllegalArgumentException("Món ăn không tồn tại");
         repo.update(m);
+    }
+
+    public String getNextMaMonAn() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyy");
+        String datePart = LocalDateTime.now().format(formatter);
+        int randomPart = ThreadLocalRandom.current().nextInt(1000, 10000);
+        return "MA" + datePart + randomPart;
     }
 
     public void delete(String maMon) {
