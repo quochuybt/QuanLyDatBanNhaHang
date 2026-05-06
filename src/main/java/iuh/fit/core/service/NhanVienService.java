@@ -46,4 +46,18 @@ public class NhanVienService {
             throw new IllegalArgumentException("Nhân viên '" + maNV + "' không tồn tại.");
         nhanVienRepo.delete(maNV);
     }
+
+    public String getEmailByTenTK(String tenTK) {
+        if (tenTK == null || tenTK.trim().isEmpty()) {
+            return null;
+        }
+
+        NhanVien nv = nhanVienRepo.findByTenTK(tenTK);
+        // Kiểm tra xem nhân viên có tồn tại và có email hay không
+        if (nv != null && nv.getEmail() != null && !nv.getEmail().trim().isEmpty()) {
+            return nv.getEmail();
+        }
+
+        return null;
+    }
 }

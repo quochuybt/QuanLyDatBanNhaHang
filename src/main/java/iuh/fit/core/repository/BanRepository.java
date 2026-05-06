@@ -1,11 +1,7 @@
 package iuh.fit.core.repository;
 
 import iuh.fit.core.db.JPAUtil;
-import iuh.fit.core.entity.Ban;
-import iuh.fit.core.entity.ChiTietHoaDon;
-import iuh.fit.core.entity.DonDatMon;
-import iuh.fit.core.entity.MonAn;
-import iuh.fit.core.entity.TrangThaiBan;
+import iuh.fit.core.entity.*;
 import jakarta.persistence.EntityManager;
 
 import java.time.LocalDateTime;
@@ -52,7 +48,7 @@ public class BanRepository extends GenericRepository<Ban, String> {
             List<DonDatMon> donLienKet = em.createQuery("""
                     SELECT d
                     FROM DonDatMon d
-                    WHERE d.maBan <> :maBanCu
+                    WHERE d.ban.maBan <> :maBanCu
                       AND d.trangThai = :chuaThanhToan
                       AND d.ghiChu LIKE :likeOldTag
                     """, DonDatMon.class)
@@ -69,8 +65,8 @@ public class BanRepository extends GenericRepository<Ban, String> {
 
             em.createQuery("""
                     UPDATE DonDatMon d
-                    SET d.maBan = :maBanMoi
-                    WHERE d.maBan = :maBanCu
+                    SET d.ban.maBan = :maBanMoi
+                    WHERE d.ban.maBan = :maBanCu
                       AND d.trangThai <> :daThanhToan
                       AND d.trangThai <> :daHuy
                     """)
@@ -99,7 +95,7 @@ public class BanRepository extends GenericRepository<Ban, String> {
             List<String> ghiChuRows = em.createQuery("""
                     SELECT d.ghiChu
                     FROM DonDatMon d
-                    WHERE d.maBan = :maBan
+                    WHERE d.ban.maBan = :maBan
                       AND d.trangThai = :chuaThanhToan
                       AND d.ghiChu LIKE :linkedPattern
                     """, String.class)
@@ -123,7 +119,7 @@ public class BanRepository extends GenericRepository<Ban, String> {
             List<String> slaveRows = em.createQuery("""
                     SELECT b.tenBan
                     FROM DonDatMon d, Ban b
-                    WHERE d.maBan = b.maBan
+                    WHERE d.ban.maBan = b.maBan
                       AND d.ghiChu LIKE :ghiChu
                       AND d.trangThai = :chuaThanhToan
                     """, String.class)
@@ -158,7 +154,7 @@ public class BanRepository extends GenericRepository<Ban, String> {
             List<String> rows = em.createQuery("""
                     SELECT d.ghiChu
                     FROM DonDatMon d
-                    WHERE d.maBan = :maBan
+                    WHERE d.ban.maBan = :maBan
                       AND d.trangThai = :chuaThanhToan
                       AND d.ghiChu LIKE :linkedPattern
                     """, String.class)
@@ -202,8 +198,10 @@ public class BanRepository extends GenericRepository<Ban, String> {
                 donDich.setMaDon(maDonDich);
                 donDich.setNgayKhoiTao(LocalDateTime.now());
                 donDich.setThoiGianDen(LocalDateTime.now());
-                donDich.setMaNV("NV01102");
-                donDich.setMaBan(banDich.getMaBan());
+                NhanVien nv = em.getReference(NhanVien.class, "NV01102");
+                donDich.setNhanVien(nv);
+                Ban ban = em.getReference(Ban.class, banDich.getMaBan());
+                donDich.setBan(ban);
                 donDich.setTrangThai(CHUA_THANH_TOAN);
                 donDich.setGhiChu("");
 
@@ -276,8 +274,10 @@ public class BanRepository extends GenericRepository<Ban, String> {
                 donLienKet.setMaDon(dummyID);
                 donLienKet.setNgayKhoiTao(LocalDateTime.now());
                 donLienKet.setThoiGianDen(LocalDateTime.now());
-                donLienKet.setMaNV("NV01102");
-                donLienKet.setMaBan(banNguon.getMaBan());
+                NhanVien nv = em.getReference(NhanVien.class, "NV01102");
+                donLienKet.setNhanVien(nv);
+                Ban ban = em.getReference(Ban.class, banDich.getMaBan());
+                donLienKet.setBan(ban);
                 donLienKet.setTrangThai(CHUA_THANH_TOAN);
                 donLienKet.setGhiChu("LINKED:" + banDich.getMaBan());
 
@@ -394,7 +394,7 @@ public class BanRepository extends GenericRepository<Ban, String> {
         List<String> rows = em.createQuery("""
                 SELECT d.maDon
                 FROM DonDatMon d
-                WHERE d.maBan = :maBan
+                WHERE d.ban.maBan = :maBan
                   AND d.trangThai = :chuaThanhToan
                 """, String.class)
                 .setParameter("maBan", maBan)

@@ -1,5 +1,7 @@
 package iuh.fit.gui;
 
+import iuh.fit.core.dto.BanDTO;
+import iuh.fit.core.dto.ChiTietHoaDonDTO;
 import iuh.fit.core.entity.Ban;
 import iuh.fit.core.entity.MonAn;
 import iuh.fit.core.repository.ChiTietHoaDonRepository.ChiTietHoaDonItem;
@@ -119,7 +121,7 @@ public class ManHinhGoiMonGUI extends JPanel {
 
     private void loadBan() {
         cbBan.removeAllItems();
-        for (Ban b : banService.findAll()) {
+        for (BanDTO b : banService.getAllBan()) {
             cbBan.addItem(b.getMaBan() + " - " + b.getTenBan());
         }
     }
@@ -178,15 +180,20 @@ public class ManHinhGoiMonGUI extends JPanel {
             JOptionPane.showMessageDialog(this, "Nhập mã đơn trước khi nạp");
             return;
         }
-        var ds = chiTietHoaDonService.findByMaDon(maDon);
+
+        // 1. Gọi đúng tên hàm và bọc maDon thành DTO
+        ChiTietHoaDonDTO filterDTO = ChiTietHoaDonDTO.builder().maDon(maDon).build();
+        List<ChiTietHoaDonDTO> ds = chiTietHoaDonService.getChiTietTheoMaDon(filterDTO);
+
         modelOrder.setRowCount(0);
-        for (var ct : ds) {
+        for (ChiTietHoaDonDTO ct : ds) {
             modelOrder.addRow(new Object[]{
-                    ct.getMonAn() != null ? ct.getMonAn().getMaMonAn() : "",
+                    // 2. Sử dụng các hàm Getter chuẩn của DTO
+                    ct.getMaMonAn(),
                     ct.getTenMon(),
-                    ct.getSoluong(),
-                    ct.getDongia(),
-                    ct.getThanhtien()
+                    ct.getSoLuong(),
+                    ct.getDonGia(),
+                    ct.getThanhTien()
             });
         }
         capNhatTongTien();
@@ -203,16 +210,28 @@ public class ManHinhGoiMonGUI extends JPanel {
             return;
         }
 
-        List<ChiTietHoaDonItem> items = new ArrayList<>();
+        List<ChiTietHoaDonDTO> items = new ArrayList<>();
         for (int i = 0; i < modelOrder.getRowCount(); i++) {
             String maMon = modelOrder.getValueAt(i, 0).toString();
             int sl = ((Number) modelOrder.getValueAt(i, 2)).intValue();
             float dg = ((Number) modelOrder.getValueAt(i, 3)).floatValue();
-            items.add(new ChiTietHoaDonItem(maMon, sl, dg));
+
+            // 2. Dùng Builder của DTO để tạo object
+            ChiTietHoaDonDTO dtoItem = ChiTietHoaDonDTO.builder()
+                    .maMonAn(maMon)
+                    .soLuong(sl)
+                    .donGia(dg)
+                    .build();
+
+            items.add(dtoItem);
         }
 
         try {
-            chiTietHoaDonService.replaceByMaDon(maDon, items);
+            ChiTietHoaDonDTO donDTO = ChiTietHoaDonDTO.builder().maDon(maDon).build();
+
+            // 3. Truyền vào hoàn toàn hợp lệ
+            chiTietHoaDonService.replaceByMaDon(donDTO, items);
+
             JOptionPane.showMessageDialog(this, "Lưu chi tiết gọi món thành công");
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Lưu thất bại: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);

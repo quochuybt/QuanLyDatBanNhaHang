@@ -36,4 +36,24 @@ public class TaiKhoanService {
         tk.setTrangthai(!tk.isTrangthai());
         taiKhoanRepo.update(tk);
     }
+    public boolean updatePassword(String tenTK, String newPassword) {
+        if (tenTK == null || tenTK.trim().isEmpty() || newPassword == null || newPassword.trim().isEmpty()) {
+            return false;
+        }
+
+        try {
+            TaiKhoan tk = taiKhoanRepo.findById(tenTK);
+            if (tk == null) {
+                return false;
+            }
+
+            // Mã hóa mật khẩu mới và lưu xuống DB
+            tk.setMatkhau(tk.hashPassword(newPassword));
+            taiKhoanRepo.update(tk);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

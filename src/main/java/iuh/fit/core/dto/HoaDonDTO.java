@@ -78,21 +78,46 @@ public class HoaDonDTO {
     }
 
     public HoaDon toEntity() {
-        HoaDon entity = new HoaDon(
-                this.maHD,
-                this.ngayLap,
-                this.trangThai,
-                this.hinhThucThanhToan,
-                this.maDon,
-                this.maNV,
-                this.maKM
-        );
+        HoaDon entity = new HoaDon();
+
+        // 1. Gán các trường dữ liệu cơ bản
+        if (this.maHD != null) {
+            entity.setMaHD(this.maHD);
+        }
+        entity.setNgayLap(this.ngayLap);
+        entity.setTrangThai(this.trangThai);
+        entity.setHinhThucThanhToan(this.hinhThucThanhToan);
         entity.setTongTien(this.tongTien);
         entity.setTienKhachDua(this.tienKhachDua);
         entity.setTenBan(this.tenBan);
-        entity.setMaKH(this.maKH);
         entity.setGiamGia(this.giamGia);
         entity.setTongThanhToan(this.tongThanhToan);
+
+        // 2. Tạo đối tượng giả để gán khóa ngoại (chỉ cần chứa ID)
+        if (this.maDon != null && !this.maDon.isEmpty()) {
+            iuh.fit.core.entity.DonDatMon don = new iuh.fit.core.entity.DonDatMon();
+            don.setMaDon(this.maDon);
+            entity.setDonDatMon(don);
+        }
+
+        if (this.maNV != null && !this.maNV.isEmpty()) {
+            iuh.fit.core.entity.NhanVien nv = new iuh.fit.core.entity.NhanVien();
+            nv.setManv(this.maNV); // Nhớ check lại tên hàm set mã NV trong entity nhé
+            entity.setNhanVien(nv);
+        }
+
+        if (this.maKM != null && !this.maKM.isEmpty()) {
+            iuh.fit.core.entity.KhuyenMai km = new iuh.fit.core.entity.KhuyenMai();
+            km.setMaKM(this.maKM);
+            entity.setKhuyenMai(km);
+        }
+
+        if (this.maKH != null && !this.maKH.isEmpty()) {
+            iuh.fit.core.entity.KhachHang kh = new iuh.fit.core.entity.KhachHang();
+            kh.setMaKH(this.maKH);
+            entity.setKhachHang(kh);
+        }
+
         return entity;
     }
 }

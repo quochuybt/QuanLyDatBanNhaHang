@@ -1,5 +1,6 @@
 package iuh.fit.gui;
 
+import iuh.fit.core.dto.BanDTO;
 import iuh.fit.core.entity.Ban;
 import iuh.fit.core.service.BanService;
 
@@ -58,9 +59,9 @@ public class ManHinhBanGUI extends JPanel {
     }
 
     private void loadData() {
-        List<Ban> ds = banService.findAll();
+        List<BanDTO> ds = banService.getAllBan();
         model.setRowCount(0);
-        for (Ban b : ds) {
+        for (BanDTO b : ds) {
             model.addRow(new Object[]{
                     b.getMaBan(),
                     b.getTenBan(),

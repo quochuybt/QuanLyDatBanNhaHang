@@ -129,4 +129,11 @@ public class GiaoCaService {
         if (maNV == null || ngay == null) return new String[]{"Không có", "Không có"};
         return repository.getThongTinCaTruocSau(maNV, ngay);
     }
+
+    public Map<String, Double> getTopStaffByWorkHours(LocalDate startDate, LocalDate endDate, int limit) {
+        if (startDate == null || endDate == null || limit <= 0) {
+            return new java.util.LinkedHashMap<>(); // Trả về Map rỗng nếu tham số không hợp lệ
+        }
+        return repository.getTopStaffByWorkHours(startDate, endDate, limit);
+    }
 }

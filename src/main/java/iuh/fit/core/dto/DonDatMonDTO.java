@@ -59,16 +59,36 @@ public class DonDatMonDTO {
     }
 
     public DonDatMon toEntity() {
-        DonDatMon entity = new DonDatMon(
-                this.maDon,
-                this.ngayKhoiTao,
-                this.maNV,
-                this.maKH,
-                this.maBan,
-                this.ghiChu
-        );
+        DonDatMon entity = new DonDatMon();
+
+        // 1. Gán các trường dữ liệu cơ bản
+        if (this.maDon != null) {
+            entity.setMaDon(this.maDon);
+        }
+        entity.setNgayKhoiTao(this.ngayKhoiTao);
         entity.setThoiGianDen(this.thoiGianDen);
         entity.setTrangThai(this.trangThai);
+        entity.setGhiChu(this.ghiChu);
+
+        // 2. Tạo đối tượng giả để gán khóa ngoại (chỉ cần chứa ID)
+        if (this.maNV != null && !this.maNV.isEmpty()) {
+            iuh.fit.core.entity.NhanVien nv = new iuh.fit.core.entity.NhanVien();
+            nv.setManv(this.maNV); // Gọi đúng hàm set mã nhân viên trong Entity của bạn
+            entity.setNhanVien(nv);
+        }
+
+        if (this.maKH != null && !this.maKH.isEmpty()) {
+            iuh.fit.core.entity.KhachHang kh = new iuh.fit.core.entity.KhachHang();
+            kh.setMaKH(this.maKH);
+            entity.setKhachHang(kh);
+        }
+
+        if (this.maBan != null && !this.maBan.isEmpty()) {
+            iuh.fit.core.entity.Ban ban = new iuh.fit.core.entity.Ban();
+            ban.setMaBan(this.maBan);
+            entity.setBan(ban);
+        }
+
         return entity;
     }
 }

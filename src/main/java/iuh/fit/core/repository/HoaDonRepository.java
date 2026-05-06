@@ -1,10 +1,7 @@
 package iuh.fit.core.repository;
 
 import iuh.fit.core.dto.DonDatMonDTO;
-import iuh.fit.core.entity.HoaDon;
-import iuh.fit.core.entity.Ban;
-import iuh.fit.core.entity.DonDatMon;
-import iuh.fit.core.entity.TrangThaiBan;
+import iuh.fit.core.entity.*;
 import jakarta.persistence.TypedQuery;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -103,7 +100,7 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
         return doInSession(em -> {
             String jpql = "SELECT COALESCE(SUM(hd.tongTien - COALESCE(hd.giamGia, 0)), 0.0) " +
                     "FROM HoaDon hd " +
-                    "WHERE hd.maNV = :maNV " +
+                    "WHERE hd.nhanVien.manv = :maNV " +
                     "AND hd.ngayLap >= :startTime " +
                     "AND hd.trangThai = 'Đã thanh toán' " +
                     "AND hd.hinhThucThanhToan = :hinhThuc";
@@ -159,8 +156,17 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
         return executeTransaction(em -> {
             HoaDon hd = em.find(HoaDon.class, maHD);
             if (hd != null) {
-                // Giả sử HoaDon có field KhuyenMai hoặc maKM String
-                hd.setMaKM(maKM);
+                if (maKM == null || maKM.trim().isEmpty()) {
+                    hd.setKhuyenMai(null);
+                } else {
+                    KhuyenMai km = em.find(KhuyenMai.class, maKM);
+                    if (km != null) {
+                        hd.setKhuyenMai(km);
+                    } else {
+                        return false;
+                    }
+                }
+
                 return true;
             }
             return false;
@@ -173,7 +179,7 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
             if (ban == null) throw new IllegalArgumentException("Không tìm thấy bàn: " + maBan);
 
             DonDatMon donDangMo = em.createQuery(
-                            "SELECT d FROM DonDatMon d WHERE d.maBan = :maBan AND d.trangThai = 'Chưa thanh toán'", DonDatMon.class)
+                            "SELECT d FROM DonDatMon d WHERE d.ban.maBan = :maBan AND d.trangThai = 'Chưa thanh toán'", DonDatMon.class)
                     .setParameter("maBan", maBan)
                     .setMaxResults(1)
                     .getResultStream()
@@ -207,17 +213,33 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
 
             if (hd == null) {
                 hd = new HoaDon();
-                hd.setMaHD("HD" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+
+                // Sử dụng hàm phát sinh mã bạn đã viết sẵn trong entity HoaDon
+                hd.setMaHD(hd.phatSinhMaHD());
+
                 hd.setNgayLap(LocalDateTime.now());
                 hd.setTrangThai("Chưa thanh toán");
                 hd.setHinhThucThanhToan("Tiền mặt");
-                hd.setMaDon(donDangMo.getMaDon());
-                hd.setMaNV(maNV);
-                hd.setMaKH(maKH);
                 hd.setTongTien(0f);
                 hd.setGiamGia(0f);
                 hd.setTongThanhToan(0f);
+
+                // 1. Gán quan hệ với DonDatMon (bạn đã có sẵn object donDangMo)
                 hd.setDonDatMon(donDangMo);
+
+                // 2. Gán quan hệ với NhanVien thông qua Proxy (Reference)
+                if (maNV != null && !maNV.isEmpty()) {
+                    // getReference giúp tạo khóa ngoại mà không cần select DB
+                    NhanVien nv = em.getReference(NhanVien.class, maNV);
+                    hd.setNhanVien(nv);
+                }
+
+                // 3. Gán quan hệ với KhachHang thông qua Proxy
+                if (maKH != null && !maKH.isEmpty()) {
+                    KhachHang kh = em.getReference(KhachHang.class, maKH);
+                    hd.setKhachHang(kh);
+                }
+
                 em.persist(hd);
             }
 

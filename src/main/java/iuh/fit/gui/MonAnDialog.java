@@ -1,5 +1,6 @@
 package iuh.fit.gui;
 
+import iuh.fit.core.dto.DanhMucMonDTO;
 import iuh.fit.core.entity.DanhMucMon;
 import iuh.fit.core.entity.MonAn;
 import iuh.fit.core.service.DanhMucMonService;
@@ -20,7 +21,7 @@ public class MonAnDialog extends JDialog {
     private JTextField txtMaMon, txtTenMon, txtDonGia, txtDonViTinh;
     private JTextArea txtMoTa;
     private JComboBox<String> cboTrangThai;
-    private JComboBox<DanhMucMon> cboDanhMuc;
+    private JComboBox<DanhMucMonDTO> cboDanhMuc;
     private JLabel lblHinhAnhPreview;
     private String selectedImageFileName = "";
     private boolean succeeded = false;
@@ -219,7 +220,7 @@ public class MonAnDialog extends JDialog {
 
             DanhMucMon dm = (DanhMucMon) cboDanhMuc.getSelectedItem();
             if (dm != null) {
-                monAn.setMaDM(dm.getMadm());
+                monAn.getDanhMucMon().setMadm(dm.getMadm());
             }
 
             succeeded = true;
@@ -250,8 +251,8 @@ public class MonAnDialog extends JDialog {
     }
 
     private void loadCategories() {
-        List<DanhMucMon> categories = danhMucMonService.findAll();
-        for (DanhMucMon dm : categories) {
+        List<DanhMucMonDTO> categories = danhMucMonService.getAllDanhMuc();
+        for (DanhMucMonDTO dm : categories) {
             cboDanhMuc.addItem(dm);
         }
     }
@@ -265,7 +266,7 @@ public class MonAnDialog extends JDialog {
         cboTrangThai.setSelectedItem(monAn.getTrangThai());
 
         for (int i = 0; i < cboDanhMuc.getItemCount(); i++) {
-            DanhMucMon item = cboDanhMuc.getItemAt(i);
+            DanhMucMonDTO item = cboDanhMuc.getItemAt(i);
             if (item.getMadm().equals(monAn.getMaDM())) {
                 cboDanhMuc.setSelectedIndex(i);
                 break;

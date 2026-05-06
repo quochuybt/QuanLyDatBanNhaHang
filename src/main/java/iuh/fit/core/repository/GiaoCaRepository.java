@@ -254,4 +254,39 @@ public class GiaoCaRepository extends GenericRepository<GiaoCa, String> {
                 pc.getCaLam().getGioBatDau().toString().substring(0, 5) + "-" +
                 pc.getCaLam().getGioKetThuc().toString().substring(0, 5) + ")";
     }
+
+    public Map<String, Double> getTopStaffByWorkHours(LocalDate startDate, LocalDate endDate, int limit) {
+        return doInSession(em -> {
+            // Lấy danh sách ca làm trong khoảng thời gian
+            String jpql = "SELECT g FROM GiaoCa g JOIN FETCH g.nhanVien nv " +
+                    "WHERE g.thoiGianBatDau >= :start AND g.thoiGianBatDau <= :end " +
+                    "AND nv.vaiTro = :role";
+
+            List<GiaoCa> list = em.createQuery(jpql, GiaoCa.class)
+                    .setParameter("start", startDate.atStartOfDay())
+                    .setParameter("end", endDate.atTime(23, 59, 59))
+                    .setParameter("role", iuh.fit.core.entity.VaiTro.NHANVIEN)
+                    .getResultList();
+
+            // Gom nhóm và tính tổng giờ bằng Java Stream
+            Map<String, Double> unsortedMap = list.stream().collect(java.util.stream.Collectors.groupingBy(
+                    g -> g.getNhanVien().getHoten(),
+                    java.util.stream.Collectors.summingDouble(g -> {
+                        java.time.LocalDateTime start = g.getThoiGianBatDau();
+                        java.time.LocalDateTime end = (g.getThoiGianKetThuc() != null) ? g.getThoiGianKetThuc() : java.time.LocalDateTime.now();
+                        return java.time.Duration.between(start, end).toMinutes() / 60.0;
+                    })
+            ));
+
+            // Sắp xếp giảm dần và giới hạn số lượng (limit)
+            return unsortedMap.entrySet().stream()
+                    .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
+                    .limit(limit)
+                    .collect(java.util.stream.Collectors.toMap(
+                            Map.Entry::getKey,
+                            Map.Entry::getValue,
+                            (e1, e2) -> e1,
+                            LinkedHashMap::new));
+        });
+    }
 }
