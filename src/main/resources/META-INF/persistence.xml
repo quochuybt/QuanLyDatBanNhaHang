@@ -11,6 +11,15 @@
         <class>iuh.fit.core.entity.NhanVien</class>
         <class>iuh.fit.core.entity.CaLam</class>
         <class>iuh.fit.core.entity.PhanCong</class>
+        <class>iuh.fit.core.entity.Ban</class>
+        <class>iuh.fit.core.entity.DanhMucMon</class>
+        <class>iuh.fit.core.entity.MonAn</class>
+        <class>iuh.fit.core.entity.KhachHang</class>
+        <class>iuh.fit.core.entity.KhuyenMai</class>
+        <class>iuh.fit.core.entity.DonDatMon</class>
+        <class>iuh.fit.core.entity.HoaDon</class>
+        <class>iuh.fit.core.entity.ChiTietHoaDon</class>
+        <class>iuh.fit.core.entity.GiaoCa</class>
 
         <properties>
             <property name="jakarta.persistence.jdbc.driver" value="org.mariadb.jdbc.Driver"/>

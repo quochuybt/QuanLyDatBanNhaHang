@@ -1,9 +1,18 @@
 package iuh.fit.core.entity;
 
 import jakarta.persistence.*;
-import java.time.LocalDate;
-import java.util.Objects;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "KhuyenMai")
 public class KhuyenMai {
@@ -42,7 +51,9 @@ public class KhuyenMai {
     @Column(name = "soLuotDaDung")
     private int soLuotDaDung;
 
-    public KhuyenMai() {}
+    // ====== Quan hệ với HoaDon (1-N) ======
+    @OneToMany(mappedBy = "khuyenMai")
+    private Set<HoaDon> hoaDons = new HashSet<>();
 
     public KhuyenMai(String maKM, String tenChuongTrinh, String moTa, String loaiKhuyenMai,
                      double giaTri, double dieuKienApDung,
@@ -58,38 +69,27 @@ public class KhuyenMai {
         this.trangThai = trangThai;
     }
 
-    public String getMaKM() { return maKM; }
-    public void setMaKM(String maKM) { this.maKM = maKM; }
+    /**
+     * Kiểm tra khuyến mãi còn hiệu lực không
+     */
+    public boolean isActive() {
+        return "Đang áp dụng".equals(trangThai)
+                && (ngayKetThuc == null || !ngayKetThuc.isBefore(LocalDate.now()));
+    }
 
-    public String getTenChuongTrinh() { return tenChuongTrinh; }
-    public void setTenChuongTrinh(String tenChuongTrinh) { this.tenChuongTrinh = tenChuongTrinh; }
+    /**
+     * Kiểm tra còn lượt sử dụng không (0 = không giới hạn)
+     */
+    public boolean conLuotSuDung() {
+        return soLuongGioiHan == 0 || soLuotDaDung < soLuongGioiHan;
+    }
 
-    public String getMoTa() { return moTa; }
-    public void setMoTa(String moTa) { this.moTa = moTa; }
-
-    public String getLoaiKhuyenMai() { return loaiKhuyenMai; }
-    public void setLoaiKhuyenMai(String loaiKhuyenMai) { this.loaiKhuyenMai = loaiKhuyenMai; }
-
-    public double getGiaTri() { return giaTri; }
-    public void setGiaTri(double giaTri) { this.giaTri = giaTri; }
-
-    public double getDieuKienApDung() { return dieuKienApDung; }
-    public void setDieuKienApDung(double dieuKienApDung) { this.dieuKienApDung = dieuKienApDung; }
-
-    public LocalDate getNgayBatDau() { return ngayBatDau; }
-    public void setNgayBatDau(LocalDate ngayBatDau) { this.ngayBatDau = ngayBatDau; }
-
-    public LocalDate getNgayKetThuc() { return ngayKetThuc; }
-    public void setNgayKetThuc(LocalDate ngayKetThuc) { this.ngayKetThuc = ngayKetThuc; }
-
-    public String getTrangThai() { return trangThai; }
-    public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
-
-    public int getSoLuongGioiHan() { return soLuongGioiHan; }
-    public void setSoLuongGioiHan(int soLuongGioiHan) { this.soLuongGioiHan = soLuongGioiHan; }
-
-    public int getSoLuotDaDung() { return soLuotDaDung; }
-    public void setSoLuotDaDung(int soLuotDaDung) { this.soLuotDaDung = soLuotDaDung; }
+    /**
+     * Tăng số lượt đã dùng
+     */
+    public void tangLuotDaDung() {
+        this.soLuotDaDung++;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -102,5 +102,14 @@ public class KhuyenMai {
     @Override
     public int hashCode() {
         return Objects.hash(maKM);
+    }
+
+    @Override
+    public String toString() {
+        return "KhuyenMai{" +
+                "maKM='" + maKM + '\'' +
+                ", tenChuongTrinh='" + tenChuongTrinh + '\'' +
+                ", trangThai='" + trangThai + '\'' +
+                '}';
     }
 }

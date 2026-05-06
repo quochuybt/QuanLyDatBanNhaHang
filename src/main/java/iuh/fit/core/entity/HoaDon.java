@@ -39,38 +39,59 @@ public class HoaDon {
     @Column(name = "tenBan", columnDefinition = "NVARCHAR(50)")
     private String tenBan;
 
-    @Column(name = "maDon", length = 20)
-    private String maDon;
-
-    @Column(name = "maNV", length = 20)
-    private String maNV;
-
-    @Column(name = "maKM", length = 20)
-    private String maKM;
-
-    @Column(name = "maKH", length = 20)
-    private String maKH;
-
     @Column(name = "giamGia")
     private float giamGia;
 
     @Column(name = "tongThanhToan")
     private float tongThanhToan;
 
+    // ====== Quan hệ với DonDatMon (1-1) ======
     @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "maDonDatMon", unique = true, nullable = false)
+    @JoinColumn(name = "maDon", unique = true, nullable = false)
     private DonDatMon donDatMon;
 
+    // ====== Quan hệ với NhanVien (N-1) ======
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "maNV")
+    private NhanVien nhanVien;
+
+    // ====== Quan hệ với KhuyenMai (N-1) ======
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "maKM")
+    private KhuyenMai khuyenMai;
+
+    // ====== Quan hệ với KhachHang (N-1) ======
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "maKH")
+    private KhachHang khachHang;
+
     public HoaDon(String maHD, LocalDateTime ngayLap, String trangThai,
-                  String hinhThucThanhToan, String maDon,
-                  String maNV, String maKM) {
+                  String hinhThucThanhToan, DonDatMon donDatMon,
+                  NhanVien nhanVien, KhuyenMai khuyenMai) {
         this.maHD = maHD;
         this.ngayLap = ngayLap;
         this.trangThai = trangThai;
         this.hinhThucThanhToan = hinhThucThanhToan;
-        this.maDon = maDon;
-        this.maNV = maNV;
-        this.maKM = maKM;
+        this.donDatMon = donDatMon;
+        this.nhanVien = nhanVien;
+        this.khuyenMai = khuyenMai;
+    }
+
+    // Phương thức tiện ích lấy mã (tương thích code cũ)
+    public String getMaDon() {
+        return donDatMon != null ? donDatMon.getMaDon() : null;
+    }
+
+    public String getMaNV() {
+        return nhanVien != null ? nhanVien.getManv() : null;
+    }
+
+    public String getMaKM() {
+        return khuyenMai != null ? khuyenMai.getMaKM() : null;
+    }
+
+    public String getMaKH() {
+        return khachHang != null ? khachHang.getMaKH() : null;
     }
 
     public void tinhLaiTongThanhToan() {
@@ -81,10 +102,23 @@ public class HoaDon {
         return Math.max(0, this.tienKhachDua - this.tongThanhToan);
     }
 
-    private String phatSinhMaHD() {
+    public String phatSinhMaHD() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyy");
         String datePart = LocalDateTime.now().format(formatter);
         int randomPart = ThreadLocalRandom.current().nextInt(1000, 10000);
         return "HD" + datePart + randomPart;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof HoaDon)) return false;
+        HoaDon that = (HoaDon) o;
+        return Objects.equals(maHD, that.maHD);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(maHD);
     }
 }

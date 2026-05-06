@@ -1,7 +1,15 @@
 package iuh.fit.core.entity;
 
 import jakarta.persistence.*;
+import lombok.*;
 
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "MonAn")
 public class MonAn {
@@ -28,32 +36,64 @@ public class MonAn {
     @Column(name = "hinhAnh", length = 255)
     private String hinhAnh;
 
-    @Column(name = "maDM", length = 20)
-    private String maDM;
+    // ====== Quan hệ với DanhMucMon (N-1) ======
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "maDM", referencedColumnName = "madm")
+    private DanhMucMon danhMucMon;
 
-    public MonAn() {}
+    // ====== Quan hệ với ChiTietHoaDon (1-N) ======
+    @OneToMany(mappedBy = "monAn")
+    private Set<ChiTietHoaDon> chiTietHoaDons = new HashSet<>();
 
-    public String getMaMonAn() { return maMonAn; }
-    public void setMaMonAn(String maMonAn) { this.maMonAn = maMonAn; }
+    public MonAn(String maMonAn, String tenMon, String moTa, float donGia,
+                 String donViTinh, String trangThai, String hinhAnh, DanhMucMon danhMucMon) {
+        this.maMonAn = maMonAn;
+        this.tenMon = tenMon;
+        this.moTa = moTa;
+        this.donGia = donGia;
+        this.donViTinh = donViTinh;
+        this.trangThai = trangThai;
+        this.hinhAnh = hinhAnh;
+        this.danhMucMon = danhMucMon;
+    }
 
-    public String getTenMon() { return tenMon; }
-    public void setTenMon(String tenMon) { this.tenMon = tenMon; }
+    // Constructor tiện ích: tạo từ mã danh mục String (dùng khi chưa load DanhMucMon)
+    public MonAn(String maMonAn, String tenMon, String moTa, float donGia,
+                 String donViTinh, String trangThai, String hinhAnh, String maDM) {
+        this.maMonAn = maMonAn;
+        this.tenMon = tenMon;
+        this.moTa = moTa;
+        this.donGia = donGia;
+        this.donViTinh = donViTinh;
+        this.trangThai = trangThai;
+        this.hinhAnh = hinhAnh;
+        if (maDM != null && !maDM.isEmpty()) {
+            DanhMucMon dm = new DanhMucMon();
+            dm.setMadm(maDM);
+            this.danhMucMon = dm;
+        }
+    }
 
-    public String getMoTa() { return moTa; }
-    public void setMoTa(String moTa) { this.moTa = moTa; }
+    // Phương thức tiện ích lấy mã danh mục (tương thích code cũ)
+    public String getMaDM() {
+        return danhMucMon != null ? danhMucMon.getMadm() : null;
+    }
 
-    public float getDonGia() { return donGia; }
-    public void setDonGia(float donGia) { this.donGia = donGia; }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof MonAn)) return false;
+        MonAn monAn = (MonAn) o;
+        return Objects.equals(maMonAn, monAn.maMonAn);
+    }
 
-    public String getDonViTinh() { return donViTinh; }
-    public void setDonViTinh(String donViTinh) { this.donViTinh = donViTinh; }
+    @Override
+    public int hashCode() {
+        return Objects.hash(maMonAn);
+    }
 
-    public String getTrangThai() { return trangThai; }
-    public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
-
-    public String getHinhAnh() { return hinhAnh; }
-    public void setHinhAnh(String hinhAnh) { this.hinhAnh = hinhAnh; }
-
-    public String getMaDM() { return maDM; }
-    public void setMaDM(String maDM) { this.maDM = maDM; }
+    @Override
+    public String toString() {
+        return tenMon;
+    }
 }
