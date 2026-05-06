@@ -2,11 +2,25 @@
 //
 //package iuh.fit.gui;
 //
-//import dao.*;
-//import entity.*;
 //import gui.KhachHangGUI;
 //import gui.ManHinhBanGUI;
 //import gui.ManHinhGoiMonGUI;
+//
+//import iuh.fit.core.dto.BanDTO;
+//import iuh.fit.core.dto.ChiTietHoaDonDTO;
+//import iuh.fit.core.dto.DonDatMonDTO;
+//import iuh.fit.core.dto.HoaDonDTO;
+//import iuh.fit.core.dto.KhachHangDTO;
+//import iuh.fit.core.dto.NhanVienDTO;
+//
+//import iuh.fit.core.service.BanService;
+//import iuh.fit.core.service.ChiTietHoaDonService;
+//import iuh.fit.core.service.DonDatMonService;
+//import iuh.fit.core.service.HoaDonService;
+//import iuh.fit.core.service.KhachHangService;
+//import iuh.fit.core.service.KhuyenMaiService;
+//import iuh.fit.core.service.MonAnService;
+//import iuh.fit.core.service.NhanVienService;
 //
 //import javax.swing.*;
 //import javax.swing.border.EmptyBorder;
@@ -34,51 +48,54 @@
 //    private JTextField txtKhachTra;
 //    private String customHeaderName = "";
 //
-//
 //    private JButton btnLuuMon, btnInTamTinh, btnThanhToan;
 //
 //    private ManHinhGoiMonGUI parentGoiMonGUI;
 //    private ManHinhBanGUI parentBanGUI;
-//    private ChiTietHoaDonDAO chiTietDAO;
-//    private HoaDonDAO hoaDonDAO;
-//    private BanDAO banDAO;
-//    private NhanVienDAO nhanVienDAO;
-//    private MonAnDAO monAnDAO;
-//    private KhachHangDAO khachHangDAO;
-//    private KhuyenMaiDAO maKhuyenMaiDAO;
-//    private DonDatMonDAO donDatMonDAO;
+//
+//    private ChiTietHoaDonService chiTietHoaDonService;
+//    private HoaDonService hoaDonService;
+//    private BanService banService;
+//    private NhanVienService nhanVienService;
+//    private MonAnService monAnService;
+//    private KhachHangService khachHangService;
+//    private KhuyenMaiService khuyenMaiService;
+//    private DonDatMonService donDatMonService;
 //
 //    private long currentTotal = 0;
 //    private JPanel suggestedCashPanel;
 //    private final JButton[] suggestedCashButtons = new JButton[6];
 //    private final NumberFormat nf = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+//
 //    public BillPanel(ManHinhGoiMonGUI parent) {
 //        super(new BorderLayout(0, 10));
 //        this.parentGoiMonGUI = parent;
 //        initCommon();
 //    }
+//
 //    public BillPanel(ManHinhBanGUI parent) {
 //        super(new BorderLayout(0, 10));
 //        this.parentBanGUI = parent;
 //        initCommon();
 //    }
+//
 //    public BillPanel() {
 //        this((ManHinhGoiMonGUI) null);
 //    }
+//
 //    private void initCommon() {
-//        this.chiTietDAO = new ChiTietHoaDonDAO();
-//        this.hoaDonDAO = new HoaDonDAO();
-//        this.banDAO = new BanDAO();
-//        this.khachHangDAO = new KhachHangDAO();
-//        this.maKhuyenMaiDAO = new KhuyenMaiDAO();
-//        this.nhanVienDAO = new NhanVienDAO();
-//        this.monAnDAO = new MonAnDAO();
-//        this.donDatMonDAO = new DonDatMonDAO();
+//        this.chiTietHoaDonService = new ChiTietHoaDonService();
+//        this.hoaDonService = new HoaDonService();
+//        this.banService = new BanService();
+//        this.khachHangService = new KhachHangService();
+//        this.khuyenMaiService = new KhuyenMaiService();
+//        this.nhanVienService = new NhanVienService();
+//        this.monAnService = new MonAnService();
+//        this.donDatMonService = new DonDatMonService();
 //
 //        setBackground(Color.WHITE);
 //        JPanel checkoutPanel = createCheckoutPanel();
 //        add(checkoutPanel, BorderLayout.SOUTH);
-//
 //
 //        if (parentGoiMonGUI != null || parentBanGUI != null) {
 //            btnInTamTinh.addActionListener(e -> hienThiXemTamTinh());
@@ -98,7 +115,7 @@
 //        InputMap inputMap = this.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
 //        ActionMap actionMap = this.getActionMap();
 //
-//        KeyStroke f2KeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0); // 0 = không có modifier (Shift, Ctrl, Alt)
+//        KeyStroke f2KeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0);
 //
 //        String saveActionKey = "saveOrderAction";
 //
@@ -126,10 +143,11 @@
 //            }
 //        });
 //    }
+//
 //    public void xuLyThanhToan() {
 //
-//        Ban banHienTai = null;
-//        HoaDon activeHoaDon = null;
+//        BanDTO banHienTai = null;
+//        HoaDonDTO activeHoaDon = null;
 //
 //        if (parentGoiMonGUI != null) {
 //            banHienTai = parentGoiMonGUI.getBanHienTai();
@@ -138,6 +156,7 @@
 //            banHienTai = parentBanGUI.getSelectedTable();
 //            activeHoaDon = parentBanGUI.getActiveHoaDon();
 //        }
+//
 //        if (banHienTai == null || activeHoaDon == null) {
 //            JOptionPane.showMessageDialog(this, "Chưa có bàn/hóa đơn hợp lệ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
 //            return;
@@ -146,34 +165,53 @@
 //        String ghiChuHoaDon = "";
 //        if (activeHoaDon.getMaDon() != null) {
 //
-//            DonDatMon ddm = donDatMonDAO.getDonDatMonByMa(activeHoaDon.getMaDon());
+//            DonDatMonDTO ddmRequest = new DonDatMonDTO();
+//            ddmRequest.setMaDon(activeHoaDon.getMaDon());
+//
+//            DonDatMonDTO ddm = donDatMonService.getDonDatMonByMa(ddmRequest);
 //            if (ddm != null && ddm.getGhiChu() != null) {
 //                ghiChuHoaDon = ddm.getGhiChu();
 //            }
 //        }
 //
-//
 //        if (parentGoiMonGUI != null) {
 //
 //            if (parentGoiMonGUI.getModelChiTietHoaDon().getRowCount() == 0) return;
 //            if (!luuMonAnVaoCSDL(false)) return;
-//            List<ChiTietHoaDon> dsMonMoi = chiTietDAO.getChiTietTheoMaDon(activeHoaDon.getMaDon());
-//            activeHoaDon.setDsChiTiet(dsMonMoi);
-//            activeHoaDon.tinhLaiGiamGiaVaTongTien(khachHangDAO, maKhuyenMaiDAO);
+//
+//            ChiTietHoaDonDTO request = new ChiTietHoaDonDTO();
+//            request.setMaDon(activeHoaDon.getMaDon());
+//
+//            List<ChiTietHoaDonDTO> dsMonMoi = chiTietHoaDonService.getChiTietTheoMaDon(request);
+//
+//            activeHoaDon = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
+//
 //            this.currentTotal = (long) activeHoaDon.getTongThanhToan();
+//
 //            loadBillTotals(
-//                    (long)activeHoaDon.getTongTien(),
-//                    (long)activeHoaDon.getGiamGia(),
-//                    (long)activeHoaDon.getTongThanhToan(),
+//                    (long) activeHoaDon.getTongTien(),
+//                    (long) activeHoaDon.getGiamGia(),
+//                    (long) activeHoaDon.getTongThanhToan(),
 //                    dsMonMoi.size()
 //            );
+//
 //        } else if (parentBanGUI != null) {
-//            List<ChiTietHoaDon> dsMon = chiTietDAO.getChiTietTheoMaDon(activeHoaDon.getMaDon());
-//            activeHoaDon.setDsChiTiet(dsMon);
-//            activeHoaDon.tinhLaiGiamGiaVaTongTien(khachHangDAO, maKhuyenMaiDAO);
+//
+//            ChiTietHoaDonDTO request = new ChiTietHoaDonDTO();
+//            request.setMaDon(activeHoaDon.getMaDon());
+//
+//            List<ChiTietHoaDonDTO> dsMon = chiTietHoaDonService.getChiTietTheoMaDon(request);
+//
+//            activeHoaDon = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
+//
 //            this.currentTotal = (long) activeHoaDon.getTongThanhToan();
-//            loadBillTotals((long)activeHoaDon.getTongTien(), (long)activeHoaDon.getGiamGia(),
-//                    (long)activeHoaDon.getTongThanhToan(), 0);
+//
+//            loadBillTotals(
+//                    (long) activeHoaDon.getTongTien(),
+//                    (long) activeHoaDon.getGiamGia(),
+//                    (long) activeHoaDon.getTongThanhToan(),
+//                    0
+//            );
 //        }
 //
 //        long tienKhachTraLong = 0;
@@ -192,7 +230,6 @@
 //            return;
 //        }
 //
-//        // 3. Xác nhận (Tùy chọn)
 //        long tienThoiLong = tienKhachTraLong - tongPhaiTraLong;
 //        int confirm = JOptionPane.showConfirmDialog(this,
 //                String.format("Xác nhận thanh toán cho %s?\nTổng: %s\nKhách đưa: %s\nTiền thối: %s",
@@ -208,44 +245,56 @@
 //            String hinhThucTT = "Tiền mặt";
 //            if (parentBanGUI != null) {
 //                hinhThucTT = parentBanGUI.getHinhThucThanhToan();
-//            }
-//            else if (parentGoiMonGUI != null) {
-//
+//            } else if (parentGoiMonGUI != null) {
 //                hinhThucTT = "Tiền mặt";
 //            }
+//
 //            double tienGiamGia = activeHoaDon.getGiamGia();
 //            String maKM = activeHoaDon.getMaKM();
 //            long tongThanhToanFinal = this.currentTotal;
-//            String tenBanInHoaDon = banDAO.getTenBanByMa(banHienTai.getMaBan());
+//
+//            BanDTO banRequest = new BanDTO();
+//            banRequest.setMaBan(banHienTai.getMaBan());
+//
+//            String tenBanInHoaDon = banService.getTenBanByMa(banRequest);
 //            if (tenBanInHoaDon == null || tenBanInHoaDon.isEmpty()) {
 //                tenBanInHoaDon = banHienTai.getTenBan();
 //            }
+//
 //            if (this.customHeaderName != null && !this.customHeaderName.isEmpty()) {
 //                tenBanInHoaDon = this.customHeaderName;
 //            }
+//
 //            String tenBanLuuLichSu = tenBanInHoaDon;
-//            if (tenBanLuuLichSu == null || tenBanLuuLichSu.isEmpty()) tenBanLuuLichSu = banHienTai.getTenBan();
-//            boolean thanhToanOK = hoaDonDAO.thanhToanHoaDon(
-//                    maHDCuoiCung,
-//                    activeHoaDon.getTongThanhToan(),
-//                    tienKhachTraLong,
-//                    hinhThucTT,
-//                    tienGiamGia,
-//                    maKM,
-//                    tenBanLuuLichSu
-//            );
+//            if (tenBanLuuLichSu == null || tenBanLuuLichSu.isEmpty()) {
+//                tenBanLuuLichSu = banHienTai.getTenBan();
+//            }
+//
+//            HoaDonDTO thanhToanDTO = new HoaDonDTO();
+//            thanhToanDTO.setMaHD(maHDCuoiCung);
+//            thanhToanDTO.setTongThanhToan(activeHoaDon.getTongThanhToan());
+//            thanhToanDTO.setTienKhachDua(tienKhachTraLong);
+//            thanhToanDTO.setHinhThucThanhToan(hinhThucTT);
+//            thanhToanDTO.setGiamGia((float) tienGiamGia);
+//            thanhToanDTO.setMaKM(maKM);
+//            thanhToanDTO.setTenBanLuuLichSu(tenBanLuuLichSu);
+//
+//            boolean thanhToanOK = hoaDonService.thanhToanHoaDon(thanhToanDTO);
 //
 //            if (thanhToanOK) {
 //
 //                String maKH = activeHoaDon.getMaKH();
 //                if (maKH != null && !maKH.trim().isEmpty()) {
-//                    KhachHang khachHang = khachHangDAO.timTheoMaKH(maKH);
-//                    if (khachHang != null && khachHang.getHangThanhVien() != entity.HangThanhVien.NONE) {
+//
+//                    KhachHangDTO khachHangRequest = new KhachHangDTO();
+//                    khachHangRequest.setMaKH(maKH);
+//
+//                    KhachHangDTO khachHang = khachHangService.timTheoMaKH(khachHangRequest);
+//
+//                    if (khachHang != null && khachHangService.coTichDiem(khachHang)) {
 //                        float soTienCongThem = (float) tongThanhToanFinal;
 //
-//                        khachHang.capNhatTongChiTieu(soTienCongThem);
-//
-//                        if (khachHangDAO.updateKhachHang(khachHang)) {
+//                        if (khachHangService.congTongChiTieu(khachHang, soTienCongThem)) {
 //                            KhachHangGUI.reloadKhachHangTableIfAvailable();
 //
 //                        } else {
@@ -253,23 +302,29 @@
 //                        }
 //                    }
 //                }
-//                List<ChiTietHoaDon> listToPrint = activeHoaDon.getDsChiTiet();
-//                if (listToPrint == null || listToPrint.isEmpty()) {
 //
-//                    listToPrint = getCurrentDetailList();
-//                }
+//                List<ChiTietHoaDonDTO> listToPrint = getCurrentDetailList();
 //
 //                String tenNVIn = "Admin";
 //                if (activeHoaDon.getMaNV() != null) {
-//                    NhanVien nv = nhanVienDAO.getChiTietNhanVien(activeHoaDon.getMaNV());
+//
+//                    NhanVienDTO nvRequest = new NhanVienDTO();
+//                    nvRequest.setMaNV(activeHoaDon.getMaNV());
+//
+//                    NhanVienDTO nv = nhanVienService.getChiTietNhanVien(nvRequest);
 //                    if (nv != null) tenNVIn = nv.getHoten();
 //                }
 //
 //                String tenKHIn = "Khách lẻ";
 //                if (activeHoaDon.getMaKH() != null) {
-//                    KhachHang kh = khachHangDAO.timTheoMaKH(activeHoaDon.getMaKH());
+//
+//                    KhachHangDTO khRequest = new KhachHangDTO();
+//                    khRequest.setMaKH(activeHoaDon.getMaKH());
+//
+//                    KhachHangDTO kh = khachHangService.timTheoMaKH(khRequest);
 //                    if (kh != null) tenKHIn = kh.getTenKH();
 //                }
+//
 //                xuatPhieuIn(
 //                        "HÓA ĐƠN THANH TOÁN",
 //                        true,
@@ -283,6 +338,7 @@
 //                        tenKHIn,
 //                        ghiChuHoaDon
 //                );
+//
 //                if (parentGoiMonGUI != null) {
 //                    parentGoiMonGUI.xoaThongTinGoiMon();
 //                    if (parentGoiMonGUI.getParentDanhSachBanGUI() != null) {
@@ -292,13 +348,13 @@
 //                    parentBanGUI.refreshTableList();
 //                    clearBill();
 //                }
+//
 //                maKM = activeHoaDon.getMaKM();
 //                maKH = activeHoaDon.getMaKH();
 //
 //                if (maKM != null && !maKM.isEmpty()) {
-//
 //                    String maKHGhiNhan = (maKH != null) ? maKH : "KH_VANGLAI";
-//                    maKhuyenMaiDAO.ghiNhanSuDung(maKM, maKHGhiNhan);
+//                    khuyenMaiService.ghiNhanSuDung(maKM, maKHGhiNhan);
 //                }
 //            } else {
 //                JOptionPane.showMessageDialog(this, "Lỗi cập nhật CSDL!", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
@@ -307,19 +363,19 @@
 //            ex.printStackTrace();
 //            JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
 //        }
-//
 //    }
+//
 //    private void xuLyLuuMon_Clicked() {
 //        boolean luuThanhCong = luuMonAnVaoCSDL(true);
 //    }
-//    private List<ChiTietHoaDon> getCurrentDetailList() {
-//        List<ChiTietHoaDon> list = new ArrayList<>();
+//
+//    private List<ChiTietHoaDonDTO> getCurrentDetailList() {
+//        List<ChiTietHoaDonDTO> list = new ArrayList<>();
 //
 //        if (parentGoiMonGUI != null) {
-//            // --- TRƯỜNG HỢP 1: Lấy từ JTable ---
 //            DefaultTableModel model = parentGoiMonGUI.getModelChiTietHoaDon();
 //            String maDon = null;
-//            if(parentGoiMonGUI.getActiveHoaDon() != null) {
+//            if (parentGoiMonGUI.getActiveHoaDon() != null) {
 //                maDon = parentGoiMonGUI.getActiveHoaDon().getMaDon();
 //            }
 //
@@ -339,29 +395,38 @@
 //                    if (soLuong == null) soLuong = 1;
 //                    if (donGia == null) donGia = 0f;
 //
-//                    ChiTietHoaDon ct = new ChiTietHoaDon(maDon, maMon, soLuong, donGia);
+//                    ChiTietHoaDonDTO ct = new ChiTietHoaDonDTO();
+//                    ct.setMaDon(maDon);
+//                    ct.setMaMonAn(maMon);
 //                    ct.setTenMon(tenMon);
+//                    ct.setSoLuong(soLuong);
+//                    ct.setDonGia(donGia);
+//                    ct.setThanhTien(soLuong * donGia);
+//
 //                    list.add(ct);
 //
 //                } catch (Exception e) {
 //                    System.err.println("Lỗi khi đọc dòng " + i + " từ bảng: " + e.getMessage());
-//
 //                }
 //            }
-//        }
-//        else if (parentBanGUI != null) {
-//            HoaDon hd = parentBanGUI.getActiveHoaDon();
+//        } else if (parentBanGUI != null) {
+//            HoaDonDTO hd = parentBanGUI.getActiveHoaDon();
 //            if (hd != null) {
-//                list = chiTietDAO.getChiTietTheoMaDon(hd.getMaDon());
+//                ChiTietHoaDonDTO request = new ChiTietHoaDonDTO();
+//                request.setMaDon(hd.getMaDon());
+//
+//                list = chiTietHoaDonService.getChiTietTheoMaDon(request);
 //            }
 //        }
 //        return list;
 //    }
+//
 //    private boolean luuMonAnVaoCSDL(boolean hienThongBaoThanhCong) {
 //
 //        if (parentGoiMonGUI == null) return false;
-//        Ban banHienTai = parentGoiMonGUI.getBanHienTai();
-//        HoaDon activeHoaDon = parentGoiMonGUI.getActiveHoaDon();
+//
+//        BanDTO banHienTai = parentGoiMonGUI.getBanHienTai();
+//        HoaDonDTO activeHoaDon = parentGoiMonGUI.getActiveHoaDon();
 //        DefaultTableModel model = parentGoiMonGUI.getModelChiTietHoaDon();
 //
 //        if (banHienTai == null || activeHoaDon == null || activeHoaDon.getMaDon() == null) {
@@ -370,18 +435,21 @@
 //            }
 //            return false;
 //        }
+//
 //        String maDon = activeHoaDon.getMaDon();
 //
 //        Map<String, Integer> itemsTrenGUI = new HashMap<>();
-//        float tongTienMoiGUI = 0;
+//        Map<String, Float> donGiaTrenGUI = new HashMap<>();
+//
 //        for (int i = 0; i < model.getRowCount(); i++) {
 //            String maMon = (String) model.getValueAt(i, 1);
 //            Object soLuongObj = model.getValueAt(i, 3);
-//            Object thanhTienObj = model.getValueAt(i, 5);
-//            Integer soLuong = 0;
-//            Float thanhTien = 0f;
-//            try {
+//            Object donGiaObj = model.getValueAt(i, 4);
 //
+//            Integer soLuong = 0;
+//            Float donGia = 0f;
+//
+//            try {
 //                if (soLuongObj != null) {
 //                    if (soLuongObj instanceof Number) {
 //                        soLuong = ((Number) soLuongObj).intValue();
@@ -390,11 +458,11 @@
 //                    }
 //                }
 //
-//                if (thanhTienObj != null) {
-//                    if (thanhTienObj instanceof Number) {
-//                        thanhTien = ((Number) thanhTienObj).floatValue();
+//                if (donGiaObj != null) {
+//                    if (donGiaObj instanceof Number) {
+//                        donGia = ((Number) donGiaObj).floatValue();
 //                    } else {
-//                        thanhTien = Float.parseFloat(thanhTienObj.toString().trim());
+//                        donGia = Float.parseFloat(donGiaObj.toString().trim());
 //                    }
 //                }
 //            } catch (Exception parseEx) {
@@ -404,15 +472,18 @@
 //
 //            if (maMon != null && soLuong > 0) {
 //                itemsTrenGUI.put(maMon, soLuong);
-//                tongTienMoiGUI += thanhTien;
+//                donGiaTrenGUI.put(maMon, donGia);
 //            }
 //        }
 //
-//        List<ChiTietHoaDon> itemsTrongDB_List = chiTietDAO.getChiTietTheoMaDon(maDon);
+//        ChiTietHoaDonDTO request = new ChiTietHoaDonDTO();
+//        request.setMaDon(maDon);
 //
-//        Map<String, ChiTietHoaDon> itemsTrongDB = new HashMap<>();
-//        for (ChiTietHoaDon ct : itemsTrongDB_List) {
-//            itemsTrongDB.put(ct.getMaMon(), ct);
+//        List<ChiTietHoaDonDTO> itemsTrongDBList = chiTietHoaDonService.getChiTietTheoMaDon(request);
+//
+//        Map<String, ChiTietHoaDonDTO> itemsTrongDB = new HashMap<>();
+//        for (ChiTietHoaDonDTO ct : itemsTrongDBList) {
+//            itemsTrongDB.put(ct.getMaMonAn(), ct);
 //        }
 //
 //        boolean coLoi = false;
@@ -423,11 +494,21 @@
 //                int soLuongGUI = entryGUI.getValue();
 //
 //                if (!itemsTrongDB.containsKey(maMonGUI)) {
-//                    float donGia = monAnDAO.getDonGiaByMa(maMonGUI);
+//                    float donGia = donGiaTrenGUI.getOrDefault(maMonGUI, 0f);
+//
+//                    if (donGia <= 0) {
+//                        donGia = monAnService.getDonGiaByMa(maMonGUI);
+//                    }
 //
 //                    if (donGia > 0) {
-//                        ChiTietHoaDon ctMoi = new ChiTietHoaDon(maMonGUI, maDon, soLuongGUI, donGia);
-//                        if (!chiTietDAO.themChiTiet(ctMoi)) {
+//                        ChiTietHoaDonDTO ctMoi = new ChiTietHoaDonDTO();
+//                        ctMoi.setMaDon(maDon);
+//                        ctMoi.setMaMonAn(maMonGUI);
+//                        ctMoi.setSoLuong(soLuongGUI);
+//                        ctMoi.setDonGia(donGia);
+//                        ctMoi.setThanhTien(soLuongGUI * donGia);
+//
+//                        if (!chiTietHoaDonService.themChiTiet(ctMoi)) {
 //                            coLoi = true;
 //                            System.err.println("Lỗi khi thêm chi tiết: " + maMonGUI);
 //                        }
@@ -437,25 +518,35 @@
 //                }
 //            }
 //
-//            for (Map.Entry<String, ChiTietHoaDon> entryDB : itemsTrongDB.entrySet()) {
+//            for (Map.Entry<String, ChiTietHoaDonDTO> entryDB : itemsTrongDB.entrySet()) {
 //                String maMonDB = entryDB.getKey();
 //                if (!itemsTrenGUI.containsKey(maMonDB)) {
-//                    if (!chiTietDAO.xoaChiTiet(maDon, maMonDB)) {
+//                    ChiTietHoaDonDTO deleteDTO = new ChiTietHoaDonDTO();
+//                    deleteDTO.setMaDon(maDon);
+//                    deleteDTO.setMaMonAn(maMonDB);
+//
+//                    if (!chiTietHoaDonService.xoaChiTiet(deleteDTO)) {
 //                        coLoi = true;
 //                        System.err.println("Lỗi khi xóa chi tiết: " + maMonDB);
 //                    }
 //                }
 //            }
+//
 //            for (Map.Entry<String, Integer> entryGUI : itemsTrenGUI.entrySet()) {
 //                String maMonGUI = entryGUI.getKey();
 //                int soLuongGUI = entryGUI.getValue();
 //
 //                if (itemsTrongDB.containsKey(maMonGUI)) {
-//                    ChiTietHoaDon ctTrongDB = itemsTrongDB.get(maMonGUI);
-//                    if (ctTrongDB.getSoluong() != soLuongGUI) {
+//                    ChiTietHoaDonDTO ctTrongDB = itemsTrongDB.get(maMonGUI);
+//                    if (ctTrongDB.getSoLuong() != soLuongGUI) {
 //
-//                        ctTrongDB.setSoluong(soLuongGUI);
-//                        if (!chiTietDAO.suaChiTiet(ctTrongDB)) {
+//                        ChiTietHoaDonDTO updateDTO = new ChiTietHoaDonDTO();
+//                        updateDTO.setMaDon(maDon);
+//                        updateDTO.setMaMonAn(maMonGUI);
+//                        updateDTO.setSoLuong(soLuongGUI);
+//                        updateDTO.setDonGia(ctTrongDB.getDonGia());
+//
+//                        if (!chiTietHoaDonService.suaChiTiet(updateDTO)) {
 //                            coLoi = true;
 //                            System.err.println("Lỗi khi sửa chi tiết: " + maMonGUI);
 //                        }
@@ -466,9 +557,28 @@
 //            if (!coLoi) {
 //                float tongTienGoc = 0;
 //                for (int i = 0; i < model.getRowCount(); i++) {
-//                    tongTienGoc += (Float) model.getValueAt(i, 4) * (Integer) model.getValueAt(i, 3);
+//                    Object donGiaObj = model.getValueAt(i, 4);
+//                    Object soLuongObj = model.getValueAt(i, 3);
+//
+//                    float donGia = 0f;
+//                    int soLuong = 0;
+//
+//                    if (donGiaObj instanceof Number) {
+//                        donGia = ((Number) donGiaObj).floatValue();
+//                    }
+//
+//                    if (soLuongObj instanceof Number) {
+//                        soLuong = ((Number) soLuongObj).intValue();
+//                    }
+//
+//                    tongTienGoc += donGia * soLuong;
 //                }
-//                if (!hoaDonDAO.capNhatTongTien(activeHoaDon.getMaHD(), tongTienGoc)) {
+//
+//                HoaDonDTO updateTongTienDTO = new HoaDonDTO();
+//                updateTongTienDTO.setMaHD(activeHoaDon.getMaHD());
+//                updateTongTienDTO.setTongTien(tongTienGoc);
+//
+//                if (!hoaDonService.capNhatTongTien(updateTongTienDTO)) {
 //                    coLoi = true;
 //                    System.err.println("Lỗi khi cập nhật tổng tiền hóa đơn!");
 //                }
@@ -494,10 +604,11 @@
 //            return false;
 //        }
 //    }
+//
 //    public void setCustomHeader(String name) {
 //        this.customHeaderName = name;
-//
 //    }
+//
 //    private JPanel createCheckoutPanel() {
 //
 //        JPanel mainPanel = new JPanel(new BorderLayout(15, 10));
@@ -531,9 +642,22 @@
 //
 //        return mainPanel;
 //    }
-//    private void xuatPhieuIn(String tieuDe, boolean daThanhToan, long tienKhachDua, long tienThoi,String maHD, List<ChiTietHoaDon> dsMon,String hinhThucTT,String tenBanThucTe,String tenNV, String tenKH, String ghiChu) {
-//        Ban banHienTai = null;
-//        HoaDon activeHoaDon = null;
+//
+//    private void xuatPhieuIn(
+//            String tieuDe,
+//            boolean daThanhToan,
+//            long tienKhachDua,
+//            long tienThoi,
+//            String maHD,
+//            List<ChiTietHoaDonDTO> dsMon,
+//            String hinhThucTT,
+//            String tenBanThucTe,
+//            String tenNV,
+//            String tenKH,
+//            String ghiChu
+//    ) {
+//        BanDTO banHienTai = null;
+//        HoaDonDTO activeHoaDon = null;
 //
 //        if (parentGoiMonGUI != null) {
 //            banHienTai = parentGoiMonGUI.getBanHienTai();
@@ -544,31 +668,14 @@
 //        }
 //
 //        if (banHienTai == null || dsMon == null || dsMon.isEmpty()) return;
+//
 //        String tenBanHienThi = tenBanThucTe;
 //        if (this.customHeaderName != null && !this.customHeaderName.isEmpty()) {
 //            tenBanHienThi = this.customHeaderName;
 //        }
 //
-//        String tenNhanVien = "Không rõ";
-//        String tenKhachHang = "Khách lẻ";
-//
-//        if (activeHoaDon != null) {
-//
-//            if (activeHoaDon.getMaNV() != null) {
-//                NhanVien nv = nhanVienDAO.getChiTietNhanVien(activeHoaDon.getMaNV()); // Đảm bảo DAO có hàm này
-//                if (nv != null) tenNhanVien = nv.getHoten();
-//            }
-//
-//
-//            if (activeHoaDon.getMaKH() != null) {
-//                KhachHang kh = khachHangDAO.timTheoMaKH(activeHoaDon.getMaKH());
-//                if (kh != null) tenKhachHang = kh.getTenKH();
-//            }
-//        }
-//
 //        StringBuilder billText = new StringBuilder();
 //        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy");
-//
 //
 //        billText.append("===================================================\n");
 //        billText.append("                   ").append(tieuDe).append("\n");
@@ -582,25 +689,26 @@
 //
 //        String ghiChuDisplay = ghiChu;
 //        if (ghiChuDisplay != null && ghiChuDisplay.contains("LINKED:")) {
-//
 //            ghiChuDisplay = ghiChuDisplay.substring(0, ghiChuDisplay.indexOf("LINKED:")).trim();
 //        }
 //        if (ghiChuDisplay != null && !ghiChuDisplay.isEmpty()) {
 //            billText.append("Ghi chú:  ").append(ghiChuDisplay).append("\n");
 //        }
 //
-//
 //        billText.append("---------------------------------------------------\n");
 //
 //        billText.append(String.format("%-20s %5s %10s %12s\n", "Tên món", "SL", "Đơn giá", "Thành tiền"));
 //        billText.append("---------------------------------------------------\n");
 //
-//        for (ChiTietHoaDon ct : dsMon) {
-//            String tenMon = ct.getTenMon() != null ? ct.getTenMon() : ct.getMaMon(); // Fallback nếu thiếu tên
+//        for (ChiTietHoaDonDTO ct : dsMon) {
+//            String tenMon = ct.getTenMon() != null ? ct.getTenMon() : ct.getMaMonAn();
 //            String tenMonDisplay = tenMon.length() > 18 ? tenMon.substring(0, 17) + "." : tenMon;
 //
 //            billText.append(String.format("%-20s %5d %10s %12s\n",
-//                    tenMonDisplay, ct.getSoluong(), nf.format(ct.getDongia()), nf.format(ct.getThanhtien())));
+//                    tenMonDisplay,
+//                    ct.getSoLuong(),
+//                    nf.format(ct.getDonGia()),
+//                    nf.format(ct.getThanhTien())));
 //        }
 //        billText.append("---------------------------------------------------\n");
 //
@@ -645,9 +753,11 @@
 //
 //        previewDialog.setVisible(true);
 //    }
+//
 //    private void hienThiXemTamTinh() {
-//        HoaDon hd = null;
-//        Ban banHienTai = null;
+//        HoaDonDTO hd = null;
+//        BanDTO banHienTai = null;
+//
 //        if (parentGoiMonGUI != null) {
 //            hd = parentGoiMonGUI.getActiveHoaDon();
 //            banHienTai = parentGoiMonGUI.getBanHienTai();
@@ -657,44 +767,66 @@
 //        }
 //
 //        if (hd != null && banHienTai != null) {
-//            String maHD = hd.getMaHD();
-//            List<ChiTietHoaDon> listToPrint = getCurrentDetailList();
+//            List<ChiTietHoaDonDTO> listToPrint = getCurrentDetailList();
 //
 //            String tenBanHienThi;
 //            if (this.customHeaderName != null && !this.customHeaderName.isEmpty()) {
-//
 //                tenBanHienThi = this.customHeaderName;
 //            } else {
 //                tenBanHienThi = banHienTai.getTenBan() + " -- " + banHienTai.getKhuVuc();
 //            }
+//
 //            String tenNV = "Admin";
 //            if (hd.getMaNV() != null) {
-//                NhanVien nv = nhanVienDAO.getChiTietNhanVien(hd.getMaNV());
+//                NhanVienDTO nvRequest = new NhanVienDTO();
+//                nvRequest.setMaNV(hd.getMaNV());
+//
+//                NhanVienDTO nv = nhanVienService.getChiTietNhanVien(nvRequest);
 //                if (nv != null) tenNV = nv.getHoten();
 //            }
 //
 //            String tenKH = "Khách lẻ";
 //            if (hd.getMaKH() != null) {
-//                KhachHang kh = khachHangDAO.timTheoMaKH(hd.getMaKH());
+//                KhachHangDTO khRequest = new KhachHangDTO();
+//                khRequest.setMaKH(hd.getMaKH());
+//
+//                KhachHangDTO kh = khachHangService.timTheoMaKH(khRequest);
 //                if (kh != null) tenKH = kh.getTenKH();
 //            }
 //
-//
 //            String ghiChuHoaDon = "";
 //            if (hd.getMaDon() != null) {
-//                DonDatMon ddm = donDatMonDAO.getDonDatMonByMa(hd.getMaDon());
+//                DonDatMonDTO ddmRequest = new DonDatMonDTO();
+//                ddmRequest.setMaDon(hd.getMaDon());
+//
+//                DonDatMonDTO ddm = donDatMonService.getDonDatMonByMa(ddmRequest);
 //                if (ddm != null && ddm.getGhiChu() != null) {
 //                    ghiChuHoaDon = ddm.getGhiChu();
 //                }
 //            }
-//            xuatPhieuIn("PHIẾU TẠM TÍNH", false, 0, 0, hd.getMaHD(), listToPrint, "---", tenBanHienThi, tenNV, tenKH, ghiChuHoaDon);
+//
+//            xuatPhieuIn(
+//                    "PHIẾU TẠM TÍNH",
+//                    false,
+//                    0,
+//                    0,
+//                    hd.getMaHD(),
+//                    listToPrint,
+//                    "---",
+//                    tenBanHienThi,
+//                    tenNV,
+//                    tenKH,
+//                    ghiChuHoaDon
+//            );
 //        }
 //    }
+//
 //    private long roundUpToNearest(long number, long nearest) {
 //        if (nearest <= 0) return number;
 //        if (number % nearest == 0) return number;
 //        return ((number / nearest) + 1) * nearest;
 //    }
+//
 //    private void tinhTienThoi() {
 //        try {
 //            long khachTra = Long.parseLong(txtKhachTra.getText().replace(",", "").replace(".", ""));
@@ -708,6 +840,7 @@
 //            lblTienThoi.setText("...");
 //        }
 //    }
+//
 //    private void updateSuggestedCash(long total) {
 //
 //        this.currentTotal = total;
@@ -718,12 +851,12 @@
 //            return;
 //        }
 //        long[] suggestions = new long[6];
-//        suggestions[0] = roundUpToNearest(total, 1000);   // Gợi ý 1: Làm tròn lên 1.000 (vd: 119,400 -> 120,000)
-//        suggestions[1] = roundUpToNearest(total, 50000);  // Gợi ý 2: Làm tròn lên 50.000 (vd: 119,400 -> 150,000)
-//        suggestions[2] = roundUpToNearest(total, 100000); // Gợi ý 3: Làm tròn lên 100.000 (vd: 119,400 -> 200,000)
-//        suggestions[3] = suggestions[2] + 20000;          // Gợi ý 4: (vd: 220,000)
-//        suggestions[4] = suggestions[2] + 50000;          // Gợi ý 5: (vd: 250,000)
-//        suggestions[5] = 500000;                          // Gợi ý 6: Luôn là 500,000
+//        suggestions[0] = roundUpToNearest(total, 1000);
+//        suggestions[1] = roundUpToNearest(total, 50000);
+//        suggestions[2] = roundUpToNearest(total, 100000);
+//        suggestions[3] = suggestions[2] + 20000;
+//        suggestions[4] = suggestions[2] + 50000;
+//        suggestions[5] = 500000;
 //
 //        java.util.LinkedHashSet<Long> uniqueSuggestions = new java.util.LinkedHashSet<>();
 //        for (long s : suggestions) {
@@ -806,9 +939,6 @@
 //        return panel;
 //    }
 //
-//    /**
-//     * HÀM MỚI (Helper): Tạo panel "Khách trả"
-//     */
 //    private JPanel createKhachTraPanel() {
 //        JPanel panel = new JPanel();
 //        panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
@@ -878,7 +1008,7 @@
 //        return btn;
 //    }
 //
-//    public void loadBillTotals(long tongCong, long khuyenMai,  long tongThanhToan, int tongSoLuong) {
+//    public void loadBillTotals(long tongCong, long khuyenMai, long tongThanhToan, int tongSoLuong) {
 //
 //        lblTongSoLuong.setText(String.valueOf(tongSoLuong));
 //        lblTongCong.setText(nf.format(tongCong));
@@ -892,6 +1022,7 @@
 //            tinhTienThoi();
 //        }
 //    }
+//
 //    public void clearBill() {
 //        lblTongSoLuong.setText("0");
 //        lblTongCong.setText(nf.format(0));

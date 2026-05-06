@@ -221,7 +221,7 @@ public class BanRepository extends GenericRepository<Ban, String> {
                     List<MonAnTam> listItems = getChiTietMonAnTam(em, maDonNguon);
 
                     em.createQuery("""
-                            DELETE FROM ChiTietHoaDonDTO c
+                            DELETE FROM ChiTietHoaDon c
                             WHERE c.donDatMon.maDon = :maDon
                             """)
                             .setParameter("maDon", maDonNguon)
@@ -412,7 +412,7 @@ public class BanRepository extends GenericRepository<Ban, String> {
     private List<MonAnTam> getChiTietMonAnTam(EntityManager em, String maDon) {
         List<ChiTietHoaDon> rows = em.createQuery("""
                 SELECT c
-                FROM ChiTietHoaDonDTO c
+                FROM ChiTietHoaDon c
                 JOIN FETCH c.monAn
                 WHERE c.donDatMon.maDon = :maDon
                 """, ChiTietHoaDon.class)
@@ -436,7 +436,7 @@ public class BanRepository extends GenericRepository<Ban, String> {
     private ChiTietHoaDon findChiTietHoaDon(EntityManager em, String maDon, MonAn monAn) {
         List<ChiTietHoaDon> rows = em.createQuery("""
                 SELECT c
-                FROM ChiTietHoaDonDTO c
+                FROM ChiTietHoaDon c
                 WHERE c.donDatMon.maDon = :maDon
                   AND c.monAn = :monAn
                 """, ChiTietHoaDon.class)

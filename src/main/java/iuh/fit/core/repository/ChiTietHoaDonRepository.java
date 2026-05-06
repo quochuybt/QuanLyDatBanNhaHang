@@ -3,7 +3,6 @@ package iuh.fit.core.repository;
 import iuh.fit.core.entity.ChiTietHoaDon;
 import iuh.fit.core.entity.DonDatMon;
 import iuh.fit.core.entity.MonAn;
-
 import jakarta.persistence.EntityManager;
 
 import java.time.LocalDate;
@@ -23,29 +22,45 @@ public class ChiTietHoaDonRepository extends GenericRepository<ChiTietHoaDon, Lo
         super(ChiTietHoaDon.class);
     }
 
-    public List<ChiTietHoaDon> findByMaDon(String maDon) {
-        return doInSession(em -> em.createQuery(
-                        "SELECT c FROM ChiTietHoaDon c WHERE c.donDatMon.maDon = :maDon", ChiTietHoaDon.class)
-                .setParameter("maDon", maDon)
-                .getResultList());
+    public List<ChiTietHoaDon> getChiTietTheoMaDon(String maDon) {
+        return doInSession(em ->
+                em.createQuery("""
+                        SELECT c
+                        FROM ChiTietHoaDon c
+                        JOIN FETCH c.donDatMon d
+                        JOIN FETCH c.monAn m
+                        WHERE d.maDon = :maDon
+                        """, ChiTietHoaDon.class)
+                        .setParameter("maDon", maDon)
+                        .getResultList()
+        );
+    }
+
+    public ChiTietHoaDon findByMaDonAndMaMonAn(String maDon, String maMonAn) {
+        return doInSession(em -> findByMaDonAndMaMonAn(em, maDon, maMonAn));
     }
 
     public void replaceByMaDon(String maDon, List<ChiTietHoaDonItem> items) {
         doInTransaction(em -> {
-            em.createQuery("DELETE FROM ChiTietHoaDon c WHERE c.donDatMon.maDon = :maDon")
-                    .setParameter("maDon", maDon)
-                    .executeUpdate();
-
             DonDatMon don = em.find(DonDatMon.class, maDon);
             if (don == null) {
                 throw new IllegalArgumentException("Không tìm thấy đơn đặt món: " + maDon);
             }
 
+            em.createQuery("""
+                    DELETE FROM ChiTietHoaDon c
+                    WHERE c.donDatMon.maDon = :maDon
+                    """)
+                    .setParameter("maDon", maDon)
+                    .executeUpdate();
+
             for (ChiTietHoaDonItem item : items) {
                 MonAn mon = em.find(MonAn.class, item.maMonAn());
-                if (mon == null) continue;
+                if (mon == null) {
+                    throw new IllegalArgumentException("Không tìm thấy món ăn: " + item.maMonAn());
+                }
 
-                ChiTietHoaDon ct = ChiTietHoaDon.builder()
+                ChiTietHoaDon chiTiet = ChiTietHoaDon.builder()
                         .donDatMon(don)
                         .monAn(mon)
                         .tenMon(mon.getTenMon())
@@ -53,90 +68,62 @@ public class ChiTietHoaDonRepository extends GenericRepository<ChiTietHoaDon, Lo
                         .dongia(item.donGia())
                         .thanhtien(item.soLuong() * item.donGia())
                         .build();
-                em.persist(ct);
+
+                em.persist(chiTiet);
             }
-        });
-    }
-
-
-    public List<ChiTietHoaDon> getChiTietTheoMaDon(String maDon) {
-        return doInSession(em -> {
-            List<ChiTietHoaDon> result = em.createQuery("""
-                    SELECT c
-                    FROM ChiTietHoaDonDTO c
-                    JOIN FETCH c.donDatMon d
-                    JOIN FETCH c.monAn m
-                    WHERE d.maDon = :maDon
-                    """, ChiTietHoaDon.class)
-                    .setParameter("maDon", maDon)
-                    .getResultList();
-
-            for (ChiTietHoaDon ct : result) {
-                if (ct.getMonAn() != null) {
-                    ct.setTenMon(ct.getMonAn().getTenMon());
-                }
-            }
-
-            return result;
-        });
-    }
-
-    public boolean themChiTiet(ChiTietHoaDon ct) {
-        return executeTransaction(em -> {
-            if (ct.getDonDatMon() == null || ct.getDonDatMon().getMaDon() == null) {
-                throw new IllegalArgumentException("Chi tiết hóa đơn chưa có mã đơn.");
-            }
-
-            if (ct.getMonAn() == null || ct.getMonAn().getMaMonAn() == null) {
-                throw new IllegalArgumentException("Chi tiết hóa đơn chưa có mã món.");
-            }
-
-            DonDatMon donRef = em.getReference(
-                    DonDatMon.class,
-                    ct.getDonDatMon().getMaDon()
-            );
-
-            MonAn monRef = em.getReference(
-                    MonAn.class,
-                    ct.getMonAn().getMaMonAn()
-            );
-
-            ct.setDonDatMon(donRef);
-            ct.setMonAn(monRef);
-
-            if (ct.getTenMon() == null || ct.getTenMon().isBlank()) {
-                ct.setTenMon(monRef.getTenMon());
-            }
-
-            ct.setThanhtien(ct.getSoluong() * ct.getDongia());
-
-            em.persist(ct);
-            return true;
         });
     }
 
     public boolean themChiTiet(String maDon, String maMonAn, int soLuong, float donGia) {
         return executeTransaction(em -> {
-            DonDatMon donRef = em.getReference(DonDatMon.class, maDon);
-            MonAn monRef = em.getReference(MonAn.class, maMonAn);
+            DonDatMon don = em.find(DonDatMon.class, maDon);
+            if (don == null) {
+                throw new IllegalArgumentException("Không tìm thấy đơn đặt món: " + maDon);
+            }
 
-            ChiTietHoaDon ct = new ChiTietHoaDon();
-            ct.setDonDatMon(donRef);
-            ct.setMonAn(monRef);
-            ct.setSoluong(soLuong);
-            ct.setDongia(donGia);
-            ct.setThanhtien(soLuong * donGia);
-            ct.setTenMon(monRef.getTenMon());
+            MonAn mon = em.find(MonAn.class, maMonAn);
+            if (mon == null) {
+                throw new IllegalArgumentException("Không tìm thấy món ăn: " + maMonAn);
+            }
 
-            em.persist(ct);
+            ChiTietHoaDon chiTiet = ChiTietHoaDon.builder()
+                    .donDatMon(don)
+                    .monAn(mon)
+                    .tenMon(mon.getTenMon())
+                    .soluong(soLuong)
+                    .dongia(donGia)
+                    .thanhtien(soLuong * donGia)
+                    .build();
+
+            em.persist(chiTiet);
             return true;
         });
+    }
+
+    public boolean suaSoLuongChiTiet(String maDon, String maMonAn, int soLuong) {
+        return executeTransaction(em -> {
+            ChiTietHoaDon chiTiet = findByMaDonAndMaMonAn(em, maDon, maMonAn);
+
+            if (chiTiet == null) {
+                return false;
+            }
+
+            chiTiet.setSoluong(soLuong);
+            chiTiet.setThanhtien(soLuong * chiTiet.getDongia());
+
+            em.merge(chiTiet);
+            return true;
+        });
+    }
+
+    public boolean suaChiTiet(String maDon, String maMonAn, int soLuong) {
+        return suaSoLuongChiTiet(maDon, maMonAn, soLuong);
     }
 
     public boolean xoaChiTiet(String maDon, String maMonAn) {
         return executeTransaction(em -> {
             int deleted = em.createQuery("""
-                    DELETE FROM ChiTietHoaDonDTO c
+                    DELETE FROM ChiTietHoaDon c
                     WHERE c.donDatMon.maDon = :maDon
                       AND c.monAn.maMonAn = :maMonAn
                     """)
@@ -145,52 +132,6 @@ public class ChiTietHoaDonRepository extends GenericRepository<ChiTietHoaDon, Lo
                     .executeUpdate();
 
             return deleted > 0;
-        });
-    }
-
-    public boolean suaChiTiet(ChiTietHoaDon ct) {
-        return executeTransaction(em -> {
-            if (ct.getDonDatMon() == null || ct.getDonDatMon().getMaDon() == null) {
-                throw new IllegalArgumentException("Chi tiết hóa đơn chưa có mã đơn.");
-            }
-
-            if (ct.getMonAn() == null || ct.getMonAn().getMaMonAn() == null) {
-                throw new IllegalArgumentException("Chi tiết hóa đơn chưa có mã món.");
-            }
-
-            String maDon = ct.getDonDatMon().getMaDon();
-            String maMonAn = ct.getMonAn().getMaMonAn();
-
-            int updated = em.createQuery("""
-                    UPDATE ChiTietHoaDonDTO c
-                    SET c.soluong = :soLuong,
-                        c.thanhtien = :thanhTien
-                    WHERE c.donDatMon.maDon = :maDon
-                      AND c.monAn.maMonAn = :maMonAn
-                    """)
-                    .setParameter("soLuong", ct.getSoluong())
-                    .setParameter("thanhTien", ct.getSoluong() * ct.getDongia())
-                    .setParameter("maDon", maDon)
-                    .setParameter("maMonAn", maMonAn)
-                    .executeUpdate();
-
-            return updated > 0;
-        });
-    }
-
-    public boolean suaChiTiet(String maDon, String maMonAn, int soLuong) {
-        return executeTransaction(em -> {
-            ChiTietHoaDon ct = findByMaDonAndMaMonAn(em, maDon, maMonAn);
-
-            if (ct == null) {
-                return false;
-            }
-
-            ct.setSoluong(soLuong);
-            ct.setThanhtien(soLuong * ct.getDongia());
-
-            em.merge(ct);
-            return true;
         });
     }
 
@@ -203,7 +144,7 @@ public class ChiTietHoaDonRepository extends GenericRepository<ChiTietHoaDon, Lo
 
             List<Object[]> rows = em.createQuery("""
                     SELECT c.monAn.tenMon, SUM(c.soluong)
-                    FROM ChiTietHoaDonDTO c, HoaDon h
+                    FROM ChiTietHoaDon c, HoaDon h
                     WHERE h.maDon = c.donDatMon.maDon
                       AND h.trangThai = :trangThai
                       AND h.ngayLap >= :start
@@ -238,7 +179,7 @@ public class ChiTietHoaDonRepository extends GenericRepository<ChiTietHoaDon, Lo
 
             List<Object[]> rows = em.createQuery("""
                     SELECT c.monAn.tenMon, SUM(c.soluong)
-                    FROM ChiTietHoaDonDTO c, HoaDon h
+                    FROM ChiTietHoaDon c, HoaDon h
                     WHERE h.maDon = c.donDatMon.maDon
                       AND h.ngayLap >= :start
                       AND h.ngayLap < :endExclusive
@@ -277,7 +218,7 @@ public class ChiTietHoaDonRepository extends GenericRepository<ChiTietHoaDon, Lo
 
             List<Object[]> rows = em.createQuery("""
                     SELECT c.monAn.tenMon, SUM(c.soluong)
-                    FROM ChiTietHoaDonDTO c, HoaDon h
+                    FROM ChiTietHoaDon c, HoaDon h
                     WHERE h.maDon = c.donDatMon.maDon
                       AND h.trangThai = :trangThai
                       AND h.ngayLap >= :start
@@ -309,7 +250,7 @@ public class ChiTietHoaDonRepository extends GenericRepository<ChiTietHoaDon, Lo
     ) {
         List<ChiTietHoaDon> rows = em.createQuery("""
                 SELECT c
-                FROM ChiTietHoaDonDTO c
+                FROM ChiTietHoaDon c
                 JOIN FETCH c.donDatMon d
                 JOIN FETCH c.monAn m
                 WHERE d.maDon = :maDon

@@ -34,4 +34,12 @@ public class JsonMapper {
             throw new RuntimeException("Lỗi deserialize JSON: " + e.getMessage(), e);
         }
     }
+
+    public static <T> T convert(Object obj, Class<T> clazz) {
+        try {
+            return INSTANCE.convertValue(obj, clazz);
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi chuyển đổi object: " + e.getMessage(), e);
+        }
+    }
 }
