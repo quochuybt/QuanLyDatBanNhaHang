@@ -21,7 +21,7 @@ public class DanhMucMonRepository extends GenericRepository<DanhMucMon, String> 
         return doInSession(em ->
                 em.createQuery("""
                         SELECT dm
-                        FROM DanhMucMonDTO dm
+                        FROM DanhMucMon dm
                         ORDER BY dm.madm
                         """, DanhMucMon.class)
                         .getResultList()
@@ -42,7 +42,7 @@ public class DanhMucMonRepository extends GenericRepository<DanhMucMon, String> 
     public boolean capNhatDanhMuc(DanhMucMon dm) {
         return executeTransaction(em -> {
             int updated = em.createQuery("""
-                    UPDATE DanhMucMonDTO dm
+                    UPDATE DanhMucMon dm
                     SET dm.tendm = :tenDM,
                         dm.mota = :moTa
                     WHERE dm.madm = :maDM
@@ -72,7 +72,7 @@ public class DanhMucMonRepository extends GenericRepository<DanhMucMon, String> 
     private String generateNewMaDM(EntityManager em) {
         List<String> ids = em.createQuery("""
                 SELECT dm.madm
-                FROM DanhMucMonDTO dm
+                FROM DanhMucMon dm
                 WHERE dm.madm LIKE :prefix
                 ORDER BY dm.madm DESC
                 """, String.class)
