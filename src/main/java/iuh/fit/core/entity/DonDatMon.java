@@ -6,7 +6,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 import java.util.Random;
 
@@ -24,38 +23,33 @@ public class DonDatMon {
     @Column(name = "ngayKhoiTao", nullable = false)
     private LocalDateTime ngayKhoiTao;
 
-    @Column(name = "maNV", length = 20)
-    private String maNV;
-
-    @Column(name = "maKH", length = 20)
-    private String maKH;
-
     @Column(name = "thoiGianDen")
     private LocalDateTime thoiGianDen;
 
     @Column(name = "trangThai", columnDefinition = "NVARCHAR(50)")
     private String trangThai;
 
-    @Column(name = "maBan", length = 20)
-    private String maBan;
-
     @Column(name = "ghiChu", columnDefinition = "NVARCHAR(255)")
     private String ghiChu;
 
-    @OneToOne(mappedBy = "donDatMon")
-    private HoaDon hoaDon;
-
-    @ManyToOne
-    @JoinColumn(name = "mNV")
+    // ====== Quan hệ với NhanVien (N-1) ======
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "maNV")
     private NhanVien nhanVien;
 
-    @ManyToOne
-    @JoinColumn(name = "mBan")
+    // ====== Quan hệ với Ban (N-1) ======
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "maBan")
     private Ban ban;
 
-    @ManyToOne
-    @JoinColumn(name = "mKH")
+    // ====== Quan hệ với KhachHang (N-1) ======
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "maKH")
     private KhachHang khachHang;
+
+    // ====== Quan hệ với HoaDon (1-1) ======
+    @OneToOne(mappedBy = "donDatMon")
+    private HoaDon hoaDon;
 
     private String generateMaDon() {
         Random rand = new Random();
@@ -72,22 +66,27 @@ public class DonDatMon {
         }
     }
 
-    public DonDatMon(String maDon, LocalDateTime ngayKhoiTao, String maNV, String maKH, String maBan, String ghiChu) {
+    public DonDatMon(String maDon, LocalDateTime ngayKhoiTao,
+                     NhanVien nhanVien, KhachHang khachHang, Ban ban, String ghiChu) {
         setMaDon(maDon);
         setNgayKhoiTao(ngayKhoiTao);
-        this.maNV = maNV;
-        this.maKH = maKH;
-        this.maBan = maBan;
+        this.nhanVien = nhanVien;
+        this.khachHang = khachHang;
+        this.ban = ban;
         this.ghiChu = ghiChu;
     }
 
-    public DonDatMon(DonDatMon donDatMon) {
-        this.maDon = donDatMon.maDon;
-        this.ngayKhoiTao = donDatMon.ngayKhoiTao;
-        this.maNV = donDatMon.maNV;
-        this.maKH = donDatMon.maKH;
-        this.maBan = donDatMon.maBan;
-        this.ghiChu = donDatMon.ghiChu;
+    // Phương thức tiện ích lấy mã (tương thích code cũ)
+    public String getMaNV() {
+        return nhanVien != null ? nhanVien.getManv() : null;
+    }
+
+    public String getMaKH() {
+        return khachHang != null ? khachHang.getMaKH() : null;
+    }
+
+    public String getMaBan() {
+        return ban != null ? ban.getMaBan() : null;
     }
 
     public void setMaDon(String maDon) {
@@ -102,5 +101,18 @@ public class DonDatMon {
             throw new IllegalArgumentException("Ngày khởi tạo không được rỗng.");
         }
         this.ngayKhoiTao = ngayKhoiTao;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof DonDatMon)) return false;
+        DonDatMon that = (DonDatMon) o;
+        return Objects.equals(maDon, that.maDon);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(maDon);
     }
 }

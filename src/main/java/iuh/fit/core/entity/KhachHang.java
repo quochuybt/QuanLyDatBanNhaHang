@@ -8,6 +8,7 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 
@@ -50,8 +51,13 @@ public class KhachHang {
     @Column(name = "email", unique = true, length = 100)
     private String email;
 
+    // ====== Quan hệ với DonDatMon (1-N) ======
     @OneToMany(mappedBy = "khachHang")
     private Set<DonDatMon> donDatMons = new HashSet<>();
+
+    // ====== Quan hệ với HoaDon (1-N) ======
+    @OneToMany(mappedBy = "khachHang")
+    private Set<HoaDon> hoaDons = new HashSet<>();
 
     public KhachHang(String tenKH, String gioitinh, String sdt,
                      LocalDate ngaySinh, String diaChi, String email) {
@@ -137,6 +143,7 @@ public class KhachHang {
 
         this.email = email;
     }
+
     public float capNhatTongChiTieu(float soTien) {
         if (soTien < 0)
             throw new IllegalArgumentException("Số tiền không hợp lệ");
@@ -160,6 +167,20 @@ public class KhachHang {
         else
             hangThanhVien = HangThanhVien.MEMBER;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof KhachHang)) return false;
+        KhachHang that = (KhachHang) o;
+        return Objects.equals(maKH, that.maKH);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(maKH);
+    }
+
     @Override
     public String toString() {
         return "KhachHang{" +

@@ -1,12 +1,14 @@
 package iuh.fit.core.service;
 
+import iuh.fit.core.dto.MonAnDTO;
 import iuh.fit.core.entity.MonAn;
 import iuh.fit.core.repository.MonAnRepository;
 
-import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 public class MonAnService {
 
@@ -26,12 +28,28 @@ public class MonAnService {
         return repo.findAll();
     }
 
+    public List<MonAnDTO> findAllDTO() {
+        return repo.findAll().stream()
+                .map(MonAnDTO::fromEntity)
+                .collect(Collectors.toList());
+    }
+
     public List<MonAn> findDangKinhDoanh() {
         return repo.findAllDangKinhDoanh();
     }
 
+    public List<MonAnDTO> findDangKinhDoanhDTO() {
+        return repo.findAllDangKinhDoanh().stream()
+                .map(MonAnDTO::fromEntity)
+                .collect(Collectors.toList());
+    }
+
     public MonAn findById(String maMon) {
         return repo.findById(maMon);
+    }
+
+    public MonAnDTO findByIdDTO(String maMon) {
+        return MonAnDTO.fromEntity(repo.findById(maMon));
     }
 
     public MonAn findByName(String tenMon) {
@@ -42,6 +60,14 @@ public class MonAnService {
         if (repo.findById(m.getMaMonAn()) == null)
             throw new IllegalArgumentException("Món ăn không tồn tại");
         repo.update(m);
+    }
+
+    public void addFromDTO(MonAnDTO dto) {
+        add(dto.toEntity());
+    }
+
+    public void updateFromDTO(MonAnDTO dto) {
+        update(dto.toEntity());
     }
 
     public String getNextMaMonAn() {
