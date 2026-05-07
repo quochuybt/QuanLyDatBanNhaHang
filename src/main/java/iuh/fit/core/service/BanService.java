@@ -120,10 +120,11 @@ public class BanService {
         return banRepository.getTenBanByMa(banDTO.getMaBan());
     }
 
-    public BanDTO getBanByMa(BanDTO banDTO) {
-        validateBanDTOForId(banDTO, "Bàn");
-
-        Ban ban = banRepository.getBanByMa(banDTO.getMaBan());
+    public BanDTO getBanByMa(String maBan) {
+        if(maBan.equalsIgnoreCase("")){
+            return null;
+        }
+        Ban ban = banRepository.getBanByMa(maBan);
         if (ban == null) {
             return null;
         }

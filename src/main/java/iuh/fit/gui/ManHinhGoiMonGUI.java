@@ -5,6 +5,7 @@ import iuh.fit.core.dto.ChiTietHoaDonDTO;
 import iuh.fit.core.dto.HoaDonDTO;
 import iuh.fit.core.entity.Ban;
 import iuh.fit.core.entity.MonAn;
+import iuh.fit.core.mapper.JsonMapper;
 import iuh.fit.core.repository.ChiTietHoaDonRepository.ChiTietHoaDonItem;
 import iuh.fit.core.service.BanService;
 import iuh.fit.core.service.ChiTietHoaDonService;
@@ -262,7 +263,7 @@ public class ManHinhGoiMonGUI extends JPanel {
         String maKH = null;
 
         try {
-            this.banHienTai = banService.findById(maBan);
+            this.banHienTai = JsonMapper.convert(banService.getBanByMa(maBan), Ban.class);
             var hd = hoaDonService.moBanVaTaoHoaDon(maBan, maNV, maKH, java.time.LocalDateTime.now(), "Tạo từ màn hình gọi món");
             if (hd != null && hd.getMaDon() != null) {
                 this.activeHoaDon = hd;
