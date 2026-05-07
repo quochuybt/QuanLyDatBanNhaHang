@@ -19,8 +19,14 @@ public class ManHinhBanGUI extends JPanel {
     private JTable table;
     private DefaultTableModel model;
     private Ban selectedTable;
+    private final DanhSachBanGUI parent;
 
     public ManHinhBanGUI() {
+        this(null);
+    }
+
+    public ManHinhBanGUI(DanhSachBanGUI parent) {
+        this.parent = parent;
         setLayout(new BorderLayout(10, 10));
         setBorder(new EmptyBorder(15, 20, 15, 20));
         add(createHeader(), BorderLayout.NORTH);
@@ -37,8 +43,8 @@ public class ManHinhBanGUI extends JPanel {
         danhSachPanel.add(createTable(), BorderLayout.CENTER);
 
         tabs.addTab("Danh sách bàn", danhSachPanel);
-        tabs.addTab("Đặt bàn", new ManHinhDatBanGUI());
-        tabs.addTab("Gọi món", new ManHinhGoiMonGUI());
+        tabs.addTab("Đặt bàn", new ManHinhDatBanGUI(parent, null));
+        tabs.addTab("Gọi món", new ManHinhGoiMonGUI(parent, parent != null ? parent.getMaNVDangNhap() : "NV01001"));
         return tabs;
     }
 

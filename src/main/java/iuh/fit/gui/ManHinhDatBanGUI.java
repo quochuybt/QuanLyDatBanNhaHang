@@ -35,12 +35,20 @@ public class ManHinhDatBanGUI extends JPanel {
 
     private List<Ban> danhSachLoc;
 
+    public ManHinhDatBanGUI(DanhSachBanGUI parent, MainGUI mainGUI) {
+        this();
+    }
+
     public ManHinhDatBanGUI() {
         setLayout(new BorderLayout(10, 10));
         setBorder(new EmptyBorder(15, 20, 15, 20));
         add(createFilterPanel(), BorderLayout.NORTH);
         add(createTablePanel(), BorderLayout.CENTER);
         add(createActionPanel(), BorderLayout.SOUTH);
+        taiDanhSachBan();
+    }
+
+    public void refreshData() {
         taiDanhSachBan();
     }
 

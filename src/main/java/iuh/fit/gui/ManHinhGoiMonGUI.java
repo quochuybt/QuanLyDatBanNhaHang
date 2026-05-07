@@ -48,6 +48,10 @@ public class ManHinhGoiMonGUI extends JPanel {
         loadMonAn();
     }
 
+    public ManHinhGoiMonGUI(DanhSachBanGUI parent, String maNVDangNhap) {
+        this();
+    }
+
     private JPanel createHeader() {
         JPanel p = new JPanel(new BorderLayout());
         JLabel title = new JLabel("Gọi món");
@@ -272,6 +276,13 @@ public class ManHinhGoiMonGUI extends JPanel {
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Mở bàn thất bại: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    public boolean loadDuLieuBan(Ban banDuocChon) {
+        if (banDuocChon == null) return false;
+        this.banHienTai = banDuocChon;
+        txtMaDon.setText("");
+        return true;
     }
 
     public Ban getBanHienTai() {
