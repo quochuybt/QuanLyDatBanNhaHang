@@ -202,7 +202,10 @@ INSERT IGNORE INTO CaLam (maCa, tenCa, gioBatDau, gioKetThuc) VALUES
 
 INSERT IGNORE INTO TaiKhoan (tenTK, matKhau, trangThai) VALUES
     ('admin', 'hashed_92668751', TRUE),
-    ('nv001', 'hashed_1450575459', TRUE);
+    (N'nv_binh', N'hashed_-860005230', TRUE), -- Mật khẩu: binh12345
+    (N'nv_chi', N'hashed_1603487247', TRUE), -- Mật khẩu: chi12345
+    (N'nv_dung', N'hashed_-769688471', TRUE), -- Mật khẩu: dung12345
+    (N'nv_duy', N'hashed_-1837957333', TRUE); -- Mật khẩu: duy12345
 
 INSERT IGNORE INTO NhanVien (maNV, hoTen, ngaySinh, gioiTinh, sdt, diaChi, ngayVaoLam, luong, tenTK, vaiTro, email) VALUES
     ('NV02001', 'Nguyễn Văn Quản Lý', '1990-01-15', 'Nam', '0901234567', 'TP.HCM', '2020-01-01', 15000000, 'admin', 'QUANLY', 'quanly@starguardian.com'),
