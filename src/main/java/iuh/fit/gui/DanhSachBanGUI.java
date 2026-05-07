@@ -1,10 +1,9 @@
-/*
 package iuh.fit.gui;
 
 import iuh.fit.core.entity.Ban;
 import iuh.fit.core.service.DonDatMonService;
-import iuh.fit.gui.dialog.ChuyenBanDialog;
-import iuh.fit.gui.dialog.GhepBanDialog;
+import iuh.fit.gui.ChuyenBanDialog;
+import iuh.fit.gui.GhepBanDialog;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -12,11 +11,11 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-*/
+
 /**
  * Lớp GUI chính điều phối các màn hình liên quan đến Bàn, Gọi món và Đặt bàn.
  * Sử dụng CardLayout để chuyển đổi linh hoạt giữa các phân hệ.
- *//*
+ */
 
 public class DanhSachBanGUI extends JPanel {
     // Constants cho màu sắc và Card Name
@@ -200,4 +199,4 @@ public class DanhSachBanGUI extends JPanel {
     }
 
     public String getMaNVDangNhap() { return maNVDangNhap; }
-}*/
+}
