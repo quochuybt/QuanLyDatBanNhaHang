@@ -165,17 +165,17 @@ public class DashboardGUI extends JFrame {
     private void setupContentCards() {
         boolean isManager = "QUANLY".equalsIgnoreCase(userRole);
         if (isManager) {
-            addCardSafe("Dashboard", () -> buildContentPlaceholder("Xin chào, " + userName + " (" + userRole + ")"));
-            addCardSafe("Nhân viên", () -> buildContentPlaceholder("Màn hình Nhân viên (đang migrate)"));
+            addCardSafe("Dashboard",DashboardQuanLyGUI::new);
+            addCardSafe("Nhân viên", NhanVienGUI::new);
             addCardSafe("Lịch làm việc", () -> new LichLamViecGUI(VaiTro.QUANLY));
-            addCardSafe("Hóa đơn", () -> buildContentPlaceholder("Màn hình Hóa đơn (đang migrate)"));
+            addCardSafe("Hóa đơn",  HoaDonGUI::new);
             addCardSafe("Khuyến mãi", KhuyenMaiGUI::new);
         } else {
             addCardSafe("Dashboard", () -> new DashboardNhanVienGUI(maNV, userName));
             addCardSafe("Danh sách bàn", ManHinhBanGUI::new);
             addCardSafe("Thành viên", KhachHangGUI::new);
             addCardSafe("Lịch làm việc", () -> new LichLamViecGUI(VaiTro.NHANVIEN));
-            addCardSafe("Hóa đơn", () -> buildContentPlaceholder("Màn hình Hóa đơn (đang migrate)"));
+            addCardSafe("Hóa đơn",HoaDonGUI::new);
         }
     }
 
