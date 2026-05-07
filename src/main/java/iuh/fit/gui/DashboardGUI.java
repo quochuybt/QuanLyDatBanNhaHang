@@ -172,7 +172,7 @@ public class DashboardGUI extends JFrame {
             addCardSafe("Khuyến mãi", KhuyenMaiGUI::new);
         } else {
             addCardSafe("Dashboard", () -> new DashboardNhanVienGUI(maNV, userName));
-            addCardSafe("Danh sách bàn", ManHinhBanGUI::new);
+            addCardSafe("Danh sách bàn", () -> new DanhSachBanGUI(this,maNV));
             addCardSafe("Thành viên", KhachHangGUI::new);
             addCardSafe("Lịch làm việc", () -> new LichLamViecGUI(VaiTro.NHANVIEN));
             addCardSafe("Hóa đơn",HoaDonGUI::new);

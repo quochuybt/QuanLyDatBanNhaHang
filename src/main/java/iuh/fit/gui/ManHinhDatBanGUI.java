@@ -36,7 +36,7 @@ public class ManHinhDatBanGUI extends JPanel {
 
     private List<Ban> danhSachLoc;
 
-    public ManHinhDatBanGUI(DanhSachBanGUI parent, MainGUI mainGUI) {
+    public ManHinhDatBanGUI(DanhSachBanGUI parent, DashboardGUI dashboardGUI) {
         this();
     }
 

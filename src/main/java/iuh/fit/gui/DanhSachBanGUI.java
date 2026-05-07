@@ -21,11 +21,11 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
     private JToggleButton btnTabBan;
     private JToggleButton btnTabGoiMon;
     private JToggleButton btnTabDatBan;
-    private MainGUI mainGUI_Parent;
+    private DashboardGUI mainGUI_Parent;
     private final String maNVDangNhap;
 
-    public DanhSachBanGUI(MainGUI main, String maNVDangNhap) {
-        this.mainGUI_Parent = main;
+    public DanhSachBanGUI(DashboardGUI dashboardGUI, String maNVDangNhap) {
+        this.mainGUI_Parent = dashboardGUI;
         this.maNVDangNhap = maNVDangNhap;
 
         setLayout(new BorderLayout());
