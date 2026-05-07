@@ -1,8 +1,10 @@
 package iuh.fit.gui;
 
 import iuh.fit.core.dto.BanDTO;
+import iuh.fit.core.dto.HoaDonDTO;
 import iuh.fit.core.entity.Ban;
 import iuh.fit.core.service.BanService;
+import iuh.fit.core.service.HoaDonService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -13,8 +15,10 @@ import java.util.List;
 public class ManHinhBanGUI extends JPanel {
 
     private final BanService banService = new BanService();
+    private final HoaDonService hoaDonService = new HoaDonService();
     private JTable table;
     private DefaultTableModel model;
+    private Ban selectedTable;
 
     public ManHinhBanGUI() {
         setLayout(new BorderLayout(10, 10));
@@ -55,6 +59,16 @@ public class ManHinhBanGUI extends JPanel {
         };
         table = new JTable(model);
         table.setRowHeight(30);
+        table.getSelectionModel().addListSelectionListener(e -> {
+            if (e.getValueIsAdjusting()) return;
+            int row = table.getSelectedRow();
+            if (row < 0) {
+                selectedTable = null;
+                return;
+            }
+            String maBan = model.getValueAt(row, 0).toString();
+            selectedTable = banService.findById(maBan);
+        });
         return new JScrollPane(table);
     }
 
@@ -71,5 +85,22 @@ public class ManHinhBanGUI extends JPanel {
                     b.getGioMoBan()
             });
         }
+    }
+
+    public Ban getSelectedTable() {
+        return selectedTable;
+    }
+
+    public HoaDonDTO getActiveHoaDon() {
+        if (selectedTable == null) return null;
+        return hoaDonService.getHoaDonChuaThanhToan(selectedTable.getMaBan());
+    }
+
+    public String getHinhThucThanhToan() {
+        return "Tiền mặt";
+    }
+
+    public void refreshTableList() {
+        loadData();
     }
 }
