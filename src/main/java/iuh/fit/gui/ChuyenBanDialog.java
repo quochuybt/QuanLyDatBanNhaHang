@@ -1,11 +1,9 @@
 package iuh.fit.gui;
 
-import gui.BanPanel;
-import gui.VerticallyWrappingFlowPanel;
+
 import iuh.fit.core.dto.BanDTO;
 import iuh.fit.core.entity.Ban;
 import iuh.fit.core.entity.TrangThaiBan;
-import iuh.fit.core.mapper.JsonMapper;
 import iuh.fit.core.service.BanService;
 
 import javax.swing.*;
@@ -239,7 +237,7 @@ public class ChuyenBanDialog extends JDialog {
             boolean statusMatch = ban.getTrangThai() == TrangThaiBan.TRONG;
 
             if (khuVucMatch && statusMatch) {
-                BanPanel banPanel = new BanPanel(JsonMapper.convert((Object) ban, entity.Ban.class));
+                BanPanel banPanel = new BanPanel(ban);
 
                 if (isSameBan(selectedTargetTable, ban)) {
                     banPanel.setSelected(true);
@@ -284,7 +282,7 @@ public class ChuyenBanDialog extends JDialog {
                     || status == TrangThaiBan.DA_DAT_TRUOC;
 
             if (khuVucMatch && statusMatch) {
-                BanPanel banPanel = new BanPanel(JsonMapper.convert((Object) ban, entity.Ban.class));
+                BanPanel banPanel = new BanPanel(ban);
 
                 if (isSameBan(selectedSourceTable, ban)) {
                     banPanel.setSelected(true);
