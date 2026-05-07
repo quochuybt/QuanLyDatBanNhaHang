@@ -169,7 +169,7 @@ public class BillPanel extends JPanel {
             DonDatMonDTO ddmRequest = new DonDatMonDTO();
             ddmRequest.setMaDon(activeHoaDon.getMaDon());
 
-            DonDatMonDTO ddm = donDatMonService.getDonDatMonByMa(ddmRequest);
+            DonDatMonDTO ddm = donDatMonService.findById(ddmRequest.getMaDon());
             if (ddm != null && ddm.getGhiChu() != null) {
                 ghiChuHoaDon = ddm.getGhiChu();
             }
@@ -278,7 +278,7 @@ public class BillPanel extends JPanel {
             thanhToanDTO.setHinhThucThanhToan(hinhThucTT);
             thanhToanDTO.setGiamGia((float) tienGiamGia);
             thanhToanDTO.setMaKM(maKM);
-            thanhToanDTO.setTenBanLuuLichSu(tenBanLuuLichSu);
+            thanhToanDTO.setTenBan(tenBanLuuLichSu);
 
             boolean thanhToanOK = hoaDonService.thanhToanHoaDon(thanhToanDTO);
 
@@ -793,7 +793,7 @@ public class BillPanel extends JPanel {
                 DonDatMonDTO ddmRequest = new DonDatMonDTO();
                 ddmRequest.setMaDon(hd.getMaDon());
 
-                DonDatMonDTO ddm = donDatMonService.getDonDatMonByMa(ddmRequest);
+                DonDatMonDTO ddm = donDatMonService.findById(ddmRequest.getMaDon());
                 if (ddm != null && ddm.getGhiChu() != null) {
                     ghiChuHoaDon = ddm.getGhiChu();
                 }

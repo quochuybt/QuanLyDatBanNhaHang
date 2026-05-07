@@ -125,4 +125,28 @@ public class HoaDonService {
         HoaDon hd = repository.moBanVaTaoHoaDon(maBan, maNV, maKH, thoiGianDen, ghiChu);
         return HoaDonDTO.fromEntity(hd);
     }
+    public HoaDonDTO tinhLaiGiamGiaVaTongTien(HoaDonDTO activeHoaDon) {
+        if (activeHoaDon == null || activeHoaDon.getMaHD() == null) {
+            return activeHoaDon;
+        }
+
+        // Gọi DB để tính toán và cập nhật
+        HoaDon hdUpdated = repository.tinhLaiGiamGiaVaTongTien(activeHoaDon.getMaHD());
+
+        // Trả về DTO mang dữ liệu mới nhất (tổng tiền mới, tổng thanh toán mới)
+        return HoaDonDTO.fromEntity(hdUpdated);
+    }
+    public boolean capNhatTongTien(HoaDonDTO dto) {
+        if (dto == null || dto.getMaHD() == null || dto.getMaHD().trim().isEmpty()) {
+            return false;
+        }
+
+        // Gọi thẳng xuống Repository để update 3 trường liên quan đến tiền
+        return repository.capNhatTongTien(
+                dto.getMaHD(),
+                dto.getTongTien(),
+                dto.getGiamGia(),
+                dto.getTongThanhToan()
+        );
+    }
 }

@@ -250,4 +250,50 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
             return hd;
         });
     }
+    public HoaDon tinhLaiGiamGiaVaTongTien(String maHD) {
+        return executeTransaction(em -> {
+            HoaDon hd = em.find(HoaDon.class, maHD);
+
+            if (hd != null && hd.getDonDatMon() != null) {
+                // 1. Tính tổng tiền từ bảng ChiTietHoaDon
+                Double tongTienOpt = em.createQuery(
+                                "SELECT SUM(c.thanhtien) FROM ChiTietHoaDon c WHERE c.donDatMon.maDon = :maDon", Double.class)
+                        .setParameter("maDon", hd.getDonDatMon().getMaDon())
+                        .getSingleResult();
+
+                float tongTien = (tongTienOpt != null) ? tongTienOpt.floatValue() : 0f;
+                hd.setTongTien(tongTien);
+
+                // 2. Tính lại tiền giảm giá (Nếu có KhuyenMai)
+                // Lưu ý: Tùy thuộc vào cấu trúc entity KhuyenMai của bạn (ví dụ có field phanTramGiam),
+                // bạn có thể mở comment dưới đây để áp dụng. Tạm thời đang giữ mức giảm giá cũ.
+                /*
+                if (hd.getKhuyenMai() != null) {
+                    float phanTram = hd.getKhuyenMai().getPhanTramGiam();
+                    hd.setGiamGia(tongTien * phanTram / 100);
+                }
+                */
+
+                // 3. Gọi hàm cập nhật tổng thanh toán có sẵn trong entity
+                hd.tinhLaiTongThanhToan();
+
+                em.merge(hd);
+            }
+            return hd;
+        });
+    }
+    public boolean capNhatTongTien(String maHD, float tongTien, float giamGia, float tongThanhToan) {
+        return executeTransaction(em -> {
+            int updated = em.createQuery(
+                            "UPDATE HoaDon h " +
+                                    "SET h.tongTien = :tongTien, h.giamGia = :giamGia, h.tongThanhToan = :tongThanhToan " +
+                                    "WHERE h.maHD = :maHD")
+                    .setParameter("tongTien", tongTien)
+                    .setParameter("giamGia", giamGia)
+                    .setParameter("tongThanhToan", tongThanhToan)
+                    .setParameter("maHD", maHD)
+                    .executeUpdate();
+            return updated > 0;
+        });
+    }
 }
