@@ -145,7 +145,7 @@ public class ChiTietHoaDonRepository extends GenericRepository<ChiTietHoaDon, Lo
             List<Object[]> rows = em.createQuery("""
                     SELECT c.monAn.tenMon, SUM(c.soluong)
                     FROM ChiTietHoaDon c, HoaDon h
-                    WHERE h.maDon = c.donDatMon.maDon
+                    WHERE h.donDatMon.maDon = c.donDatMon.maDon
                       AND h.trangThai = :trangThai
                       AND h.ngayLap >= :start
                       AND h.ngayLap < :endExclusive
@@ -180,7 +180,7 @@ public class ChiTietHoaDonRepository extends GenericRepository<ChiTietHoaDon, Lo
             List<Object[]> rows = em.createQuery("""
                     SELECT c.monAn.tenMon, SUM(c.soluong)
                     FROM ChiTietHoaDon c, HoaDon h
-                    WHERE h.maDon = c.donDatMon.maDon
+                    WHERE h.donDatMon.maDon = c.donDatMon.maDon
                       AND h.ngayLap >= :start
                       AND h.ngayLap < :endExclusive
                     GROUP BY c.monAn.tenMon
@@ -219,7 +219,7 @@ public class ChiTietHoaDonRepository extends GenericRepository<ChiTietHoaDon, Lo
             List<Object[]> rows = em.createQuery("""
                     SELECT c.monAn.tenMon, SUM(c.soluong)
                     FROM ChiTietHoaDon c, HoaDon h
-                    WHERE h.maDon = c.donDatMon.maDon
+                    WHERE h.donDatMon.maDon = c.donDatMon.maDon
                       AND h.trangThai = :trangThai
                       AND h.ngayLap >= :start
                       AND h.ngayLap < :endExclusive
