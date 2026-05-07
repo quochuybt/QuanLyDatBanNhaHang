@@ -1,10 +1,4 @@
-// File: BillPanel.java
-
 package iuh.fit.gui;
-
-import gui.KhachHangGUI;
-import gui.ManHinhBanGUI;
-import gui.ManHinhGoiMonGUI;
 
 import iuh.fit.core.dto.BanDTO;
 import iuh.fit.core.dto.ChiTietHoaDonDTO;
@@ -71,17 +65,22 @@ public class BillPanel extends JPanel {
     public BillPanel(ManHinhGoiMonGUI parent) {
         super(new BorderLayout(0, 10));
         this.parentGoiMonGUI = parent;
+        this.parentBanGUI = null;
         initCommon();
     }
 
     public BillPanel(ManHinhBanGUI parent) {
         super(new BorderLayout(0, 10));
         this.parentBanGUI = parent;
+        this.parentGoiMonGUI = null;
         initCommon();
     }
 
     public BillPanel() {
-        this((ManHinhGoiMonGUI) null);
+        super(new BorderLayout(0, 10));
+        this.parentGoiMonGUI = null;
+        this.parentBanGUI = null;
+        initCommon();
     }
 
     private void initCommon() {
@@ -95,6 +94,7 @@ public class BillPanel extends JPanel {
         this.donDatMonService = new DonDatMonService();
 
         setBackground(Color.WHITE);
+
         JPanel checkoutPanel = createCheckoutPanel();
         add(checkoutPanel, BorderLayout.SOUTH);
 
@@ -117,16 +117,13 @@ public class BillPanel extends JPanel {
         ActionMap actionMap = this.getActionMap();
 
         KeyStroke f2KeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0);
-
         String saveActionKey = "saveOrderAction";
-
         inputMap.put(f2KeyStroke, saveActionKey);
 
         actionMap.put(saveActionKey, new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-
-                if (btnLuuMon.isEnabled()) {
+                if (btnLuuMon != null && btnLuuMon.isEnabled()) {
                     btnLuuMon.doClick();
                 }
             }
@@ -135,10 +132,11 @@ public class BillPanel extends JPanel {
         KeyStroke f1KeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0);
         String checkoutActionKey = "checkoutAction";
         inputMap.put(f1KeyStroke, checkoutActionKey);
+
         actionMap.put(checkoutActionKey, new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (btnThanhToan.isEnabled()) {
+                if (btnThanhToan != null && btnThanhToan.isEnabled()) {
                     btnThanhToan.doClick();
                 }
             }
@@ -146,7 +144,6 @@ public class BillPanel extends JPanel {
     }
 
     public void xuLyThanhToan() {
-
         BanDTO banHienTai = null;
         HoaDonDTO activeHoaDon = null;
 
@@ -165,7 +162,6 @@ public class BillPanel extends JPanel {
 
         String ghiChuHoaDon = "";
         if (activeHoaDon.getMaDon() != null) {
-
             DonDatMonDTO ddmRequest = new DonDatMonDTO();
             ddmRequest.setMaDon(activeHoaDon.getMaDon());
 
@@ -176,7 +172,6 @@ public class BillPanel extends JPanel {
         }
 
         if (parentGoiMonGUI != null) {
-
             if (parentGoiMonGUI.getModelChiTietHoaDon().getRowCount() == 0) return;
             if (!luuMonAnVaoCSDL(false)) return;
 
@@ -197,7 +192,6 @@ public class BillPanel extends JPanel {
             );
 
         } else if (parentBanGUI != null) {
-
             ChiTietHoaDonDTO request = new ChiTietHoaDonDTO();
             request.setMaDon(activeHoaDon.getMaDon());
 
@@ -207,21 +201,29 @@ public class BillPanel extends JPanel {
 
             this.currentTotal = (long) activeHoaDon.getTongThanhToan();
 
+            int tongSoLuong = 0;
+            if (dsMon != null) {
+                for (ChiTietHoaDonDTO ct : dsMon) {
+                    tongSoLuong += ct.getSoLuong();
+                }
+            }
+
             loadBillTotals(
                     (long) activeHoaDon.getTongTien(),
                     (long) activeHoaDon.getGiamGia(),
                     (long) activeHoaDon.getTongThanhToan(),
-                    0
+                    tongSoLuong
             );
         }
 
-        long tienKhachTraLong = 0;
+        long tienKhachTraLong;
         String maHDCuoiCung = activeHoaDon.getMaHD();
         long tongPhaiTraLong = this.currentTotal;
 
         try {
             String khachTraStr = txtKhachTra.getText().replace(",", "").replace(".", "");
             tienKhachTraLong = Long.parseLong(khachTraStr);
+
             if (tienKhachTraLong < tongPhaiTraLong) {
                 JOptionPane.showMessageDialog(this, "Tiền khách đưa không đủ!", "Lỗi", JOptionPane.WARNING_MESSAGE);
                 return;
@@ -232,13 +234,15 @@ public class BillPanel extends JPanel {
         }
 
         long tienThoiLong = tienKhachTraLong - tongPhaiTraLong;
+
         int confirm = JOptionPane.showConfirmDialog(this,
                 String.format("Xác nhận thanh toán cho %s?\nTổng: %s\nKhách đưa: %s\nTiền thối: %s",
                         banHienTai.getTenBan(),
                         nf.format(tongPhaiTraLong),
                         nf.format(tienKhachTraLong),
                         nf.format(tienThoiLong)),
-                "Xác nhận", JOptionPane.YES_NO_OPTION);
+                "Xác nhận",
+                JOptionPane.YES_NO_OPTION);
 
         if (confirm != JOptionPane.YES_OPTION) return;
 
@@ -246,8 +250,6 @@ public class BillPanel extends JPanel {
             String hinhThucTT = "Tiền mặt";
             if (parentBanGUI != null) {
                 hinhThucTT = parentBanGUI.getHinhThucThanhToan();
-            } else if (parentGoiMonGUI != null) {
-                hinhThucTT = "Tiền mặt";
             }
 
             double tienGiamGia = activeHoaDon.getGiamGia();
@@ -283,13 +285,13 @@ public class BillPanel extends JPanel {
             boolean thanhToanOK = hoaDonService.thanhToanHoaDon(thanhToanDTO);
 
             if (thanhToanOK) {
-
                 String maKH = activeHoaDon.getMaKH();
-                if (maKH != null && !maKH.trim().isEmpty()) {
 
+                if (maKH != null && !maKH.trim().isEmpty()) {
                     KhachHangDTO khachHang = khachHangService.findByIdDTO(maKH);
 
-                    if (khachHang != null && khachHang.getHangThanhVien() != iuh.fit.core.entity.HangThanhVien.NONE) {
+                    if (khachHang != null
+                            && khachHang.getHangThanhVien() != iuh.fit.core.entity.HangThanhVien.NONE) {
                         float soTienCongThem = (float) tongThanhToanFinal;
 
                         try {
@@ -305,7 +307,6 @@ public class BillPanel extends JPanel {
 
                 String tenNVIn = "Admin";
                 if (activeHoaDon.getMaNV() != null) {
-
                     NhanVienDTO nvRequest = new NhanVienDTO();
                     nvRequest.setMaNV(activeHoaDon.getMaNV());
 
@@ -318,7 +319,6 @@ public class BillPanel extends JPanel {
                     KhachHangDTO kh = khachHangService.findByIdDTO(activeHoaDon.getMaKH());
                     if (kh != null) tenKHIn = kh.getTenKH();
                 }
-
 
                 xuatPhieuIn(
                         "HÓA ĐƠN THANH TOÁN",
@@ -336,19 +336,14 @@ public class BillPanel extends JPanel {
 
                 if (parentGoiMonGUI != null) {
                     parentGoiMonGUI.xoaThongTinGoiMon();
-                    if (parentGoiMonGUI.getParentDanhSachBanGUI() != null) {
-                        parentGoiMonGUI.getParentDanhSachBanGUI().refreshManHinhBan();
-                    }
                 } else if (parentBanGUI != null) {
                     parentBanGUI.refreshTableList();
                     clearBill();
                 }
 
                 maKM = activeHoaDon.getMaKM();
-                maKH = activeHoaDon.getMaKH();
 
                 if (maKM != null && !maKM.isEmpty()) {
-                    String maKHGhiNhan = (maKH != null) ? maKH : "KH_VANGLAI";
                     khuyenMaiService.useKhuyenMai(maKM);
                 }
             } else {
@@ -361,7 +356,7 @@ public class BillPanel extends JPanel {
     }
 
     private void xuLyLuuMon_Clicked() {
-        boolean luuThanhCong = luuMonAnVaoCSDL(true);
+        luuMonAnVaoCSDL(true);
     }
 
     private List<ChiTietHoaDonDTO> getCurrentDetailList() {
@@ -370,6 +365,7 @@ public class BillPanel extends JPanel {
         if (parentGoiMonGUI != null) {
             DefaultTableModel model = parentGoiMonGUI.getModelChiTietHoaDon();
             String maDon = null;
+
             if (parentGoiMonGUI.getActiveHoaDon() != null) {
                 maDon = parentGoiMonGUI.getActiveHoaDon().getMaDon();
             }
@@ -378,6 +374,7 @@ public class BillPanel extends JPanel {
                 try {
                     Object maMonObj = model.getValueAt(i, 1);
                     String maMon = (maMonObj != null) ? maMonObj.toString().trim() : "";
+
                     if (maMon.isEmpty()) {
                         System.err.println("Dòng " + i + " trong bảng bị thiếu mã món, bỏ qua.");
                         continue;
@@ -406,6 +403,7 @@ public class BillPanel extends JPanel {
             }
         } else if (parentBanGUI != null) {
             HoaDonDTO hd = JsonMapper.convert(parentBanGUI.getActiveHoaDon(), HoaDonDTO.class);
+
             if (hd != null) {
                 ChiTietHoaDonDTO request = new ChiTietHoaDonDTO();
                 request.setMaDon(hd.getMaDon());
@@ -413,11 +411,11 @@ public class BillPanel extends JPanel {
                 list = chiTietHoaDonService.getChiTietTheoMaDon(request);
             }
         }
+
         return list;
     }
 
     private boolean luuMonAnVaoCSDL(boolean hienThongBaoThanhCong) {
-
         if (parentGoiMonGUI == null) return false;
 
         BanDTO banHienTai = JsonMapper.convert(parentGoiMonGUI.getBanHienTai(), BanDTO.class);
@@ -490,12 +488,14 @@ public class BillPanel extends JPanel {
 
                 if (!itemsTrongDB.containsKey(maMonGUI)) {
                     float donGia = donGiaTrenGUI.getOrDefault(maMonGUI, 0f);
+
                     if (donGia <= 0) {
                         iuh.fit.core.dto.MonAnDTO monAn = monAnService.findByIdDTO(maMonGUI);
                         if (monAn != null) {
                             donGia = monAn.getDonGia();
                         }
                     }
+
                     if (donGia > 0) {
                         ChiTietHoaDonDTO ctMoi = new ChiTietHoaDonDTO();
                         ctMoi.setMaDon(maDon);
@@ -516,6 +516,7 @@ public class BillPanel extends JPanel {
 
             for (Map.Entry<String, ChiTietHoaDonDTO> entryDB : itemsTrongDB.entrySet()) {
                 String maMonDB = entryDB.getKey();
+
                 if (!itemsTrenGUI.containsKey(maMonDB)) {
                     ChiTietHoaDonDTO deleteDTO = new ChiTietHoaDonDTO();
                     deleteDTO.setMaDon(maDon);
@@ -534,8 +535,8 @@ public class BillPanel extends JPanel {
 
                 if (itemsTrongDB.containsKey(maMonGUI)) {
                     ChiTietHoaDonDTO ctTrongDB = itemsTrongDB.get(maMonGUI);
-                    if (ctTrongDB.getSoLuong() != soLuongGUI) {
 
+                    if (ctTrongDB.getSoLuong() != soLuongGUI) {
                         ChiTietHoaDonDTO updateDTO = new ChiTietHoaDonDTO();
                         updateDTO.setMaDon(maDon);
                         updateDTO.setMaMonAn(maMonGUI);
@@ -552,6 +553,7 @@ public class BillPanel extends JPanel {
 
             if (!coLoi) {
                 float tongTienGoc = 0;
+
                 for (int i = 0; i < model.getRowCount(); i++) {
                     Object donGiaObj = model.getValueAt(i, 4);
                     Object soLuongObj = model.getValueAt(i, 3);
@@ -606,7 +608,6 @@ public class BillPanel extends JPanel {
     }
 
     private JPanel createCheckoutPanel() {
-
         JPanel mainPanel = new JPanel(new BorderLayout(15, 10));
         mainPanel.setOpaque(false);
         mainPanel.setBorder(new EmptyBorder(0, 10, 10, 10));
@@ -653,14 +654,11 @@ public class BillPanel extends JPanel {
             String ghiChu
     ) {
         BanDTO banHienTai = null;
-        HoaDonDTO activeHoaDon = null;
 
         if (parentGoiMonGUI != null) {
             banHienTai = JsonMapper.convert(parentGoiMonGUI.getBanHienTai(), BanDTO.class);
-            activeHoaDon = JsonMapper.convert(parentGoiMonGUI.getActiveHoaDon(), HoaDonDTO.class);
         } else if (parentBanGUI != null) {
             banHienTai = JsonMapper.convert(parentBanGUI.getSelectedTable(), BanDTO.class);
-            activeHoaDon = JsonMapper.convert(parentBanGUI.getActiveHoaDon(), HoaDonDTO.class);
         }
 
         if (banHienTai == null || dsMon == null || dsMon.isEmpty()) return;
@@ -687,12 +685,12 @@ public class BillPanel extends JPanel {
         if (ghiChuDisplay != null && ghiChuDisplay.contains("LINKED:")) {
             ghiChuDisplay = ghiChuDisplay.substring(0, ghiChuDisplay.indexOf("LINKED:")).trim();
         }
+
         if (ghiChuDisplay != null && !ghiChuDisplay.isEmpty()) {
             billText.append("Ghi chú:  ").append(ghiChuDisplay).append("\n");
         }
 
         billText.append("---------------------------------------------------\n");
-
         billText.append(String.format("%-20s %5s %10s %12s\n", "Tên món", "SL", "Đơn giá", "Thành tiền"));
         billText.append("---------------------------------------------------\n");
 
@@ -706,15 +704,15 @@ public class BillPanel extends JPanel {
                     nf.format(ct.getDonGia()),
                     nf.format(ct.getThanhTien())));
         }
-        billText.append("---------------------------------------------------\n");
 
-        billText.append(String.format("%-28s %20s\n", "Tổng cộng:", lblTongCong.getText()));
-        if (!lblKhuyenMai.getText().equals("0 ₫") && !lblKhuyenMai.getText().equals("0")) {
-            billText.append(String.format("%-28s %20s\n", "Giảm giá:", lblKhuyenMai.getText()));
+        billText.append("---------------------------------------------------\n");
+        billText.append(String.format("%-28s %20s\n", "Tổng cộng:", safeLabelText(lblTongCong)));
+        if (!safeLabelText(lblKhuyenMai).equals("0 ₫") && !safeLabelText(lblKhuyenMai).equals("0")) {
+            billText.append(String.format("%-28s %20s\n", "Giảm giá:", safeLabelText(lblKhuyenMai)));
         }
 
         billText.append("===================================================\n");
-        billText.append(String.format("%-28s %20s\n", "TỔNG THANH TOÁN:", lblTongThanhToan.getText()));
+        billText.append(String.format("%-28s %20s\n", "TỔNG THANH TOÁN:", safeLabelText(lblTongThanhToan)));
 
         if (daThanhToan) {
             billText.append(String.format("%-28s %20s\n", "HTTT:", hinhThucTT));
@@ -725,6 +723,7 @@ public class BillPanel extends JPanel {
         } else {
             billText.append("\n(Phiếu này chỉ để kiểm tra, chưa thanh toán)\n");
         }
+
         billText.append("===================================================\n");
 
         JDialog previewDialog = new JDialog(SwingUtilities.getWindowAncestor(this), tieuDe, Dialog.ModalityType.APPLICATION_MODAL);
@@ -777,7 +776,7 @@ public class BillPanel extends JPanel {
                 NhanVienDTO nvRequest = new NhanVienDTO();
                 nvRequest.setMaNV(hd.getMaNV());
 
-                NhanVienDTO nv = nhanVienService.getChiTietNhanVien(JsonMapper.convert(nvRequest, NhanVienDTO.class).getMaNV());
+                NhanVienDTO nv = nhanVienService.getChiTietNhanVien(nvRequest.getMaNV());
                 if (nv != null) tenNV = nv.getHoTen();
             }
 
@@ -786,7 +785,6 @@ public class BillPanel extends JPanel {
                 KhachHangDTO kh = khachHangService.findByIdDTO(hd.getMaKH());
                 if (kh != null) tenKH = kh.getTenKH();
             }
-
 
             String ghiChuHoaDon = "";
             if (hd.getMaDon() != null) {
@@ -822,12 +820,14 @@ public class BillPanel extends JPanel {
     }
 
     private void tinhTienThoi() {
+        if (txtKhachTra == null || lblTienThoi == null) return;
+
         try {
             long khachTra = Long.parseLong(txtKhachTra.getText().replace(",", "").replace(".", ""));
-
             long tienThoi = khachTra - this.currentTotal;
-            NumberFormat nf = NumberFormat.getInstance();
-            lblTienThoi.setText(nf.format(tienThoi));
+
+            NumberFormat nfNumber = NumberFormat.getInstance();
+            lblTienThoi.setText(nfNumber.format(tienThoi));
             lblTienThoi.setForeground(tienThoi < 0 ? Color.RED : Color.BLUE);
 
         } catch (NumberFormatException ex) {
@@ -836,14 +836,18 @@ public class BillPanel extends JPanel {
     }
 
     private void updateSuggestedCash(long total) {
-
         this.currentTotal = total;
+
         for (JButton btn : suggestedCashButtons) {
-            btn.setVisible(false);
+            if (btn != null) {
+                btn.setVisible(false);
+            }
         }
+
         if (total <= 0) {
             return;
         }
+
         long[] suggestions = new long[6];
         suggestions[0] = roundUpToNearest(total, 1000);
         suggestions[1] = roundUpToNearest(total, 50000);
@@ -852,19 +856,24 @@ public class BillPanel extends JPanel {
         suggestions[4] = suggestions[2] + 50000;
         suggestions[5] = 500000;
 
-        java.util.LinkedHashSet<Long> uniqueSuggestions = new java.util.LinkedHashSet<>();
+        LinkedHashSet<Long> uniqueSuggestions = new LinkedHashSet<>();
         for (long s : suggestions) {
             if (s >= total) {
                 uniqueSuggestions.add(s);
             }
         }
+
         int i = 0;
-        NumberFormat nf = NumberFormat.getInstance();
+        NumberFormat nfNumber = NumberFormat.getInstance();
+
         for (Long s : uniqueSuggestions) {
             if (i >= 6) break;
 
-            suggestedCashButtons[i].setText(nf.format(s));
-            suggestedCashButtons[i].setVisible(true);
+            if (suggestedCashButtons[i] != null) {
+                suggestedCashButtons[i].setText(nfNumber.format(s));
+                suggestedCashButtons[i].setVisible(true);
+            }
+
             i++;
         }
     }
@@ -872,6 +881,7 @@ public class BillPanel extends JPanel {
     private JPanel createSummaryPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setOpaque(false);
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(4, 5, 4, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -887,23 +897,29 @@ public class BillPanel extends JPanel {
 
         lblTongCong.setFont(valueFont);
         lblTongCong.setHorizontalAlignment(SwingConstants.RIGHT);
+
         lblKhuyenMai.setFont(valueFont);
         lblKhuyenMai.setHorizontalAlignment(SwingConstants.RIGHT);
+
         lblTongThanhToan.setFont(totalFont);
         lblTongThanhToan.setHorizontalAlignment(SwingConstants.RIGHT);
+
         lblTongSoLuong.setFont(valueFont);
         lblTongSoLuong.setHorizontalAlignment(SwingConstants.RIGHT);
 
         gbc.gridy = 0;
-        gbc.gridx = 0; gbc.weightx = 1.0;
+        gbc.gridx = 0;
+        gbc.weightx = 1.0;
         JLabel lbl1 = new JLabel("Tổng cộng:");
         lbl1.setFont(labelFont);
         panel.add(lbl1, gbc);
 
-        gbc.gridx = 1; gbc.weightx = 0.2;
+        gbc.gridx = 1;
+        gbc.weightx = 0.2;
         panel.add(lblTongSoLuong, gbc);
 
-        gbc.gridx = 2; gbc.weightx = 0.5;
+        gbc.gridx = 2;
+        gbc.weightx = 0.5;
         panel.add(lblTongCong, gbc);
 
         gbc.gridy = 1;
@@ -969,6 +985,7 @@ public class BillPanel extends JPanel {
     private JPanel createSuggestedCashPanel() {
         suggestedCashPanel = new JPanel(new GridLayout(3, 2, 5, 5));
         suggestedCashPanel.setOpaque(false);
+
         for (int i = 0; i < 6; i++) {
             JButton btn = new JButton("...");
             btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -1003,28 +1020,53 @@ public class BillPanel extends JPanel {
     }
 
     public void loadBillTotals(long tongCong, long khuyenMai, long tongThanhToan, int tongSoLuong) {
+        if (!isSummaryReady()) {
+            return;
+        }
 
         lblTongSoLuong.setText(String.valueOf(tongSoLuong));
         lblTongCong.setText(nf.format(tongCong));
         lblKhuyenMai.setText(nf.format(khuyenMai));
         lblTongThanhToan.setText(nf.format(tongThanhToan));
-        updateSuggestedCash(tongThanhToan);
 
+        updateSuggestedCash(tongThanhToan);
         tinhTienThoi();
-        if (tongThanhToan == 0) {
+
+        if (tongThanhToan == 0 && txtKhachTra != null) {
             txtKhachTra.setText("0");
             tinhTienThoi();
         }
     }
 
     public void clearBill() {
+        if (!isSummaryReady()) {
+            return;
+        }
+
         lblTongSoLuong.setText("0");
         lblTongCong.setText(nf.format(0));
         lblKhuyenMai.setText(nf.format(0));
         lblTongThanhToan.setText(nf.format(0));
-        lblTienThoi.setText(nf.format(0));
-        txtKhachTra.setText("0");
+
+        if (lblTienThoi != null) {
+            lblTienThoi.setText(nf.format(0));
+        }
+
+        if (txtKhachTra != null) {
+            txtKhachTra.setText("0");
+        }
 
         updateSuggestedCash(0);
+    }
+
+    private boolean isSummaryReady() {
+        return lblTongSoLuong != null
+                && lblTongCong != null
+                && lblKhuyenMai != null
+                && lblTongThanhToan != null;
+    }
+
+    private String safeLabelText(JLabel label) {
+        return label == null ? "" : label.getText();
     }
 }
