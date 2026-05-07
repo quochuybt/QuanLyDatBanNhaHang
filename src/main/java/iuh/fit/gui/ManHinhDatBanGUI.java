@@ -1,6 +1,5 @@
 package iuh.fit.gui;
 
-
 import java.awt.event.*;
 
 import javax.swing.SpinnerDateModel;
@@ -20,8 +19,8 @@ import java.util.List;
 import iuh.fit.core.dto.BanDTO;
 import iuh.fit.core.dto.DonDatMonDTO;
 import iuh.fit.core.dto.KhachHangDTO;
-import iuh.fit.core.entity.*;
-import iuh.fit.core.mapper.JsonMapper;
+import iuh.fit.core.entity.HangThanhVien;
+import iuh.fit.core.entity.TrangThaiBan;
 import iuh.fit.core.service.BanService;
 import iuh.fit.core.service.DonDatMonService;
 import iuh.fit.core.service.KhachHangService;
@@ -97,6 +96,7 @@ public class ManHinhDatBanGUI extends JPanel {
 
         return panel;
     }
+
     private JPanel createListBanPanel_DatBan(String title) {
         JPanel panel = new JPanel(new BorderLayout(0, 0));
         panel.setOpaque(false);
@@ -123,7 +123,8 @@ public class ManHinhDatBanGUI extends JPanel {
 
         return panel;
     }
-    private List<List<BanDTO>> timGoiYGhepBan(int soLuongKhach,List<BanDTO> sourceList) {
+
+    private List<List<BanDTO>> timGoiYGhepBan(int soLuongKhach, List<BanDTO> sourceList) {
         List<List<BanDTO>> dsGoiY = new ArrayList<>();
 
         java.util.Map<String, List<BanDTO>> banTheoKhuVuc = new java.util.HashMap<>();
@@ -151,8 +152,11 @@ public class ManHinhDatBanGUI extends JPanel {
         }
         return dsGoiY;
     }
-    private void timToHopBan(List<BanDTO> bans, int target, int index, List<BanDTO> current, List<List<BanDTO>> results) {
-        if (results.size() >= 50) return;
+
+    private void timToHopBan(List<BanDTO> bans, int target, int index, List<BanDTO> current,
+            List<List<BanDTO>> results) {
+        if (results.size() >= 50)
+            return;
 
         int currentSeats = current.stream().mapToInt(BanDTO::getSoGhe).sum();
 
@@ -172,6 +176,7 @@ public class ManHinhDatBanGUI extends JPanel {
             current.remove(current.size() - 1);
         }
     }
+
     private JPanel createInputNorthPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setOpaque(false); // Nền trong suốt
@@ -189,11 +194,13 @@ public class ManHinhDatBanGUI extends JPanel {
 
         JLabel lblNgayDat = new JLabel("Ngày đặt:");
         lblNgayDat.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        gbc.gridx = 1; panel.add(lblNgayDat, gbc);
+        gbc.gridx = 1;
+        panel.add(lblNgayDat, gbc);
 
         JLabel lblGioDat = new JLabel("Giờ đặt:");
         lblGioDat.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        gbc.gridx = 2; panel.add(lblGioDat, gbc);
+        gbc.gridx = 2;
+        panel.add(lblGioDat, gbc);
 
         gbc.gridy = 1;
         gbc.anchor = GridBagConstraints.CENTER;
@@ -214,7 +221,8 @@ public class ManHinhDatBanGUI extends JPanel {
         dateSpinner = new JSpinner(dateModel);
         dateSpinner.setEditor(new JSpinner.DateEditor(dateSpinner, "dd/MM/yyyy"));
         applySpinnerStyle(dateSpinner);
-        gbc.gridx = 1; panel.add(dateSpinner, gbc);
+        gbc.gridx = 1;
+        panel.add(dateSpinner, gbc);
         dateSpinner.addChangeListener(e -> hienThiBanPhuHop());
 
         SpinnerDateModel timeModel = new SpinnerDateModel();
@@ -226,7 +234,8 @@ public class ManHinhDatBanGUI extends JPanel {
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         timeSpinner.setValue(cal.getTime());
-        gbc.gridx = 2; panel.add(timeSpinner, gbc);
+        gbc.gridx = 2;
+        panel.add(timeSpinner, gbc);
         timeSpinner.addChangeListener(e -> hienThiBanPhuHop());
 
         gbc.gridy = 2;
@@ -250,7 +259,6 @@ public class ManHinhDatBanGUI extends JPanel {
 
         return panel;
     }
-
 
     private JPanel createInputSouthPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
@@ -303,8 +311,7 @@ public class ManHinhDatBanGUI extends JPanel {
         btnDatBan.addActionListener(e -> xuLyDatBan());
         btnDatBan.setBorder(BorderFactory.createCompoundBorder(
                 btnDatBan.getBorder(),
-                new EmptyBorder(10, 30, 10, 30)
-        ));
+                new EmptyBorder(10, 30, 10, 30)));
 
         gbc.gridx = 0;
         gbc.gridy = 2;
@@ -321,8 +328,7 @@ public class ManHinhDatBanGUI extends JPanel {
         tf.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         tf.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(200, 200, 200)),
-                new EmptyBorder(5, 8, 5, 8)
-        ));
+                new EmptyBorder(5, 8, 5, 8)));
         tf.setPreferredSize(new Dimension(100, 35));
     }
 
@@ -333,8 +339,7 @@ public class ManHinhDatBanGUI extends JPanel {
             JTextField textField = ((JSpinner.DefaultEditor) editor).getTextField();
             textField.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(new Color(200, 200, 200)),
-                    new EmptyBorder(5, 8, 5, 8)
-            ));
+                    new EmptyBorder(5, 8, 5, 8)));
             textField.setBackground(Color.WHITE);
         }
         spinner.setPreferredSize(new Dimension(100, 35));
@@ -365,6 +370,7 @@ public class ManHinhDatBanGUI extends JPanel {
                     txtTimKiemPhieuDat.setForeground(Color.BLACK);
                 }
             }
+
             @Override
             public void focusLost(FocusEvent e) {
                 if (txtTimKiemPhieuDat.getText().isEmpty()) {
@@ -396,7 +402,8 @@ public class ManHinhDatBanGUI extends JPanel {
                     DonDatMonDTO ddm = modelListPhieuDat.getElementAt(index);
                     Rectangle itemBounds = listPhieuDat.getCellBounds(index, index);
 
-                    Component rendererComp = listPhieuDat.getCellRenderer().getListCellRendererComponent(listPhieuDat, ddm, index, false, false);
+                    Component rendererComp = listPhieuDat.getCellRenderer().getListCellRendererComponent(listPhieuDat,
+                            ddm, index, false, false);
                     Component mainPanelComp = null;
                     Component deleteBtnComp = null;
 
@@ -410,7 +417,7 @@ public class ManHinhDatBanGUI extends JPanel {
                     if (deleteBtnComp instanceof JButton && mainPanelComp instanceof JPanel) {
                         JButton btnDelete = (JButton) deleteBtnComp;
                         JPanel itemMainPanel = (JPanel) mainPanelComp;
-                        Insets borderInsets = new Insets(0,0,0,0);
+                        Insets borderInsets = new Insets(0, 0, 0, 0);
                         Border border = itemMainPanel.getBorder();
                         if (border != null) {
                             borderInsets = border.getBorderInsets(itemMainPanel);
@@ -418,10 +425,11 @@ public class ManHinhDatBanGUI extends JPanel {
 
                         int btnX = itemBounds.x + itemBounds.width - btnDelete.getWidth()
                                 - borderInsets.right
-                                - ((BorderLayout)itemMainPanel.getLayout()).getHgap();
+                                - ((BorderLayout) itemMainPanel.getLayout()).getHgap();
                         int btnY = itemBounds.y + (itemBounds.height - btnDelete.getHeight()) / 2;
 
-                        Rectangle deleteButtonBounds = new Rectangle(btnX, btnY, btnDelete.getWidth(), btnDelete.getHeight());
+                        Rectangle deleteButtonBounds = new Rectangle(btnX, btnY, btnDelete.getWidth(),
+                                btnDelete.getHeight());
 
                         if (deleteButtonBounds.contains(e.getPoint())) {
                             xuLyHuyDatBan(ddm, index);
@@ -448,7 +456,7 @@ public class ManHinhDatBanGUI extends JPanel {
             List<DonDatMonDTO> dsKetQua;
 
             if (query.isEmpty() || query.equals(placeholder)) {
-                dsKetQua =  donDatMonService.getAllDonDatMonChuaNhan();
+                dsKetQua = donDatMonService.getAllDonDatMonChuaNhan();
             } else {
                 dsKetQua = donDatMonService.timDonDatMonChuaNhan(query);
             }
@@ -457,8 +465,7 @@ public class ManHinhDatBanGUI extends JPanel {
                 modelListPhieuDat.addElement(null);
             } else if (dsKetQua.isEmpty() && (query.isEmpty() || query.equals(placeholder))) {
                 modelListPhieuDat.addElement(null);
-            }
-            else {
+            } else {
                 for (DonDatMonDTO ddm : dsKetQua) {
                     modelListPhieuDat.addElement(ddm);
                 }
@@ -495,7 +502,9 @@ public class ManHinhDatBanGUI extends JPanel {
             cal.set(Calendar.HOUR_OF_DAY, timeCal.get(Calendar.HOUR_OF_DAY));
             cal.set(Calendar.MINUTE, timeCal.get(Calendar.MINUTE));
             thoiGianDat = cal.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
-        } catch (Exception e) { return; }
+        } catch (Exception e) {
+            return;
+        }
 
         LocalDateTime startCheck = thoiGianDat.minusHours(2);
         LocalDateTime endCheck = thoiGianDat.plusHours(2);
@@ -562,8 +571,10 @@ public class ManHinhDatBanGUI extends JPanel {
         sb.append("Ghép ").append(groupBan.size()).append(" bàn:<br><b>");
         for (int i = 0; i < groupBan.size(); i++) {
             sb.append(groupBan.get(i).getTenBan());
-            if (i < groupBan.size() - 1) sb.append(", ");
-            if ((i + 1) % 2 == 0 && i < groupBan.size() - 1) sb.append("<br>");
+            if (i < groupBan.size() - 1)
+                sb.append(", ");
+            if ((i + 1) % 2 == 0 && i < groupBan.size() - 1)
+                sb.append("<br>");
         }
         sb.append("</b><br><i>(Tổng ").append(tongGhe).append(" ghế)</i></center></html>");
 
@@ -587,15 +598,16 @@ public class ManHinhDatBanGUI extends JPanel {
             dsBanDaChon.clear();
             dsBanDaChon.addAll(groupBan);
 
-            for (BanPanel bp : dsBanPanelHienThi) bp.setSelected(false);
+            for (BanPanel bp : dsBanPanelHienThi)
+                bp.setSelected(false);
 
             Component[] comps = pnlBanContainer.getComponents();
             for (Component c : comps) {
                 if (c instanceof JToggleButton && c != btnGhep) {
-                    ((JToggleButton)c).setSelected(false);
+                    ((JToggleButton) c).setSelected(false);
                     c.setForeground(Color.BLACK);
                     c.setBackground(Color.WHITE);
-                    updateLabelsColor((JToggleButton)c, Color.BLACK);
+                    updateLabelsColor((JToggleButton) c, Color.BLACK);
                 }
             }
 
@@ -637,7 +649,7 @@ public class ManHinhDatBanGUI extends JPanel {
             Component[] comps = pnlBanContainer.getComponents();
             for (Component c : comps) {
                 if (c instanceof JToggleButton) {
-                    ((JToggleButton)c).setSelected(false);
+                    ((JToggleButton) c).setSelected(false);
                     c.setBackground(Color.WHITE);
                 }
             }
@@ -666,13 +678,15 @@ public class ManHinhDatBanGUI extends JPanel {
         }
         String sdt = txtSDTKhach.getText().trim();
         if (sdt.isEmpty() || !sdt.matches("\\d{10}")) {
-            JOptionPane.showMessageDialog(this, "Số điện thoại không hợp lệ!", "Lỗi nhập liệu", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Số điện thoại không hợp lệ!", "Lỗi nhập liệu",
+                    JOptionPane.WARNING_MESSAGE);
             txtSDTKhach.requestFocus();
             return;
         }
         String tenKH = txtHoTenKhach.getText().trim();
         if (tenKH.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập tên khách hàng!", "Lỗi nhập liệu", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập tên khách hàng!", "Lỗi nhập liệu",
+                    JOptionPane.WARNING_MESSAGE);
             txtHoTenKhach.requestFocus();
             return;
         }
@@ -691,7 +705,8 @@ public class ManHinhDatBanGUI extends JPanel {
             thoiGianDat = dateCal.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
 
             if (thoiGianDat.isBefore(LocalDateTime.now())) {
-                JOptionPane.showMessageDialog(this, "Thời gian đặt phải trong tương lai!", "Lỗi", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Thời gian đặt phải trong tương lai!", "Lỗi",
+                        JOptionPane.WARNING_MESSAGE);
                 return;
             }
         } catch (Exception ex) {
@@ -707,27 +722,25 @@ public class ManHinhDatBanGUI extends JPanel {
                     "Khách hàng mới (" + sdt + "). Thêm vào danh sách thành viên?",
                     "Khách mới", JOptionPane.YES_NO_CANCEL_OPTION);
 
-            if (choice == JOptionPane.CANCEL_OPTION) return;
+            if (choice == JOptionPane.CANCEL_OPTION)
+                return;
 
             khDTO = new KhachHangDTO();
             khDTO.setTenKH(tenKH);
             khDTO.setSdt(sdt);
             khDTO.setHangThanhVien(choice == JOptionPane.YES_OPTION ? HangThanhVien.MEMBER : HangThanhVien.NONE);
             khDTO.setGioiTinh("Khác");
-            khDTO.setNgaySinh(java.time.LocalDate.of(2000,1,1));
+            khDTO.setNgaySinh(java.time.LocalDate.of(2000, 1, 1));
             khDTO.setNgayThamGia(java.time.LocalDate.now());
 
-            KhachHang kh = JsonMapper.convert(khDTO, KhachHang.class);
-
-            if (khachHangService.addKhachHang(kh)) {
+            try {
+                khachHangService.addFromDTO(khDTO);
                 KhachHangDTO khMoi = khachHangService.findBySdtDTO(sdt);
                 if (khMoi != null) {
                     maKHCanDung = khMoi.getMaKH();
-                } else {
-                    maKHCanDung = kh.getMaKH();
                 }
-            } else {
-                JOptionPane.showMessageDialog(this, "Lỗi thêm khách hàng!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Lỗi thêm khách hàng: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
         } else {
@@ -743,29 +756,27 @@ public class ManHinhDatBanGUI extends JPanel {
         boolean isGhepBan = dsBanDaChon.size() > 1;
         BanDTO banChinh = dsBanDaChon.get(0);
 
+        String ghiChuUser = txtGhiChu.getText().trim();
         for (BanDTO ban : dsBanDaChon) {
-            entity.DonDatMon ddm = new entity.DonDatMon();
-            ddm.setNgayKhoiTao(LocalDateTime.now());
-            ddm.setThoiGianDen(thoiGianDat);
-            ddm.setMaNV("NV01102");
-            ddm.setMaKH(maKHCanDung);
-            ddm.setMaBan(ban.getMaBan());
-
-            String ghiChuUser = txtGhiChu.getText().trim();
+            String ghiChu;
             if (isGhepBan) {
                 if (ban.equals(banChinh)) {
-                    ddm.setGhiChu(ghiChuUser + " (Đặt chính nhóm " + dsBanDaChon.size() + " bàn)");
+                    ghiChu = ghiChuUser + " (Đặt chính nhóm " + dsBanDaChon.size() + " bàn)";
                 } else {
-                    String noteHienThi = ghiChuUser + " (Đặt cùng " + banChinh.getTenBan() + ")";
-                    String noteKyThuat = " LINKED:" + banChinh.getMaBan();
-
-                    ddm.setGhiChu(noteHienThi + noteKyThuat);
+                    ghiChu = ghiChuUser + " (Đặt cùng " + banChinh.getTenBan() + ") LINKED:" + banChinh.getMaBan();
                 }
             } else {
-                ddm.setGhiChu(ghiChuUser);
+                ghiChu = ghiChuUser;
             }
 
-            DonDatMonDTO ddmDTO = JsonMapper.convert(ddm, DonDatMonDTO.class);
+            DonDatMonDTO ddmDTO = DonDatMonDTO.builder()
+                    .ngayKhoiTao(LocalDateTime.now())
+                    .thoiGianDen(thoiGianDat)
+                    .maNV("NV01102")
+                    .maKH(maKHCanDung)
+                    .maBan(ban.getMaBan())
+                    .ghiChu(ghiChu)
+                    .build();
             donDatMonService.save(ddmDTO);
             long phutChenhLech = java.time.Duration.between(LocalDateTime.now(), thoiGianDat).toMinutes();
             if (phutChenhLech <= 120) {
@@ -848,10 +859,12 @@ public class ManHinhDatBanGUI extends JPanel {
                     banCanUpdate.setTenBan(tenGoc);
                     boolean updateBanOK = banService.updateBan(banCanUpdate);
                     if (!updateBanOK) {
-                        JOptionPane.showMessageDialog(this, "Hủy đơn thành công nhưng lỗi cập nhật lại trạng thái bàn!", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(this, "Hủy đơn thành công nhưng lỗi cập nhật lại trạng thái bàn!",
+                                "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
                     }
                 } else {
-                    System.err.println("Không tìm thấy bàn " + ddmToCancel.getMaBan() + " hoặc trạng thái không phải DA_DAT_TRUOC để reset.");
+                    System.err.println("Không tìm thấy bàn " + ddmToCancel.getMaBan()
+                            + " hoặc trạng thái không phải DA_DAT_TRUOC để reset.");
                 }
 
                 modelListPhieuDat.removeElementAt(index);
@@ -861,7 +874,8 @@ public class ManHinhDatBanGUI extends JPanel {
                     parentDanhSachBanGUI_DatBan.refreshManHinhBan();
                 }
             } else {
-                JOptionPane.showMessageDialog(this, "Hủy đặt bàn thất bại! Vui lòng thử lại.", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Hủy đặt bàn thất bại! Vui lòng thử lại.", "Lỗi CSDL",
+                        JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -919,7 +933,7 @@ public class ManHinhDatBanGUI extends JPanel {
 
         @Override
         public Component getListCellRendererComponent(JList<? extends DonDatMonDTO> list, DonDatMonDTO value,
-                                                      int index, boolean isSelected, boolean cellHasFocus) {
+                int index, boolean isSelected, boolean cellHasFocus) {
 
             if (value instanceof DonDatMonDTO) {
                 DonDatMonDTO ddm = value;
@@ -972,7 +986,10 @@ public class ManHinhDatBanGUI extends JPanel {
                 lblLine2.setForeground(timeColor);
             }
             btnDelete.setBackground(mainPanel.getBackground());
-            if (isSelected) btnDelete.setForeground(Color.DARK_GRAY); else btnDelete.setForeground(Color.RED);
+            if (isSelected)
+                btnDelete.setForeground(Color.DARK_GRAY);
+            else
+                btnDelete.setForeground(Color.RED);
             JPanel containerPanel = new JPanel(new BorderLayout());
             containerPanel.setBackground(list.getBackground());
             containerPanel.add(mainPanel, BorderLayout.CENTER);
@@ -999,10 +1016,10 @@ public class ManHinhDatBanGUI extends JPanel {
                     Component[] comps = pnlBanContainer.getComponents();
                     for (Component c : comps) {
                         if (c instanceof JToggleButton) {
-                            ((JToggleButton)c).setSelected(false);
+                            ((JToggleButton) c).setSelected(false);
                             c.setBackground(Color.WHITE);
                             if (c instanceof JToggleButton) {
-                                updateLabelsColor((JToggleButton)c, Color.BLACK);
+                                updateLabelsColor((JToggleButton) c, Color.BLACK);
                             }
                         }
                     }

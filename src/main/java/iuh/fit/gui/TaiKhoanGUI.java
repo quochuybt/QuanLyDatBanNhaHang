@@ -187,9 +187,7 @@ public class TaiKhoanGUI extends JFrame {
         lblQuenMatKhau.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                JOptionPane.showMessageDialog(TaiKhoanGUI.this,
-                        "Vui lòng liên hệ Quản lý để được hỗ trợ đặt lại mật khẩu.",
-                        "Quên mật khẩu", JOptionPane.INFORMATION_MESSAGE);
+                new ForgotPasswordDialog(TaiKhoanGUI.this).setVisible(true);
             }
             @Override
             public void mouseEntered(MouseEvent e) {

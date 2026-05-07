@@ -200,6 +200,16 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
 
                 donDangMo = dto.toEntity();
                 donDangMo.setBan(ban);
+                if (maNV != null && !maNV.isEmpty()) {
+                    donDangMo.setNhanVien(em.getReference(NhanVien.class, maNV));
+                } else {
+                    donDangMo.setNhanVien(null);
+                }
+                if (maKH != null && !maKH.isEmpty()) {
+                    donDangMo.setKhachHang(em.getReference(KhachHang.class, maKH));
+                } else {
+                    donDangMo.setKhachHang(null);
+                }
                 em.persist(donDangMo);
             }
 

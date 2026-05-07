@@ -9,10 +9,22 @@ public class MonAnRepository extends GenericRepository<MonAn, String> {
         super(MonAn.class);
     }
 
+    @Override
+    public List<MonAn> findAll() {
+        return doInSession(em ->
+                em.createQuery("""
+                    SELECT m FROM MonAn m
+                    LEFT JOIN FETCH m.danhMucMon
+                """, MonAn.class)
+                        .getResultList()
+        );
+    }
+
     public List<MonAn> findAllDangKinhDoanh() {
         return doInSession(em ->
                 em.createQuery("""
                     SELECT m FROM MonAn m
+                    LEFT JOIN FETCH m.danhMucMon
                     WHERE m.trangThai = 'Còn'
                 """, MonAn.class)
                         .getResultList()
@@ -23,6 +35,7 @@ public class MonAnRepository extends GenericRepository<MonAn, String> {
         return doInSession(em ->
                 em.createQuery("""
                     SELECT m FROM MonAn m
+                    LEFT JOIN FETCH m.danhMucMon
                     WHERE m.tenMon = :ten
                 """, MonAn.class)
                         .setParameter("ten", tenMon)

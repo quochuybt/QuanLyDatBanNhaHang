@@ -1,7 +1,7 @@
 package iuh.fit.gui;
 
-import dao.MailConfig; // (Lưu ý: Bạn nên chuyển các lớp này sang package utils hoặc service)
-import dao.MailService;
+import iuh.fit.core.util.MailConfig;
+import iuh.fit.core.util.MailService;
 import iuh.fit.core.service.NhanVienService;
 import iuh.fit.core.service.TaiKhoanService;
 
@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class ForgotPasswordDialog extends JDialog {
+
     private String currentTenTK = "";
     private String currentEmail = "";
     private String generatedOTP = "";
@@ -23,11 +24,12 @@ public class ForgotPasswordDialog extends JDialog {
     private JTextField txtOTP;
     private JPasswordField txtNewPassword;
     private JPasswordField txtConfirmPassword;
+
     private JLabel emailDisplayLabel;
 
     private static final Map<String, String> otpStorage = new HashMap<>();
 
-    // Khai báo Services thay cho DAO
+    // Sử dụng Service thay cho DAO (kiến trúc JPA mới)
     private final NhanVienService nhanVienService = new NhanVienService();
     private final TaiKhoanService taiKhoanService = new TaiKhoanService();
 
@@ -40,9 +42,13 @@ public class ForgotPasswordDialog extends JDialog {
         cardLayout = new CardLayout();
         cardPanel = new JPanel(cardLayout);
 
-        cardPanel.add(createStep1Panel(), "STEP_1_INPUT");
-        cardPanel.add(createStep2Panel(), "STEP_2_OTP");
-        cardPanel.add(createStep3Panel(), "STEP_3_RESET");
+        JPanel step1 = createStep1Panel();
+        JPanel step2 = createStep2Panel();
+        JPanel step3 = createStep3Panel();
+
+        cardPanel.add(step1, "STEP_1_INPUT");
+        cardPanel.add(step2, "STEP_2_OTP");
+        cardPanel.add(step3, "STEP_3_RESET");
 
         add(cardPanel);
         cardLayout.show(cardPanel, "STEP_1_INPUT");
@@ -54,6 +60,7 @@ public class ForgotPasswordDialog extends JDialog {
         return MailService.send(email, MailConfig.EMAIL_SUBJECT, generatedOTP);
     }
 
+    // ==================== BƯỚC 1: NHẬP TÊN ĐĂNG NHẬP ====================
     private JPanel createStep1Panel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
@@ -82,11 +89,10 @@ public class ForgotPasswordDialog extends JDialog {
                 return;
             }
 
-            // Đổi giao diện nút trong lúc chờ gửi email
+            // Đổi giao diện nút trong lúc chờ gửi email (tránh đơ UI)
             btnSendOTP.setEnabled(false);
             btnSendOTP.setText("Đang gửi...");
 
-            // Sử dụng SwingWorker để gửi email dưới nền (tránh đơ UI)
             new SwingWorker<Boolean, Void>() {
                 private String email;
                 private Exception error;
@@ -112,22 +118,30 @@ public class ForgotPasswordDialog extends JDialog {
                     btnSendOTP.setText("Gửi Mã OTP");
 
                     if (error != null) {
-                        JOptionPane.showMessageDialog(ForgotPasswordDialog.this, "Lỗi hệ thống: " + error.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(ForgotPasswordDialog.this,
+                                "Lỗi kết nối CSDL: " + error.getMessage(), "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
                         return;
                     }
 
                     try {
                         boolean isSent = get();
                         if (email == null) {
-                            JOptionPane.showMessageDialog(ForgotPasswordDialog.this, "Tài khoản không tồn tại hoặc chưa liên kết Email.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                            JOptionPane.showMessageDialog(ForgotPasswordDialog.this,
+                                    "Tài khoản không tồn tại hoặc chưa liên kết Email.", "Lỗi", JOptionPane.ERROR_MESSAGE);
                         } else if (isSent) {
                             if (emailDisplayLabel != null) {
-                                emailDisplayLabel.setText("<html><h3>2. Nhập Mã OTP</h3><p>Mã đã gửi tới Email: <b>" + maskEmail(currentEmail) + "</b></p></html>");
+                                emailDisplayLabel.setText("<html><h3>2. Nhập Mã OTP</h3><p>Mã đã gửi tới Email: <b>"
+                                        + maskEmail(currentEmail) + "</b></p></html>");
                             }
-                            JOptionPane.showMessageDialog(ForgotPasswordDialog.this, "Mã OTP đã được gửi đến: " + maskEmail(currentEmail) + "\n(Vui lòng kiểm tra mục Thư rác/Spam)", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                            JOptionPane.showMessageDialog(ForgotPasswordDialog.this,
+                                    "Mã OTP đã được gửi đến: " + maskEmail(currentEmail)
+                                            + "\n(Vui lòng kiểm tra mục Thư rác/Spam)",
+                                    "Thành công", JOptionPane.INFORMATION_MESSAGE);
                             cardLayout.show(cardPanel, "STEP_2_OTP");
                         } else {
-                            JOptionPane.showMessageDialog(ForgotPasswordDialog.this, "Lỗi khi gửi OTP. Vui lòng kiểm tra mạng.", "Lỗi Gửi Email", JOptionPane.ERROR_MESSAGE);
+                            JOptionPane.showMessageDialog(ForgotPasswordDialog.this,
+                                    "Lỗi khi gửi OTP. Vui lòng kiểm tra cấu hình email và kết nối mạng.",
+                                    "Lỗi Gửi Email", JOptionPane.ERROR_MESSAGE);
                         }
                     } catch (Exception ex) {
                         ex.printStackTrace();
@@ -138,6 +152,7 @@ public class ForgotPasswordDialog extends JDialog {
         return panel;
     }
 
+    // ==================== BƯỚC 2: NHẬP OTP ====================
     private JPanel createStep2Panel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
@@ -167,15 +182,18 @@ public class ForgotPasswordDialog extends JDialog {
 
             if (storedOTP != null && inputOTP.equals(storedOTP)) {
                 otpStorage.remove(currentTenTK); // Xóa OTP sau khi dùng
-                JOptionPane.showMessageDialog(this, "Xác nhận OTP thành công! Vui lòng đặt mật khẩu mới.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this,
+                        "Xác nhận OTP thành công! Vui lòng đặt mật khẩu mới.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
                 cardLayout.show(cardPanel, "STEP_3_RESET");
             } else {
-                JOptionPane.showMessageDialog(this, "Mã OTP không đúng hoặc đã hết hạn. Vui lòng kiểm tra lại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this,
+                        "Mã OTP không đúng hoặc đã hết hạn. Vui lòng kiểm tra lại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         });
         return panel;
     }
 
+    // ==================== BƯỚC 3: ĐẶT MẬT KHẨU MỚI ====================
     private JPanel createStep3Panel() {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
@@ -220,28 +238,32 @@ public class ForgotPasswordDialog extends JDialog {
             }
 
             try {
-                // Đẩy logic Validate Password xuống Service hoặc xử lý tại GUI nếu đơn giản
                 if (newPass.length() < 6) {
                     throw new IllegalArgumentException("Mật khẩu phải dài ít nhất 6 ký tự.");
                 }
 
                 if (taiKhoanService.updatePassword(currentTenTK, newPass)) {
-                    JOptionPane.showMessageDialog(this, "Đổi mật khẩu thành công! Vui lòng đăng nhập lại.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                    dispose(); // Đóng Dialog
+                    JOptionPane.showMessageDialog(this,
+                            "Đổi mật khẩu thành công! Vui lòng đăng nhập lại.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                    dispose();
                 } else {
-                    JOptionPane.showMessageDialog(this, "Không thể cập nhật mật khẩu. Vui lòng thử lại.", "Lỗi Cập nhật", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this,
+                            "Không thể cập nhật mật khẩu. Vui lòng thử lại.", "Lỗi Cập nhật", JOptionPane.ERROR_MESSAGE);
                 }
             } catch (IllegalArgumentException ex) {
-                JOptionPane.showMessageDialog(this, "Mật khẩu không hợp lệ:\n" + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this,
+                        "Mật khẩu không hợp lệ:\n" + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Lỗi kết nối CSDL: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this,
+                        "Lỗi kết nối CSDL: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         });
         return panel;
     }
 
+    // ==================== TIỆN ÍCH ====================
     private String maskEmail(String email) {
-        if (email == null || !email.contains("@")) return email;
+        if (email == null || email.indexOf('@') == -1) return email;
         String[] parts = email.split("@");
         String user = parts[0];
         String domain = parts[1];

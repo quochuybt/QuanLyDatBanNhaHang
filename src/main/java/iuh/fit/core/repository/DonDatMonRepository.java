@@ -13,6 +13,31 @@ public class DonDatMonRepository extends GenericRepository<DonDatMon, String> {
         super(DonDatMon.class);
     }
 
+    @Override
+    public void save(DonDatMon entity) {
+        doInTransaction(em -> {
+            if (entity.getMaDon() == null || entity.getMaDon().isEmpty()) {
+                entity.setMaDon(new DonDatMon(true).getMaDon());
+            }
+            if (entity.getNhanVien() != null && entity.getNhanVien().getManv() != null) {
+                entity.setNhanVien(em.getReference(iuh.fit.core.entity.NhanVien.class, entity.getNhanVien().getManv()));
+            } else {
+                entity.setNhanVien(null);
+            }
+            if (entity.getKhachHang() != null && entity.getKhachHang().getMaKH() != null) {
+                entity.setKhachHang(em.getReference(iuh.fit.core.entity.KhachHang.class, entity.getKhachHang().getMaKH()));
+            } else {
+                entity.setKhachHang(null);
+            }
+            if (entity.getBan() != null && entity.getBan().getMaBan() != null) {
+                entity.setBan(em.getReference(iuh.fit.core.entity.Ban.class, entity.getBan().getMaBan()));
+            } else {
+                entity.setBan(null);
+            }
+            em.persist(entity);
+        });
+    }
+
     /**
      * Lấy các mã bàn cùng đợt đặt món của một khách hàng
      * Sử dụng TIMESTAMPDIFF của MariaDB để thay thế cho DATEDIFF(MINUTE)

@@ -3,7 +3,6 @@ package iuh.fit.gui; // Đổi package nếu cần
 import iuh.fit.core.dto.BanDTO;
 import iuh.fit.core.service.BanService;
 
-
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -140,7 +139,7 @@ public class GhepBanDialog extends JDialog {
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         filterPanel.setOpaque(false);
         ButtonGroup group = new ButtonGroup();
-        String[] filters = {"Tất cả", "Tầng trệt", "Tầng 1"};
+        String[] filters = { "Tất cả", "Tầng trệt", "Tầng 1" };
         ActionListener filterListener = e -> {
             String selectedFilter = e.getActionCommand();
             if (isLeftPanel) {
@@ -181,8 +180,7 @@ public class GhepBanDialog extends JDialog {
                 button.setForeground(Color.BLACK);
                 button.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(Color.LIGHT_GRAY),
-                        new EmptyBorder(4, 14, 4, 14)
-                ));
+                        new EmptyBorder(4, 14, 4, 14)));
             }
         });
         button.setSelected(selected);
@@ -204,7 +202,8 @@ public class GhepBanDialog extends JDialog {
                 banPanel.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
-                        if (e.getButton() == MouseEvent.BUTTON1) handleSelectSource(ban, banPanel);
+                        if (e.getButton() == MouseEvent.BUTTON1)
+                            handleSelectSource(ban, banPanel);
                     }
                 });
                 leftTableContainer.add(banPanel);
@@ -223,7 +222,8 @@ public class GhepBanDialog extends JDialog {
             boolean khuVucMatch = khuVucFilter.equals("Tất cả") || ban.getKhuVuc().equals(khuVucFilter);
 
             // So sánh chuỗi cho trạng thái thay vì dùng Enum
-            boolean statusMatch = "Đang phục vụ".equals(ban.getTrangThai()) || "Đã đặt trước".equals(ban.getTrangThai());
+            boolean statusMatch = "Đang phục vụ".equals(ban.getTrangThai())
+                    || "Đã đặt trước".equals(ban.getTrangThai());
 
             if (khuVucMatch && statusMatch) {
                 BanPanel banPanel = new BanPanel(ban);
@@ -233,7 +233,8 @@ public class GhepBanDialog extends JDialog {
                 banPanel.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
-                        if (e.getButton() == MouseEvent.BUTTON1) handleSelectTarget(ban, banPanel);
+                        if (e.getButton() == MouseEvent.BUTTON1)
+                            handleSelectTarget(ban, banPanel);
                     }
                 });
                 rightTableContainer.add(banPanel);
@@ -282,11 +283,13 @@ public class GhepBanDialog extends JDialog {
 
     private void xuLyGhepBan() {
         if (selectedSourceTables.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất 1 bàn nguồn!", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất 1 bàn nguồn!", "Thiếu thông tin",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
         if (selectedTargetTable == null) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn 1 bàn đích!", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn 1 bàn đích!", "Thiếu thông tin",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -294,7 +297,9 @@ public class GhepBanDialog extends JDialog {
         boolean kq = banService.ghepBanLienKet(selectedSourceTables, selectedTargetTable);
 
         if (kq) {
-            JOptionPane.showMessageDialog(this, "Ghép bàn thành công!\nTất cả hóa đơn đã dồn về bàn " + selectedTargetTable.getTenBan(), "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    "Ghép bàn thành công!\nTất cả hóa đơn đã dồn về bàn " + selectedTargetTable.getTenBan(),
+                    "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             dispose();
         } else {
             JOptionPane.showMessageDialog(this, "Có lỗi xảy ra khi ghép bàn.", "Lỗi", JOptionPane.ERROR_MESSAGE);
