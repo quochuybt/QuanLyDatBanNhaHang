@@ -3,6 +3,7 @@ package iuh.fit.gui;
 import iuh.fit.core.dto.DonDatMonDTO;
 import iuh.fit.core.entity.Ban;
 import iuh.fit.core.entity.TrangThaiBan;
+import iuh.fit.core.mapper.JsonMapper;
 import iuh.fit.core.service.BanService;
 import iuh.fit.core.service.DonDatMonService;
 import iuh.fit.core.service.KhachHangService;
@@ -106,7 +107,7 @@ public class ManHinhDatBanGUI extends JPanel {
                 thoiGianDen.plusMinutes(120)
         );
 
-        danhSachLoc = banService.findAll().stream()
+        danhSachLoc = banService.getAllBan().stream().map(b -> JsonMapper.convert(b, Ban.class))
                 .filter(b -> b.getSoGhe() >= soKhach)
                 .filter(b -> b.getTrangThai() == TrangThaiBan.TRONG || b.getTrangThai() == TrangThaiBan.DA_DAT_TRUOC)
                 .filter(b -> !maBanDaDat.contains(b.getMaBan()))

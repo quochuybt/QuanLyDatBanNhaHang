@@ -3,6 +3,7 @@ package iuh.fit.gui;
 import iuh.fit.core.dto.BanDTO;
 import iuh.fit.core.dto.HoaDonDTO;
 import iuh.fit.core.entity.Ban;
+import iuh.fit.core.mapper.JsonMapper;
 import iuh.fit.core.service.BanService;
 import iuh.fit.core.service.HoaDonService;
 
@@ -73,7 +74,7 @@ public class ManHinhBanGUI extends JPanel {
                 return;
             }
             String maBan = model.getValueAt(row, 0).toString();
-            selectedTable = banService.findById(maBan);
+            selectedTable = JsonMapper.convert(banService.getBanByMa(maBan), Ban.class);
         });
         return new JScrollPane(table);
     }
