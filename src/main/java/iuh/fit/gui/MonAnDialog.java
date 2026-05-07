@@ -1,8 +1,7 @@
 package iuh.fit.gui;
 
 import iuh.fit.core.dto.DanhMucMonDTO;
-import iuh.fit.core.entity.DanhMucMon;
-import iuh.fit.core.entity.MonAn;
+import iuh.fit.core.dto.MonAnDTO;
 import iuh.fit.core.service.DanhMucMonService;
 import iuh.fit.core.service.MonAnService;
 
@@ -23,24 +22,30 @@ public class MonAnDialog extends JDialog {
     private JComboBox<String> cboTrangThai;
     private JComboBox<DanhMucMonDTO> cboDanhMuc;
     private JLabel lblHinhAnhPreview;
+
     private String selectedImageFileName = "";
     private boolean succeeded = false;
-    private final MonAn monAn;
+
+    private final MonAnDTO monAn;
 
     private final DanhMucMonService danhMucMonService = new DanhMucMonService();
     private final MonAnService monAnService = new MonAnService();
 
     public MonAnDialog(Frame parent) {
         super(parent, "Thêm Món Ăn", true);
-        this.monAn = new MonAn();
+
+        this.monAn = new MonAnDTO();
         this.monAn.setMaMonAn(monAnService.getNextMaMonAn());
+
         initUI();
     }
 
-    public MonAnDialog(Frame parent, MonAn existingMonAn) {
+    public MonAnDialog(Frame parent, MonAnDTO existingMonAn) {
         super(parent, "Cập Nhật Món Ăn", true);
+
         this.monAn = existingMonAn;
         this.selectedImageFileName = existingMonAn.getHinhAnh();
+
         initUI();
         fillData();
     }
@@ -54,29 +59,48 @@ public class MonAnDialog extends JDialog {
         JPanel pnlForm = new JPanel(new GridBagLayout());
         pnlForm.setBackground(Color.WHITE);
         pnlForm.setBorder(new EmptyBorder(20, 20, 20, 20));
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         txtMaMon = addField(pnlForm, gbc, 0, "Mã món:", false);
         txtMaMon.setText(monAn.getMaMonAn());
+
         txtTenMon = addField(pnlForm, gbc, 1, "Tên món (*):", true);
 
         gbc.gridx = 0;
         gbc.gridy = 2;
         pnlForm.add(new JLabel("Danh mục:"), gbc);
+
         cboDanhMuc = new JComboBox<>();
         cboDanhMuc.setRenderer(new DefaultListCellRenderer() {
             @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-                Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                if (value instanceof DanhMucMon dm) {
+            public Component getListCellRendererComponent(
+                    JList<?> list,
+                    Object value,
+                    int index,
+                    boolean isSelected,
+                    boolean cellHasFocus
+            ) {
+                Component c = super.getListCellRendererComponent(
+                        list,
+                        value,
+                        index,
+                        isSelected,
+                        cellHasFocus
+                );
+
+                if (value instanceof DanhMucMonDTO dm) {
                     setText(dm.getTendm());
                 }
+
                 return c;
             }
         });
+
         loadCategories();
+
         gbc.gridx = 1;
         pnlForm.add(cboDanhMuc, gbc);
 
@@ -86,15 +110,19 @@ public class MonAnDialog extends JDialog {
         gbc.gridx = 0;
         gbc.gridy = 5;
         pnlForm.add(new JLabel("Trạng thái:"), gbc);
+
         cboTrangThai = new JComboBox<>(new String[]{"Còn", "Hết món"});
+
         gbc.gridx = 1;
         pnlForm.add(cboTrangThai, gbc);
 
         gbc.gridx = 0;
         gbc.gridy = 6;
         pnlForm.add(new JLabel("Mô tả:"), gbc);
+
         txtMoTa = new JTextArea(3, 20);
         txtMoTa.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+
         gbc.gridx = 1;
         pnlForm.add(new JScrollPane(txtMoTa), gbc);
 
@@ -113,9 +141,11 @@ public class MonAnDialog extends JDialog {
 
         pnlImage.add(lblHinhAnhPreview, BorderLayout.CENTER);
         pnlImage.add(btnUpload, BorderLayout.SOUTH);
+
         add(pnlImage, BorderLayout.EAST);
 
         JPanel pnlBtn = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+
         JButton btnSave = new JButton("Lưu");
         JButton btnCancel = new JButton("Hủy");
 
@@ -127,15 +157,24 @@ public class MonAnDialog extends JDialog {
 
         pnlBtn.add(btnSave);
         pnlBtn.add(btnCancel);
+
         add(pnlBtn, BorderLayout.SOUTH);
     }
 
     private void chooseImage() {
         JFileChooser fc = new JFileChooser();
-        fc.setFileFilter(new FileNameExtensionFilter("Hình ảnh (JPG, PNG, GIF, BMP)", "jpg", "jpeg", "png", "gif", "bmp"));
+        fc.setFileFilter(new FileNameExtensionFilter(
+                "Hình ảnh (JPG, PNG, GIF, BMP)",
+                "jpg",
+                "jpeg",
+                "png",
+                "gif",
+                "bmp"
+        ));
 
         if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             File srcFile = fc.getSelectedFile();
+
             if (srcFile == null || !srcFile.exists()) {
                 JOptionPane.showMessageDialog(this, "File không tồn tại hoặc chưa chọn file!");
                 return;
@@ -143,6 +182,7 @@ public class MonAnDialog extends JDialog {
 
             String projectPath = System.getProperty("user.dir");
             File destFolder = new File(projectPath + "/resources/img/MonAn");
+
             if (!destFolder.exists()) {
                 destFolder.mkdirs();
             }
@@ -151,9 +191,15 @@ public class MonAnDialog extends JDialog {
             File destFile = new File(destFolder, newName);
 
             try {
-                Files.copy(srcFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(
+                        srcFile.toPath(),
+                        destFile.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING
+                );
+
                 this.selectedImageFileName = newName;
                 displayImage(destFile.getAbsolutePath());
+
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(this, "Lỗi copy ảnh: " + e.getMessage());
             }
@@ -168,13 +214,16 @@ public class MonAnDialog extends JDialog {
         }
 
         ImageIcon icon = null;
+
         try {
             File f = new File(pathOrName);
+
             if (f.exists() && f.isAbsolute()) {
                 icon = new ImageIcon(f.getAbsolutePath());
             } else {
                 String localPath = System.getProperty("user.dir") + "/resources/img/MonAn/" + pathOrName;
                 File localFile = new File(localPath);
+
                 if (localFile.exists()) {
                     icon = new ImageIcon(localPath);
                 } else {
@@ -202,15 +251,18 @@ public class MonAnDialog extends JDialog {
             if (txtTenMon.getText().trim().isEmpty()) {
                 throw new Exception("Tên món không được để trống!");
             }
+
             if (txtDonGia.getText().trim().isEmpty()) {
                 throw new Exception("Đơn giá không được để trống!");
             }
 
             float giaBan = Float.parseFloat(txtDonGia.getText().trim());
+
             if (giaBan < 0) {
                 throw new Exception("Giá bán không được âm!");
             }
 
+            monAn.setMaMonAn(txtMaMon.getText().trim());
             monAn.setTenMon(txtTenMon.getText().trim());
             monAn.setDonGia(giaBan);
             monAn.setDonViTinh(txtDonViTinh.getText().trim());
@@ -218,40 +270,66 @@ public class MonAnDialog extends JDialog {
             monAn.setMoTa(txtMoTa.getText().trim());
             monAn.setHinhAnh(selectedImageFileName);
 
-            DanhMucMon dm = (DanhMucMon) cboDanhMuc.getSelectedItem();
+            DanhMucMonDTO dm = (DanhMucMonDTO) cboDanhMuc.getSelectedItem();
+
             if (dm != null) {
-                monAn.getDanhMucMon().setMadm(dm.getMadm());
+                monAn.setMaDM(dm.getMadm());
+                monAn.setTenDM(dm.getTendm());
             }
 
             succeeded = true;
             dispose();
+
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Đơn giá phải là số hợp lệ!", "Lỗi nhập liệu", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Đơn giá phải là số hợp lệ!",
+                    "Lỗi nhập liệu",
+                    JOptionPane.WARNING_MESSAGE
+            );
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi nhập liệu", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    ex.getMessage(),
+                    "Lỗi nhập liệu",
+                    JOptionPane.WARNING_MESSAGE
+            );
         }
     }
 
-    private JTextField addField(JPanel p, GridBagConstraints gbc, int row, String lbl, boolean edit) {
+    private JTextField addField(
+            JPanel p,
+            GridBagConstraints gbc,
+            int row,
+            String lbl,
+            boolean edit
+    ) {
         gbc.gridx = 0;
         gbc.gridy = row;
         gbc.weightx = 0;
+
         p.add(new JLabel(lbl), gbc);
 
         JTextField txt = new JTextField(15);
         txt.setEditable(edit);
+
         if (!edit) {
             txt.setBackground(new Color(240, 240, 240));
         }
 
         gbc.gridx = 1;
         gbc.weightx = 1;
+
         p.add(txt, gbc);
+
         return txt;
     }
 
     private void loadCategories() {
         List<DanhMucMonDTO> categories = danhMucMonService.getAllDanhMuc();
+
+        cboDanhMuc.removeAllItems();
+
         for (DanhMucMonDTO dm : categories) {
             cboDanhMuc.addItem(dm);
         }
@@ -267,11 +345,15 @@ public class MonAnDialog extends JDialog {
 
         for (int i = 0; i < cboDanhMuc.getItemCount(); i++) {
             DanhMucMonDTO item = cboDanhMuc.getItemAt(i);
-            if (item.getMadm().equals(monAn.getMaDM())) {
+
+            if (item != null
+                    && item.getMadm() != null
+                    && item.getMadm().equals(monAn.getMaDM())) {
                 cboDanhMuc.setSelectedIndex(i);
                 break;
             }
         }
+
         displayImage(selectedImageFileName);
     }
 
@@ -279,7 +361,7 @@ public class MonAnDialog extends JDialog {
         return succeeded;
     }
 
-    public MonAn getMonAn() {
+    public MonAnDTO getMonAnDTO() {
         return monAn;
     }
 }
