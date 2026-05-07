@@ -1,26 +1,7 @@
 -- Import dữ liệu mẫu lớn cho database đã tạo sẵn
 USE QuanLyNhaHang;
 
-SET NAMES utf8mb4;
-SET FOREIGN_KEY_CHECKS = 0;
-START TRANSACTION;
 
--- Đảm bảo dữ liệu tham chiếu tồn tại
-INSERT IGNORE INTO VaiTro (tenVaiTro) VALUES ('NHANVIEN'), ('QUANLY');
-INSERT IGNORE INTO HangThanhVien (tenHang) VALUES ('NONE'), ('MEMBER'), ('BRONZE'), ('SILVER'), ('GOLD'), ('DIAMOND');
-
--- =============================================
--- Ghi chú enum Java:
--- HangThanhVien: NONE, MEMBER, BRONZE, SILVER, GOLD, DIAMOND
--- TrangThaiBan: TRONG, DANG_PHUC_VU, DA_DAT_TRUOC
--- VaiTro: NHANVIEN, QUANLY
--- Nếu entity dùng enum, nên khai báo @Enumerated(EnumType.STRING)
--- để Hibernate lưu đúng chuỗi enum thay vì lưu số ordinal.
--- =============================================
-
--- Sửa kiểu cột trạng thái bàn để khớp enum TrangThaiBan lưu dạng STRING.
--- Cần dùng kèm @Enumerated(EnumType.STRING) trong entity Ban.
-ALTER TABLE Ban MODIFY COLUMN trangThai VARCHAR(30) NOT NULL;
 
 -- Dọn dữ liệu mẫu cũ trước khi import dữ liệu mẫu lớn
 -- Lý do: tránh lỗi Duplicate entry như tài khoản 'admin', mã bàn, mã món, mã hóa đơn...
@@ -46,12 +27,12 @@ ALTER TABLE Ban MODIFY COLUMN trangThai VARCHAR(30) NOT NULL;
 -- Ghi chú: nếu hàm hashPassword() của project đang dùng dạng 'hashed_' + Java String.hashCode(),
 -- thì 123456 sẽ được lưu là: hashed_1450575459.
 -- Tài khoản mẫu: admin, nv_binh, nv_chi, nv_dung, nv_duy.
-INSERT INTO TaiKhoan (tenTK, matKhau, trangThai) VALUES
-('admin', 'hashed_1450575459', 1),
-('nv_binh', 'hashed_1450575459', 1),
-('nv_chi', 'hashed_1450575459', 1),
-('nv_dung', 'hashed_1450575459', 1),
-('nv_duy', 'hashed_1450575459', 1);
+INSERT IGNORE INTO TaiKhoan (tenTK, matKhau, trangThai) VALUES
+                                                            ('admin', 'hashed_92668751', TRUE),
+                                                            (N'nv_binh', N'hashed_-860005230', TRUE), -- Mật khẩu: binh12345
+                                                            (N'nv_chi', N'hashed_1603487247', TRUE), -- Mật khẩu: chi12345
+                                                            (N'nv_dung', N'hashed_-769688471', TRUE), -- Mật khẩu: dung12345
+                                                            (N'nv_duy', N'hashed_-1837957333', TRUE); -- Mật khẩu: duy12345
 
 -- 2. Ca làm
 INSERT INTO CaLam (maCa, tenCa, gioBatDau, gioKetThuc) VALUES
@@ -1586,24 +1567,3 @@ INSERT INTO GiaoCa (maNV, thoiGianBatDau, thoiGianKetThuc, tienDauCa, tienCuoiCa
 ('NV01104', '2025-12-22 14:00:40', '2025-12-22 22:08:45', 1750000.00, 2151000.00, 400000.00, 1000.00, 'Thừa quỹ 1,000 VNĐ.'),
 ('NV01105', '2025-12-22 18:05:55', '2025-12-22 21:51:30', 1000000.00, 1050000.00, 50000.00, 0.00, 'Khớp số ca part-time.');
 
-UPDATE KhachHang
-SET tongChiTieu = (
-    SELECT IFNULL(SUM(hd.tongTien), 0)
-    FROM HoaDon hd
-    INNER JOIN DonDatMon ddm ON hd.maDon = ddm.maDon
-    WHERE ddm.maKH = KhachHang.maKH
-    AND hd.trangThai = 'Đã thanh toán'
-);
-
-UPDATE KhachHang
-SET hangThanhVien = CASE
-    WHEN tongChiTieu >= 50000000 THEN 'DIAMOND'
-    WHEN tongChiTieu >= 25000000 THEN 'GOLD'
-    WHEN tongChiTieu >= 10000000 THEN 'SILVER'
-    WHEN tongChiTieu >= 5000000  THEN 'BRONZE'
-    ELSE 'MEMBER'
-END
-WHERE hangThanhVien <> 'NONE';
-
-COMMIT;
-SET FOREIGN_KEY_CHECKS = 1;

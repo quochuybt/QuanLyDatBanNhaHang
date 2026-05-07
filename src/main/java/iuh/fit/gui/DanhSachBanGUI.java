@@ -5,7 +5,6 @@ import java.awt.event.ActionListener;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import entity.Ban;
 import iuh.fit.core.dto.BanDTO;
 import iuh.fit.core.mapper.JsonMapper;
 

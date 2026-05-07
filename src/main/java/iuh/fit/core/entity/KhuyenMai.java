@@ -46,10 +46,10 @@ public class KhuyenMai {
     private String trangThai;
 
     @Column(name = "soLuongGioiHan")
-    private int soLuongGioiHan;
+    private Integer soLuongGioiHan;
 
     @Column(name = "soLuotDaDung")
-    private int soLuotDaDung;
+    private Integer soLuotDaDung;
 
     // ====== Quan hệ với HoaDon (1-N) ======
     @OneToMany(mappedBy = "khuyenMai")
