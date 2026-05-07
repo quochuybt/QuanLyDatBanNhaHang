@@ -2,6 +2,7 @@ package iuh.fit.gui;
 
 import iuh.fit.core.dto.BanDTO;
 import iuh.fit.core.dto.ChiTietHoaDonDTO;
+import iuh.fit.core.dto.HoaDonDTO;
 import iuh.fit.core.entity.Ban;
 import iuh.fit.core.entity.MonAn;
 import iuh.fit.core.repository.ChiTietHoaDonRepository.ChiTietHoaDonItem;
@@ -24,6 +25,9 @@ public class ManHinhGoiMonGUI extends JPanel {
     private final BanService banService = new BanService();
     private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
     private final HoaDonService hoaDonService = new HoaDonService();
+
+    private Ban banHienTai;
+    private HoaDonDTO activeHoaDon;
 
     private DefaultTableModel modelMon;
     private DefaultTableModel modelOrder;
@@ -174,6 +178,10 @@ public class ManHinhGoiMonGUI extends JPanel {
         lblTongTien.setText("Tổng: " + String.format("%,.0f", tong) + " VND");
     }
 
+    public void updateBillPanelTotals() {
+        capNhatTongTien();
+    }
+
     private void napChiTietDon() {
         String maDon = txtMaDon.getText().trim();
         if (maDon.isEmpty()) {
@@ -250,8 +258,10 @@ public class ManHinhGoiMonGUI extends JPanel {
         String maKH = null;
 
         try {
+            this.banHienTai = banService.findById(maBan);
             var hd = hoaDonService.moBanVaTaoHoaDon(maBan, maNV, maKH, java.time.LocalDateTime.now(), "Tạo từ màn hình gọi món");
             if (hd != null && hd.getMaDon() != null) {
+                this.activeHoaDon = hd;
                 txtMaDon.setText(hd.getMaDon());
                 napChiTietDon();
                 JOptionPane.showMessageDialog(this, "Đã mở bàn/tạo đơn: " + hd.getMaDon());
@@ -262,5 +272,29 @@ public class ManHinhGoiMonGUI extends JPanel {
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Mở bàn thất bại: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    public Ban getBanHienTai() {
+        return banHienTai;
+    }
+
+    public HoaDonDTO getActiveHoaDon() {
+        return activeHoaDon;
+    }
+
+    public DefaultTableModel getModelChiTietHoaDon() {
+        return modelOrder;
+    }
+
+    public void xoaThongTinGoiMon() {
+        if (modelOrder != null) {
+            modelOrder.setRowCount(0);
+        }
+        if (txtMaDon != null) {
+            txtMaDon.setText("");
+        }
+        banHienTai = null;
+        activeHoaDon = null;
+        updateBillPanelTotals();
     }
 }
