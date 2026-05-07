@@ -1,6 +1,6 @@
 package iuh.fit.gui;
 
-import gui.ChiTietNhanVienDialog;
+
 import iuh.fit.core.entity.NhanVien;
 import iuh.fit.core.service.NhanVienService;
 import iuh.fit.core.service.PhanCongService;
