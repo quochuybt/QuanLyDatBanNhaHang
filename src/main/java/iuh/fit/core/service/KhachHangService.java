@@ -11,11 +11,12 @@ public class KhachHangService {
 
     private final KhachHangRepository khachHangRepo = new KhachHangRepository();
 
-    public void addKhachHang(KhachHang kh) {
-        if (khachHangRepo.findById(kh.getMaKH()) != null)
+    public boolean addKhachHang(KhachHang kh) {
+        if (khachHangRepo.findById(kh.getMaKH()) != null) {
             throw new IllegalArgumentException("Mã khách hàng '" + kh.getMaKH() + "' đã tồn tại.");
-
+        }
         khachHangRepo.save(kh);
+        return true;
     }
 
     public void addFromDTO(KhachHangDTO dto) {

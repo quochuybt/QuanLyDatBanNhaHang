@@ -87,15 +87,15 @@ public class BanService {
         return banRepository.ghepBanLienKet(listBanNguon, banDich);
     }
 
-    public String getTenHienThiGhep(BanDTO banDTO) {
-        validateBanDTOForId(banDTO, "Bàn");
+    public String getTenHienThiGhep(String maBan) {
+//        validateBanDTOForId(banDTO, "Bàn");
 
-        Ban ban = banRepository.getBanByMa(banDTO.getMaBan());
+        Ban ban = banRepository.getBanByMa(maBan);
         if (ban == null) {
-            throw new IllegalArgumentException("Không tìm thấy bàn: " + banDTO.getMaBan());
+            throw new IllegalArgumentException("Không tìm thấy bàn: " + maBan);
         }
 
-        return banRepository.getTenHienThiGhep(banDTO.getMaBan());
+        return banRepository.getTenHienThiGhep(maBan);
     }
 
     public String getMaBanChinh(BanDTO banDTO) {
