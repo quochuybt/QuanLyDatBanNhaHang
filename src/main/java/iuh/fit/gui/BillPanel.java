@@ -287,18 +287,15 @@ public class BillPanel extends JPanel {
                 String maKH = activeHoaDon.getMaKH();
                 if (maKH != null && !maKH.trim().isEmpty()) {
 
-                    KhachHangDTO khachHangRequest = new KhachHangDTO();
-                    khachHangRequest.setMaKH(maKH);
+                    KhachHangDTO khachHang = khachHangService.findByIdDTO(maKH);
 
-                    KhachHangDTO khachHang = khachHangService.timTheoMaKH(khachHangRequest);
-
-                    if (khachHang != null && khachHangService.coTichDiem(khachHang)) {
+                    if (khachHang != null && khachHang.getHangThanhVien() != iuh.fit.core.entity.HangThanhVien.NONE) {
                         float soTienCongThem = (float) tongThanhToanFinal;
 
-                        if (khachHangService.congTongChiTieu(khachHang, soTienCongThem)) {
+                        try {
+                            khachHangService.addChiTieu(khachHang.getMaKH(), soTienCongThem);
                             KhachHangGUI.reloadKhachHangTableIfAvailable();
-
-                        } else {
+                        } catch (Exception ex) {
                             System.err.println("Lỗi CSDL khi cập nhật Khách Hàng: " + maKH);
                         }
                     }
@@ -318,13 +315,10 @@ public class BillPanel extends JPanel {
 
                 String tenKHIn = "Khách lẻ";
                 if (activeHoaDon.getMaKH() != null) {
-
-                    KhachHangDTO khRequest = new KhachHangDTO();
-                    khRequest.setMaKH(activeHoaDon.getMaKH());
-
-                    KhachHangDTO kh = khachHangService.timTheoMaKH(khRequest);
+                    KhachHangDTO kh = khachHangService.findByIdDTO(activeHoaDon.getMaKH());
                     if (kh != null) tenKHIn = kh.getTenKH();
                 }
+
 
                 xuatPhieuIn(
                         "HÓA ĐƠN THANH TOÁN",
@@ -355,7 +349,7 @@ public class BillPanel extends JPanel {
 
                 if (maKM != null && !maKM.isEmpty()) {
                     String maKHGhiNhan = (maKH != null) ? maKH : "KH_VANGLAI";
-                    khuyenMaiService.ghiNhanSuDung(maKM, maKHGhiNhan);
+                    khuyenMaiService.useKhuyenMai(maKM);
                 }
             } else {
                 JOptionPane.showMessageDialog(this, "Lỗi cập nhật CSDL!", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
@@ -496,11 +490,12 @@ public class BillPanel extends JPanel {
 
                 if (!itemsTrongDB.containsKey(maMonGUI)) {
                     float donGia = donGiaTrenGUI.getOrDefault(maMonGUI, 0f);
-
                     if (donGia <= 0) {
-                        donGia = monAnService.getDonGiaByMa(maMonGUI);
+                        iuh.fit.core.dto.MonAnDTO monAn = monAnService.findByIdDTO(maMonGUI);
+                        if (monAn != null) {
+                            donGia = monAn.getDonGia();
+                        }
                     }
-
                     if (donGia > 0) {
                         ChiTietHoaDonDTO ctMoi = new ChiTietHoaDonDTO();
                         ctMoi.setMaDon(maDon);
@@ -788,12 +783,10 @@ public class BillPanel extends JPanel {
 
             String tenKH = "Khách lẻ";
             if (hd.getMaKH() != null) {
-                KhachHangDTO khRequest = new KhachHangDTO();
-                khRequest.setMaKH(hd.getMaKH());
-
-                KhachHangDTO kh = khachHangService.timTheoMaKH(khRequest);
+                KhachHangDTO kh = khachHangService.findByIdDTO(hd.getMaKH());
                 if (kh != null) tenKH = kh.getTenKH();
             }
+
 
             String ghiChuHoaDon = "";
             if (hd.getMaDon() != null) {

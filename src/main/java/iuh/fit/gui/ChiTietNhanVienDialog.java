@@ -3,7 +3,7 @@ package iuh.fit.gui;
 import iuh.fit.core.dto.NhanVienDTO;
 import iuh.fit.core.entity.VaiTro;
 import iuh.fit.core.service.NhanVienService;
-import gui.NhanVienGUI;
+
 
 import javax.swing.*;
 import java.awt.*;
