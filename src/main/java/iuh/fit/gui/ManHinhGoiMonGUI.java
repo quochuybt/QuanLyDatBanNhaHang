@@ -27,7 +27,7 @@ public class ManHinhGoiMonGUI extends JPanel {
     private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
     private final HoaDonService hoaDonService = new HoaDonService();
 
-    private Ban banHienTai;
+    private BanDTO banHienTai;
     private HoaDonDTO activeHoaDon;
 
     private DefaultTableModel modelMon;
@@ -263,7 +263,7 @@ public class ManHinhGoiMonGUI extends JPanel {
         String maKH = null;
 
         try {
-            this.banHienTai = JsonMapper.convert(banService.getBanByMa(maBan), Ban.class);
+            this.banHienTai = JsonMapper.convert(banService.getBanByMa(maBan), BanDTO.class);
             var hd = hoaDonService.moBanVaTaoHoaDon(maBan, maNV, maKH, java.time.LocalDateTime.now(), "Tạo từ màn hình gọi món");
             if (hd != null && hd.getMaDon() != null) {
                 this.activeHoaDon = hd;
@@ -279,14 +279,14 @@ public class ManHinhGoiMonGUI extends JPanel {
         }
     }
 
-    public boolean loadDuLieuBan(Ban banDuocChon) {
+    public boolean loadDuLieuBan(BanDTO banDuocChon) {
         if (banDuocChon == null) return false;
         this.banHienTai = banDuocChon;
         txtMaDon.setText("");
         return true;
     }
 
-    public Ban getBanHienTai() {
+    public BanDTO getBanHienTai() {
         return banHienTai;
     }
 

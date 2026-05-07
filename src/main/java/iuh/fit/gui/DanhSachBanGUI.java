@@ -1,202 +1,224 @@
 package iuh.fit.gui;
 
-import iuh.fit.core.entity.Ban;
-import iuh.fit.core.service.DonDatMonService;
-import iuh.fit.gui.ChuyenBanDialog;
-import iuh.fit.gui.GhepBanDialog;
-
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import entity.Ban;
+import iuh.fit.core.dto.BanDTO;
+import iuh.fit.core.mapper.JsonMapper;
 
+public class DanhSachBanGUI extends JPanel implements ActionListener {
+    private static final Color COLOR_ACCENT_BLUE = new Color(56, 118, 243);
 
-/**
- * Lớp GUI chính điều phối các màn hình liên quan đến Bàn, Gọi món và Đặt bàn.
- * Sử dụng CardLayout để chuyển đổi linh hoạt giữa các phân hệ.
- */
-
-public class DanhSachBanGUI extends JPanel {
-    // Constants cho màu sắc và Card Name
-    private static final Color PRIMARY_BLUE = new Color(56, 118, 243);
-    private static final String TAB_BAN = "MAN_HINH_BAN";
-    private static final String TAB_GOI_MON = "MAN_HINH_GOI_MON";
-    private static final String TAB_DAT_BAN = "MAN_HINH_DAT_BAN";
-
-    // Layout components
-    private final CardLayout cardLayout = new CardLayout();
-    private final JPanel containerPanel = new JPanel(cardLayout);
-
-    // Sub-screens
+    private CardLayout contentCardLayout = new CardLayout();
+    private JPanel contentCardPanel;
+    private ButtonGroup topNavGroup = new ButtonGroup();
     private ManHinhBanGUI manHinhBanGUI;
     private ManHinhGoiMonGUI manHinhGoiMonGUI;
     private ManHinhDatBanGUI manHinhDatBanGUI;
-
-    // Navigation buttons
-    private JToggleButton btnBan, btnGoiMon, btnDatBan;
-    private final ButtonGroup navGroup = new ButtonGroup();
-
-    // Dependencies
-    private final MainGUI parentMainGUI;
+    private JToggleButton btnTabBan;
+    private JToggleButton btnTabGoiMon;
+    private JToggleButton btnTabDatBan;
+    private MainGUI mainGUI_Parent;
     private final String maNVDangNhap;
-    private final DonDatMonService donDatMonService = new DonDatMonService();
 
     public DanhSachBanGUI(MainGUI main, String maNVDangNhap) {
-        this.parentMainGUI = main;
+        this.mainGUI_Parent = main;
         this.maNVDangNhap = maNVDangNhap;
 
-        initComponent();
-        setupListeners();
-    }
-
-    private void initComponent() {
         setLayout(new BorderLayout());
+        setBorder(new EmptyBorder(20, 10, 0, 0));
         setBackground(Color.WHITE);
-        setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        // 1. Khởi tạo thanh điều hướng phía trên
-        add(createHeaderPanel(), BorderLayout.NORTH);
+        JPanel topNavPanel = new JPanel(new BorderLayout());
+        topNavPanel.setOpaque(true);
+        topNavPanel.setBackground(COLOR_ACCENT_BLUE);
 
-        // 2. Khởi tạo các màn hình con
+        JPanel leftButtonsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        leftButtonsPanel.setOpaque(false);
+
+        btnTabBan = createTopNavButton("Bàn", "MAN_HINH_BAN", true);
+        btnTabGoiMon = createTopNavButton("Gọi Món", "MAN_HINH_GOI_MON", false);
+        btnTabDatBan = createTopNavButton("Đặt Bàn", "MAN_HINH_DAT_BAN", false);
+
+        ActionListener[] defaultGoiMonListeners = btnTabGoiMon.getActionListeners();
+        for (ActionListener al : defaultGoiMonListeners) {
+            btnTabGoiMon.removeActionListener(al);
+        }
+
+        btnTabGoiMon.addActionListener(e -> {
+            if (btnTabGoiMon.isSelected()) {
+                BanDTO banDangChon = JsonMapper.convert(manHinhBanGUI.getSelectedTable(), BanDTO.class);
+
+                if (banDangChon != null) {
+                    boolean shouldShowGoiMon = manHinhGoiMonGUI.loadDuLieuBan(banDangChon);
+                    if (shouldShowGoiMon) {
+                        contentCardLayout.show(contentCardPanel, "MAN_HINH_GOI_MON");
+                        updateTopNavButtonStyles();
+                    }else {
+                        System.out.println("loadDuLieuBan trả về false, quay lại tab Bàn.");
+                        SwingUtilities.invokeLater(() -> {
+                            btnTabBan.setSelected(true);
+                        });
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                            "Vui lòng chọn một bàn từ tab 'Bàn' trước khi chuyển sang 'Gọi Món'.",
+                            "Chưa chọn bàn",
+                            JOptionPane.WARNING_MESSAGE);
+                    SwingUtilities.invokeLater(() -> {
+                        btnTabBan.setSelected(true);
+                    });
+                }
+            }
+        });
+        ActionListener[] defaultDatBanListeners = btnTabDatBan.getActionListeners();
+        for (ActionListener al : defaultDatBanListeners) {
+            btnTabDatBan.removeActionListener(al);
+        }
+
+        btnTabDatBan.addActionListener(e -> {
+            if (btnTabDatBan.isSelected()) {
+                contentCardLayout.show(contentCardPanel, "MAN_HINH_DAT_BAN");
+                updateTopNavButtonStyles();
+
+                if (manHinhDatBanGUI != null) {
+                    manHinhDatBanGUI.refreshData();
+                }
+            }
+        });
+        topNavGroup.add(btnTabBan);
+        topNavGroup.add(btnTabGoiMon);
+        topNavGroup.add(btnTabDatBan);
+
+        leftButtonsPanel.add(btnTabBan);
+        leftButtonsPanel.add(btnTabGoiMon);
+        leftButtonsPanel.add(btnTabDatBan);
+
+        JPanel rightButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        rightButtonPanel.setOpaque(false);
+        rightButtonPanel.setBorder(new EmptyBorder(0, 0, 0, 5));
+        JButton menuButton = new JButton("...");
+        menuButton.setFocusPainted(false);
+        menuButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        menuButton.setBackground(COLOR_ACCENT_BLUE);
+        menuButton.setForeground(Color.WHITE);
+        menuButton.setPreferredSize(new Dimension(50, 40));
+        menuButton.setBorder(new EmptyBorder(10, 15, 10, 15));
+        menuButton.addActionListener(e -> {
+            JPopupMenu popupMenu = new JPopupMenu();
+            popupMenu.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+            JMenuItem itemGhepBan = new JMenuItem("Ghép bàn");
+            JMenuItem itemChuyenBan = new JMenuItem("Chuyển bàn");
+            Font menuFont = new Font("Segoe UI", Font.PLAIN, 13);
+            itemGhepBan.setFont(menuFont);
+            itemChuyenBan.setFont(menuFont);
+            itemGhepBan.setBorder(new EmptyBorder(5, 15, 5, 15));
+            itemChuyenBan.setBorder(new EmptyBorder(5, 15, 5, 15));
+
+            itemGhepBan.addActionListener(e_themBan -> showGhepBanSplitDialog());
+            itemChuyenBan.addActionListener(e_themBan -> {
+                showChuyenBanDiaLog();
+                if (manHinhBanGUI != null) {
+                    manHinhBanGUI.refreshTableList();
+                }
+            });
+
+
+            popupMenu.add(itemGhepBan);
+            popupMenu.add(itemChuyenBan);
+
+            popupMenu.show(menuButton, -100, menuButton.getHeight());
+        });
+        rightButtonPanel.add(menuButton);
+
+        topNavPanel.add(leftButtonsPanel, BorderLayout.WEST);
+        topNavPanel.add(rightButtonPanel, BorderLayout.EAST);
+
+        contentCardPanel = new JPanel(contentCardLayout);
+        contentCardPanel.setOpaque(false);
+
         manHinhBanGUI = new ManHinhBanGUI(this);
         manHinhGoiMonGUI = new ManHinhGoiMonGUI(this, this.maNVDangNhap);
-        manHinhDatBanGUI = new ManHinhDatBanGUI(this, parentMainGUI);
+        manHinhDatBanGUI = new ManHinhDatBanGUI(this, mainGUI_Parent);
 
-        containerPanel.add(manHinhBanGUI, TAB_BAN);
-        containerPanel.add(manHinhGoiMonGUI, TAB_GOI_MON);
-        containerPanel.add(manHinhDatBanGUI, TAB_DAT_BAN);
-        containerPanel.setOpaque(false);
+        contentCardPanel.add(manHinhBanGUI, "MAN_HINH_BAN");
+        contentCardPanel.add(manHinhGoiMonGUI, "MAN_HINH_GOI_MON");
+        contentCardPanel.add(manHinhDatBanGUI, "MAN_HINH_DAT_BAN");
 
-        add(containerPanel, BorderLayout.CENTER);
+        add(topNavPanel, BorderLayout.NORTH);
+        add(contentCardPanel, BorderLayout.CENTER);
 
-        // Mặc định hiển thị tab Bàn
-        showTab(TAB_BAN);
+        contentCardLayout.show(contentCardPanel, "MAN_HINH_BAN");
+
+        SwingUtilities.invokeLater(this::updateTopNavButtonStyles);
+    }
+    public String getMaNVDangNhap() {
+        return maNVDangNhap;
     }
 
-    private JPanel createHeaderPanel() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(PRIMARY_BLUE);
-        header.setPreferredSize(new Dimension(0, 45));
-
-        // Panel chứa các nút điều hướng bên trái
-        JPanel leftNav = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
-        leftNav.setOpaque(false);
-
-        btnBan = createNavButton("Sơ đồ bàn", TAB_BAN);
-        btnGoiMon = createNavButton("Gọi món", TAB_GOI_MON);
-        btnDatBan = createNavButton("Lịch đặt bàn", TAB_DAT_BAN);
-
-        navGroup.add(btnBan);
-        navGroup.add(btnGoiMon);
-        navGroup.add(btnDatBan);
-        btnBan.setSelected(true);
-
-        leftNav.add(btnBan);
-        leftNav.add(btnGoiMon);
-        leftNav.add(btnDatBan);
-
-        // Nút menu chức năng bên phải (Ghép/Chuyển bàn)
-        JButton btnExtra = new JButton("Chức năng ▾");
-        styleExtraButton(btnExtra);
-        btnExtra.addActionListener(this::showPopupMenu);
-
-        header.add(leftNav, BorderLayout.WEST);
-        header.add(btnExtra, BorderLayout.EAST);
-
-        return header;
-    }
-
-    private void setupListeners() {
-        // Xử lý riêng cho tab Gọi Món vì cần kiểm tra điều kiện chọn bàn
-        for (ActionListener al : btnGoiMon.getActionListeners()) btnGoiMon.removeActionListener(al);
-
-        btnGoiMon.addActionListener(e -> {
-            Ban selectedBan = manHinhBanGUI.getSelectedTable();
-            if (selectedBan == null) {
-                JOptionPane.showMessageDialog(this, "Vui lòng chọn bàn từ sơ đồ trước!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-                btnBan.setSelected(true);
-                showTab(TAB_BAN);
-                return;
-            }
-
-            if (manHinhGoiMonGUI.loadDuLieuBan(selectedBan)) {
-                showTab(TAB_GOI_MON);
-            } else {
-                btnBan.setSelected(true);
-                showTab(TAB_BAN);
+    private JToggleButton createTopNavButton(String text, String cardName, boolean selected) {
+        JToggleButton navButton = new JToggleButton(text);
+        navButton.setFocusPainted(false);
+        navButton.setBorderPainted(false);
+        navButton.setBorder(new EmptyBorder(10, 20, 10, 20));
+        navButton.setPreferredSize(new Dimension(120, 40));
+        navButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        navButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        navButton.addActionListener(e -> {
+            if (navButton.isSelected()) {
+                contentCardLayout.show(contentCardPanel, cardName);
+                updateTopNavButtonStyles();
             }
         });
+        navButton.setSelected(selected);
 
-        // Xử lý riêng cho tab Đặt Bàn để làm mới dữ liệu
-        for (ActionListener al : btnDatBan.getActionListeners()) btnDatBan.removeActionListener(al);
-        btnDatBan.addActionListener(e -> {
-            manHinhDatBanGUI.refreshData();
-            showTab(TAB_DAT_BAN);
-        });
+
+        return navButton;
     }
-
-    private void showTab(String cardName) {
-        cardLayout.show(containerPanel, cardName);
-        updateButtonStyles();
-    }
-
-    private JToggleButton createNavButton(String text, String cardName) {
-        JToggleButton btn = new JToggleButton(text);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btn.setPreferredSize(new Dimension(130, 45));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.addActionListener(e -> showTab(cardName));
-        return btn;
-    }
-
-    private void updateButtonStyles() {
-        JToggleButton[] btns = {btnBan, btnGoiMon, btnDatBan};
-        for (JToggleButton b : btns) {
-            if (b.isSelected()) {
-                b.setBackground(Color.WHITE);
-                b.setForeground(PRIMARY_BLUE);
-            } else {
-                b.setBackground(PRIMARY_BLUE);
-                b.setForeground(Color.WHITE);
+    private void updateTopNavButtonStyles() {
+        JToggleButton[] buttons = {btnTabBan, btnTabGoiMon, btnTabDatBan};
+        for (JToggleButton btn : buttons) {
+            if (btn != null) {
+                if (btn.isSelected()) {
+                    btn.setBackground(Color.WHITE);
+                    btn.setForeground(Color.BLACK);
+                } else {
+                    btn.setBackground(COLOR_ACCENT_BLUE);
+                    btn.setForeground(Color.WHITE);
+                }
             }
         }
     }
-
-    private void showPopupMenu(ActionEvent e) {
-        JPopupMenu menu = new JPopupMenu();
-        JMenuItem itemGhep = new JMenuItem("Ghép bàn nhanh");
-        JMenuItem itemChuyen = new JMenuItem("Chuyển bàn");
-
-        itemGhep.addActionListener(al -> {
-            new GhepBanDialog(SwingUtilities.getWindowAncestor(this)).setVisible(true);
-            refreshManHinhBan();
-        });
-
-        itemChuyen.addActionListener(al -> {
-            new ChuyenBanDialog(SwingUtilities.getWindowAncestor(this)).setVisible(true);
-            refreshManHinhBan();
-        });
-
-        menu.add(itemGhep);
-        menu.add(itemChuyen);
-        menu.show((Component) e.getSource(), 0, 45);
-    }
-
-    private void styleExtraButton(JButton btn) {
-        btn.setBackground(PRIMARY_BLUE);
-        btn.setForeground(Color.WHITE);
-        btn.setFocusPainted(false);
-        btn.setBorder(new EmptyBorder(0, 15, 0, 15));
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
-    }
-
     public void refreshManHinhBan() {
-        if (manHinhBanGUI != null) manHinhBanGUI.refreshTableList();
+        System.out.println("Đã nhận yêu cầu refresh...");
+        if (manHinhBanGUI != null) {
+            manHinhBanGUI.refreshTableList();
+        }
     }
 
-    public String getMaNVDangNhap() { return maNVDangNhap; }
+    private void showChuyenBanDiaLog() {
+        Window parentFrame = SwingUtilities.getWindowAncestor(this);
+        ChuyenBanDialog dialog = new ChuyenBanDialog(parentFrame);
+        dialog.setVisible(true);
+    }
+
+
+    private void showGhepBanSplitDialog() {
+        Window parentFrame = SwingUtilities.getWindowAncestor(this);
+        GhepBanDialog dialog = new GhepBanDialog(parentFrame);
+        dialog.setVisible(true);
+        if (manHinhBanGUI != null) {
+            System.out.println("Đang làm mới danh sách bàn sau khi ghép...");
+            manHinhBanGUI.refreshTableList();
+        }
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+
+    }
+
 }
