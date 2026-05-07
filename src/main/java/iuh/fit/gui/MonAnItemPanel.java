@@ -1,6 +1,6 @@
 package iuh.fit.gui;
 
-import entity.MonAn;
+import iuh.fit.core.dto.MonAnDTO;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -11,13 +11,13 @@ import java.util.Locale;
 
 public class MonAnItemPanel extends JPanel {
 
-    private MonAn monAn;
+    private MonAnDTO monAn;
     private final NumberFormat nf = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
 
     private static final Color BORDER_COLOR = new Color(220, 220, 220);
     private static final Color HOVER_COLOR = new Color(230, 245, 255);
 
-    public MonAnItemPanel(MonAn monAn) {
+    public MonAnItemPanel(MonAnDTO monAn) {
         this.monAn = monAn;
         buildUI();
         addMouseHoverEffect();
@@ -64,7 +64,9 @@ public class MonAnItemPanel extends JPanel {
                 if (placeholderUrl != null) {
                     icon = new ImageIcon(placeholderUrl);
                 }
-            } catch (Exception e) { }
+            } catch (Exception e) {
+                // bỏ qua nếu không có ảnh placeholder
+            }
         }
 
         if (icon != null) {
@@ -111,6 +113,7 @@ public class MonAnItemPanel extends JPanel {
                     }
                 }
             }
+
             public void mouseExited(java.awt.event.MouseEvent evt) {
                 setBackground(Color.WHITE);
                 for (Component component : getComponents()) {
@@ -124,7 +127,7 @@ public class MonAnItemPanel extends JPanel {
         });
     }
 
-    public MonAn getMonAn() {
+    public MonAnDTO getMonAn() {
         return monAn;
     }
 }
