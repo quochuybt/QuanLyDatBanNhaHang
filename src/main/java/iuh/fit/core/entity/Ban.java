@@ -1,9 +1,7 @@
 package iuh.fit.core.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -24,10 +22,13 @@ public class Ban {
     private static int soThuTuBan = 1;
     private String tenBan;
     private int soGhe;
+    @Enumerated(EnumType.STRING)
     private TrangThaiBan trangThai;
     private LocalDateTime gioMoBan;
     private String khuVuc;
 
+    @JsonIgnore
+    @ToString.Exclude
     @OneToMany(mappedBy = "ban")
     private Set<DonDatMon> donDatMons =  new HashSet<>();
 
