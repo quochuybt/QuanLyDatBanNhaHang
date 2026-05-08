@@ -6,6 +6,7 @@ import iuh.fit.core.entity.KhachHang;
 import iuh.fit.core.repository.KhachHangRepository;
 
 import java.time.LocalDate;
+import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -20,7 +21,7 @@ public class KhachHangService {
             throw new IllegalArgumentException("Khách hàng không được null.");
         }
 
-        chuanHoaKhachHangMoi(kh);
+        chuanHoaKhachHang(kh, true);
 
         if (khachHangRepo.findById(kh.getMaKH()) != null) {
             throw new IllegalArgumentException("Mã khách hàng '" + kh.getMaKH() + "' đã tồn tại.");
@@ -79,8 +80,21 @@ public class KhachHangService {
             throw new IllegalArgumentException("Mã khách hàng không được rỗng.");
         }
 
-        if (khachHangRepo.findById(kh.getMaKH()) == null) {
+        KhachHang khCu = khachHangRepo.findById(kh.getMaKH().trim());
+
+        if (khCu == null) {
             throw new IllegalArgumentException("Khách hàng '" + kh.getMaKH() + "' không tồn tại.");
+        }
+
+        chuanHoaKhachHang(kh, false);
+
+        // Check trùng SĐT với khách khác
+        if (kh.getSdt() != null && !kh.getSdt().trim().isEmpty()) {
+            KhachHang khTheoSDT = khachHangRepo.findBySdt(kh.getSdt().trim());
+
+            if (khTheoSDT != null && !khTheoSDT.getMaKH().equals(kh.getMaKH())) {
+                throw new IllegalArgumentException("Số điện thoại '" + kh.getSdt() + "' đã thuộc khách hàng khác.");
+            }
         }
 
         khachHangRepo.update(kh);
@@ -150,8 +164,8 @@ public class KhachHangService {
         return kh != null ? KhachHangDTO.fromEntity(kh) : null;
     }
 
-    private void chuanHoaKhachHangMoi(KhachHang kh) {
-        if (kh.getMaKH() == null || kh.getMaKH().trim().isEmpty()) {
+    private void chuanHoaKhachHang(KhachHang kh, boolean isNew) {
+        if (isNew && (kh.getMaKH() == null || kh.getMaKH().trim().isEmpty())) {
             kh.setMaKH(phatSinhMaKH());
         }
 
@@ -161,6 +175,10 @@ public class KhachHangService {
 
         if (kh.getSdt() == null || kh.getSdt().trim().isEmpty()) {
             throw new IllegalArgumentException("Số điện thoại không được rỗng.");
+        }
+
+        if (!kh.getSdt().trim().matches("\\d{10}")) {
+            throw new IllegalArgumentException("Số điện thoại không hợp lệ. SĐT phải gồm 10 chữ số.");
         }
 
         kh.setSdt(kh.getSdt().trim());
@@ -180,6 +198,26 @@ public class KhachHangService {
 
         if (kh.getNgaySinh() == null) {
             kh.setNgaySinh(LocalDate.of(2000, 1, 1));
+        }
+
+        validateKhachHangDu18Tuoi(kh.getNgaySinh());
+    }
+
+    private void validateKhachHangDu18Tuoi(LocalDate ngaySinh) {
+        if (ngaySinh == null) {
+            throw new IllegalArgumentException("Ngày sinh không được rỗng.");
+        }
+
+        LocalDate today = LocalDate.now();
+
+        if (ngaySinh.isAfter(today)) {
+            throw new IllegalArgumentException("Ngày sinh không được lớn hơn ngày hiện tại.");
+        }
+
+        int tuoi = Period.between(ngaySinh, today).getYears();
+
+        if (tuoi < 18) {
+            throw new IllegalArgumentException("Khách hàng phải đủ từ 18 tuổi trở lên.");
         }
     }
 
