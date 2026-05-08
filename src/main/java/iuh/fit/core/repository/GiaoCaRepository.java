@@ -60,7 +60,7 @@ public class GiaoCaRepository extends GenericRepository<GiaoCa, String> {
 
             // Tính tiền mặt từ hệ thống (HoaDon) trong khoảng thời gian ca làm
             String jpqlTien = "SELECT COALESCE(SUM(h.tongTien - COALESCE(h.giamGia, 0)), 0.0) " +
-                    "FROM HoaDon h WHERE h.maNV = :maNV " +
+                    "FROM HoaDon h WHERE h.nhanVien.manv = :maNV " +
                     "AND h.trangThai = 'Đã thanh toán' " +
                     "AND h.hinhThucThanhToan = 'Tiền mặt' " +
                     "AND h.ngayLap >= :batDau AND h.ngayLap <= :hienTai";

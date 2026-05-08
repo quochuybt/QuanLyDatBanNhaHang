@@ -3,6 +3,7 @@ package iuh.fit.gui;
 import iuh.fit.core.entity.HangThanhVien;
 import iuh.fit.core.entity.KhachHang;
 import iuh.fit.core.service.KhachHangService;
+import com.toedter.calendar.JDateChooser; // IMPORT THƯ VIỆN JCALENDAR
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -13,7 +14,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.List;
 
 public class KhachHangGUI extends JPanel {
@@ -28,7 +31,11 @@ public class KhachHangGUI extends JPanel {
 
     private JTextField txtMaKH, txtTenKH, txtSDT, txtEmail, txtDiaChi, txtTongChiTieu;
     private JComboBox<String> cbGioiTinh, cbHangTV;
-    private JTextField txtNgaySinh, txtNgayThamGia;
+    private JTextField txtNgayThamGia;
+
+    // ĐỔI SANG DÙNG JDATECHOOSER
+    private JDateChooser txtNgaySinh;
+
     private JButton btnThem, btnSua, btnTimKiem, btnLamMoiForm;
 
     private JTable tblKhachHang;
@@ -39,8 +46,6 @@ public class KhachHangGUI extends JPanel {
     private final KhachHangService khachHangService;
     private List<KhachHang> dsKhachHang;
     private KhachHang khachHangDangChon = null;
-
-    private final String PLACEHOLDER_NGAY_SINH = "dd/MM/yyyy";
 
     public KhachHangGUI() {
         this.khachHangService = new KhachHangService();
@@ -56,38 +61,12 @@ public class KhachHangGUI extends JPanel {
         addEventListeners();
         loadDataToTable(khachHangService.findAll());
         lamMoiForm();
-        addPlaceholderListener(txtNgaySinh, PLACEHOLDER_NGAY_SINH);
     }
 
     public static void reloadKhachHangTableIfAvailable() {
         if (instance != null) {
             SwingUtilities.invokeLater(instance::refreshKhachHangTable);
         }
-    }
-
-    private void addPlaceholderListener(JTextField textField, String placeholder) {
-        if (textField.getText().isEmpty() || textField.getText().equals(placeholder)) {
-            textField.setText(placeholder);
-            textField.setForeground(Color.GRAY.brighter());
-        }
-
-        textField.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override
-            public void focusGained(java.awt.event.FocusEvent evt) {
-                if (textField.getText().equals(placeholder)) {
-                    textField.setText("");
-                    textField.setForeground(Color.BLACK);
-                }
-            }
-
-            @Override
-            public void focusLost(java.awt.event.FocusEvent evt) {
-                if (textField.getText().isEmpty()) {
-                    textField.setText(placeholder);
-                    textField.setForeground(Color.GRAY.brighter());
-                }
-            }
-        });
     }
 
     public void refreshKhachHangTable() {
@@ -193,19 +172,18 @@ public class KhachHangGUI extends JPanel {
         String sdt = txtSDT.getText().trim();
         String email = txtEmail.getText().trim();
         String diaChi = txtDiaChi.getText().trim();
-        String ngaySinhStr = txtNgaySinh.getText().trim();
         String ngayTGStr = txtNgayThamGia.getText().trim();
 
         if (ten.isEmpty()) throw new Exception("Tên khách hàng không được rỗng!");
         if (sdt.isEmpty() || !sdt.matches("\\d{10}")) throw new Exception("Số điện thoại không hợp lệ (10 chữ số)!");
-        if (ngaySinhStr.isEmpty() || ngaySinhStr.equals(PLACEHOLDER_NGAY_SINH)) throw new Exception("Ngày sinh không được rỗng!");
 
-        LocalDate ngaySinh;
-        try {
-            ngaySinh = LocalDate.parse(ngaySinhStr, dtf);
-        } catch (Exception e) {
-            throw new Exception("Ngày sinh không đúng định dạng " + PLACEHOLDER_NGAY_SINH + "!");
+        // XỬ LÝ DỮ LIỆU TỪ JDATECHOOSER
+        Date selectedDate = txtNgaySinh.getDate();
+        if (selectedDate == null) {
+            throw new Exception("Ngày sinh không được rỗng hoặc sai định dạng!");
         }
+        // Convert từ java.util.Date sang java.time.LocalDate
+        LocalDate ngaySinh = selectedDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 
         LocalDate ngayThamGia = LocalDate.parse(ngayTGStr, dtf);
 
@@ -291,7 +269,12 @@ public class KhachHangGUI extends JPanel {
         gbc.gridx = 0; gbc.gridy = row; gbc.weightx = WEIGHT_LABEL; formContainer.add(new JLabel("Mã khách hàng:"), gbc);
         gbc.gridx = 1; gbc.gridy = row; gbc.weightx = WEIGHT_INPUT; txtMaKH = new JTextField(20); txtMaKH.setEditable(false); formContainer.add(txtMaKH, gbc);
         gbc.gridx = 2; gbc.gridy = row; gbc.weightx = WEIGHT_LABEL; formContainer.add(new JLabel("Ngày sinh (dd/MM/yyyy):"), gbc);
-        gbc.gridx = 3; gbc.gridy = row; gbc.weightx = WEIGHT_INPUT; txtNgaySinh = new JTextField(); formContainer.add(txtNgaySinh, gbc);
+
+        // KHỞI TẠO VÀ FORMAT JDATECHOOSER
+        gbc.gridx = 3; gbc.gridy = row; gbc.weightx = WEIGHT_INPUT;
+        txtNgaySinh = new JDateChooser();
+        txtNgaySinh.setDateFormatString("dd/MM/yyyy");
+        formContainer.add(txtNgaySinh, gbc);
 
         row++;
         gbc.gridx = 0; gbc.gridy = row; gbc.weightx = WEIGHT_LABEL; formContainer.add(new JLabel("Tên khách hàng:"), gbc);
@@ -413,8 +396,15 @@ public class KhachHangGUI extends JPanel {
         txtSDT.setText(kh.getSdt());
         txtEmail.setText(kh.getEmail());
         txtDiaChi.setText(kh.getDiaChi());
-        txtNgaySinh.setText(kh.getNgaySinh() != null ? kh.getNgaySinh().format(dtf) : "");
-        txtNgaySinh.setForeground(Color.BLACK);
+
+        // CONVERT LocalDate SANG Date ĐỂ HIỂN THỊ LÊN JDATECHOOSER
+        if (kh.getNgaySinh() != null) {
+            Date date = Date.from(kh.getNgaySinh().atStartOfDay(ZoneId.systemDefault()).toInstant());
+            txtNgaySinh.setDate(date);
+        } else {
+            txtNgaySinh.setDate(null);
+        }
+
         txtNgayThamGia.setText(kh.getNgayThamGia() != null ? kh.getNgayThamGia().format(dtf) : "");
         txtTongChiTieu.setText(currencyFormat.format(kh.getTongChiTieu()));
         cbHangTV.setSelectedItem(kh.getHangThanhVien().toString());
@@ -428,7 +418,10 @@ public class KhachHangGUI extends JPanel {
         txtSDT.setText("");
         txtEmail.setText("");
         txtDiaChi.setText("");
-        txtNgaySinh.setText("");
+
+        // SET NULL CHO JDATECHOOSER ĐỂ LÀM TRỐNG NGÀY
+        txtNgaySinh.setDate(null);
+
         txtNgayThamGia.setText(LocalDate.now().format(dtf));
         txtTongChiTieu.setText(currencyFormat.format(0.0f));
         cbHangTV.setSelectedItem(HangThanhVien.MEMBER.toString());
