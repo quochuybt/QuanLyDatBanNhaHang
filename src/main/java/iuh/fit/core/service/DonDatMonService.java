@@ -29,6 +29,18 @@ public class DonDatMonService {
         return DonDatMonDTO.fromEntity(entity);
     }
 
+    public DonDatMonDTO getDonDatMonChuaNhanTheoMaBanBaoGomLinked(String maBan) {
+        DonDatMon entity = repository.getDonDatMonChuaNhanTheoMaBanBaoGomLinked(maBan);
+        return DonDatMonDTO.fromEntity(entity);
+    }
+
+    public List<DonDatMonDTO> getAllDonDatMonChuaNhanBaoGomLinked() {
+        return repository.getAllDonDatMonChuaNhanBaoGomLinked()
+                .stream()
+                .map(DonDatMonDTO::fromEntity)
+                .collect(Collectors.toList());
+    }
+
     /**
      * Lấy toàn bộ danh sách dưới dạng DTO
      */
