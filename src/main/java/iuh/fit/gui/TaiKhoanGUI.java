@@ -1,8 +1,8 @@
 package iuh.fit.gui;
 
-import iuh.fit.core.entity.TaiKhoan;
-import iuh.fit.core.entity.NhanVien;
-import iuh.fit.core.service.TaiKhoanService;
+import iuh.fit.core.net.client.AuthRemoteService;
+import iuh.fit.core.net.client.SocketClientConnection;
+import iuh.fit.core.net.client.discovery.DiscoveredServer;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -18,10 +18,13 @@ public class TaiKhoanGUI extends JFrame {
     private JTextField txtTenDangNhap;
     private JPasswordField txtMatKhau;
     private JButton btnDangNhap;
+    private JLabel lblServerStatus;
+    private final SocketClientConnection connection;
+    private final DiscoveredServer selectedServer;
 
-    private final TaiKhoanService taiKhoanService = new TaiKhoanService();
-
-    public TaiKhoanGUI() {
+    public TaiKhoanGUI(SocketClientConnection connection, DiscoveredServer selectedServer) {
+        this.connection = connection;
+        this.selectedServer = selectedServer;
         setTitle("Đăng nhập - StarGuardian Restaurant");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1300, 800);
@@ -140,47 +143,71 @@ public class TaiKhoanGUI extends JFrame {
                     return;
                 }
 
-                try {
-                    TaiKhoan tk = taiKhoanService.login(tenDangNhap, matKhau);
-                    NhanVien nv = tk.getNhanVien();
+                btnDangNhap.setEnabled(false);
+                lblServerStatus.setText("Server: đang xác thực tài khoản...");
 
-                    String userRole = nv != null ? nv.getVaiTro().name() : "NHANVIEN";
-                    String userName = nv != null ? nv.getHoten() : tenDangNhap;
-                    String maNV = nv != null ? nv.getManv() : tenDangNhap;
+                new SwingWorker<String[], Void>() {
+                    @Override
+                    protected String[] doInBackground() {
+                        AuthRemoteService authRemoteService = new AuthRemoteService(connection);
 
-                    JOptionPane.showMessageDialog(TaiKhoanGUI.this,
-                            "Đăng nhập thành công!\nTên: " + userName + "\nVai trò: " + userRole,
-                            "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                        var loginResponse = authRemoteService.login(tenDangNhap, matKhau);
 
-                    dispose();
-
-                    final String finalUserRole = userRole;
-                    final String finalUserName = userName;
-                    final String finalMaNV = maNV;
-
-                    SwingUtilities.invokeLater(() -> {
-                        MainGUI mainGUI = new MainGUI(finalUserRole, finalUserName, finalMaNV);
-                        mainGUI.setVisible(true);
-                    });
-
-                } catch (IllegalArgumentException ex) {
-                    String msg = ex.getMessage();
-                    if (msg != null && msg.contains("bị khóa")) {
-                        JOptionPane.showMessageDialog(TaiKhoanGUI.this,
-                                "**Tài khoản đã bị tạm ngưng hoạt động!**\nVui lòng liên hệ Quản lý để được hỗ trợ kích hoạt lại.",
-                                "Tài khoản bị Khóa", JOptionPane.WARNING_MESSAGE);
-                    } else {
-                        JOptionPane.showMessageDialog(TaiKhoanGUI.this, "Sai tên tài khoản hoặc mật khẩu!",
-                                "Lỗi Đăng nhập", JOptionPane.ERROR_MESSAGE);
+                        return new String[] {
+                                loginResponse.getVaiTro(),
+                                loginResponse.getHoTen(),
+                                loginResponse.getMaNV()
+                        };
                     }
-                } catch (RuntimeException ex) {
-                    JOptionPane.showMessageDialog(TaiKhoanGUI.this,
-                            "Lỗi kết nối CSDL! Vui lòng kiểm tra lại.\nChi tiết: " + ex.getMessage(),
-                            "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
-                }
+
+                    @Override
+                    protected void done() {
+                        btnDangNhap.setEnabled(true);
+                        try {
+                            String[] result = get();
+
+                            String userRole = result[0];
+                            String userName = result[1];
+                            String maNV = result[2];
+
+                            JOptionPane.showMessageDialog(TaiKhoanGUI.this,
+                                    "Đăng nhập thành công!\nTên: " + userName + "\nVai trò: " + userRole,
+                                    "Thành công", JOptionPane.INFORMATION_MESSAGE);
+
+                            dispose();
+                            SwingUtilities.invokeLater(() -> {
+                                MainGUI mainGUI = new MainGUI(userRole, userName, maNV);
+                                mainGUI.setVisible(true);
+                            });
+                        } catch (Exception ex) {
+                            String msg = ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage();
+                            if (msg != null && msg.toLowerCase().contains("khóa")) {
+                                JOptionPane.showMessageDialog(TaiKhoanGUI.this,
+                                        "**Tài khoản đã bị tạm ngưng hoạt động!**\nVui lòng liên hệ Quản lý để được hỗ trợ kích hoạt lại.",
+                                        "Tài khoản bị Khóa", JOptionPane.WARNING_MESSAGE);
+                            } else if (msg != null && msg.contains("Sai tên tài khoản")) {
+                                JOptionPane.showMessageDialog(TaiKhoanGUI.this,
+                                        "Sai tên tài khoản hoặc mật khẩu!",
+                                        "Lỗi Đăng nhập", JOptionPane.ERROR_MESSAGE);
+                            } else {
+                                JOptionPane.showMessageDialog(TaiKhoanGUI.this,
+                                        "Không thể đăng nhập qua server LAN.\nChi tiết: " + msg,
+                                        "Lỗi Kết nối", JOptionPane.ERROR_MESSAGE);
+                                lblServerStatus.setText("Server: lỗi kết nối/xác thực");
+                            }
+                        }
+                    }
+                }.execute();
             }
         });
         contentPanel.add(btnDangNhap);
+
+        lblServerStatus = new JLabel("Server: " + selectedServer.getServiceName() + " (" + selectedServer.getHost() + ")");
+        lblServerStatus.setForeground(Color.DARK_GRAY);
+        lblServerStatus.setFont(new Font("Arial", Font.ITALIC, 12));
+        lblServerStatus.setAlignmentX(Component.CENTER_ALIGNMENT);
+        contentPanel.add(Box.createVerticalStrut(8));
+        contentPanel.add(lblServerStatus);
 
         JPanel linkPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         linkPanel.setOpaque(false);

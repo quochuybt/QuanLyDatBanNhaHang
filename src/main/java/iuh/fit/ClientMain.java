@@ -1,6 +1,6 @@
 package iuh.fit;
 
-import iuh.fit.gui.TaiKhoanGUI;
+import iuh.fit.gui.ServerConnectionGUI;
 
 import javax.swing.*;
 import java.awt.*;
@@ -8,15 +8,15 @@ import java.awt.*;
 /**
  * Entry point cho cấu trúc mới (src/main/java/iuh/fit/*).
  */
-public class Main {
+public class ClientMain {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             setupLookAndFeel();
             setupGlobalUI();
 
-            TaiKhoanGUI loginWindow = new TaiKhoanGUI();
-            loginWindow.setVisible(true);
+            ServerConnectionGUI connectionGUI = new ServerConnectionGUI();
+            connectionGUI.setVisible(true);
         });
     }
 
