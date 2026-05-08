@@ -98,6 +98,14 @@ public class HoaDonService {
     }
 
     /**
+     * Cập nhật mã khách hàng cho hóa đơn và đơn đặt món liên quan
+     */
+    public boolean capNhatMaKH(String maHD, String maKH) {
+        if (maHD == null || maHD.isEmpty()) return false;
+        return repository.capNhatMaKH(maHD, maKH);
+    }
+
+    /**
      * Xử lý nghiệp vụ thanh toán hóa đơn
      * Chú ý: Logic thanh toán phức tạp (đổi trạng thái bàn, trạng thái đơn) nên được
      * thực hiện trong một Transaction tại Repository hoặc Service này.

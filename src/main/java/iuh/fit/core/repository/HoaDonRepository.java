@@ -59,6 +59,16 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
                 hd.setTenBan(dto.getTenBan());
             }
 
+            if (dto.getMaKH() != null && !dto.getMaKH().trim().isEmpty()) {
+                KhachHang kh = em.find(KhachHang.class, dto.getMaKH());
+                if (kh != null) {
+                    hd.setKhachHang(kh);
+                    if (hd.getDonDatMon() != null) {
+                        hd.getDonDatMon().setKhachHang(kh);
+                    }
+                }
+            }
+
             if (dto.getMaKM() != null && !dto.getMaKM().trim().isEmpty()) {
                 KhuyenMai km = em.find(KhuyenMai.class, dto.getMaKM());
                 if (km != null) {
@@ -284,7 +294,24 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
             return false;
         });
     }
-
+    public boolean capNhatMaKH(String maHD, String maKH) {
+        return executeTransaction(em -> {
+            HoaDon hd = em.find(HoaDon.class, maHD);
+            if (hd != null) {
+                if (maKH == null || maKH.trim().isEmpty()) {
+                    hd.setKhachHang(null);
+                    if (hd.getDonDatMon() != null) hd.getDonDatMon().setKhachHang(null);
+                } else {
+                    KhachHang kh = em.find(KhachHang.class, maKH);
+                    hd.setKhachHang(kh);
+                    // Cập nhật luôn cho Đơn đặt món liên quan
+                    if (hd.getDonDatMon() != null) hd.getDonDatMon().setKhachHang(kh);
+                }
+                return true;
+            }
+            return false;
+        });
+    }
     public HoaDon moBanVaTaoHoaDon(String maBan, String maNV, String maKH, LocalDateTime thoiGianDen, String ghiChu) {
         return executeTransaction(em -> {
             Ban ban = em.find(Ban.class, maBan);
