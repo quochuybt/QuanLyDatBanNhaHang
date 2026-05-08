@@ -86,8 +86,8 @@ public class KhachHang {
         setDiaChi(diaChi);
         setEmail(email);
         setNgayThamGia(ngayThamGia);
+        this.hangThanhVien = hangThanhVien;
         setTongChiTieu(tongChiTieu);
-        setHangThanhVien(hangThanhVien);
     }
 
     private String generateMaKH() {
@@ -166,6 +166,11 @@ public class KhachHang {
             hangThanhVien = HangThanhVien.BRONZE;
         else
             hangThanhVien = HangThanhVien.MEMBER;
+    }
+    @PrePersist
+    @PreUpdate
+    public void truocKhiLuuVaoDatabase() {
+        capNhatHangThanhVien();
     }
 
     @Override

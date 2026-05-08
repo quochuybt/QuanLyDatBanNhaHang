@@ -215,11 +215,13 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
                     "AND hd.trangThai = 'Đã thanh toán' " +
                     "AND hd.hinhThucThanhToan = :hinhThuc";
 
-            return em.createQuery(jpql, Double.class)
+            Number result = em.createQuery(jpql, Number.class)
                     .setParameter("maNV", maNV)
                     .setParameter("startTime", thoiGianBatDauCa)
                     .setParameter("hinhThuc", hinhThuc)
                     .getSingleResult();
+
+            return result != null ? result.doubleValue() : 0.0;
         });
     }
 

@@ -1,6 +1,7 @@
 package iuh.fit.core.repository;
 
 import iuh.fit.core.entity.GiaoCa;
+import iuh.fit.core.entity.NhanVien;
 import iuh.fit.core.entity.PhanCong;
 import jakarta.persistence.TypedQuery;
 import java.time.LocalDate;
@@ -39,15 +40,25 @@ public class GiaoCaRepository extends GenericRepository<GiaoCa, String> {
      * Bắt đầu ca làm việc mới
      */
     public boolean batDauCa(GiaoCa giaoCa) {
-        if (getThongTinCaDangLam(giaoCa.getNhanVien().getManv()) != null) {
-            return false; // Nhân viên đang có ca chưa kết thúc
-        }
-        try {
-            save(giaoCa);
+        return executeTransaction(em -> {
+            String maNV = (giaoCa.getNhanVien() != null) ? giaoCa.getNhanVien().getManv() : giaoCa.getMaNV();
+
+            String jpql = "SELECT g FROM GiaoCa g WHERE g.maNV = :maNV AND g.thoiGianKetThuc IS NULL";
+            List<?> active = em.createQuery(jpql)
+                    .setParameter("maNV", maNV)
+                    .getResultList();
+
+            if (!active.isEmpty()) {
+                return false;
+            }
+
+            if (giaoCa.getNhanVien() == null && maNV != null) {
+                giaoCa.setNhanVien(em.getReference(NhanVien.class, maNV));
+            }
+
+            em.persist(giaoCa);
             return true;
-        } catch (Exception e) {
-            return false;
-        }
+        });
     }
 
     /**
@@ -192,12 +203,36 @@ public class GiaoCaRepository extends GenericRepository<GiaoCa, String> {
 
             return results.stream().map(row -> {
                 String tenCa = (String) row[0];
-                LocalDate ngay = (LocalDate) row[1];
-                java.time.LocalTime bd = (java.time.LocalTime) row[2];
-                java.time.LocalTime kt = (java.time.LocalTime) row[3];
-                return String.format("%s: %s (%s-%s)",
-                        ngay.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM")),
-                        tenCa, bd.toString().substring(0, 5), kt.toString().substring(0, 5));
+
+                Object dateObj = row[1];
+                java.time.LocalDate ngay = null;
+                if (dateObj instanceof java.sql.Date) {
+                    ngay = ((java.sql.Date) dateObj).toLocalDate();
+                } else if (dateObj instanceof java.time.LocalDate) {
+                    ngay = (java.time.LocalDate) dateObj;
+                }
+
+                Object bdObj = row[2];
+                java.time.LocalTime bd = null;
+                if (bdObj instanceof java.sql.Time) {
+                    bd = ((java.sql.Time) bdObj).toLocalTime();
+                } else if (bdObj instanceof java.time.LocalTime) {
+                    bd = (java.time.LocalTime) bdObj;
+                }
+
+                Object ktObj = row[3];
+                java.time.LocalTime kt = null;
+                if (ktObj instanceof java.sql.Time) {
+                    kt = ((java.sql.Time) ktObj).toLocalTime();
+                } else if (ktObj instanceof java.time.LocalTime) {
+                    kt = (java.time.LocalTime) ktObj;
+                }
+
+                String ngayStr = (ngay != null) ? ngay.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM")) : "--/--";
+                String bdStr = (bd != null) ? bd.toString().substring(0, 5) : "--:--";
+                String ktStr = (kt != null) ? kt.toString().substring(0, 5) : "--:--";
+
+                return String.format("%s: %s (%s-%s)", ngayStr, tenCa, bdStr, ktStr);
             }).collect(java.util.stream.Collectors.toList());
         });
     }
