@@ -32,6 +32,9 @@ public class HeartbeatMonitor {
             long now = System.currentTimeMillis();
             for (ClientSession session : sessionRegistry.allSessions()) {
                 if (now - session.getLastSeenAt() > timeoutMs) {
+                    System.out.println("[SocketServer] Dọn session timeout: session=" + session.getSessionId()
+                            + ", user=" + (session.getTenTK() != null ? session.getTenTK() : "(ẩn danh)")
+                            + ", quá " + timeoutMs + "ms không có heartbeat");
                     sessionRegistry.remove(session);
                     session.close();
                 }

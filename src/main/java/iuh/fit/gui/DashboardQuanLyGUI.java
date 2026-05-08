@@ -2,6 +2,8 @@ package iuh.fit.gui;
 
 import com.toedter.calendar.JDateChooser;
 
+import iuh.fit.core.net.client.DashboardRemoteService;
+import iuh.fit.core.net.client.NetClientContext;
 import iuh.fit.core.dto.GiaoCaDTO;
 import iuh.fit.core.service.BanService;
 import iuh.fit.core.service.ChiTietHoaDonService;
@@ -66,12 +68,19 @@ public class DashboardQuanLyGUI extends JPanel {
     private final BanService banService = new BanService();
     private final GiaoCaService giaoCaService = new GiaoCaService();
     private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
+    private final DashboardRemoteService dashboardRemoteService;
 
     private final DecimalFormat currencyFormatter = new DecimalFormat("#,##0 ₫");
     private final DecimalFormat numberFormatter = new DecimalFormat("#,##0");
     private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     public DashboardQuanLyGUI() {
+        if (NetClientContext.isReady()) {
+            dashboardRemoteService = new DashboardRemoteService(NetClientContext.getConnection());
+        } else {
+            dashboardRemoteService = null;
+        }
+
         initComponents();
         setDefaultDateRange();
         loadDashboardData();
@@ -440,7 +449,11 @@ public class DashboardQuanLyGUI extends JPanel {
                 // 2. Tải dữ liệu từ các Services
 
                 // --- Phần Doanh thu ---
-                revenueData = hoaDonService.getDailyRevenue(startDate, endDate);
+                if (dashboardRemoteService != null) {
+                    revenueData = dashboardRemoteService.getDailyRevenue(startDate, endDate);
+                } else {
+                    revenueData = hoaDonService.getDailyRevenue(startDate, endDate);
+                }
                 // Lấy tổng số hóa đơn (Dùng plusDays(1) để lấy hết ngày endDate)
                 orderCount = (int) hoaDonService.getTotalHoaDonCount(
                         "Đã thanh toán",
@@ -450,7 +463,11 @@ public class DashboardQuanLyGUI extends JPanel {
                 );
 
                 // --- Phần Hoạt động Real-time ---
-                tableStatusCounts = banService.getTableStatusCounts();
+                if (dashboardRemoteService != null) {
+                    tableStatusCounts = dashboardRemoteService.getTableStatusCounts();
+                } else {
+                    tableStatusCounts = banService.getTableStatusCounts();
+                }
                 activeStaffList = giaoCaService.getNhanVienDangLamViecChiTiet();
 
                 // --- Phần Biểu đồ Nhân viên (Lấy trong tuần hiện tại) ---
@@ -458,8 +475,13 @@ public class DashboardQuanLyGUI extends JPanel {
                 topStaffHours = giaoCaService.getTopStaffByWorkHours(startOfWeek, LocalDate.now(), 5);
 
                 // --- Phần Top Món ăn (Lấy theo khoảng thời gian đã chọn) ---
-                topSellingItems = chiTietHoaDonService.getTopSellingItems(startDate, endDate, 5);
-                leastSellingItems = chiTietHoaDonService.getLeastSellingItems(startDate, endDate, 5);
+                if (dashboardRemoteService != null) {
+                    topSellingItems = dashboardRemoteService.getTopSellingItems(startDate, endDate, 5);
+                    leastSellingItems = dashboardRemoteService.getLeastSellingItems(startDate, endDate, 5);
+                } else {
+                    topSellingItems = chiTietHoaDonService.getTopSellingItems(startDate, endDate, 5);
+                    leastSellingItems = chiTietHoaDonService.getLeastSellingItems(startDate, endDate, 5);
+                }
 
                 return null;
             }

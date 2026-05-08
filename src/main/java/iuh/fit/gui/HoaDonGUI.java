@@ -5,6 +5,11 @@ import iuh.fit.core.dto.ChiTietHoaDonDTO;
 import iuh.fit.core.dto.DonDatMonDTO;
 import iuh.fit.core.dto.HoaDonDTO;
 import iuh.fit.core.entity.HoaDon; // Chỉ dùng để xuất Excel tạm thời
+import iuh.fit.core.net.client.HoaDonRemoteService;
+import iuh.fit.core.net.client.NetClientContext;
+import iuh.fit.core.net.dto.hoadon.HoaDonDetailRequestDTO;
+import iuh.fit.core.net.dto.hoadon.HoaDonPageRequestDTO;
+import iuh.fit.core.net.dto.hoadon.HoaDonTotalRequestDTO;
 import iuh.fit.core.service.*;
 import iuh.fit.core.util.ExcelExporter;
 
@@ -36,6 +41,7 @@ public class HoaDonGUI extends JPanel {
     private final DonDatMonService donDatMonService = new DonDatMonService();
     private final NhanVienService nhanVienService = new NhanVienService();
     private final BanService banService = new BanService();
+    private final HoaDonRemoteService hoaDonRemoteService;
 
     // --- UI Components ---
     private final JTable tableHoaDon;
@@ -69,6 +75,12 @@ public class HoaDonGUI extends JPanel {
     private static int printSessionCounter = 0;
 
     public HoaDonGUI() {
+        if (NetClientContext.isReady()) {
+            hoaDonRemoteService = new HoaDonRemoteService(NetClientContext.getConnection());
+        } else {
+            hoaDonRemoteService = null;
+        }
+
         setLayout(new BorderLayout(10, 10));
         setBackground(COLOR_BG_LIGHT);
         setBorder(new EmptyBorder(15, 15, 15, 15));
@@ -368,15 +380,37 @@ public class HoaDonGUI extends JPanel {
                 String trangThai = getSelectedTrangThaiFilter();
                 LocalDateTime[] dates = getFilterDates();
 
-                long totalCount = hoaDonService.getTotalHoaDonCount(trangThai, currentKeyword, dates[0], dates[1]);
+                long totalCount;
+                if (hoaDonRemoteService != null) {
+                    totalCount = hoaDonRemoteService.getTotalHoaDonCount(HoaDonTotalRequestDTO.builder()
+                            .trangThai(trangThai)
+                            .keyword(currentKeyword)
+                            .tuNgay(dates[0])
+                            .denNgay(dates[1])
+                            .build());
+                } else {
+                    totalCount = hoaDonService.getTotalHoaDonCount(trangThai, currentKeyword, dates[0], dates[1]);
+                }
+
                 totalPages = (int) Math.ceil((double) totalCount / ITEMS_PER_PAGE);
                 if (totalPages < 1)
                     totalPages = 1;
                 if (currentPage > totalPages)
                     currentPage = totalPages;
 
-                resultList = hoaDonService.getHoaDonByPage(currentPage, ITEMS_PER_PAGE, trangThai, currentKeyword,
-                        dates[0], dates[1]);
+                if (hoaDonRemoteService != null) {
+                    resultList = hoaDonRemoteService.getHoaDonByPage(HoaDonPageRequestDTO.builder()
+                            .page(currentPage)
+                            .itemsPerPage(ITEMS_PER_PAGE)
+                            .trangThai(trangThai)
+                            .keyword(currentKeyword)
+                            .tuNgay(dates[0])
+                            .denNgay(dates[1])
+                            .build());
+                } else {
+                    resultList = hoaDonService.getHoaDonByPage(currentPage, ITEMS_PER_PAGE, trangThai, currentKeyword,
+                            dates[0], dates[1]);
+                }
                 return null;
             }
 
@@ -455,8 +489,15 @@ public class HoaDonGUI extends JPanel {
                     }
 
                     // Tạo DTO giả lập để gọi hàm Service theo đúng chữ ký của bạn
-                    ChiTietHoaDonDTO filterDTO = ChiTietHoaDonDTO.builder().maDon(hd.getMaDon()).build();
-                    List<ChiTietHoaDonDTO> chiTietList = chiTietHoaDonService.getChiTietTheoMaDon(filterDTO);
+                    List<ChiTietHoaDonDTO> chiTietList;
+                    if (hoaDonRemoteService != null) {
+                        chiTietList = hoaDonRemoteService.getChiTietHoaDon(HoaDonDetailRequestDTO.builder()
+                                .maDon(hd.getMaDon())
+                                .build());
+                    } else {
+                        ChiTietHoaDonDTO filterDTO = ChiTietHoaDonDTO.builder().maDon(hd.getMaDon()).build();
+                        chiTietList = chiTietHoaDonService.getChiTietTheoMaDon(filterDTO);
+                    }
 
                     if (chiTietList == null || chiTietList.isEmpty()) {
                         JOptionPane.showMessageDialog(
@@ -666,25 +707,47 @@ public class HoaDonGUI extends JPanel {
                 protected Boolean doInBackground() {
                     try {
                         // Lấy toàn bộ danh sách theo bộ lọc, không phân trang khi xuất Excel
-                        long total = hoaDonService.getTotalHoaDonCount(
-                                trangThai,
-                                keyword,
-                                dates[0],
-                                dates[1]
-                        );
+                        long total;
+                        if (hoaDonRemoteService != null) {
+                            total = hoaDonRemoteService.getTotalHoaDonCount(HoaDonTotalRequestDTO.builder()
+                                    .trangThai(trangThai)
+                                    .keyword(keyword)
+                                    .tuNgay(dates[0])
+                                    .denNgay(dates[1])
+                                    .build());
+                        } else {
+                            total = hoaDonService.getTotalHoaDonCount(
+                                    trangThai,
+                                    keyword,
+                                    dates[0],
+                                    dates[1]
+                            );
+                        }
 
                         if (total == 0) {
                             return false;
                         }
 
-                        List<HoaDonDTO> dtos = hoaDonService.getHoaDonByPage(
-                                1,
-                                (int) total,
-                                trangThai,
-                                keyword,
-                                dates[0],
-                                dates[1]
-                        );
+                        List<HoaDonDTO> dtos;
+                        if (hoaDonRemoteService != null) {
+                            dtos = hoaDonRemoteService.getHoaDonByPage(HoaDonPageRequestDTO.builder()
+                                    .page(1)
+                                    .itemsPerPage((int) total)
+                                    .trangThai(trangThai)
+                                    .keyword(keyword)
+                                    .tuNgay(dates[0])
+                                    .denNgay(dates[1])
+                                    .build());
+                        } else {
+                            dtos = hoaDonService.getHoaDonByPage(
+                                    1,
+                                    (int) total,
+                                    trangThai,
+                                    keyword,
+                                    dates[0],
+                                    dates[1]
+                            );
+                        }
 
                         ExcelExporter reporter = new ExcelExporter();
                         return reporter.exportHoaDonReport(dtos, finalPath);

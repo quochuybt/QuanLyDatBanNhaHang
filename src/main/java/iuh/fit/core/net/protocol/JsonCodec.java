@@ -1,6 +1,7 @@
 package iuh.fit.core.net.protocol;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -41,5 +42,9 @@ public final class JsonCodec {
 
     public static JsonNode toJsonNode(Object value) {
         return MAPPER.valueToTree(value);
+    }
+
+    public static <T> T convertValue(Object value, TypeReference<T> typeReference) {
+        return MAPPER.convertValue(value, typeReference);
     }
 }

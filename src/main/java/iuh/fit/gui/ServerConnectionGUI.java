@@ -1,6 +1,7 @@
 package iuh.fit.gui;
 
 import iuh.fit.core.net.client.SocketClientConnection;
+import iuh.fit.core.net.client.NetClientContext;
 import iuh.fit.core.net.client.discovery.DiscoveredServer;
 import iuh.fit.core.net.client.discovery.LanServerDiscoveryService;
 
@@ -135,6 +136,7 @@ public class ServerConnectionGUI extends JFrame {
                 btnConnect.setEnabled(true);
                 try {
                     SocketClientConnection connection = get();
+                    NetClientContext.set(connection, selected);
                     lblStatus.setText("Trạng thái: Đã kết nối server");
                     dispose();
                     SwingUtilities.invokeLater(() -> new TaiKhoanGUI(connection, selected).setVisible(true));

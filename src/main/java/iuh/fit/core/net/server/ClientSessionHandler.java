@@ -35,8 +35,13 @@ public class ClientSessionHandler implements Runnable {
 
                 // Command được route qua dispatcher đến handler tương ứng
                 if (request.getType() == MessageType.COMMAND) {
+                    System.out.println("[SocketServer] Nhận command: " + request.getName()
+                            + " (messageId=" + request.getMessageId() + ", session=" + session.getSessionId() + ")");
                     MessageEnvelope response = commandDispatcher.dispatch(session, request);
                     session.send(response);
+                    System.out.println("[SocketServer] Trả response cho command: " + request.getName()
+                            + " (success=" + response.isSuccess()
+                            + ", correlationId=" + response.getCorrelationId() + ")");
                 }
             }
         } catch (Exception ignored) {
