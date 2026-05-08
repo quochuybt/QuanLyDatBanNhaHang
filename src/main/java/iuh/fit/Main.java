@@ -1,6 +1,6 @@
 package iuh.fit;
 
-import iuh.fit.gui.LoginGUI;
+import iuh.fit.gui.TaiKhoanGUI;
 
 import javax.swing.*;
 import java.awt.*;
@@ -15,7 +15,7 @@ public class Main {
             setupLookAndFeel();
             setupGlobalUI();
 
-            LoginGUI loginWindow = new LoginGUI();
+            TaiKhoanGUI loginWindow = new TaiKhoanGUI();
             loginWindow.setVisible(true);
         });
     }

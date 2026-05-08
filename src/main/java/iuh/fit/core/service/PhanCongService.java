@@ -275,6 +275,30 @@ public class PhanCongService {
             return false;
         }
 
-        return start1.isBefore(end2) && start2.isBefore(end1);
+        int start1Min = toMinuteOfDay(start1);
+        int end1Min = toMinuteOfDay(end1);
+        int start2Min = toMinuteOfDay(start2);
+        int end2Min = toMinuteOfDay(end2);
+
+        // Chuẩn hóa ca qua đêm trên trục thời gian 48h
+        if (end1Min <= start1Min) {
+            end1Min += 24 * 60;
+        }
+        if (end2Min <= start2Min) {
+            end2Min += 24 * 60;
+        }
+
+        // So sánh trực tiếp và dịch ca 2 lên/xuống 24h để bắt các trường hợp giao nhau qua mốc ngày
+        return overlaps(start1Min, end1Min, start2Min, end2Min)
+                || overlaps(start1Min, end1Min, start2Min + 24 * 60, end2Min + 24 * 60)
+                || overlaps(start1Min, end1Min, start2Min - 24 * 60, end2Min - 24 * 60);
+    }
+
+    private int toMinuteOfDay(LocalTime time) {
+        return time.getHour() * 60 + time.getMinute();
+    }
+
+    private boolean overlaps(int startA, int endA, int startB, int endB) {
+        return startA < endB && startB < endA;
     }
 }

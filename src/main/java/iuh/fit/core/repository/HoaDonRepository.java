@@ -99,7 +99,13 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
      */
     public List<HoaDon> getHoaDonByPage(int page, int itemsPerPage, String trangThai, String keyword, LocalDateTime tuNgay, LocalDateTime denNgay) {
         return doInSession(em -> {
-            StringBuilder jpql = new StringBuilder("SELECT hd FROM HoaDon hd WHERE 1=1");
+            StringBuilder jpql = new StringBuilder(
+                    "SELECT hd FROM HoaDon hd " +
+                            "LEFT JOIN FETCH hd.donDatMon ddm " +
+                            "LEFT JOIN FETCH hd.nhanVien nv " +
+                            "LEFT JOIN FETCH hd.khuyenMai km " +
+                            "LEFT JOIN FETCH hd.khachHang kh "
+            );
             buildFilterQuery(jpql, trangThai, keyword, tuNgay, denNgay);
             jpql.append(" ORDER BY hd.ngayLap DESC");
 

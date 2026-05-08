@@ -44,7 +44,7 @@ public class HoaDon {
     private Float giamGia = 0f;
 
     // ====== Quan hệ với DonDatMon (1-1) ======
-    @OneToOne(cascade = CascadeType.ALL)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "maDon", unique = true, nullable = false)
     private DonDatMon donDatMon;
 
