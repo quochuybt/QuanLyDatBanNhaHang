@@ -38,6 +38,49 @@ public class DonDatMonRepository extends GenericRepository<DonDatMon, String> {
         });
     }
 
+    public DonDatMon getDonDatMonChuaNhanTheoMaBanBaoGomLinked(String maBan) {
+        if (maBan == null || maBan.trim().isEmpty()) {
+            return null;
+        }
+
+        return doInSession(em -> {
+            String jpql = """
+            SELECT d
+            FROM DonDatMon d
+            LEFT JOIN FETCH d.khachHang kh
+            LEFT JOIN FETCH d.nhanVien nv
+            LEFT JOIN FETCH d.ban b
+            WHERE b.maBan = :maBan
+              AND d.trangThai = 'Chưa thanh toán'
+            ORDER BY d.thoiGianDen ASC
+            """;
+
+            return em.createQuery(jpql, DonDatMon.class)
+                    .setParameter("maBan", maBan)
+                    .setMaxResults(1)
+                    .getResultStream()
+                    .findFirst()
+                    .orElse(null);
+        });
+    }
+
+    public List<DonDatMon> getAllDonDatMonChuaNhanBaoGomLinked() {
+        return doInSession(em -> {
+            String jpql = """
+            SELECT d
+            FROM DonDatMon d
+            LEFT JOIN FETCH d.khachHang kh
+            LEFT JOIN FETCH d.nhanVien nv
+            LEFT JOIN FETCH d.ban b
+            WHERE d.trangThai = 'Chưa thanh toán'
+            ORDER BY d.thoiGianDen ASC
+            """;
+
+            return em.createQuery(jpql, DonDatMon.class)
+                    .getResultList();
+        });
+    }
+
     /**
      * Lấy các mã bàn cùng đợt đặt món của một khách hàng
      * Sử dụng TIMESTAMPDIFF của MariaDB để thay thế cho DATEDIFF(MINUTE)
@@ -202,4 +245,6 @@ public class DonDatMonRepository extends GenericRepository<DonDatMon, String> {
             return em.createQuery(jpql, DonDatMon.class).getResultList();
         });
     }
+
+
 }

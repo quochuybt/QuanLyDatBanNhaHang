@@ -1,7 +1,12 @@
-package iuh.fit.gui; // Đổi package nếu cần
+package iuh.fit.gui;
 
 import iuh.fit.core.dto.BanDTO;
+import iuh.fit.core.dto.DonDatMonDTO;
+import iuh.fit.core.dto.HoaDonDTO;
+import iuh.fit.core.entity.TrangThaiBan;
 import iuh.fit.core.service.BanService;
+import iuh.fit.core.service.DonDatMonService;
+import iuh.fit.core.service.HoaDonService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -9,6 +14,7 @@ import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,15 +31,24 @@ public class GhepBanDialog extends JDialog {
     private List<BanPanel> leftBanPanelList = new ArrayList<>();
     private List<BanPanel> rightBanPanelList = new ArrayList<>();
 
-    // Sử dụng Service thay cho DAO
     private final BanService banService;
+    private final DonDatMonService donDatMonService;
+    private final HoaDonService hoaDonService;
+    private final String maNVDangNhap;
 
     public GhepBanDialog(Window parent) {
+        this(parent, null);
+    }
+
+    public GhepBanDialog(Window parent, String maNVDangNhap) {
         super(parent, ModalityType.APPLICATION_MODAL);
+
+        this.maNVDangNhap = maNVDangNhap;
         this.banService = new BanService();
+        this.donDatMonService = new DonDatMonService();
+        this.hoaDonService = new HoaDonService();
 
         try {
-            // Lấy danh sách DTO từ Service
             this.allTablesFromDB = banService.getAllBan();
         } catch (Exception e) {
             e.printStackTrace();
@@ -57,6 +72,7 @@ public class GhepBanDialog extends JDialog {
 
         JPanel leftPane = createListPanel("Danh sách toàn bộ bàn", true);
         JPanel rightPane = createListPanel("Danh sách bàn đã đặt/ phục vụ", false);
+
         splitPane.setLeftComponent(leftPane);
         splitPane.setRightComponent(rightPane);
 
@@ -64,7 +80,13 @@ public class GhepBanDialog extends JDialog {
         contentPanel.add(createBottomBar(), BorderLayout.SOUTH);
 
         add(contentPanel);
-        setSize(parent.getSize());
+
+        if (parent != null) {
+            setSize(parent.getSize());
+        } else {
+            setSize(1000, 650);
+        }
+
         setLocationRelativeTo(parent);
 
         populateLeftPanel(currentLeftFilter);
@@ -74,9 +96,9 @@ public class GhepBanDialog extends JDialog {
     private JPanel createTitleBar() {
         JPanel titlePanel = new JPanel(new BorderLayout());
         titlePanel.setOpaque(false);
+
         JLabel titleLabel = new JLabel("Ghép bàn");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        titlePanel.add(titleLabel, BorderLayout.WEST);
 
         JButton closeButton = new JButton("X");
         closeButton.setFont(new Font("Segoe UI", Font.BOLD, 16));
@@ -85,7 +107,10 @@ public class GhepBanDialog extends JDialog {
         closeButton.setBorder(new EmptyBorder(5, 10, 5, 10));
         closeButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         closeButton.addActionListener(e -> dispose());
+
+        titlePanel.add(titleLabel, BorderLayout.WEST);
         titlePanel.add(closeButton, BorderLayout.EAST);
+
         return titlePanel;
     }
 
@@ -103,6 +128,7 @@ public class GhepBanDialog extends JDialog {
 
         buttonPanel.add(btnGhep);
         buttonPanel.add(btnHuyBo);
+
         return buttonPanel;
     }
 
@@ -113,35 +139,45 @@ public class GhepBanDialog extends JDialog {
 
         JPanel headerPanel = new JPanel(new BorderLayout(0, 5));
         headerPanel.setOpaque(false);
+
         JLabel titleLabel = new JLabel(title);
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+
         headerPanel.add(titleLabel, BorderLayout.NORTH);
         headerPanel.add(createFilterPanel(isLeftPanel), BorderLayout.CENTER);
+
         panel.add(headerPanel, BorderLayout.NORTH);
 
         JPanel tableContainer = new VerticallyWrappingFlowPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
         tableContainer.setBackground(Color.WHITE);
         tableContainer.setBorder(new EmptyBorder(5, 5, 5, 5));
+
         if (isLeftPanel) {
             this.leftTableContainer = tableContainer;
         } else {
             this.rightTableContainer = tableContainer;
         }
+
         JScrollPane scrollPane = new JScrollPane(tableContainer);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         scrollPane.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
         scrollPane.getViewport().setBackground(Color.WHITE);
+
         panel.add(scrollPane, BorderLayout.CENTER);
+
         return panel;
     }
 
     private JPanel createFilterPanel(boolean isLeftPanel) {
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         filterPanel.setOpaque(false);
+
         ButtonGroup group = new ButtonGroup();
-        String[] filters = { "Tất cả", "Tầng trệt", "Tầng 1" };
+        String[] filters = {"Tất cả", "Tầng trệt", "Tầng 1"};
+
         ActionListener filterListener = e -> {
             String selectedFilter = e.getActionCommand();
+
             if (isLeftPanel) {
                 currentLeftFilter = selectedFilter;
                 populateLeftPanel(currentLeftFilter);
@@ -150,6 +186,7 @@ public class GhepBanDialog extends JDialog {
                 populateRightPanel(currentRightFilter);
             }
         };
+
         for (String filter : filters) {
             JToggleButton button = createFilterButton(filter, filter.equals("Tất cả"));
             button.setActionCommand(filter);
@@ -157,6 +194,7 @@ public class GhepBanDialog extends JDialog {
             group.add(button);
             filterPanel.add(button);
         }
+
         return filterPanel;
     }
 
@@ -170,6 +208,7 @@ public class GhepBanDialog extends JDialog {
         button.setOpaque(true);
         button.setBackground(Color.WHITE);
         button.setForeground(Color.BLACK);
+
         button.addChangeListener(e -> {
             if (button.isSelected()) {
                 button.setBackground(BanPanel.COLOR_ACCENT_BLUE);
@@ -180,84 +219,138 @@ public class GhepBanDialog extends JDialog {
                 button.setForeground(Color.BLACK);
                 button.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(Color.LIGHT_GRAY),
-                        new EmptyBorder(4, 14, 4, 14)));
+                        new EmptyBorder(4, 14, 4, 14)
+                ));
             }
         });
+
         button.setSelected(selected);
+
         return button;
     }
 
     private void populateLeftPanel(String khuVucFilter) {
+        if (leftTableContainer == null) {
+            return;
+        }
+
         leftTableContainer.removeAll();
         leftBanPanelList.clear();
 
-        for (BanDTO ban : allTablesFromDB) { // Sử dụng BanDTO
-            boolean khuVucMatch = khuVucFilter.equals("Tất cả") || ban.getKhuVuc().equals(khuVucFilter);
+        if (allTablesFromDB == null) {
+            allTablesFromDB = new ArrayList<>();
+        }
+
+        for (BanDTO ban : allTablesFromDB) {
+            if (ban == null) {
+                continue;
+            }
+
+            boolean khuVucMatch = khuVucFilter.equals("Tất cả")
+                    || khuVucFilter.equals(ban.getKhuVuc());
+
             if (khuVucMatch) {
                 BanPanel banPanel = new BanPanel(ban);
-                // Kiểm tra dựa trên mã bàn để đảm bảo equals hoạt động đúng
-                if (selectedSourceTables.stream().anyMatch(b -> b.getMaBan().equals(ban.getMaBan()))) {
+
+                boolean selected = selectedSourceTables.stream()
+                        .anyMatch(b -> b.getMaBan() != null && b.getMaBan().equals(ban.getMaBan()));
+
+                if (selected) {
                     banPanel.setSelected(true);
                 }
+
                 banPanel.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
-                        if (e.getButton() == MouseEvent.BUTTON1)
+                        if (e.getButton() == MouseEvent.BUTTON1) {
                             handleSelectSource(ban, banPanel);
+                        }
                     }
                 });
+
                 leftTableContainer.add(banPanel);
                 leftBanPanelList.add(banPanel);
             }
         }
+
         leftTableContainer.revalidate();
         leftTableContainer.repaint();
     }
 
     private void populateRightPanel(String khuVucFilter) {
+        if (rightTableContainer == null) {
+            return;
+        }
+
         rightTableContainer.removeAll();
         rightBanPanelList.clear();
 
-        for (BanDTO ban : allTablesFromDB) { // Sử dụng BanDTO
-            boolean khuVucMatch = khuVucFilter.equals("Tất cả") || ban.getKhuVuc().equals(khuVucFilter);
+        if (allTablesFromDB == null) {
+            allTablesFromDB = new ArrayList<>();
+        }
 
-            // So sánh chuỗi cho trạng thái thay vì dùng Enum
-            boolean statusMatch = "DANG_PHUC_VU".equalsIgnoreCase(ban.getTrangThai().toString())
-                    || "DA_DAT_TRUOC".equalsIgnoreCase(ban.getTrangThai().toString());
+        for (BanDTO ban : allTablesFromDB) {
+            if (ban == null || ban.getTrangThai() == null) {
+                continue;
+            }
+
+            boolean khuVucMatch = khuVucFilter.equals("Tất cả")
+                    || khuVucFilter.equals(ban.getKhuVuc());
+
+            boolean statusMatch = laTrangThai(ban, TrangThaiBan.DANG_PHUC_VU)
+                    || laTrangThai(ban, TrangThaiBan.DA_DAT_TRUOC);
 
             if (khuVucMatch && statusMatch) {
                 BanPanel banPanel = new BanPanel(ban);
-                if (selectedTargetTable != null && selectedTargetTable.getMaBan().equals(ban.getMaBan())) {
+
+                if (selectedTargetTable != null
+                        && selectedTargetTable.getMaBan() != null
+                        && selectedTargetTable.getMaBan().equals(ban.getMaBan())) {
                     banPanel.setSelected(true);
                 }
+
                 banPanel.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
-                        if (e.getButton() == MouseEvent.BUTTON1)
+                        if (e.getButton() == MouseEvent.BUTTON1) {
                             handleSelectTarget(ban, banPanel);
+                        }
                     }
                 });
+
                 rightTableContainer.add(banPanel);
                 rightBanPanelList.add(banPanel);
             }
         }
+
         rightTableContainer.revalidate();
         rightTableContainer.repaint();
     }
 
     private void handleSelectSource(BanDTO ban, BanPanel clickedPanel) {
-        if (selectedTargetTable != null && selectedTargetTable.getMaBan().equals(ban.getMaBan())) {
+        if (ban == null || ban.getMaBan() == null) {
+            return;
+        }
+
+        if (selectedTargetTable != null
+                && selectedTargetTable.getMaBan() != null
+                && selectedTargetTable.getMaBan().equals(ban.getMaBan())) {
             selectedTargetTable = null;
+
             for (BanPanel p : rightBanPanelList) {
-                if (p.getBan().getMaBan().equals(ban.getMaBan())) {
+                if (p.getBan() != null
+                        && p.getBan().getMaBan() != null
+                        && p.getBan().getMaBan().equals(ban.getMaBan())) {
                     p.setSelected(false);
                     break;
                 }
             }
         }
 
-        // Cập nhật logic xóa/thêm sử dụng Stream để so sánh mã bàn an toàn hơn
-        boolean removed = selectedSourceTables.removeIf(b -> b.getMaBan().equals(ban.getMaBan()));
+        boolean removed = selectedSourceTables.removeIf(
+                b -> b.getMaBan() != null && b.getMaBan().equals(ban.getMaBan())
+        );
+
         if (removed) {
             clickedPanel.setSelected(false);
         } else {
@@ -267,7 +360,13 @@ public class GhepBanDialog extends JDialog {
     }
 
     private void handleSelectTarget(BanDTO ban, BanPanel clickedPanel) {
-        if (selectedTargetTable != null && selectedTargetTable.getMaBan().equals(ban.getMaBan())) {
+        if (ban == null || ban.getMaBan() == null) {
+            return;
+        }
+
+        if (selectedTargetTable != null
+                && selectedTargetTable.getMaBan() != null
+                && selectedTargetTable.getMaBan().equals(ban.getMaBan())) {
             selectedTargetTable = null;
             clickedPanel.setSelected(false);
             return;
@@ -278,40 +377,209 @@ public class GhepBanDialog extends JDialog {
         for (BanPanel p : rightBanPanelList) {
             p.setSelected(false);
         }
+
         clickedPanel.setSelected(true);
+    }
+
+    private boolean laTrangThai(BanDTO ban, TrangThaiBan trangThai) {
+        if (ban == null || ban.getTrangThai() == null || trangThai == null) {
+            return false;
+        }
+
+        return trangThai.name().equalsIgnoreCase(ban.getTrangThai().toString());
+    }
+
+    private String layMaNVSuDung(String maNVFallback) {
+        if (maNVDangNhap != null && !maNVDangNhap.trim().isEmpty()) {
+            return maNVDangNhap;
+        }
+
+        if (maNVFallback != null && !maNVFallback.trim().isEmpty()) {
+            return maNVFallback;
+        }
+
+        return "NV01102";
+    }
+
+    private void taoHoacCapNhatDonLinked(
+            BanDTO banNguon,
+            String maBanDich,
+            String maNV,
+            String maKH,
+            LocalDateTime thoiGianDen
+    ) {
+        if (banNguon == null || banNguon.getMaBan() == null || banNguon.getMaBan().trim().isEmpty()) {
+            return;
+        }
+
+        if (maBanDich == null || maBanDich.trim().isEmpty()) {
+            return;
+        }
+
+        DonDatMonDTO donCu = donDatMonService.getDonDatMonChuaNhanTheoMaBanBaoGomLinked(banNguon.getMaBan());
+
+        String ghiChuLinked = "LINKED:" + maBanDich;
+
+        if (donCu == null) {
+            DonDatMonDTO dto = DonDatMonDTO.builder()
+                    .ngayKhoiTao(LocalDateTime.now())
+                    .thoiGianDen(thoiGianDen != null ? thoiGianDen : LocalDateTime.now())
+                    .trangThai("Chưa thanh toán")
+                    .maNV(maNV)
+                    .maKH(maKH)
+                    .maBan(banNguon.getMaBan())
+                    .ghiChu(ghiChuLinked)
+                    .build();
+
+            donDatMonService.save(dto);
+        } else {
+            donCu.setMaNV(maNV);
+            donCu.setMaKH(maKH);
+            donCu.setThoiGianDen(thoiGianDen != null ? thoiGianDen : LocalDateTime.now());
+            donCu.setTrangThai("Chưa thanh toán");
+            donCu.setGhiChu(ghiChuLinked);
+
+            donDatMonService.update(donCu);
+        }
+    }
+
+    private void ghepVaoBanDangPhucVu(List<BanDTO> dsNguon, BanDTO banDich) {
+        HoaDonDTO hoaDonDich = hoaDonService.getHoaDonChuaThanhToan(banDich.getMaBan());
+
+        if (hoaDonDich == null) {
+            throw new IllegalStateException("Không tìm thấy hóa đơn đang phục vụ của bàn " + banDich.getTenBan());
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        String maNV = layMaNVSuDung(hoaDonDich.getMaNV());
+        String maKH = hoaDonDich.getMaKH();
+
+        for (BanDTO banNguon : dsNguon) {
+            taoHoacCapNhatDonLinked(
+                    banNguon,
+                    banDich.getMaBan(),
+                    maNV,
+                    maKH,
+                    now
+            );
+
+            banNguon.setTrangThai(TrangThaiBan.DANG_PHUC_VU);
+            banNguon.setGioMoBan(now);
+
+            boolean ok = banService.updateBan(banNguon);
+
+            if (!ok) {
+                throw new IllegalStateException("Không cập nhật được trạng thái bàn " + banNguon.getTenBan());
+            }
+        }
+    }
+
+    private void ghepVaoBanDatTruoc(List<BanDTO> dsNguon, BanDTO banDich) {
+        DonDatMonDTO donDich = donDatMonService.getDonDatMonChuaNhanTheoMaBanBaoGomLinked(banDich.getMaBan());
+
+        if (donDich == null) {
+            donDich = donDatMonService.getDonDatMonDatTruoc(banDich.getMaBan());
+        }
+
+        if (donDich == null) {
+            throw new IllegalStateException("Không tìm thấy đơn đặt trước của bàn " + banDich.getTenBan());
+        }
+
+        LocalDateTime thoiGianDen = donDich.getThoiGianDen() != null
+                ? donDich.getThoiGianDen()
+                : LocalDateTime.now();
+
+        String maNV = layMaNVSuDung(donDich.getMaNV());
+        String maKH = donDich.getMaKH();
+
+        for (BanDTO banNguon : dsNguon) {
+            taoHoacCapNhatDonLinked(
+                    banNguon,
+                    banDich.getMaBan(),
+                    maNV,
+                    maKH,
+                    thoiGianDen
+            );
+
+            banNguon.setTrangThai(TrangThaiBan.DA_DAT_TRUOC);
+            banNguon.setGioMoBan(thoiGianDen);
+
+            boolean ok = banService.updateBan(banNguon);
+
+            if (!ok) {
+                throw new IllegalStateException("Không cập nhật được trạng thái bàn " + banNguon.getTenBan());
+            }
+        }
     }
 
     private void xuLyGhepBan() {
         if (selectedSourceTables.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất 1 bàn nguồn!", "Thiếu thông tin",
-                    JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Vui lòng chọn ít nhất 1 bàn nguồn!",
+                    "Thiếu thông tin",
+                    JOptionPane.WARNING_MESSAGE
+            );
             return;
         }
+
         if (selectedTargetTable == null) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn 1 bàn đích!", "Thiếu thông tin",
-                    JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Vui lòng chọn 1 bàn đích!",
+                    "Thiếu thông tin",
+                    JOptionPane.WARNING_MESSAGE
+            );
             return;
         }
 
         List<BanDTO> dsNguonGuiDi = new ArrayList<>(selectedSourceTables);
-        dsNguonGuiDi.removeIf(b -> b.getMaBan().equals(selectedTargetTable.getMaBan()));
+        dsNguonGuiDi.removeIf(b -> b.getMaBan() != null
+                && b.getMaBan().equals(selectedTargetTable.getMaBan()));
 
-        // Nếu sau khi loại trừ bàn đích ra, danh sách trống trơn tức là người dùng chỉ chọn đúng 1 bàn để ghép với chính nó.
         if (dsNguonGuiDi.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Bạn phải chọn thêm ít nhất 1 bàn khác để ghép vào bàn đích!", "Lỗi chọn bàn", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Bạn phải chọn thêm ít nhất 1 bàn khác để ghép vào bàn đích!",
+                    "Lỗi chọn bàn",
+                    JOptionPane.WARNING_MESSAGE
+            );
             return;
         }
 
-        // Truyền danh sách DTO qua Service xử lý
-        boolean kq = banService.ghepBanLienKet(selectedSourceTables, selectedTargetTable);
+        try {
+            if (laTrangThai(selectedTargetTable, TrangThaiBan.DANG_PHUC_VU)) {
+                ghepVaoBanDangPhucVu(dsNguonGuiDi, selectedTargetTable);
+            } else if (laTrangThai(selectedTargetTable, TrangThaiBan.DA_DAT_TRUOC)) {
+                ghepVaoBanDatTruoc(dsNguonGuiDi, selectedTargetTable);
+            } else {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Bàn đích phải là bàn đang phục vụ hoặc đã đặt trước.",
+                        "Không thể ghép",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
 
-        if (kq) {
-            JOptionPane.showMessageDialog(this,
-                    "Ghép bàn thành công!\nTất cả hóa đơn đã dồn về bàn " + selectedTargetTable.getTenBan(),
-                    "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Ghép bàn thành công!",
+                    "Thông báo",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
             dispose();
-        } else {
-            JOptionPane.showMessageDialog(this, "Có lỗi xảy ra khi ghép bàn.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Có lỗi xảy ra khi ghép bàn: " + ex.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
         }
     }
 

@@ -22,8 +22,15 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
      */
     public HoaDon getHoaDonChuaThanhToan(String maBan) {
         return doInSession(em -> {
-            // 1. Tìm đơn đặt món chưa thanh toán của bàn vừa click
-            String jpqlDon = "SELECT d FROM DonDatMon d WHERE d.ban.maBan = :maBan AND d.trangThai = 'Chưa thanh toán'";
+            String jpqlDon = """
+            SELECT d
+            FROM DonDatMon d
+            LEFT JOIN FETCH d.ban b
+            WHERE b.maBan = :maBan
+              AND d.trangThai = 'Chưa thanh toán'
+            ORDER BY d.ngayKhoiTao DESC
+            """;
+
             List<DonDatMon> listDon = em.createQuery(jpqlDon, DonDatMon.class)
                     .setParameter("maBan", maBan)
                     .setMaxResults(1)
@@ -36,21 +43,34 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
             DonDatMon don = listDon.get(0);
             String maBanDeTimHoaDon = maBan;
 
-            // 2. Nếu đây là bàn bị ghép (có chữ LINKED:), trích xuất mã bàn chính ra
-            if (don.getGhiChu() != null && don.getGhiChu().startsWith("LINKED:")) {
-                maBanDeTimHoaDon = don.getGhiChu().replace("LINKED:", "").trim();
+            String ghiChu = don.getGhiChu();
+
+            if (ghiChu != null && ghiChu.contains("LINKED:")) {
+                int index = ghiChu.indexOf("LINKED:");
+                String linkedPart = ghiChu.substring(index + "LINKED:".length()).trim();
+
+                if (!linkedPart.isEmpty()) {
+                    maBanDeTimHoaDon = linkedPart.split("\\s+")[0].trim();
+                }
             }
 
-            // 3. Đi lấy Hóa Đơn dựa trên mã bàn chính xác
-            String jpqlHD = "SELECT hd FROM HoaDon hd JOIN hd.donDatMon ddm " +
-                    "WHERE ddm.ban.maBan = :maBanThucTe AND hd.trangThai = 'Chưa thanh toán'";
-            try {
-                return em.createQuery(jpqlHD, HoaDon.class)
-                        .setParameter("maBanThucTe", maBanDeTimHoaDon)
-                        .getSingleResult();
-            } catch (jakarta.persistence.NoResultException e) {
-                return null;
-            }
+            String jpqlHD = """
+            SELECT hd
+            FROM HoaDon hd
+            JOIN FETCH hd.donDatMon ddm
+            LEFT JOIN FETCH hd.khachHang kh
+            LEFT JOIN FETCH hd.nhanVien nv
+            LEFT JOIN FETCH hd.khuyenMai km
+            WHERE ddm.ban.maBan = :maBanThucTe
+              AND hd.trangThai = 'Chưa thanh toán'
+            """;
+
+            return em.createQuery(jpqlHD, HoaDon.class)
+                    .setParameter("maBanThucTe", maBanDeTimHoaDon)
+                    .setMaxResults(1)
+                    .getResultStream()
+                    .findFirst()
+                    .orElse(null);
         });
     }
 

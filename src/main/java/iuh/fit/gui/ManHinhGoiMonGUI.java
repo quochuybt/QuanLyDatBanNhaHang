@@ -349,43 +349,222 @@ public class ManHinhGoiMonGUI extends JPanel {
         return true;
     }
 
-    private void nhanBanDatTruoc(BanDTO banChinh) throws Exception {
-        DonDatMonDTO ddm = donDatMonService.getDonDatMonDatTruoc(banChinh.getMaBan());
-
-        if (ddm == null) {
-            throw new Exception("Không tìm thấy đơn đặt trước!");
+    private DonDatMonDTO timDonDatTruocTheoMaBan(String maBan) {
+        if (maBan == null || maBan.trim().isEmpty()) {
+            return null;
         }
 
-        String maKH = ddm.getMaKH();
+        try {
+            DonDatMonDTO ddm = donDatMonService.getDonDatMonChuaNhanTheoMaBanBaoGomLinked(maBan);
 
-        String ghiChu = "Nhận bàn đặt trước";
-        if (ddm.getGhiChu() != null && !ddm.getGhiChu().trim().isEmpty()) {
-            ghiChu = ddm.getGhiChu();
+            if (ddm != null) {
+                return ddm;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
-        HoaDonDTO hd = hoaDonService.moBanVaTaoHoaDon(
-                banChinh.getMaBan(),
-                maNVDangNhap,
-                maKH,
-                LocalDateTime.now(),
-                ghiChu
-        );
+        try {
+            DonDatMonDTO ddm = donDatMonService.getDonDatMonDatTruoc(maBan);
 
-        if (hd == null) {
-            throw new Exception("Không tạo được hóa đơn cho bàn đặt trước.");
+            if (ddm != null) {
+                return ddm;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
-        this.activeHoaDon = hd;
+        return null;
+    }
 
-        banChinh.setTrangThai(TrangThaiBan.DANG_PHUC_VU);
-        banChinh.setGioMoBan(LocalDateTime.now());
+    private String layMaBanChinhTuGhiChu(String ghiChu) {
+        if (ghiChu == null || ghiChu.trim().isEmpty()) {
+            return null;
+        }
 
-        boolean updateOK = banService.updateBan(banChinh);
+        int index = ghiChu.indexOf("LINKED:");
+
+        if (index < 0) {
+            return null;
+        }
+
+        String linkedPart = ghiChu.substring(index + "LINKED:".length()).trim();
+
+        if (linkedPart.isEmpty()) {
+            return null;
+        }
+
+        String[] parts = linkedPart.split("\\s+");
+        return parts[0].trim();
+    }
+
+    private String layMaBanChinhCuaNhom(DonDatMonDTO ddmDangChon, String maBanDangChon) {
+        if (ddmDangChon == null) {
+            return maBanDangChon;
+        }
+
+        String maBanChinh = layMaBanChinhTuGhiChu(ddmDangChon.getGhiChu());
+
+        if (maBanChinh != null && !maBanChinh.trim().isEmpty()) {
+            return maBanChinh;
+        }
+
+        return ddmDangChon.getMaBan() != null ? ddmDangChon.getMaBan() : maBanDangChon;
+    }
+
+    private List<DonDatMonDTO> layNhomDonDatTheoBanChinh(String maBanChinh) {
+        List<DonDatMonDTO> ketQua = new ArrayList<>();
+
+        if (maBanChinh == null || maBanChinh.trim().isEmpty()) {
+            return ketQua;
+        }
+
+        List<DonDatMonDTO> dsTatCa = donDatMonService.getAllDonDatMonChuaNhanBaoGomLinked();
+
+        if (dsTatCa == null) {
+            return ketQua;
+        }
+
+        for (DonDatMonDTO ddm : dsTatCa) {
+            if (ddm == null) continue;
+
+            String maBan = ddm.getMaBan();
+            String ghiChu = ddm.getGhiChu();
+
+            boolean laBanChinh = maBanChinh.equals(maBan);
+            boolean laBanPhu = ghiChu != null && ghiChu.contains("LINKED:" + maBanChinh);
+
+            if (laBanChinh || laBanPhu) {
+                ketQua.add(ddm);
+            }
+        }
+
+        return ketQua;
+    }
+
+    private DonDatMonDTO timDonChinhTrongNhom(List<DonDatMonDTO> nhomDon, String maBanChinh) {
+        if (nhomDon == null || nhomDon.isEmpty()) {
+            return null;
+        }
+
+        for (DonDatMonDTO ddm : nhomDon) {
+            if (ddm != null && maBanChinh.equals(ddm.getMaBan())) {
+                return ddm;
+            }
+        }
+
+        return nhomDon.get(0);
+    }
+
+    private void capNhatTrangThaiBanDangPhucVu(String maBan, LocalDateTime gioMoBan) throws Exception {
+        if (maBan == null || maBan.trim().isEmpty()) {
+            return;
+        }
+
+        BanDTO banCanUpdate = banService.getBanByMa(maBan);
+
+        if (banCanUpdate == null) {
+            throw new Exception("Không tìm thấy bàn để cập nhật trạng thái: " + maBan);
+        }
+
+        banCanUpdate.setTrangThai(TrangThaiBan.DANG_PHUC_VU);
+        banCanUpdate.setGioMoBan(gioMoBan);
+
+        boolean updateOK = banService.updateBan(banCanUpdate);
+
         if (!updateOK) {
-            throw new Exception("Lỗi cập nhật trạng thái bàn.");
+            throw new Exception("Lỗi cập nhật trạng thái bàn: " + banCanUpdate.getTenBan());
+        }
+    }
+
+    private void nhanBanDatTruoc(BanDTO banDuocChon) throws Exception {
+        if (banDuocChon == null || banDuocChon.getMaBan() == null) {
+            throw new Exception("Bàn được chọn không hợp lệ.");
         }
 
-        this.banHienTai = banChinh;
+        String maBanDangChon = banDuocChon.getMaBan();
+
+        // Quan trọng: không gọi trực tiếp rồi throw ngay nữa.
+        // Bàn phụ đôi khi getDonDatMonDatTruoc(maBan) trả null,
+        // nên phải có fallback quét danh sách đơn chưa nhận.
+        DonDatMonDTO ddmDangChon = timDonDatTruocTheoMaBan(maBanDangChon);
+
+        if (ddmDangChon == null) {
+            throw new Exception("Không tìm thấy đơn đặt trước cho bàn " + maBanDangChon);
+        }
+
+        String maBanChinh = layMaBanChinhCuaNhom(ddmDangChon, maBanDangChon);
+
+        List<DonDatMonDTO> nhomDon = layNhomDonDatTheoBanChinh(maBanChinh);
+
+        if (nhomDon == null || nhomDon.isEmpty()) {
+            nhomDon = new ArrayList<>();
+            nhomDon.add(ddmDangChon);
+        }
+
+        DonDatMonDTO donChinh = timDonChinhTrongNhom(nhomDon, maBanChinh);
+
+        String maKH = null;
+
+        if (donChinh != null && donChinh.getMaKH() != null && !donChinh.getMaKH().trim().isEmpty()) {
+            maKH = donChinh.getMaKH();
+        } else if (ddmDangChon.getMaKH() != null && !ddmDangChon.getMaKH().trim().isEmpty()) {
+            maKH = ddmDangChon.getMaKH();
+        }
+
+        HoaDonDTO hoaDonCuaBanDangChon = null;
+        LocalDateTime now = LocalDateTime.now();
+
+        for (DonDatMonDTO ddm : nhomDon) {
+            if (ddm == null || ddm.getMaBan() == null || ddm.getMaBan().trim().isEmpty()) {
+                continue;
+            }
+
+            String maBanTrongNhom = ddm.getMaBan();
+
+            String ghiChu = ddm.getGhiChu();
+
+            if (ghiChu == null || ghiChu.trim().isEmpty()) {
+                ghiChu = "Nhận bàn đặt trước";
+            }
+
+            HoaDonDTO hd = hoaDonService.moBanVaTaoHoaDon(
+                    maBanTrongNhom,
+                    maNVDangNhap,
+                    maKH,
+                    now,
+                    ghiChu
+            );
+
+            if (hd == null) {
+                throw new Exception("Không tạo được hóa đơn cho bàn " + maBanTrongNhom);
+            }
+
+            capNhatTrangThaiBanDangPhucVu(maBanTrongNhom, now);
+
+            if (maBanTrongNhom.equals(maBanDangChon)) {
+                hoaDonCuaBanDangChon = hd;
+            }
+        }
+
+        if (hoaDonCuaBanDangChon == null) {
+            hoaDonCuaBanDangChon = hoaDonService.getHoaDonChuaThanhToan(maBanDangChon);
+        }
+
+        if (hoaDonCuaBanDangChon == null) {
+            hoaDonCuaBanDangChon = hoaDonService.getHoaDonChuaThanhToan(maBanChinh);
+        }
+
+        if (hoaDonCuaBanDangChon == null) {
+            throw new Exception("Không tìm thấy hóa đơn sau khi nhận nhóm bàn.");
+        }
+
+        this.activeHoaDon = hoaDonCuaBanDangChon;
+
+        banDuocChon.setTrangThai(TrangThaiBan.DANG_PHUC_VU);
+        banDuocChon.setGioMoBan(now);
+
+        this.banHienTai = banDuocChon;
         statusColorBox.setBackground(Color.RED);
     }
 
