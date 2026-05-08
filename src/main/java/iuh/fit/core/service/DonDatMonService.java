@@ -65,6 +65,10 @@ public class DonDatMonService {
         repository.delete(id);
     }
 
+    public boolean huyDatBanVaGiaiPhongBanGhep(String maDon) {
+        return repository.huyDatBanVaGiaiPhongBanGhep(maDon);
+    }
+
     // --- Các phương thức nghiệp vụ đặc thù đã chuyển sang DTO ---
 
     /**

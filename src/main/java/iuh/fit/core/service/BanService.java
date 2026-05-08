@@ -103,6 +103,10 @@ public class BanService {
         return banRepository.getTenHienThiGhep(maBan);
     }
 
+    public String getChuoiTenBanGhep(String maBanChinh, String maHD) {
+        return banRepository.getChuoiTenBanGhep(maBanChinh, maHD);
+    }
+
     public String getMaBanChinh(BanDTO banDTO) {
         validateBanDTOForId(banDTO, "Bàn");
 

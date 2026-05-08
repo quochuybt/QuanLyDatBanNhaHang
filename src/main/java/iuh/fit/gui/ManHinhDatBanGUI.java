@@ -919,27 +919,9 @@ public class ManHinhDatBanGUI extends JPanel {
                 JOptionPane.WARNING_MESSAGE);
 
         if (confirm == JOptionPane.YES_OPTION) {
-            donDatMonService.delete(ddmToCancel.getMaDon());
-            boolean xoaDonOK = true; // Tạm thời coi như thành công nếu không lỗi
+            boolean xoaDonOK = donDatMonService.huyDatBanVaGiaiPhongBanGhep(ddmToCancel.getMaDon());
 
             if (xoaDonOK) {
-                BanDTO banCanUpdate = banService.getBanByMa(ddmToCancel.getMaBan());
-                if (banCanUpdate != null && banCanUpdate.getTrangThai() == TrangThaiBan.DA_DAT_TRUOC) {
-                    banCanUpdate.setTrangThai(TrangThaiBan.TRONG);
-                    banCanUpdate.setGioMoBan(null);
-                    String tenHienTai = banCanUpdate.getTenBan();
-                    String tenGoc = tenHienTai.replaceAll("\\s*\\(Ghép.*\\)", "").trim();
-                    banCanUpdate.setTenBan(tenGoc);
-                    boolean updateBanOK = banService.updateBan(banCanUpdate);
-                    if (!updateBanOK) {
-                        JOptionPane.showMessageDialog(this, "Hủy đơn thành công nhưng lỗi cập nhật lại trạng thái bàn!",
-                                "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
-                    }
-                } else {
-                    System.err.println("Không tìm thấy bàn " + ddmToCancel.getMaBan()
-                            + " hoặc trạng thái không phải DA_DAT_TRUOC để reset.");
-                }
-
                 modelListPhieuDat.removeElementAt(index);
                 taiDanhSachBanTrong();
                 hienThiBanPhuHop();

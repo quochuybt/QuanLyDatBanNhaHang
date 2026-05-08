@@ -423,16 +423,6 @@ public class BillPanel extends JPanel {
                 this.revalidate();
                 this.repaint();
 
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Thanh toán thành công!\n"
-                                + "Tổng thanh toán: " + nf.format(activeHoaDon.getTongThanhToan()) + "\n"
-                                + "Khách đưa: " + nf.format(tienKhachTraLong) + "\n"
-                                + "Tiền thối: " + nf.format(tienThoiLong),
-                        "Thanh toán thành công",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-
                 if (parentGoiMonGUI != null) {
                     parentGoiMonGUI.xoaThongTinGoiMon();
 
@@ -782,6 +772,28 @@ public class BillPanel extends JPanel {
         String tenBanHienThi = tenBanThucTe;
         if (this.customHeaderName != null && !this.customHeaderName.isEmpty()) {
             tenBanHienThi = this.customHeaderName;
+        }
+
+        try {
+            BanService banService = new BanService();
+            String chuoiBanGhep = banService.getChuoiTenBanGhep(banHienTai.getMaBan(),maHD);
+
+            if (chuoiBanGhep != null && !chuoiBanGhep.isEmpty()) {
+                String khuVuc = "";
+                String tenBanChinh = tenBanHienThi;
+
+                // Nếu tên bàn có chứa dấu "--", ta sẽ chẻ nó ra làm đôi
+                if (tenBanHienThi.contains("--")) {
+                    int index = tenBanHienThi.indexOf("--");
+                    tenBanChinh = tenBanHienThi.substring(0, index).trim(); // Lấy "Bàn 10"
+                    khuVuc = " -- " + tenBanHienThi.substring(index + 2).trim(); // Lấy " -- Tầng trệt"
+                }
+
+                // Ráp lại theo đúng thứ tự: Bàn chính + Số bàn ghép + Khu vực
+                tenBanHienThi = tenBanChinh + chuoiBanGhep + khuVuc;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         StringBuilder billText = new StringBuilder();

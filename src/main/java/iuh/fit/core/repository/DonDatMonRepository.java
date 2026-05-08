@@ -1,5 +1,6 @@
 package iuh.fit.core.repository;
 
+import iuh.fit.core.entity.Ban;
 import iuh.fit.core.entity.DonDatMon;
 import iuh.fit.core.entity.TrangThaiBan;
 import jakarta.persistence.TypedQuery;
@@ -169,6 +170,52 @@ public class DonDatMonRepository extends GenericRepository<DonDatMon, String> {
                     .setParameter("bayGio", bayGio)
                     .setParameter("haiTiengNua", haiTiengNua)
                     .executeUpdate();
+        });
+    }
+    public boolean huyDatBanVaGiaiPhongBanGhep(String maDon) {
+        return executeTransaction(em -> {
+            DonDatMon donChinh = em.find(DonDatMon.class, maDon);
+            if (donChinh == null) return false;
+
+            Ban banChinh = donChinh.getBan();
+            String maBanChinh = (banChinh != null) ? banChinh.getMaBan() : "";
+
+            // 1. Quét tìm và dọn dẹp các Bàn Phụ (Bàn ghép)
+            if (!maBanChinh.isEmpty()) {
+                String tagLinked = "%LINKED:" + maBanChinh + "%";
+                List<DonDatMon> cacDonPhu = em.createQuery(
+                                "SELECT d FROM DonDatMon d WHERE d.ghiChu LIKE :tag", DonDatMon.class)
+                        .setParameter("tag", tagLinked)
+                        .getResultList();
+
+                for (DonDatMon donPhu : cacDonPhu) {
+                    Ban banPhu = donPhu.getBan();
+                    if (banPhu != null) {
+                        banPhu.setTrangThai(TrangThaiBan.TRONG);
+                        banPhu.setGioMoBan(null);
+                        // Xóa chữ "(Ghép...)" nếu có
+                        String tenGoc = banPhu.getTenBan().replaceAll("\\s*\\(Ghép.*\\)", "").trim();
+                        banPhu.setTenBan(tenGoc);
+                        em.merge(banPhu);
+                    }
+                    // Xóa đơn ảo
+                    em.remove(donPhu);
+                }
+            }
+
+            // 2. Dọn Bàn Chính
+            if (banChinh != null) {
+                banChinh.setTrangThai(TrangThaiBan.TRONG);
+                banChinh.setGioMoBan(null);
+                String tenGoc = banChinh.getTenBan().replaceAll("\\s*\\(Ghép.*\\)", "").trim();
+                banChinh.setTenBan(tenGoc);
+                em.merge(banChinh);
+            }
+
+            // 3. Xóa Đơn Chính
+            em.remove(donChinh);
+
+            return true;
         });
     }
 

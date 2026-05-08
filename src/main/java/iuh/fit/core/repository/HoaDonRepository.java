@@ -1,6 +1,7 @@
 package iuh.fit.core.repository;
 
 import iuh.fit.core.dto.DonDatMonDTO;
+import iuh.fit.core.dto.HoaDonDTO;
 import iuh.fit.core.entity.*;
 import jakarta.persistence.TypedQuery;
 import java.time.LocalDate;
@@ -74,7 +75,7 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
         });
     }
 
-    public boolean thanhToanHoaDon(iuh.fit.core.dto.HoaDonDTO dto) {
+    public boolean thanhToanHoaDon(HoaDonDTO dto) {
         return executeTransaction(em -> {
             HoaDon hd = em.find(HoaDon.class, dto.getMaHD());
 
@@ -140,6 +141,7 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
                     // 3. Dọn dẹp từng Bàn Phụ
                     for (DonDatMon donPhu : cacDonLienKet) {
                         donPhu.setTrangThai("Đã thanh toán"); // Đóng luôn đơn ảo
+                        donPhu.setGhiChu("PAID_WITH:" + hd.getMaHD());
 
                         Ban banPhu = donPhu.getBan();
                         if (banPhu != null) {

@@ -94,6 +94,43 @@ public class BanRepository extends GenericRepository<Ban, String> {
         });
     }
 
+    public String getChuoiTenBanGhep(String maBanChinh, String maHD) {
+        return doInSession(em -> {
+            List<String> tenCacBanPhu = null;
+
+            // 1. Trường hợp ĐÃ THANH TOÁN (Có mã HĐ) -> Tìm theo dấu vết PAID_WITH
+            if (maHD != null && !maHD.trim().isEmpty() && !maHD.equals("---")) {
+                String tagPaid = "%PAID_WITH:" + maHD + "%";
+                tenCacBanPhu = em.createQuery(
+                                "SELECT d.ban.tenBan FROM DonDatMon d WHERE d.ghiChu LIKE :tag",
+                                String.class)
+                        .setParameter("tag", tagPaid)
+                        .getResultList();
+            }
+
+            // 2. Trường hợp TẠM TÍNH (Chưa có HĐ) -> Tìm theo trạng thái LINKED như cũ
+            if (tenCacBanPhu == null || tenCacBanPhu.isEmpty()) {
+                String tagLinked = "%LINKED:" + maBanChinh + "%";
+                tenCacBanPhu = em.createQuery(
+                                "SELECT d.ban.tenBan FROM DonDatMon d WHERE d.ghiChu LIKE :tag AND d.trangThai = 'Chưa thanh toán'",
+                                String.class)
+                        .setParameter("tag", tagLinked)
+                        .getResultList();
+            }
+
+            if (tenCacBanPhu == null || tenCacBanPhu.isEmpty()) {
+                return ""; // Không ghép bàn nào
+            }
+
+            StringBuilder sb = new StringBuilder();
+            for (String ten : tenCacBanPhu) {
+                String soBanPhu = ten.replace("Bàn ", "").trim();
+                sb.append(" + ").append(soBanPhu);
+            }
+            return sb.toString();
+        });
+    }
+
     public String getTenHienThiGhep(String maBanCheck) {
         return doInSession(em -> {
             String maBanMaster = maBanCheck;
