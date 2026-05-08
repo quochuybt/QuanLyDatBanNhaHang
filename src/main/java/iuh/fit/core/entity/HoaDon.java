@@ -43,6 +43,9 @@ public class HoaDon {
     @Column(name = "giamGia", nullable = false)
     private Float giamGia = 0f;
 
+    @Column(name = "tongThanhToan", nullable = false)
+    private Float tongThanhToan = 0f;
+
     // ====== Quan hệ với DonDatMon (1-1) ======
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "maDon", unique = true, nullable = false)
@@ -92,29 +95,19 @@ public class HoaDon {
         return khachHang != null ? khachHang.getMaKH() : null;
     }
 
-
     private float safeMoney(Float value) {
         return value == null ? 0f : value;
     }
 
-    public Float getTongThanhToan() {
+    public void tinhLaiTongThanhToan() {
         float tong = safeMoney(this.tongTien);
         float giam = safeMoney(this.giamGia);
-        return Math.max(0f, tong - giam);
-    }
-
-    public void tinhLaiTongThanhToan() {
-        // Không cần làm gì nữa vì tongThanhToan là giá trị tính toán.
-    }
-
-    public void setTongThanhToan(Float tongThanhToan) {
-        // Không lưu vào DB vì HoaDon không có cột tongThanhToan.
-        // Tổng thanh toán được tính từ tongTien - giamGia.
+        this.tongThanhToan = Math.max(0f, tong - giam);
     }
 
     public float tinhTienThoi() {
         float tienDua = safeMoney(this.tienKhachDua);
-        float thanhToan = safeMoney(getTongThanhToan());
+        float thanhToan = safeMoney(this.tongThanhToan);
         return Math.max(0f, tienDua - thanhToan);
     }
 
@@ -139,6 +132,7 @@ public class HoaDon {
         if (tongTien == null) tongTien = 0f;
         if (tienKhachDua == null) tienKhachDua = 0f;
         if (giamGia == null) giamGia = 0f;
+        if (tongThanhToan == null) tongThanhToan = 0f;
     }
 
     @PostLoad

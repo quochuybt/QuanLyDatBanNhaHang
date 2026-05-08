@@ -58,29 +58,25 @@ public class HoaDonDTO {
     @JsonProperty("tongThanhToan")
     private float tongThanhToan;
 
-    private static float safeFloat(Float value) {
-        return value == null ? 0f : value;
-    }
-
     public static HoaDonDTO fromEntity(HoaDon entity) {
         if (entity == null) return null;
-
         return HoaDonDTO.builder()
                 .maHD(entity.getMaHD())
                 .ngayLap(entity.getNgayLap())
-                .tongTien(safeFloat(entity.getTongTien()))
+                .tongTien(entity.getTongTien())
                 .trangThai(entity.getTrangThai())
                 .hinhThucThanhToan(entity.getHinhThucThanhToan())
-                .tienKhachDua(safeFloat(entity.getTienKhachDua()))
+                .tienKhachDua(entity.getTienKhachDua())
                 .tenBan(entity.getTenBan())
                 .maDon(entity.getMaDon())
                 .maNV(entity.getMaNV())
                 .maKM(entity.getMaKM())
                 .maKH(entity.getMaKH())
-                .giamGia(safeFloat(entity.getGiamGia()))
-                .tongThanhToan(safeFloat(entity.getTongThanhToan()))
+                .giamGia(entity.getGiamGia())
+                .tongThanhToan(entity.getTongThanhToan())
                 .build();
     }
+
     public HoaDon toEntity() {
         HoaDon entity = new HoaDon();
 
@@ -95,6 +91,7 @@ public class HoaDonDTO {
         entity.setTienKhachDua(this.tienKhachDua);
         entity.setTenBan(this.tenBan);
         entity.setGiamGia(this.giamGia);
+        entity.setTongThanhToan(this.tongThanhToan);
 
         // 2. Tạo đối tượng giả để gán khóa ngoại (chỉ cần chứa ID)
         if (this.maDon != null && !this.maDon.isEmpty()) {
