@@ -3,23 +3,23 @@ package iuh.fit.gui;
 import iuh.fit.core.entity.NhanVien;
 import iuh.fit.core.entity.VaiTro;
 import iuh.fit.core.service.NhanVienService;
+import com.toedter.calendar.JDateChooser; // IMPORT THƯ VIỆN JCALENDAR
 
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
 import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
+import java.time.Period;
+import java.time.ZoneId;
 
 public class ThemNhanVienDialog extends JDialog {
 
     private final NhanVienService nhanVienService = new NhanVienService();
     private final NhanVienGUI parentPanel;
 
-    private final String DATE_PLACEHOLDER = "dd/MM/yyyy";
     private final JTextField txtHoTen = new JTextField(15);
-    private final JTextField txtNgaySinh = new JTextField(8);
+    // 1. SỬ DỤNG JDATECHOOSER THAY CHO JTEXTFIELD
+    private final JDateChooser txtNgaySinh = new JDateChooser();
+
     private final JComboBox<String> cmbGioiTinh = new JComboBox<>(new String[]{"Nam", "Nữ", "Khác"});
     private final JTextField txtSdt = new JTextField(10);
     private final JTextField txtDiaChi = new JTextField(30);
@@ -45,26 +45,12 @@ public class ThemNhanVienDialog extends JDialog {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 10, 5, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        txtNgaySinh.setText(DATE_PLACEHOLDER);
-        txtNgaySinh.setForeground(Color.GRAY);
 
-        txtNgaySinh.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                if (txtNgaySinh.getText().equals(DATE_PLACEHOLDER)) {
-                    txtNgaySinh.setText("");
-                    txtNgaySinh.setForeground(Color.BLACK);
-                }
-            }
+        // 2. THIẾT LẬP FORMAT CHO JDATECHOOSER
+        txtNgaySinh.setDateFormatString("dd/MM/yyyy");
+        // Tùy chọn: Set ngày mặc định (VD: cách đây 18 năm) để người dùng chọn nhanh hơn
+        // txtNgaySinh.setDate(java.sql.Date.valueOf(LocalDate.now().minusYears(18)));
 
-            @Override
-            public void focusLost(FocusEvent e) {
-                if (txtNgaySinh.getText().isEmpty()) {
-                    txtNgaySinh.setForeground(Color.GRAY);
-                    txtNgaySinh.setText(DATE_PLACEHOLDER);
-                }
-            }
-        });
         addComponent(mainPanel, new JLabel("Họ Tên:"), txtHoTen, gbc, 0, 0);
         addComponent(mainPanel, new JLabel("Ngày Sinh:"), txtNgaySinh, gbc, 0, 1);
 
@@ -121,35 +107,94 @@ public class ThemNhanVienDialog extends JDialog {
     private void themNhanVien() {
         try {
             String hoTen = txtHoTen.getText().trim();
-            LocalDate ngaySinh;
-            try {
-                ngaySinh = LocalDate.parse(txtNgaySinh.getText().trim(), DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-            } catch (DateTimeParseException e) {
-                JOptionPane.showMessageDialog(this, "Ngày sinh không hợp lệ (dd/MM/yyyy).", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            String gioiTinh = (String) cmbGioiTinh.getSelectedItem();
             String sdt = txtSdt.getText().trim();
-            float luong = Float.parseFloat(txtLuong.getText().trim());
+            String luongStr = txtLuong.getText().trim();
             String diaChi = txtDiaChi.getText().trim();
-            VaiTro vaiTro = (VaiTro) cmbVaiTro.getSelectedItem();
-
             String tenTK = txtTenTK.getText().trim();
             String matKhau = new String(txtMatKhau.getPassword());
             String email = txtEmail.getText().trim();
 
-            if(tenTK.isEmpty()){
-                JOptionPane.showMessageDialog(this, "Tên Tài khoản không được rỗng.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            if (hoTen.isEmpty()) {
+                showError("Họ tên không được để trống.");
+                txtHoTen.requestFocus();
                 return;
             }
-            if(matKhau.isEmpty()){
-                JOptionPane.showMessageDialog(this, "Mật khẩu không được rỗng.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            if (!hoTen.matches("^[\\p{L}\\s]+$")) {
+                showError("Họ tên không hợp lệ (chỉ được chứa chữ cái và khoảng trắng).");
+                txtHoTen.requestFocus();
                 return;
             }
-            if(email.isEmpty()){
-                JOptionPane.showMessageDialog(this, "Email không được rỗng.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+
+            // 3. XỬ LÝ LẤY DỮ LIỆU TỪ JDATECHOOSER
+            java.util.Date selectedDate = txtNgaySinh.getDate();
+            if (selectedDate == null) {
+                showError("Vui lòng chọn hoặc nhập ngày sinh hợp lệ.");
+                txtNgaySinh.requestFocusInWindow();
                 return;
             }
+
+            // Convert từ java.util.Date sang java.time.LocalDate
+            LocalDate ngaySinh = selectedDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+
+            // Tính tuổi
+            int age = Period.between(ngaySinh, LocalDate.now()).getYears();
+            if (age < 18) {
+                showError("Nhân viên phải từ đủ 18 tuổi trở lên.");
+                txtNgaySinh.requestFocusInWindow();
+                return;
+            }
+
+            if (sdt.isEmpty() || !sdt.matches("^0\\d{9}$")) {
+                showError("Số điện thoại không hợp lệ (Phải có 10 chữ số và bắt đầu bằng số 0).");
+                txtSdt.requestFocus();
+                return;
+            }
+
+            if (diaChi.isEmpty()) {
+                showError("Địa chỉ không được để trống.");
+                txtDiaChi.requestFocus();
+                return;
+            }
+
+            if (email.isEmpty() || !email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$")) {
+                showError("Email không hợp lệ (Ví dụ đúng: ten@gmail.com).");
+                txtEmail.requestFocus();
+                return;
+            }
+
+            if (tenTK.isEmpty() || tenTK.contains(" ") || tenTK.length() < 5) {
+                showError("Tên tài khoản không được rỗng, không chứa khoảng trắng và phải từ 5 ký tự trở lên.");
+                txtTenTK.requestFocus();
+                return;
+            }
+
+            if (matKhau.isEmpty() || matKhau.length() < 6) {
+                showError("Mật khẩu không được rỗng và phải từ 6 ký tự trở lên.");
+                txtMatKhau.requestFocus();
+                return;
+            }
+
+            if (luongStr.isEmpty()) {
+                showError("Vui lòng nhập mức lương.");
+                txtLuong.requestFocus();
+                return;
+            }
+            float luong;
+            try {
+                luong = Float.parseFloat(luongStr);
+                if (luong <= 0) {
+                    showError("Lương phải là số lớn hơn 0.");
+                    txtLuong.requestFocus();
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                showError("Lương nhập vào phải là số.");
+                txtLuong.requestFocus();
+                return;
+            }
+
+            String gioiTinh = (String) cmbGioiTinh.getSelectedItem();
+            VaiTro vaiTro = (VaiTro) cmbVaiTro.getSelectedItem();
 
             NhanVien nv = new NhanVien(
                     hoTen,
@@ -169,13 +214,15 @@ public class ThemNhanVienDialog extends JDialog {
             parentPanel.refreshTable();
             dispose();
 
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Lương phải là số.", "Lỗi", JOptionPane.ERROR_MESSAGE);
         } catch (IllegalArgumentException e) {
             JOptionPane.showMessageDialog(this, "Lỗi dữ liệu: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Đã xảy ra lỗi hệ thống: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
         }
+    }
+
+    private void showError(String message) {
+        JOptionPane.showMessageDialog(this, message, "Lỗi dữ liệu", JOptionPane.WARNING_MESSAGE);
     }
 }

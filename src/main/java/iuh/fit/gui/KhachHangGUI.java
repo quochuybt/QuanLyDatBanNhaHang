@@ -162,7 +162,10 @@ public class KhachHangGUI extends JPanel {
     }
 
     private void addEventListeners() {
-        btnLamMoiForm.addActionListener(e -> lamMoiForm());
+        btnLamMoiForm.addActionListener(e -> {
+            refreshKhachHangTable();
+            lamMoiForm();
+        });
         btnThem.addActionListener(e -> themKhachHang());
         btnSua.addActionListener(e -> suaKhachHang());
         btnTimKiem.addActionListener(e -> timKhachHang());

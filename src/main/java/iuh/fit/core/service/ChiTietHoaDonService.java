@@ -119,8 +119,6 @@ public class ChiTietHoaDonService {
 
         ChiTietHoaDonDTO dto = new ChiTietHoaDonDTO();
 
-        dto.setId(entity.getId());
-
         if (entity.getDonDatMon() != null) {
             dto.setMaDon(entity.getDonDatMon().getMaDon());
         }

@@ -15,22 +15,24 @@ import lombok.*;
 public class ChiTietHoaDon {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "MaChiTietHoaDon")
-    private Long id;
-
     @ManyToOne
     @JoinColumn(name = "maDon")
     private DonDatMon donDatMon;
+
+    @Id
     @ManyToOne
     @JoinColumn(name = "maMonAn")
     private MonAn monAn;
+
     @Column(name = "soLuong")
     private int soluong;
+
     @Column(name = "donGia")
     private float dongia;
+
     @Column(name = "thanhTien")
     private float thanhtien;
+
     private String tenMon;
 
 }

@@ -222,8 +222,8 @@ public class GhepBanDialog extends JDialog {
             boolean khuVucMatch = khuVucFilter.equals("Tất cả") || ban.getKhuVuc().equals(khuVucFilter);
 
             // So sánh chuỗi cho trạng thái thay vì dùng Enum
-            boolean statusMatch = "Đang phục vụ".equals(ban.getTrangThai())
-                    || "Đã đặt trước".equals(ban.getTrangThai());
+            boolean statusMatch = "DANG_PHUC_VU".equalsIgnoreCase(ban.getTrangThai().toString())
+                    || "DA_DAT_TRUOC".equalsIgnoreCase(ban.getTrangThai().toString());
 
             if (khuVucMatch && statusMatch) {
                 BanPanel banPanel = new BanPanel(ban);
