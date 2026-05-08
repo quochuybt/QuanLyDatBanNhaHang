@@ -18,7 +18,6 @@ public class TaiKhoanGUI extends JFrame {
     private JTextField txtTenDangNhap;
     private JPasswordField txtMatKhau;
     private JButton btnDangNhap;
-    private JLabel lblServerStatus;
     private final SocketClientConnection connection;
     private final DiscoveredServer selectedServer;
 
@@ -144,7 +143,6 @@ public class TaiKhoanGUI extends JFrame {
                 }
 
                 btnDangNhap.setEnabled(false);
-                lblServerStatus.setText("Server: đang xác thực tài khoản...");
 
                 new SwingWorker<String[], Void>() {
                     @Override
@@ -193,7 +191,6 @@ public class TaiKhoanGUI extends JFrame {
                                 JOptionPane.showMessageDialog(TaiKhoanGUI.this,
                                         "Không thể đăng nhập qua server LAN.\nChi tiết: " + msg,
                                         "Lỗi Kết nối", JOptionPane.ERROR_MESSAGE);
-                                lblServerStatus.setText("Server: lỗi kết nối/xác thực");
                             }
                         }
                     }
@@ -201,13 +198,6 @@ public class TaiKhoanGUI extends JFrame {
             }
         });
         contentPanel.add(btnDangNhap);
-
-        lblServerStatus = new JLabel("Server: " + selectedServer.getServiceName() + " (" + selectedServer.getHost() + ")");
-        lblServerStatus.setForeground(Color.DARK_GRAY);
-        lblServerStatus.setFont(new Font("Arial", Font.ITALIC, 12));
-        lblServerStatus.setAlignmentX(Component.CENTER_ALIGNMENT);
-        contentPanel.add(Box.createVerticalStrut(8));
-        contentPanel.add(lblServerStatus);
 
         JPanel linkPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         linkPanel.setOpaque(false);
