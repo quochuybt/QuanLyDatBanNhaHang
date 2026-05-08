@@ -68,12 +68,10 @@ public class BanService {
         }
 
         List<Ban> listBanNguon = listBanNguonDTO.stream()
+                // 1. Âm thầm lọc bỏ bàn đích ra khỏi danh sách nguồn để không bị lỗi
+                .filter(dto -> !dto.getMaBan().equals(banDichDTO.getMaBan()))
                 .map(dto -> {
                     validateBanDTOForId(dto, "Bàn nguồn");
-
-                    if (dto.getMaBan().equals(banDichDTO.getMaBan())) {
-                        throw new IllegalArgumentException("Danh sách bàn nguồn không được chứa bàn đích");
-                    }
 
                     Ban ban = banRepository.getBanByMa(dto.getMaBan());
                     if (ban == null) {
@@ -84,6 +82,13 @@ public class BanService {
                 })
                 .toList();
 
+        // 2. Nếu sau khi lọc xong mà danh sách rỗng (tức là giao diện chỉ truyền đúng 1 bàn)
+        if (listBanNguon.isEmpty()) {
+            // Tạm thời trả về false để giao diện báo lỗi "Có lỗi xảy ra" thay vì sập app
+            return false;
+        }
+
+        // 3. Đẩy xuống Repository xử lý bình thường
         return banRepository.ghepBanLienKet(listBanNguon, banDich);
     }
 

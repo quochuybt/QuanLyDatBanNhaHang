@@ -45,13 +45,17 @@ public class BanRepository extends GenericRepository<Ban, String> {
             String oldTag = "LINKED:" + banCu.getMaBan();
             String newTag = "LINKED:" + banMoi.getMaBan();
 
+            // 1. TẠO REFERENCE: Lấy một tham chiếu chuẩn của Bàn Mới để JPA hiểu
+            Ban banMoiRef = em.getReference(Ban.class, banMoi.getMaBan());
+
+            // 2. Xử lý đổi tên dán nhãn cho các bàn đang ghép (nếu có)
             List<DonDatMon> donLienKet = em.createQuery("""
-                    SELECT d
-                    FROM DonDatMon d
-                    WHERE d.ban.maBan <> :maBanCu
-                      AND d.trangThai = :chuaThanhToan
-                      AND d.ghiChu LIKE :likeOldTag
-                    """, DonDatMon.class)
+                SELECT d
+                FROM DonDatMon d
+                WHERE d.ban.maBan <> :maBanCu
+                  AND d.trangThai = :chuaThanhToan
+                  AND d.ghiChu LIKE :likeOldTag
+                """, DonDatMon.class)
                     .setParameter("maBanCu", banCu.getMaBan())
                     .setParameter("chuaThanhToan", CHUA_THANH_TOAN)
                     .setParameter("likeOldTag", "%" + oldTag + "%")
@@ -60,22 +64,25 @@ public class BanRepository extends GenericRepository<Ban, String> {
             for (DonDatMon don : donLienKet) {
                 if (don.getGhiChu() != null) {
                     don.setGhiChu(don.getGhiChu().replace(oldTag, newTag));
+                    em.merge(don); // FIX 1: Bắt buộc phải có merge để lưu ghi chú mới xuống CSDL
                 }
             }
 
+            // 3. Dời hộ khẩu Đơn Đặt Món sang bàn mới
             em.createQuery("""
-                    UPDATE DonDatMon d
-                    SET d.ban.maBan = :maBanMoi
-                    WHERE d.ban.maBan = :maBanCu
-                      AND d.trangThai <> :daThanhToan
-                      AND d.trangThai <> :daHuy
-                    """)
-                    .setParameter("maBanMoi", banMoi.getMaBan())
+                UPDATE DonDatMon d
+                SET d.ban = :banMoi  
+                WHERE d.ban.maBan = :maBanCu
+                  AND d.trangThai <> :daThanhToan
+                  AND d.trangThai <> :daHuy
+                """)
+                    .setParameter("banMoi", banMoiRef) // FIX 2: Truyền nguyên Entity Reference vào đây
                     .setParameter("maBanCu", banCu.getMaBan())
                     .setParameter("daThanhToan", DA_THANH_TOAN)
                     .setParameter("daHuy", DA_HUY)
                     .executeUpdate();
 
+            // 4. Cập nhật lại màu sắc, trạng thái hiển thị
             TrangThaiBan trangThaiMoi = banCu.getTrangThai() == TrangThaiBan.DA_DAT_TRUOC
                     ? TrangThaiBan.DA_DAT_TRUOC
                     : TrangThaiBan.DANG_PHUC_VU;
@@ -276,7 +283,8 @@ public class BanRepository extends GenericRepository<Ban, String> {
                 donLienKet.setThoiGianDen(LocalDateTime.now());
                 NhanVien nv = em.getReference(NhanVien.class, "NV01102");
                 donLienKet.setNhanVien(nv);
-                Ban ban = em.getReference(Ban.class, banDich.getMaBan());
+
+                Ban ban = em.getReference(Ban.class, banNguon.getMaBan());
                 donLienKet.setBan(ban);
                 donLienKet.setTrangThai(CHUA_THANH_TOAN);
                 donLienKet.setGhiChu("LINKED:" + banDich.getMaBan());

@@ -62,7 +62,6 @@ public class ManHinhBanGUI extends JPanel {
     private JTextField txtHoTenKhach;
     private JTextField txtThanhVien;
 
-    private JTextField txtSoLuongKhach;
     private JTextField txtGhiChu;
     private JLabel statusColorBox;
     private BillPanel billPanel;
@@ -252,7 +251,6 @@ public class ManHinhBanGUI extends JPanel {
         txtThanhVien = createStyledTextField(false);
         txtSDTKhach = createStyledTextField(true);
         txtHoTenKhach = createStyledTextField(true);
-        txtSoLuongKhach = createStyledTextField(true);
         txtGhiChu = createStyledTextField(true);
 
         txtGhiChu.addFocusListener(new java.awt.event.FocusAdapter() {
@@ -275,6 +273,7 @@ public class ManHinhBanGUI extends JPanel {
 
         ganListenerLuuKhachHangTam();
 
+        // --- DÒNG 1 (gridy = 0) ---
         gbc.gridy = 0;
         gbc.gridx = 0;
         gbc.gridwidth = 1;
@@ -293,6 +292,7 @@ public class ManHinhBanGUI extends JPanel {
         gbc.weightx = 0.5;
         infoPanel.add(createInfoBox("PT Thanh toán", cmbPTThanhToan), gbc);
 
+        // --- DÒNG 2 (gridy = 1) ---
         gbc.gridy = 1;
         gbc.weightx = 1.0;
         gbc.gridx = 0;
@@ -307,45 +307,44 @@ public class ManHinhBanGUI extends JPanel {
         gbc.gridwidth = 1;
         infoPanel.add(createInfoBox("Thành viên", txtThanhVien), gbc);
 
+        // --- DÒNG 3 (gridy = 2): Ghi chú, Mã KM, Nút Áp dụng ---
         gbc.gridy = 2;
-        gbc.weighty = 0.0;
+
+        // 1. Ô Ghi chú (Chiếm 2 cột đầu tiên)
         gbc.gridx = 0;
-        gbc.gridwidth = 1;
-        gbc.weightx = 0.3;
+        gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        infoPanel.add(createInfoBox("Số lượng khách", txtSoLuongKhach), gbc);
+        infoPanel.add(createInfoBox("Ghi chú", txtGhiChu), gbc);
 
+        // 2. Ô Mã khuyến mãi (Chiếm cột thứ 3)
         txtMaKhuyenMai = createStyledTextField(true);
-
-        gbc.gridx = 1;
+        gbc.gridx = 2;
         gbc.gridwidth = 1;
         gbc.weightx = 0.5;
         infoPanel.add(createInfoBox("Mã khuyến mãi", txtMaKhuyenMai), gbc);
 
+        // 3. Nút Áp dụng (Chiếm cột cuối cùng)
         btnApDungKM = new JButton("Áp dụng");
         btnApDungKM.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btnApDungKM.setBackground(ManHinhBanGUI.COLOR_STATUS_RESERVED);
+        btnApDungKM.setBackground(ManHinhBanGUI.COLOR_STATUS_RESERVED); // Note: Đảm bảo hằng số này tồn tại
         btnApDungKM.setForeground(Color.DARK_GRAY);
         btnApDungKM.setFocusPainted(false);
         btnApDungKM.setPreferredSize(new Dimension(80, 35));
 
-        gbc.gridx = 2;
+        gbc.gridx = 3;
         gbc.gridwidth = 1;
         gbc.weightx = 0.2;
         gbc.fill = GridBagConstraints.NONE;
         gbc.anchor = GridBagConstraints.SOUTHWEST;
+        // Dịch nút xuống một chút để nó ngang hàng với textfield thay vì label
         gbc.insets = new Insets(20, 0, 10, 8);
         infoPanel.add(btnApDungKM, gbc);
 
-        gbc.gridy = 3;
-        gbc.gridx = 0;
-        gbc.gridwidth = 3;
-        gbc.weightx = 1.0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.anchor = GridBagConstraints.CENTER;
-        gbc.insets = new Insets(0, 8, 10, 8);
-        infoPanel.add(createInfoBox("Ghi chú", txtGhiChu), gbc);
+        // Reset lại insets cho các component sau (nếu có)
+        gbc.insets = new Insets(5, 8, 10, 8);
 
+        // --- Giao diện bên dưới ---
         this.billPanel = new BillPanel(this);
 
         JSplitPane verticalSplitPane = new JSplitPane(
@@ -354,7 +353,8 @@ public class ManHinhBanGUI extends JPanel {
                 this.billPanel
         );
 
-        verticalSplitPane.setDividerLocation(230);
+        // Điều chỉnh thanh chia nhích lên một chút do đã bớt đi một hàng
+        verticalSplitPane.setDividerLocation(200);
         verticalSplitPane.setBorder(null);
 
         panel.add(verticalSplitPane, BorderLayout.CENTER);
@@ -493,7 +493,6 @@ public class ManHinhBanGUI extends JPanel {
             txtHoTenKhach.setText("");
             txtThanhVien.setText("");
             txtMaKhuyenMai.setText("");
-            txtSoLuongKhach.setText("");
             txtGhiChu.setText("");
             txtNgayVao.setText("");
             txtGioVao.setText("");
@@ -542,7 +541,6 @@ public class ManHinhBanGUI extends JPanel {
         txtSDTKhach.setText("");
         txtHoTenKhach.setText("");
         txtThanhVien.setText("");
-        txtSoLuongKhach.setText(String.valueOf(ban.getSoGhe()));
         txtGhiChu.setText("");
         txtMaKhuyenMai.setText("");
 

@@ -260,6 +260,8 @@ public class HoaDonGUI extends JPanel {
         btnXoaLoc.addActionListener(e -> {
             dateChooserTuNgay.setDate(null);
             dateChooserDenNgay.setDate(null);
+            btnXoaLoc.requestFocus();
+            resetSearchFieldIfNeeded();
             currentPage = 1;
             loadDataForCurrentPage();
         });
@@ -626,10 +628,16 @@ public class HoaDonGUI extends JPanel {
     }
 
     private void resetSearchFieldIfNeeded() {
-        if (!txtTimKiem.getText().equals(" Tìm kiếm qua mã hóa đơn")) {
+        String placeholder = " Tìm kiếm qua mã hóa đơn";
+        if (!txtTimKiem.getText().equals(placeholder)) {
             txtTimKiem.getDocument().removeDocumentListener(searchListener);
-            txtTimKiem.setText(" Tìm kiếm qua mã hóa đơn");
-            txtTimKiem.setForeground(Color.GRAY);
+            if (txtTimKiem.hasFocus()) {
+                txtTimKiem.setText("");
+                txtTimKiem.setForeground(Color.BLACK);
+            } else {
+                txtTimKiem.setText(placeholder);
+                txtTimKiem.setForeground(Color.GRAY);
+            }
             txtTimKiem.getDocument().addDocumentListener(searchListener);
             currentKeyword = "";
         }

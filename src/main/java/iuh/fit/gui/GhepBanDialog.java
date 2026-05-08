@@ -293,6 +293,15 @@ public class GhepBanDialog extends JDialog {
             return;
         }
 
+        List<BanDTO> dsNguonGuiDi = new ArrayList<>(selectedSourceTables);
+        dsNguonGuiDi.removeIf(b -> b.getMaBan().equals(selectedTargetTable.getMaBan()));
+
+        // Nếu sau khi loại trừ bàn đích ra, danh sách trống trơn tức là người dùng chỉ chọn đúng 1 bàn để ghép với chính nó.
+        if (dsNguonGuiDi.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Bạn phải chọn thêm ít nhất 1 bàn khác để ghép vào bàn đích!", "Lỗi chọn bàn", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
         // Truyền danh sách DTO qua Service xử lý
         boolean kq = banService.ghepBanLienKet(selectedSourceTables, selectedTargetTable);
 
