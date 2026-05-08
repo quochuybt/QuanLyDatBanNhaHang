@@ -11,14 +11,24 @@ public class KhachHangRepository extends GenericRepository<KhachHang, String> {
     }
 
     public KhachHang findByMaKH(String maKH) {
-        return findById(maKH);
+        if (maKH == null || maKH.trim().isEmpty()) {
+            return null;
+        }
+
+        return findById(maKH.trim());
     }
 
-
     public KhachHang findBySdt(String sdt) {
+        if (sdt == null || sdt.trim().isEmpty()) {
+            return null;
+        }
+
         return doInSession(em ->
-                em.createQuery("SELECT k FROM KhachHang k WHERE k.sdt = :sdt", KhachHang.class)
-                        .setParameter("sdt", sdt)
+                em.createQuery(
+                                "SELECT k FROM KhachHang k WHERE k.sdt = :sdt",
+                                KhachHang.class
+                        )
+                        .setParameter("sdt", sdt.trim())
                         .getResultStream()
                         .findFirst()
                         .orElse(null)
@@ -26,13 +36,15 @@ public class KhachHangRepository extends GenericRepository<KhachHang, String> {
     }
 
     public List<KhachHang> search(String keyword) {
+        String kw = keyword == null ? "" : keyword.toLowerCase().trim();
+
         return doInSession(em ->
                 em.createQuery(
                                 "SELECT k FROM KhachHang k " +
                                         "WHERE LOWER(k.tenKH) LIKE :kw OR k.sdt LIKE :kw",
                                 KhachHang.class
                         )
-                        .setParameter("kw", "%" + keyword.toLowerCase().trim() + "%")
+                        .setParameter("kw", "%" + kw + "%")
                         .getResultList()
         );
     }
