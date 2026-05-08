@@ -22,8 +22,18 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
      */
     public HoaDon getHoaDonChuaThanhToan(String maBan) {
         return doInSession(em -> {
-            String jpql = "SELECT hd FROM HoaDon hd JOIN hd.donDatMon ddm " +
-                    "WHERE ddm.ban.maBan = :maBan AND hd.trangThai = :trangThai";
+            String jpql = """
+            SELECT hd
+            FROM HoaDon hd
+            JOIN FETCH hd.donDatMon ddm
+            LEFT JOIN FETCH ddm.ban b
+            LEFT JOIN FETCH hd.khachHang kh
+            LEFT JOIN FETCH hd.nhanVien nv
+            LEFT JOIN FETCH hd.khuyenMai km
+            WHERE b.maBan = :maBan
+              AND hd.trangThai = :trangThai
+            """;
+
             try {
                 return em.createQuery(jpql, HoaDon.class)
                         .setParameter("maBan", maBan)
@@ -303,138 +313,233 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
     public boolean capNhatMaKH(String maHD, String maKH) {
         return executeTransaction(em -> {
             HoaDon hd = em.find(HoaDon.class, maHD);
-            if (hd != null) {
-                if (maKH == null || maKH.trim().isEmpty()) {
-                    hd.setKhachHang(null);
-                    if (hd.getDonDatMon() != null) hd.getDonDatMon().setKhachHang(null);
-                } else {
-                    KhachHang kh = em.find(KhachHang.class, maKH);
-                    hd.setKhachHang(kh);
-                    // Cập nhật luôn cho Đơn đặt món liên quan
-                    if (hd.getDonDatMon() != null) hd.getDonDatMon().setKhachHang(kh);
+
+            if (hd == null) {
+                return false;
+            }
+
+            if (maKH == null || maKH.trim().isEmpty()) {
+                hd.setKhachHang(null);
+
+                if (hd.getDonDatMon() != null) {
+                    hd.getDonDatMon().setKhachHang(null);
                 }
+
                 return true;
             }
-            return false;
+
+            KhachHang kh = em.find(KhachHang.class, maKH);
+
+            if (kh == null) {
+                return false;
+            }
+
+            hd.setKhachHang(kh);
+
+            if (hd.getDonDatMon() != null) {
+                hd.getDonDatMon().setKhachHang(kh);
+            }
+
+            return true;
         });
     }
-    public HoaDon moBanVaTaoHoaDon(String maBan, String maNV, String maKH, LocalDateTime thoiGianDen, String ghiChu) {
+    public HoaDon moBanVaTaoHoaDon(
+            String maBan,
+            String maNV,
+            String maKH,
+            LocalDateTime thoiGianDen,
+            String ghiChu
+    ) {
         return executeTransaction(em -> {
+            // 1. Tìm bàn
             Ban ban = em.find(Ban.class, maBan);
-            if (ban == null) throw new IllegalArgumentException("Không tìm thấy bàn: " + maBan);
+            if (ban == null) {
+                throw new IllegalArgumentException("Không tìm thấy bàn: " + maBan);
+            }
 
+            // 2. Tìm đơn đang mở của bàn nếu đã có
             DonDatMon donDangMo = em.createQuery(
-                            "SELECT d FROM DonDatMon d WHERE d.ban.maBan = :maBan AND d.trangThai = 'Chưa thanh toán'", DonDatMon.class)
+                            "SELECT d FROM DonDatMon d " +
+                                    "WHERE d.ban.maBan = :maBan " +
+                                    "AND d.trangThai = 'Chưa thanh toán'",
+                            DonDatMon.class
+                    )
                     .setParameter("maBan", maBan)
                     .setMaxResults(1)
                     .getResultStream()
                     .findFirst()
                     .orElse(null);
 
-            if (donDangMo == null) {
-                DonDatMonDTO dto = DonDatMonDTO.builder()
-                        .maDon(new DonDatMon(true).getMaDon())
-                        .ngayKhoiTao(LocalDateTime.now())
-                        .maNV(maNV)
-                        .maKH(maKH)
-                        .thoiGianDen(thoiGianDen != null ? thoiGianDen : LocalDateTime.now())
-                        .trangThai("Chưa thanh toán")
-                        .maBan(maBan)
-                        .ghiChu(ghiChu)
-                        .build();
-
-                donDangMo = dto.toEntity();
-                donDangMo.setBan(ban);
-                if (maNV != null && !maNV.isEmpty()) {
-                    donDangMo.setNhanVien(em.getReference(NhanVien.class, maNV));
-                } else {
-                    donDangMo.setNhanVien(null);
+            // 3. Chuẩn bị nhân viên và khách hàng
+            NhanVien nv = null;
+            if (maNV != null && !maNV.trim().isEmpty()) {
+                nv = em.find(NhanVien.class, maNV);
+                if (nv == null) {
+                    throw new IllegalArgumentException("Không tìm thấy nhân viên: " + maNV);
                 }
-                if (maKH != null && !maKH.isEmpty()) {
-                    donDangMo.setKhachHang(em.getReference(KhachHang.class, maKH));
-                } else {
-                    donDangMo.setKhachHang(null);
-                }
-                em.persist(donDangMo);
             }
 
+            KhachHang kh = null;
+            if (maKH != null && !maKH.trim().isEmpty()) {
+                kh = em.find(KhachHang.class, maKH);
+                if (kh == null) {
+                    throw new IllegalArgumentException("Không tìm thấy khách hàng: " + maKH);
+                }
+            }
+
+            // 4. Nếu chưa có đơn thì tạo đơn đặt món mới
+            if (donDangMo == null) {
+                donDangMo = new DonDatMon();
+
+                donDangMo.setMaDon(new DonDatMon(true).getMaDon());
+                donDangMo.setNgayKhoiTao(LocalDateTime.now());
+                donDangMo.setThoiGianDen(thoiGianDen != null ? thoiGianDen : LocalDateTime.now());
+                donDangMo.setTrangThai("Chưa thanh toán");
+                donDangMo.setGhiChu(ghiChu);
+                donDangMo.setBan(ban);
+                donDangMo.setNhanVien(nv);
+                donDangMo.setKhachHang(kh);
+
+                em.persist(donDangMo);
+            } else {
+                // Nếu đơn đã có sẵn nhưng truyền khách hàng mới thì cập nhật lại
+                if (nv != null) {
+                    donDangMo.setNhanVien(nv);
+                }
+
+                donDangMo.setKhachHang(kh);
+
+                if (thoiGianDen != null) {
+                    donDangMo.setThoiGianDen(thoiGianDen);
+                }
+
+                if (ghiChu != null && !ghiChu.trim().isEmpty()) {
+                    donDangMo.setGhiChu(ghiChu);
+                }
+            }
+
+            // 5. Tìm hóa đơn chưa thanh toán gắn với đơn này
             HoaDon hd = em.createQuery(
-                            "SELECT h FROM HoaDon h WHERE h.donDatMon.maDon = :maDon AND h.trangThai = 'Chưa thanh toán'", HoaDon.class)
+                            "SELECT h FROM HoaDon h " +
+                                    "WHERE h.donDatMon.maDon = :maDon " +
+                                    "AND h.trangThai = 'Chưa thanh toán'",
+                            HoaDon.class
+                    )
                     .setParameter("maDon", donDangMo.getMaDon())
                     .setMaxResults(1)
                     .getResultStream()
                     .findFirst()
                     .orElse(null);
 
+            // 6. Nếu chưa có hóa đơn thì tạo mới
             if (hd == null) {
                 hd = new HoaDon();
 
-                // Sử dụng hàm phát sinh mã bạn đã viết sẵn trong entity HoaDon
                 hd.setMaHD(hd.phatSinhMaHD());
-
                 hd.setNgayLap(LocalDateTime.now());
                 hd.setTrangThai("Chưa thanh toán");
                 hd.setHinhThucThanhToan("Tiền mặt");
+
                 hd.setTongTien(0f);
                 hd.setGiamGia(0f);
                 hd.setTongThanhToan(0f);
+                hd.setTienKhachDua(0f);
 
-                // 1. Gán quan hệ với DonDatMon (bạn đã có sẵn object donDangMo)
+                hd.setTenBan(ban.getTenBan());
+
                 hd.setDonDatMon(donDangMo);
+                hd.setNhanVien(nv);
+                hd.setKhachHang(kh);
 
-                // 2. Gán quan hệ với NhanVien thông qua Proxy (Reference)
-                if (maNV != null && !maNV.isEmpty()) {
-                    // getReference giúp tạo khóa ngoại mà không cần select DB
-                    NhanVien nv = em.getReference(NhanVien.class, maNV);
+                em.persist(hd);
+            } else {
+                // Nếu hóa đơn đã tồn tại thì đồng bộ lại thông tin mới
+                if (nv != null) {
                     hd.setNhanVien(nv);
                 }
 
-                // 3. Gán quan hệ với KhachHang thông qua Proxy
-                if (maKH != null && !maKH.isEmpty()) {
-                    KhachHang kh = em.getReference(KhachHang.class, maKH);
-                    hd.setKhachHang(kh);
+                hd.setKhachHang(kh);
+
+                if (hd.getTongTien() == null) {
+                    hd.setTongTien(0f);
                 }
 
-                em.persist(hd);
+                if (hd.getGiamGia() == null) {
+                    hd.setGiamGia(0f);
+                }
+
+                if (hd.getTongThanhToan() == null) {
+                    hd.setTongThanhToan(Math.max(0f, hd.getTongTien() - hd.getGiamGia()));
+                }
+
+                if (hd.getTienKhachDua() == null) {
+                    hd.setTienKhachDua(0f);
+                }
+
+                if (hd.getTenBan() == null || hd.getTenBan().trim().isEmpty()) {
+                    hd.setTenBan(ban.getTenBan());
+                }
             }
 
+            // 7. Cập nhật trạng thái bàn
             ban.setTrangThai(TrangThaiBan.DANG_PHUC_VU);
             ban.setGioMoBan(LocalDateTime.now());
-            em.merge(ban);
+
+            // 8. Flush để đảm bảo DB nhận thay đổi trước khi trả về
+            em.flush();
 
             return hd;
         });
     }
+
+    private HoaDon fetchHoaDonDayDu(jakarta.persistence.EntityManager em, String maHD) {
+        try {
+            String jpql = """
+            SELECT hd
+            FROM HoaDon hd
+            JOIN FETCH hd.donDatMon ddm
+            LEFT JOIN FETCH ddm.ban b
+            LEFT JOIN FETCH hd.khachHang kh
+            LEFT JOIN FETCH hd.nhanVien nv
+            LEFT JOIN FETCH hd.khuyenMai km
+            WHERE hd.maHD = :maHD
+            """;
+
+            return em.createQuery(jpql, HoaDon.class)
+                    .setParameter("maHD", maHD)
+                    .getSingleResult();
+
+        } catch (jakarta.persistence.NoResultException e) {
+            return null;
+        }
+    }
+
     public HoaDon tinhLaiGiamGiaVaTongTien(String maHD) {
         return executeTransaction(em -> {
             HoaDon hd = em.find(HoaDon.class, maHD);
 
             if (hd != null && hd.getDonDatMon() != null) {
-                // 1. Tính tổng tiền từ bảng ChiTietHoaDon
                 Double tongTienOpt = em.createQuery(
-                                "SELECT SUM(c.thanhtien) FROM ChiTietHoaDon c WHERE c.donDatMon.maDon = :maDon", Double.class)
+                                "SELECT SUM(c.thanhtien) " +
+                                        "FROM ChiTietHoaDon c " +
+                                        "WHERE c.donDatMon.maDon = :maDon",
+                                Double.class
+                        )
                         .setParameter("maDon", hd.getDonDatMon().getMaDon())
                         .getSingleResult();
 
-                float tongTien = (tongTienOpt != null) ? tongTienOpt.floatValue() : 0f;
+                float tongTien = tongTienOpt != null ? tongTienOpt.floatValue() : 0f;
+                float giamGia = hd.getGiamGia() != null ? hd.getGiamGia() : 0f;
+
                 hd.setTongTien(tongTien);
-
-                // 2. Tính lại tiền giảm giá (Nếu có KhuyenMai)
-                // Lưu ý: Tùy thuộc vào cấu trúc entity KhuyenMai của bạn (ví dụ có field phanTramGiam),
-                // bạn có thể mở comment dưới đây để áp dụng. Tạm thời đang giữ mức giảm giá cũ.
-                /*
-                if (hd.getKhuyenMai() != null) {
-                    float phanTram = hd.getKhuyenMai().getPhanTramGiam();
-                    hd.setGiamGia(tongTien * phanTram / 100);
-                }
-                */
-
-                // 3. Gọi hàm cập nhật tổng thanh toán có sẵn trong entity
-                hd.tinhLaiTongThanhToan();
+                hd.setGiamGia(giamGia);
+                hd.setTongThanhToan(Math.max(0f, tongTien - giamGia));
 
                 em.merge(hd);
+                em.flush();
             }
-            return hd;
+
+            return fetchHoaDonDayDu(em, maHD);
         });
     }
     public boolean capNhatTongTien(String maHD, float tongTien, float giamGia, float tongThanhToan) {

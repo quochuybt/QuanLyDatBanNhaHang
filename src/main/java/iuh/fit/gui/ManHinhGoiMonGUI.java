@@ -17,23 +17,19 @@ import java.util.Locale;
 
 public class ManHinhGoiMonGUI extends JPanel {
 
-    // 1. CHUYỂN ĐỔI SANG SERVICE THEO CHUẨN JPA
-    // Thay vì dùng trực tiếp DAO, ta khởi tạo các Service để giao tiếp với DB
     private final MonAnService monAnService = new MonAnService();
     private final BanService banService = new BanService();
     private final HoaDonService hoaDonService = new HoaDonService();
     private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
     private final DonDatMonService donDatMonService = new DonDatMonService();
     private final KhachHangService khachHangService = new KhachHangService();
-    // 2. CHUYỂN ĐỔI SANG DTO
-    // Quản lý trạng thái hiện tại bằng DTO thay vì Entity
+
     private BanDTO banHienTai;
     private HoaDonDTO activeHoaDon;
 
     private final String maNVDangNhap;
     private final NumberFormat nf = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
 
-    // Các thành phần UI
     private DanhSachBanGUI parentDanhSachBanGUI;
     private List<MonAnDTO> dsMonAnFull;
     private List<MonAnItemPanel> dsMonAnPanel;
@@ -46,7 +42,15 @@ public class ManHinhGoiMonGUI extends JPanel {
     private JTable tblChiTietHoaDon;
     private DefaultTableModel modelChiTietHoaDon;
     private BillPanel billPanel;
+
     public static final Color COLOR_STATUS_FREE = new Color(138, 177, 254);
+
+    private String maKHDangChon;
+
+    public void setMaKHDangChon(String maKHDangChon) {
+        this.maKHDangChon = maKHDangChon;
+    }
+
     public ManHinhGoiMonGUI(DanhSachBanGUI parent, String maNVDangNhap) {
         super(new BorderLayout());
         this.parentDanhSachBanGUI = parent;
@@ -64,9 +68,6 @@ public class ManHinhGoiMonGUI extends JPanel {
         return parentDanhSachBanGUI;
     }
 
-    // =====================================================================
-    // PHẦN UI - KHÔI PHỤC GIAO DIỆN CŨ (SPLIT PANE, GRID THẺ MÓN ĂN)
-    // =====================================================================
     private void buildUI() {
         this.setBackground(Color.WHITE);
         this.setBorder(new EmptyBorder(10, 0, 10, 10));
@@ -91,7 +92,6 @@ public class ManHinhGoiMonGUI extends JPanel {
         pnlFilter.add(createSearchPanel(), BorderLayout.SOUTH);
         panel.add(pnlFilter, BorderLayout.NORTH);
 
-        // Sử dụng FlowLayout hoặc VerticallyWrappingFlowPanel của bạn để dàn các thẻ món ăn
         pnlMenuItemContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 15));
         pnlMenuItemContainer.setBackground(Color.WHITE);
         pnlMenuItemContainer.setBorder(new EmptyBorder(10, 10, 10, 10));
@@ -116,23 +116,23 @@ public class ManHinhGoiMonGUI extends JPanel {
         this.billPanel = new BillPanel(this);
         panel.add(billPanel, BorderLayout.SOUTH);
 
-        // Khởi tạo bảng chi tiết gọi món với các cột tương tự bản cũ
         String[] cols = {"X", "Mã Món", "Tên món", "SL", "Đơn giá", "Thành tiền"};
         modelChiTietHoaDon = new DefaultTableModel(cols, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 0 || column == 3; // Chỉ cho phép click nút Xóa (0) và Sửa số lượng (3)
+                return column == 0 || column == 3;
             }
+
             @Override
             public Class<?> getColumnClass(int columnIndex) {
-                if(columnIndex == 3) return Integer.class;
-                if(columnIndex == 4 || columnIndex == 5) return Float.class;
+                if (columnIndex == 3) return Integer.class;
+                if (columnIndex == 4 || columnIndex == 5) return Float.class;
                 return String.class;
             }
         };
+
         tblChiTietHoaDon = new JTable(modelChiTietHoaDon);
 
-        // Render nút Xóa và Spinner
         TableColumn columnX = tblChiTietHoaDon.getColumnModel().getColumn(0);
         columnX.setCellRenderer(new ButtonRenderer());
         columnX.setCellEditor(new ButtonEditor(new JCheckBox()));
@@ -143,7 +143,6 @@ public class ManHinhGoiMonGUI extends JPanel {
 
         tblChiTietHoaDon.setRowHeight(30);
 
-        // Ẩn cột Mã món để giao diện gọn gàng hơn
         TableColumn colMaMon = tblChiTietHoaDon.getColumnModel().getColumn(1);
         colMaMon.setMinWidth(0);
         colMaMon.setMaxWidth(0);
@@ -153,10 +152,16 @@ public class ManHinhGoiMonGUI extends JPanel {
         tblChiTietHoaDon.getColumnModel().getColumn(2).setPreferredWidth(150);
         tblChiTietHoaDon.getColumnModel().getColumn(3).setPreferredWidth(50);
 
-        // Format tiền tệ
         DefaultTableCellRenderer currencyRenderer = new DefaultTableCellRenderer() {
             @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            public Component getTableCellRendererComponent(
+                    JTable table,
+                    Object value,
+                    boolean isSelected,
+                    boolean hasFocus,
+                    int row,
+                    int column
+            ) {
                 if (value instanceof Number) {
                     value = nf.format(((Number) value).doubleValue());
                 }
@@ -164,6 +169,7 @@ public class ManHinhGoiMonGUI extends JPanel {
                 return super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             }
         };
+
         tblChiTietHoaDon.getColumnModel().getColumn(4).setCellRenderer(currencyRenderer);
         tblChiTietHoaDon.getColumnModel().getColumn(5).setCellRenderer(currencyRenderer);
 
@@ -182,7 +188,7 @@ public class ManHinhGoiMonGUI extends JPanel {
 
         statusColorBox = new JLabel();
         statusColorBox.setPreferredSize(new Dimension(48, 48));
-        statusColorBox.setBackground(Color.GREEN); // Màu mặc định Bàn Trống
+        statusColorBox.setBackground(Color.GREEN);
         statusColorBox.setOpaque(true);
 
         lblTenBanHeader = new JLabel("Chưa chọn bàn");
@@ -190,15 +196,11 @@ public class ManHinhGoiMonGUI extends JPanel {
 
         panel.add(statusColorBox, BorderLayout.WEST);
         panel.add(lblTenBanHeader, BorderLayout.CENTER);
+
         return panel;
     }
 
-    // =====================================================================
-    // LOGIC LOAD DỮ LIỆU TỪ SERVICE BẰNG DTO
-    // =====================================================================
-
     private void loadDataFromDB() {
-        // Lấy danh sách DTO từ Service
         this.dsMonAnFull = monAnService.findAllDTO();
 
         pnlMenuItemContainer.removeAll();
@@ -208,7 +210,6 @@ public class ManHinhGoiMonGUI extends JPanel {
             pnlMenuItemContainer.add(new JLabel("Không có món ăn nào trong CSDL."));
         } else {
             for (MonAnDTO mon : dsMonAnFull) {
-                // LƯU Ý: Phải sửa constructor của MonAnItemPanel để nhận MonAnDTO
                 MonAnItemPanel itemPanel = new MonAnItemPanel(mon);
 
                 itemPanel.addMouseListener(new MouseAdapter() {
@@ -230,7 +231,6 @@ public class ManHinhGoiMonGUI extends JPanel {
         pnlMenuItemContainer.repaint();
     }
 
-    // Hàm lõi nhận dữ liệu khi click vào Bàn từ sơ đồ
     public boolean loadDuLieuBan(BanDTO banDuocChon) {
         if (banDuocChon == null) return false;
 
@@ -246,7 +246,6 @@ public class ManHinhGoiMonGUI extends JPanel {
                     ? banDuocChon.getTrangThai().toString()
                     : "TRONG";
 
-            // Logic 1: Bàn đang phục vụ -> Kéo Hóa đơn và Chi tiết về
             if ("DANG_PHUC_VU".equalsIgnoreCase(trangThai)) {
                 statusColorBox.setBackground(Color.RED);
 
@@ -280,10 +279,7 @@ public class ManHinhGoiMonGUI extends JPanel {
                         });
                     }
                 }
-            }
-
-            // Logic 2: Bàn trống -> Hỏi mở bàn
-            else if ("TRONG".equalsIgnoreCase(trangThai)) {
+            } else if ("TRONG".equalsIgnoreCase(trangThai)) {
                 statusColorBox.setBackground(Color.GREEN);
 
                 int confirm = JOptionPane.showConfirmDialog(
@@ -299,10 +295,7 @@ public class ManHinhGoiMonGUI extends JPanel {
                 } else {
                     return false;
                 }
-            }
-
-            // Logic 3: Bàn đã đặt trước -> Hỏi nhận bàn rồi tạo hóa đơn active
-            else if ("DA_DAT_TRUOC".equalsIgnoreCase(trangThai)) {
+            } else if ("DA_DAT_TRUOC".equalsIgnoreCase(trangThai)) {
                 statusColorBox.setBackground(ManHinhBanGUI.COLOR_STATUS_RESERVED);
 
                 DonDatMonDTO ddmPreview = donDatMonService.getDonDatMonDatTruoc(banDuocChon.getMaBan());
@@ -396,12 +389,67 @@ public class ManHinhGoiMonGUI extends JPanel {
         statusColorBox.setBackground(Color.RED);
     }
 
+    private String layMaKHDeMoBan(BanDTO ban) {
+        if (maKHDangChon != null && !maKHDangChon.trim().isEmpty()) {
+            return maKHDangChon;
+        }
+
+        if (ban == null || ban.getMaBan() == null || ban.getMaBan().trim().isEmpty()) {
+            return null;
+        }
+
+        ManHinhBanGUI.KhachHangTam khTam = ManHinhBanGUI.layKhachHangTamTheoBan(ban.getMaBan());
+
+        if (khTam == null) {
+            return null;
+        }
+
+        if (khTam.getMaKH() != null && !khTam.getMaKH().trim().isEmpty()) {
+            return khTam.getMaKH();
+        }
+
+        String sdt = khTam.getSdt();
+
+        if (sdt != null && !sdt.trim().isEmpty()) {
+            try {
+                KhachHangDTO kh = khachHangService.findBySdtDTO(sdt.trim());
+                if (kh != null) {
+                    return kh.getMaKH();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        return null;
+    }
+
     private void moBanMoi(BanDTO ban) {
         try {
-            // Thay vì tự Insert qua DAO, nhờ Service xử lý Transaction
-            HoaDonDTO hd = hoaDonService.moBanVaTaoHoaDon(ban.getMaBan(), maNVDangNhap, null, LocalDateTime.now(), "Tạo từ màn hình gọi món");
+            String maKHMoBan = layMaKHDeMoBan(ban);
+
+            HoaDonDTO hd = hoaDonService.moBanVaTaoHoaDon(
+                    ban.getMaBan(),
+                    maNVDangNhap,
+                    maKHMoBan,
+                    LocalDateTime.now(),
+                    "Tạo từ màn hình gọi món"
+            );
+
             this.activeHoaDon = hd;
+
+            if (this.activeHoaDon != null && maKHMoBan != null && !maKHMoBan.trim().isEmpty()) {
+                this.activeHoaDon.setMaKH(maKHMoBan);
+            }
+
             statusColorBox.setBackground(Color.RED);
+
+            if (maKHMoBan != null && !maKHMoBan.trim().isEmpty()) {
+                ManHinhBanGUI.xoaKhachHangTamTheoBan(ban.getMaBan());
+            }
+
+            this.maKHDangChon = null;
+
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Lỗi tạo đơn: " + e.getMessage());
@@ -418,7 +466,6 @@ public class ManHinhGoiMonGUI extends JPanel {
         String tenMon = monAn.getTenMon();
         float donGia = monAn.getDonGia();
 
-        // Check xem món có trong Table chưa -> Có thì tăng SL
         for (int i = 0; i < modelChiTietHoaDon.getRowCount(); i++) {
             if (maMon.equals(modelChiTietHoaDon.getValueAt(i, 1))) {
                 int slHienTai = (int) modelChiTietHoaDon.getValueAt(i, 3);
@@ -429,7 +476,6 @@ public class ManHinhGoiMonGUI extends JPanel {
             }
         }
 
-        // Chưa có thì thêm dòng mới
         modelChiTietHoaDon.addRow(new Object[]{"X", maMon, tenMon, 1, donGia, donGia});
         updateBillPanelTotals();
     }
@@ -443,7 +489,6 @@ public class ManHinhGoiMonGUI extends JPanel {
             tongTien += (float) modelChiTietHoaDon.getValueAt(i, 5);
         }
 
-        // Cập nhật lên Panel tính tiền (Giả định BillPanel có method này)
         if (billPanel != null) {
             billPanel.loadBillTotals((long) tongTien, 0, (long) tongTien, tongSoLuong);
         }
@@ -452,27 +497,34 @@ public class ManHinhGoiMonGUI extends JPanel {
     public void xoaThongTinGoiMon() {
         lblTenBanHeader.setText("Chưa chọn bàn");
         modelChiTietHoaDon.setRowCount(0);
-        if (billPanel != null) billPanel.clearBill();
+
+        if (billPanel != null) {
+            billPanel.clearBill();
+        }
+
         this.banHienTai = null;
         this.activeHoaDon = null;
-        if (statusColorBox != null) statusColorBox.setBackground(COLOR_STATUS_FREE);
+        this.maKHDangChon = null;
+
+        if (statusColorBox != null) {
+            statusColorBox.setBackground(COLOR_STATUS_FREE);
+        }
     }
 
-    // =====================================================================
-    // CÁC HÀM PHỤ TRỢ BỘ LỌC TÌM KIẾM
-    // =====================================================================
     private void filterMonAn() {
         String tuKhoa = txtTimKiem != null ? txtTimKiem.getText().trim().toLowerCase() : "";
+
         for (MonAnItemPanel itemPanel : dsMonAnPanel) {
             MonAnDTO mon = itemPanel.getMonAn();
             boolean show = true;
 
-            // Lọc theo keyword
             if (!tuKhoa.isEmpty() && !mon.getTenMon().toLowerCase().contains(tuKhoa)) {
                 show = false;
             }
+
             itemPanel.setVisible(show);
         }
+
         pnlMenuItemContainer.revalidate();
         pnlMenuItemContainer.repaint();
     }
@@ -480,13 +532,13 @@ public class ManHinhGoiMonGUI extends JPanel {
     private JPanel createCategoryFilterPanel() {
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         filterPanel.setOpaque(false);
-        // (Rút gọn) Cấu hình các nút filter nếu cần
         return filterPanel;
     }
 
     private JPanel createSearchPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 0));
         panel.setOpaque(false);
+
         txtTimKiem = new JTextField();
         txtTimKiem.setPreferredSize(new Dimension(0, 35));
         txtTimKiem.addKeyListener(new KeyAdapter() {
@@ -494,21 +546,32 @@ public class ManHinhGoiMonGUI extends JPanel {
                 filterMonAn();
             }
         });
+
         panel.add(new JLabel("🔎"), BorderLayout.WEST);
         panel.add(txtTimKiem, BorderLayout.CENTER);
+
         return panel;
     }
 
-    // =====================================================================
-    // INNER CLASSES: XỬ LÝ RENDER/EDITOR CHO NÚT XÓA VÀ SPINNER TRÊN JTABLE
-    // =====================================================================
     class ButtonRenderer extends JButton implements TableCellRenderer {
         public ButtonRenderer() {
-            setOpaque(true); setForeground(Color.RED); setBackground(Color.WHITE);
-            setBorder(null); setText("X"); setFont(new Font("Arial", Font.BOLD, 14));
+            setOpaque(true);
+            setForeground(Color.RED);
+            setBackground(Color.WHITE);
+            setBorder(null);
+            setText("X");
+            setFont(new Font("Arial", Font.BOLD, 14));
         }
+
         @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+        public Component getTableCellRendererComponent(
+                JTable table,
+                Object value,
+                boolean isSelected,
+                boolean hasFocus,
+                int row,
+                int column
+        ) {
             return this;
         }
     }
@@ -520,21 +583,34 @@ public class ManHinhGoiMonGUI extends JPanel {
 
         public ButtonEditor(JCheckBox checkBox) {
             super(checkBox);
+
             button = new JButton("X");
-            button.setOpaque(true); button.setForeground(Color.RED); button.setBackground(Color.WHITE);
-            button.setBorder(null); button.setFont(new Font("Arial", Font.BOLD, 14));
+            button.setOpaque(true);
+            button.setForeground(Color.RED);
+            button.setBackground(Color.WHITE);
+            button.setBorder(null);
+            button.setFont(new Font("Arial", Font.BOLD, 14));
             button.addActionListener(e -> fireEditingStopped());
         }
 
         @Override
-        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-            this.table = table; this.editingRow = row; return button;
+        public Component getTableCellEditorComponent(
+                JTable table,
+                Object value,
+                boolean isSelected,
+                int row,
+                int column
+        ) {
+            this.table = table;
+            this.editingRow = row;
+            return button;
         }
 
         @Override
         public Object getCellEditorValue() {
             if (table != null && editingRow >= 0) {
                 final DefaultTableModel finalModel = (DefaultTableModel) table.getModel();
+
                 SwingUtilities.invokeLater(() -> {
                     if (editingRow < finalModel.getRowCount()) {
                         finalModel.removeRow(editingRow);
@@ -542,9 +618,12 @@ public class ManHinhGoiMonGUI extends JPanel {
                     }
                 });
             }
-            editingRow = -1; return "X";
+
+            editingRow = -1;
+            return "X";
         }
     }
+
     public BanDTO getBanHienTai() {
         return banHienTai;
     }
@@ -562,8 +641,16 @@ public class ManHinhGoiMonGUI extends JPanel {
             super(new SpinnerNumberModel(1, 1, 100, 1));
             setBorder(null);
         }
+
         @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+        public Component getTableCellRendererComponent(
+                JTable table,
+                Object value,
+                boolean isSelected,
+                boolean hasFocus,
+                int row,
+                int column
+        ) {
             setValue(value instanceof Integer ? value : 1);
             return this;
         }
@@ -576,13 +663,14 @@ public class ManHinhGoiMonGUI extends JPanel {
 
         public SpinnerEditor() {
             super(new JTextField());
+
             spinner = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
             spinner.setBorder(null);
 
-            // Xử lý sự kiện khi tăng/giảm số lượng
             spinner.addChangeListener(e -> {
                 if (table != null && editingRow != -1) {
                     DefaultTableModel model = (DefaultTableModel) table.getModel();
+
                     if (editingRow < model.getRowCount()) {
                         int currentQuantity = (Integer) spinner.getValue();
                         float donGia = (Float) model.getValueAt(editingRow, 4);
@@ -594,16 +682,24 @@ public class ManHinhGoiMonGUI extends JPanel {
                             }
                         });
                     }
+
                     fireEditingStopped();
                 }
             });
         }
 
-
         @Override
-        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-            this.table = table; this.editingRow = row;
-            spinner.setValue(value); return spinner;
+        public Component getTableCellEditorComponent(
+                JTable table,
+                Object value,
+                boolean isSelected,
+                int row,
+                int column
+        ) {
+            this.table = table;
+            this.editingRow = row;
+            spinner.setValue(value);
+            return spinner;
         }
 
         @Override

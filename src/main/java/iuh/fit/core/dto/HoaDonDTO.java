@@ -3,11 +3,14 @@ package iuh.fit.core.dto;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import iuh.fit.core.entity.DonDatMon;
 import iuh.fit.core.entity.HoaDon;
+import iuh.fit.core.entity.KhachHang;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.Hibernate;
 
 import java.time.LocalDateTime;
 
@@ -58,22 +61,27 @@ public class HoaDonDTO {
     @JsonProperty("tongThanhToan")
     private float tongThanhToan;
 
+    private static float safeFloat(Float value) {
+        return value == null ? 0f : value;
+    }
+
     public static HoaDonDTO fromEntity(HoaDon entity) {
         if (entity == null) return null;
+
         return HoaDonDTO.builder()
                 .maHD(entity.getMaHD())
                 .ngayLap(entity.getNgayLap())
-                .tongTien(entity.getTongTien())
+                .tongTien(safeFloat(entity.getTongTien()))
                 .trangThai(entity.getTrangThai())
                 .hinhThucThanhToan(entity.getHinhThucThanhToan())
-                .tienKhachDua(entity.getTienKhachDua())
+                .tienKhachDua(safeFloat(entity.getTienKhachDua()))
                 .tenBan(entity.getTenBan())
                 .maDon(entity.getMaDon())
                 .maNV(entity.getMaNV())
                 .maKM(entity.getMaKM())
                 .maKH(entity.getMaKH())
-                .giamGia(entity.getGiamGia())
-                .tongThanhToan(entity.getTongThanhToan())
+                .giamGia(safeFloat(entity.getGiamGia()))
+                .tongThanhToan(safeFloat(entity.getTongThanhToan()))
                 .build();
     }
 
