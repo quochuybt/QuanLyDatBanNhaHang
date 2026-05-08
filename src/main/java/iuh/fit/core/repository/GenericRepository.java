@@ -17,29 +17,37 @@ public abstract class   GenericRepository<T, ID> {
     }
 
     protected <R> R executeTransaction(Function<EntityManager, R> function) {
+        EntityManager em = null;
         EntityTransaction tx = null;
-        try (EntityManager em = JPAUtil.getEntityManager()) {
+        try {
+            em = JPAUtil.getEntityManager();
             tx = em.getTransaction();
             tx.begin();
             R result = function.apply(em);
             tx.commit();
             return result;
         } catch (Exception e) {
-            if (tx != null && tx.isActive()) tx.rollback();
+            safeRollback(tx, e);
             throw new RuntimeException(e);
+        } finally {
+            safeClose(em);
         }
     }
 
     protected void doInTransaction(Consumer<EntityManager> consumer) {
+        EntityManager em = null;
         EntityTransaction tx = null;
-        try (EntityManager em = JPAUtil.getEntityManager()) {
+        try {
+            em = JPAUtil.getEntityManager();
             tx = em.getTransaction();
             tx.begin();
             consumer.accept(em);
             tx.commit();
         } catch (Exception e) {
-            if (tx != null && tx.isActive()) tx.rollback();
+            safeRollback(tx, e);
             throw new RuntimeException(e);
+        } finally {
+            safeClose(em);
         }
     }
 
@@ -78,5 +86,32 @@ public abstract class   GenericRepository<T, ID> {
         return doInSession(em ->
                 em.createQuery("SELECT COUNT(e) FROM " + entityClass.getSimpleName() + " e", Long.class)
                         .getSingleResult());
+    }
+
+    private void safeRollback(EntityTransaction tx, Exception originalException) {
+        if (tx == null) {
+            return;
+        }
+
+        try {
+            if (tx.isActive()) {
+                tx.rollback();
+            }
+        } catch (Exception rollbackException) {
+            originalException.addSuppressed(rollbackException);
+        }
+    }
+
+    private void safeClose(EntityManager em) {
+        if (em == null) {
+            return;
+        }
+
+        try {
+            if (em.isOpen()) {
+                em.close();
+            }
+        } catch (Exception ignored) {
+        }
     }
 }
