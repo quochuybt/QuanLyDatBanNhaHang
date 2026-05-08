@@ -1,0 +1,26 @@
+package iuh.fit.core.net.server.handler;
+
+import iuh.fit.core.net.dto.dashboard.TopItemsRequestDTO;
+import iuh.fit.core.net.protocol.MessageEnvelope;
+import iuh.fit.core.net.server.dispatch.CommandHandler;
+import iuh.fit.core.net.server.session.ClientSession;
+import iuh.fit.core.service.ChiTietHoaDonService;
+
+public class DashboardLeastSellingHandler extends BaseCommandHandler implements CommandHandler {
+    private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
+
+    @Override
+    public MessageEnvelope handle(ClientSession session, MessageEnvelope request) {
+        return execute(request, () -> {
+            TopItemsRequestDTO dto = parsePayload(request, TopItemsRequestDTO.class);
+            requireNotNull(dto, "Thiếu dữ liệu top món bán chậm");
+            requireNotNull(dto.getStartDate(), "Ngày bắt đầu không được để trống");
+            requireNotNull(dto.getEndDate(), "Ngày kết thúc không được để trống");
+            requireTrue(!dto.getStartDate().isAfter(dto.getEndDate()), "Ngày bắt đầu không được sau ngày kết thúc");
+            requirePositive(dto.getLimit(), "Giới hạn top món phải lớn hơn 0");
+
+            var result = chiTietHoaDonService.getLeastSellingItems(dto.getStartDate(), dto.getEndDate(), dto.getLimit());
+            return ok(request, result);
+        }, "Lỗi hệ thống khi tải top món bán chậm");
+    }
+}

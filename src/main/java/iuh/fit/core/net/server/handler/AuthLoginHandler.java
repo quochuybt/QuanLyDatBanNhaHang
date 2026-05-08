@@ -3,8 +3,6 @@ package iuh.fit.core.net.server.handler;
 import iuh.fit.core.entity.NhanVien;
 import iuh.fit.core.net.dto.auth.LoginRequestDTO;
 import iuh.fit.core.net.dto.auth.LoginResponseDTO;
-import iuh.fit.core.net.protocol.ErrorCode;
-import iuh.fit.core.net.protocol.JsonCodec;
 import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.net.server.dispatch.CommandHandler;
 import iuh.fit.core.net.server.session.ClientSession;
@@ -12,7 +10,7 @@ import iuh.fit.core.net.server.session.SessionRegistry;
 import iuh.fit.core.repository.NhanVienRepository;
 import iuh.fit.core.service.TaiKhoanService;
 
-public class AuthLoginHandler implements CommandHandler {
+public class AuthLoginHandler extends BaseCommandHandler implements CommandHandler {
     private final TaiKhoanService taiKhoanService = new TaiKhoanService();
     private final NhanVienRepository nhanVienRepository = new NhanVienRepository();
     private final SessionRegistry sessionRegistry;
@@ -23,14 +21,13 @@ public class AuthLoginHandler implements CommandHandler {
 
     @Override
     public MessageEnvelope handle(ClientSession session, MessageEnvelope request) {
-        try {
+        return executeAuth(request, () -> {
             // 1) Parse payload login từ message envelope
-            LoginRequestDTO dto = JsonCodec.fromJsonNode(request.getPayload(), LoginRequestDTO.class);
+            LoginRequestDTO dto = parsePayload(request, LoginRequestDTO.class);
 
             // 2) Validate dữ liệu đầu vào
             if (dto == null || isBlank(dto.getTenTK()) || isBlank(dto.getMatKhau())) {
-                return MessageEnvelope.responseFail(request.getMessageId(), ErrorCode.BAD_REQUEST,
-                        "Tên đăng nhập và mật khẩu không được để trống");
+                return badRequest(request, "Tên đăng nhập và mật khẩu không được để trống");
             }
 
             // 3) Xác thực tài khoản qua service nghiệp vụ hiện có
@@ -47,18 +44,14 @@ public class AuthLoginHandler implements CommandHandler {
 
             // 5) Bind session theo policy 1 user/1 phiên
             sessionRegistry.bindUser(dto.getTenTK(), session);
-            return MessageEnvelope.responseOk(request.getMessageId(), JsonCodec.toJsonNode(response));
+            return ok(request, response);
 
-        } catch (IllegalArgumentException ex) {
-            String msg = ex.getMessage() != null ? ex.getMessage() : "Đăng nhập thất bại";
+        }, msg -> {
             if (msg.toLowerCase().contains("khóa")) {
-                return MessageEnvelope.responseFail(request.getMessageId(), ErrorCode.AUTH_LOCKED, msg);
+                return authLocked(request, msg);
             }
-            return MessageEnvelope.responseFail(request.getMessageId(), ErrorCode.AUTH_INVALID, msg);
-        } catch (Exception ex) {
-            return MessageEnvelope.responseFail(request.getMessageId(), ErrorCode.SERVER_ERROR,
-                    "Lỗi hệ thống khi xử lý đăng nhập");
-        }
+            return authInvalid(request, msg);
+        }, "Lỗi hệ thống khi xử lý đăng nhập");
     }
 
     private boolean isBlank(String value) {

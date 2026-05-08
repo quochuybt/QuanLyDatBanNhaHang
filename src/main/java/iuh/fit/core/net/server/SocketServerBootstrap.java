@@ -9,6 +9,7 @@ import iuh.fit.core.net.server.session.SessionRegistry;
 
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.BindException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -63,6 +64,10 @@ public class SocketServerBootstrap {
             }
         } catch (Exception e) {
             if (running) {
+                if (e instanceof BindException) {
+                    throw new RuntimeException("Không thể khởi động Socket Server: cổng TCP " + tcpPort
+                            + " hoặc UDP " + udpPort + " đang được sử dụng", e);
+                }
                 throw new RuntimeException("Không thể khởi động Socket Server", e);
             }
         } finally {

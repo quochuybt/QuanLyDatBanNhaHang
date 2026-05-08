@@ -3,11 +3,10 @@ package iuh.fit.core.net.client;
 import iuh.fit.core.net.dto.auth.LoginRequestDTO;
 import iuh.fit.core.net.dto.auth.LoginResponseDTO;
 import iuh.fit.core.net.protocol.CommandAction;
-import iuh.fit.core.net.protocol.ErrorCode;
 import iuh.fit.core.net.protocol.JsonCodec;
 import iuh.fit.core.net.protocol.MessageEnvelope;
 
-public class AuthRemoteService {
+public class AuthRemoteService extends BaseRemoteService {
     private final SocketClientConnection connection;
 
     public AuthRemoteService(SocketClientConnection connection) {
@@ -23,23 +22,7 @@ public class AuthRemoteService {
 
         // 2) Gửi command AUTH_LOGIN qua socket
         MessageEnvelope response = connection.sendCommand(CommandAction.AUTH_LOGIN.name(), req, 5000);
-
-        // 3) Chuẩn hóa mapping lỗi server -> exception dễ hiển thị ở GUI
-        if (!response.isSuccess()) {
-            String code = response.getErrorCode();
-            String msg = response.getMessage() != null ? response.getMessage() : "Đăng nhập thất bại";
-
-            if (ErrorCode.AUTH_LOCKED.name().equals(code)) {
-                throw new IllegalArgumentException("Tài khoản đã bị khóa.");
-            }
-            if (ErrorCode.AUTH_INVALID.name().equals(code)) {
-                throw new IllegalArgumentException("Sai tên tài khoản hoặc mật khẩu!");
-            }
-            if (ErrorCode.SERVER_UNREACHABLE.name().equals(code)) {
-                throw new RuntimeException("Không thể kết nối server.");
-            }
-            throw new RuntimeException(msg);
-        }
+        ensureSuccess(response, "Đăng nhập thất bại");
 
         // 4) Map payload thành DTO kết quả login
         return JsonCodec.fromJsonNode(response.getPayload(), LoginResponseDTO.class);
