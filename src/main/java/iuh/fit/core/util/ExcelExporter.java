@@ -15,6 +15,10 @@ public class ExcelExporter {
     private static final DateTimeFormatter DATE_TIME_FORMATTER =
             DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
+    private double safeMoney(Number value) {
+        return value == null ? 0 : value.doubleValue();
+    }
+
     public boolean exportHoaDonReport(List<HoaDonDTO> dsHoaDon, String filePath) {
         if (dsHoaDon == null || dsHoaDon.isEmpty()) {
             return false;
@@ -50,16 +54,19 @@ public class ExcelExporter {
             for (HoaDonDTO hd : dsHoaDon) {
                 Row row = sheet.createRow(rowIndex++);
 
+                double giamGia = safeMoney(hd.getGiamGia());
+                double tongThanhToan = safeMoney(hd.getTongThanhToan());
+
                 createCell(row, 0, stt++, textStyle);
                 createCell(row, 1, safeString(hd.getMaHD()), textStyle);
                 createCell(row, 2, formatDateTime(hd.getNgayLap()), dateStyle);
                 createCell(row, 3, safeString(hd.getMaDon()), textStyle);
                 createCell(row, 4, safeString(hd.getMaNV()), textStyle);
                 createCell(row, 5, safeString(hd.getHinhThucThanhToan()), textStyle);
-                createCell(row, 6, hd.getGiamGia(), numberStyle);
-                createCell(row, 7, hd.getTongThanhToan(), numberStyle);
+                createCell(row, 6, giamGia, numberStyle);
+                createCell(row, 7, tongThanhToan, numberStyle);
 
-                tongDoanhThu += hd.getTongThanhToan();
+                tongDoanhThu += tongThanhToan;
             }
 
             createSummary(sheet, rowIndex + 1, tongDoanhThu, numberStyle, headerStyle);
