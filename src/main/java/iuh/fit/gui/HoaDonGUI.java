@@ -626,8 +626,10 @@ public class HoaDonGUI extends JPanel {
 
         if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             String filePath = fileChooser.getSelectedFile().getAbsolutePath();
-            if (!filePath.endsWith(".xlsx"))
+
+            if (!filePath.toLowerCase().endsWith(".xlsx")) {
                 filePath += ".xlsx";
+            }
 
             final String finalPath = filePath;
             final String trangThai = getSelectedTrangThaiFilter();
@@ -638,17 +640,30 @@ public class HoaDonGUI extends JPanel {
                 @Override
                 protected Boolean doInBackground() {
                     try {
-                        // Lấy toàn bộ danh sách theo bộ lọc (không phân trang cho việc xuất file)
-                        long total = hoaDonService.getTotalHoaDonCount(trangThai, keyword, dates[0], dates[1]);
-                        if (total == 0)
+                        // Lấy toàn bộ danh sách theo bộ lọc, không phân trang khi xuất Excel
+                        long total = hoaDonService.getTotalHoaDonCount(
+                                trangThai,
+                                keyword,
+                                dates[0],
+                                dates[1]
+                        );
+
+                        if (total == 0) {
                             return false;
+                        }
 
-                        List<HoaDonDTO> dtos = hoaDonService.getHoaDonByPage(1, (int) total, trangThai, keyword,
-                                dates[0], dates[1]);
-                        List<HoaDon> entities = dtos.stream().map(HoaDonDTO::toEntity).collect(Collectors.toList());
+                        List<HoaDonDTO> dtos = hoaDonService.getHoaDonByPage(
+                                1,
+                                (int) total,
+                                trangThai,
+                                keyword,
+                                dates[0],
+                                dates[1]
+                        );
 
-                        ExcelExporter exporter = new ExcelExporter();
-                        return exporter.exportToExcel(entities, finalPath);
+                        ExcelExporter reporter = new ExcelExporter();
+                        return reporter.exportHoaDonReport(dtos, finalPath);
+
                     } catch (Exception e) {
                         e.printStackTrace();
                         return false;
@@ -659,13 +674,28 @@ public class HoaDonGUI extends JPanel {
                 protected void done() {
                     try {
                         if (get()) {
-                            JOptionPane.showMessageDialog(HoaDonGUI.this, "Xuất file Excel thành công!", "Thông báo",
-                                    JOptionPane.INFORMATION_MESSAGE);
+                            JOptionPane.showMessageDialog(
+                                    HoaDonGUI.this,
+                                    "Xuất file Excel thành công!",
+                                    "Thông báo",
+                                    JOptionPane.INFORMATION_MESSAGE
+                            );
                         } else {
-                            JOptionPane.showMessageDialog(HoaDonGUI.this, "Xuất file thất bại hoặc không có dữ liệu.",
-                                    "Lỗi", JOptionPane.ERROR_MESSAGE);
+                            JOptionPane.showMessageDialog(
+                                    HoaDonGUI.this,
+                                    "Xuất file thất bại hoặc không có dữ liệu.",
+                                    "Lỗi",
+                                    JOptionPane.ERROR_MESSAGE
+                            );
                         }
-                    } catch (Exception ignored) {
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        JOptionPane.showMessageDialog(
+                                HoaDonGUI.this,
+                                "Có lỗi xảy ra khi xuất Excel.",
+                                "Lỗi",
+                                JOptionPane.ERROR_MESSAGE
+                        );
                     }
                 }
             }.execute();
