@@ -1,14 +1,10 @@
 package iuh.fit.gui;
 
-import iuh.fit.core.dto.BanDTO;
-import iuh.fit.core.dto.HoaDonDTO;
+import iuh.fit.core.dto.*;
 import iuh.fit.core.entity.Ban;
 import iuh.fit.core.entity.TrangThaiBan;
 import iuh.fit.core.mapper.JsonMapper;
-import iuh.fit.core.dto.ChiTietHoaDonDTO;
-import iuh.fit.core.service.ChiTietHoaDonService;
-import iuh.fit.core.service.BanService;
-import iuh.fit.core.service.HoaDonService;
+import iuh.fit.core.service.*;
 
 
 import javax.swing.*;
@@ -33,6 +29,9 @@ public class ManHinhBanGUI extends JPanel {
     private final BanService banService = new BanService();
     private final HoaDonService hoaDonService = new HoaDonService();
     private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
+    private final KhuyenMaiService khuyenMaiService = new KhuyenMaiService();
+    private final KhachHangService khachHangService = new KhachHangService();
+    private final DonDatMonService donDatMonService = new DonDatMonService();
 
     private List<BanDTO> allTableDTOsFromDB = new ArrayList<>();
     private List<Ban> allTablesFromDB = new ArrayList<>();
@@ -678,31 +677,157 @@ public class ManHinhBanGUI extends JPanel {
     }
 
     private void xuLyCapNhatGhiChu() {
-        /*
-         * Giữ giao diện y chang file cũ.
-         * Phần xử lý ghi chú đã bỏ DAO, nếu bạn đã có service mới cho DonDatMon
-         * thì gắn lại ở đây.
-         */
+        HoaDonDTO activeHoaDon = getActiveHoaDon();
+        if (activeHoaDon == null) return;
+
+        String ghiChuMoi = txtGhiChu.getText().trim();
+        String maDon = activeHoaDon.getMaDon();
+
+        if (maDon != null && !maDon.isEmpty()) {
+            try {
+                DonDatMonDTO ddmHienTai = null;
+                try {
+                    ddmHienTai = donDatMonService.findById(maDon);
+                } catch (NullPointerException npe) {
+                    System.err.println("Hệ thống: Không tìm thấy entity cho mã đơn " + maDon);
+                }
+
+                if (ddmHienTai != null) {
+                    String ghiChuHoanChinh = ghiChuMoi;
+
+                    if (ddmHienTai.getGhiChu() != null && ddmHienTai.getGhiChu().contains("LINKED:")) {
+                        String linkedPart = ddmHienTai.getGhiChu().substring(ddmHienTai.getGhiChu().indexOf("LINKED:"));
+                        ghiChuHoanChinh = ghiChuMoi + " " + linkedPart;
+                    }
+
+                    ddmHienTai.setGhiChu(ghiChuHoanChinh);
+                    donDatMonService.update(ddmHienTai);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(this,
+                        "Có lỗi xảy ra khi cập nhật ghi chú: " + e.getMessage(),
+                        "Lỗi Dữ Liệu",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
+
+
 
     private void timKiemThanhVienTuSDT() {
-        /*
-         * Giữ giao diện y chang file cũ.
-         * Phần xử lý tìm khách hàng đã bỏ DAO, nếu bạn đã có KhachHangService
-         * thì gắn lại ở đây.
-         */
+        String sdt = txtSDTKhach.getText().trim();
+
+        // 1. Trường hợp để trống SĐT
+        if (sdt.isEmpty()) {
+            txtHoTenKhach.setText("");
+            txtThanhVien.setText("Vãng lai");
+
+            // Xóa khách hàng khỏi hóa đơn hiện tại trong DB nếu xóa SĐT
+            HoaDonDTO activeHD = getActiveHoaDon();
+            if (activeHD != null) {
+                hoaDonService.capNhatMaKH(activeHD.getMaHD(), null);
+            }
+            return;
+        }
+
+        try {
+            // 2. Tìm kiếm khách hàng theo SĐT qua Service
+            KhachHangDTO khachHang = khachHangService.findBySdtDTO(sdt);
+
+            if (khachHang != null) {
+                // Cập nhật giao diện
+                txtHoTenKhach.setText(khachHang.getTenKH());
+                txtThanhVien.setText(khachHang.getHangThanhVien() != null
+                        ? khachHang.getHangThanhVien().toString()
+                        : "Thành viên");
+
+                // QUAN TRỌNG: Gắn khách hàng vào hóa đơn trong DB ngay lập tức
+                HoaDonDTO activeHD = getActiveHoaDon();
+                if (activeHD != null) {
+                    hoaDonService.capNhatMaKH(activeHD.getMaHD(), khachHang.getMaKH());
+                }
+            } else {
+                // Trường hợp không tìm thấy khách
+                txtHoTenKhach.setText("");
+                txtThanhVien.setText("Vãng lai");
+
+                // Trả về khách lẻ (null) trong DB
+                HoaDonDTO activeHD = getActiveHoaDon();
+                if (activeHD != null) {
+                    hoaDonService.capNhatMaKH(activeHD.getMaHD(), null);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Có lỗi xảy ra khi truy xuất dữ liệu khách hàng: " + e.getMessage(),
+                    "Lỗi hệ thống",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
     }
 
+
     private void xuLyApDungKhuyenMai() {
-        /*
-         * Giữ giao diện y chang file cũ.
-         * Phần xử lý khuyến mãi đã bỏ DAO, nếu bạn đã có KhuyenMaiService/HoaDonService mới
-         * thì gắn lại ở đây.
-         */
-        JOptionPane.showMessageDialog(this,
-                "Phần áp dụng khuyến mãi cần gắn lại service mới.",
-                "Thông báo",
-                JOptionPane.INFORMATION_MESSAGE);
+        HoaDonDTO activeHoaDon = getActiveHoaDon();
+        if (activeHoaDon == null) {
+            JOptionPane.showMessageDialog(this, "Chưa có hóa đơn nào đang hoạt động!", "Lỗi", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String maKM_input = txtMaKhuyenMai.getText().trim().toUpperCase();
+
+        try {
+            if (maKM_input.isEmpty()) {
+                hoaDonService.capNhatMaKM(activeHoaDon.getMaHD(), null);
+                activeHoaDon.setMaKM(null);
+
+                activeHoaDon = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
+                updateBillPanelFromHoaDon(activeHoaDon);
+                return;
+            }
+
+            KhuyenMaiDTO km = khuyenMaiService.findByIdDTO(maKM_input);
+
+            if (km == null) {
+                JOptionPane.showMessageDialog(this, "Mã khuyến mãi không tồn tại!", "Lỗi áp dụng", JOptionPane.WARNING_MESSAGE);
+                txtMaKhuyenMai.setText("");
+                txtMaKhuyenMai.requestFocus();
+                return;
+            }
+
+            double tongTien = activeHoaDon.getTongTien();
+            if (tongTien < km.getDieuKienApDung()) {
+                JOptionPane.showMessageDialog(this,
+                        "Không thể áp dụng mã này:\nHóa đơn chưa đạt giá trị tối thiểu (" + km.getDieuKienApDung() + " VNĐ)",
+                        "Lỗi áp dụng", JOptionPane.WARNING_MESSAGE);
+                txtMaKhuyenMai.requestFocus();
+                return;
+            }
+
+            boolean isUpdated = hoaDonService.capNhatMaKM(activeHoaDon.getMaHD(), maKM_input);
+
+            if (isUpdated) {
+                activeHoaDon.setMaKM(maKM_input);
+                activeHoaDon = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
+
+                JOptionPane.showMessageDialog(this,
+                        "Áp dụng thành công mã: " + km.getTenChuongTrinh() + "\n" +
+                                "(Giảm: " + km.getGiaTri() + (km.getLoaiKhuyenMai().toLowerCase().contains("tiền") ? " VNĐ" : "%") + ")",
+                        "Thành công", JOptionPane.INFORMATION_MESSAGE);
+
+                updateBillPanelFromHoaDon(activeHoaDon);
+            } else {
+                JOptionPane.showMessageDialog(this, "Lỗi hệ thống: Không thể lưu mã vào hóa đơn.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     public String getHinhThucThanhToan() {

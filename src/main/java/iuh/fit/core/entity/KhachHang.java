@@ -60,7 +60,7 @@ public class KhachHang {
     private Set<HoaDon> hoaDons = new HashSet<>();
 
     public KhachHang(String tenKH, String gioitinh, String sdt,
-                     LocalDate ngaySinh, String diaChi, String email) {
+            LocalDate ngaySinh, String diaChi, String email) {
         setTenKH(tenKH);
         setGioitinh(gioitinh);
         setSdt(sdt);
@@ -75,8 +75,8 @@ public class KhachHang {
     }
 
     public KhachHang(String maKH, String tenKH, String gioitinh, String sdt,
-                     LocalDate ngaySinh, String diaChi, String email,
-                     LocalDate ngayThamGia, float tongChiTieu, HangThanhVien hangThanhVien) {
+            LocalDate ngaySinh, String diaChi, String email,
+            LocalDate ngayThamGia, float tongChiTieu, HangThanhVien hangThanhVien) {
 
         this.maKH = maKH;
         setTenKH(tenKH);
@@ -154,7 +154,8 @@ public class KhachHang {
     }
 
     public void capNhatHangThanhVien() {
-        if (this.hangThanhVien == HangThanhVien.NONE) return;
+        if (this.hangThanhVien == HangThanhVien.NONE)
+            return;
 
         if (tongChiTieu > 50_000_000)
             hangThanhVien = HangThanhVien.DIAMOND;
@@ -167,6 +168,7 @@ public class KhachHang {
         else
             hangThanhVien = HangThanhVien.MEMBER;
     }
+
     @PrePersist
     @PreUpdate
     public void truocKhiLuuVaoDatabase() {
@@ -175,8 +177,10 @@ public class KhachHang {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof KhachHang)) return false;
+        if (this == o)
+            return true;
+        if (!(o instanceof KhachHang))
+            return false;
         KhachHang that = (KhachHang) o;
         return Objects.equals(maKH, that.maKH);
     }
