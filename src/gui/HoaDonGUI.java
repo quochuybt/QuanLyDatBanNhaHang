@@ -6,7 +6,9 @@ import entity.Ban;
 import entity.ChiTietHoaDon;
 import entity.DonDatMon;
 import entity.HoaDon;
-import util.ExcelExporter;
+import iuh.fit.core.dto.HoaDonDTO;
+import iuh.fit.core.util.ExcelExporter;
+//import util.ExcelExporter;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -441,7 +443,7 @@ public class HoaDonGUI extends JPanel {
 
         JButton btnExport = new JButton("Xuất hóa đơn");
         styleExportButton(btnExport);
-        btnExport.addActionListener(e -> exportDataToExcel());
+//        btnExport.addActionListener(e -> exportDataToExcel());
         panel.add(btnExport, BorderLayout.EAST);
 
         return panel;
@@ -808,53 +810,87 @@ public class HoaDonGUI extends JPanel {
         previewDialog.setVisible(true);
     }
 
-    private void exportDataToExcel() {
-        String trangThai = getSelectedTrangThaiFilter();
-        String keyword = currentKeyword;
-        LocalDateTime[] dates = getFilterDates();
-        LocalDateTime tuNgay = dates != null ? dates[0] : null;
-        LocalDateTime denNgay = dates != null ? dates[1] : null;
-
-        List<HoaDon> listToExport = hoaDonDAO.getAllHoaDonFiltered(trangThai, keyword, tuNgay, denNgay);
-
-        if (listToExport == null || listToExport.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Không có dữ liệu hóa đơn thỏa mãn điều kiện lọc để xuất.", "Thông báo", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Chọn nơi lưu file Excel");
-
-        String dateSuffix = "";
-        if (tuNgay != null && denNgay != null) {
-            if (tuNgay.toLocalDate().isEqual(denNgay.toLocalDate())) {
-                dateSuffix = "_Ngay_" + tuNgay.format(DateTimeFormatter.ofPattern("ddMMyyyy"));
-            } else {
-                dateSuffix = "_Tu_" + tuNgay.format(DateTimeFormatter.ofPattern("ddMMyy")) +
-                        "_Den_" + denNgay.toLocalDate().format(DateTimeFormatter.ofPattern("ddMMyy"));
-            }
-        }
-
-        DateTimeFormatter fileNameFormat = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
-        String defaultFileName = "HoaDon_Loc" + dateSuffix + "_" + LocalDateTime.now().format(fileNameFormat) + ".xlsx";
-        fileChooser.setSelectedFile(new java.io.File(defaultFileName));
-
-        int userSelection = fileChooser.showSaveDialog(this);
-
-        if (userSelection == JFileChooser.APPROVE_OPTION) {
-            String filePath = fileChooser.getSelectedFile().getAbsolutePath();
-            if (!filePath.toLowerCase().endsWith(".xlsx")) {
-                filePath += ".xlsx";
-            }
-
-            ExcelExporter exporter = new ExcelExporter();
-            boolean success = exporter.exportToExcel(listToExport, filePath);
-
-            if (success) {
-                JOptionPane.showMessageDialog(this, "Xuất hóa đơn thành công tại:\n" + filePath, "Thành công", JOptionPane.INFORMATION_MESSAGE);
-            } else {
-                JOptionPane.showMessageDialog(this, "Lỗi khi xuất file Excel.", "Lỗi", JOptionPane.ERROR_MESSAGE);
-            }
-        }
-    }
+//    private void exportDataToExcel() {
+//        JFileChooser fileChooser = new JFileChooser();
+//        fileChooser.setDialogTitle("Chọn nơi lưu file Excel");
+//        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Excel Files", "xlsx"));
+//        fileChooser.setSelectedFile(new java.io.File("DanhSachHoaDon.xlsx"));
+//
+//        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+//            String filePath = fileChooser.getSelectedFile().getAbsolutePath();
+//
+//            if (!filePath.toLowerCase().endsWith(".xlsx")) {
+//                filePath += ".xlsx";
+//            }
+//
+//            final String finalPath = filePath;
+//            final String trangThai = getSelectedTrangThaiFilter();
+//            final String keyword = currentKeyword;
+//            final LocalDateTime[] dates = getFilterDates();
+//
+//            new SwingWorker<Boolean, Void>() {
+//                @Override
+//                protected Boolean doInBackground() {
+//                    try {
+//                        // Lấy toàn bộ danh sách theo bộ lọc, không phân trang khi xuất Excel
+//                        long total = hoaDonService.getTotalHoaDonCount(
+//                                trangThai,
+//                                keyword,
+//                                dates[0],
+//                                dates[1]
+//                        );
+//
+//                        if (total == 0) {
+//                            return false;
+//                        }
+//
+//                        List<HoaDonDTO> dtos = hoaDonService.getHoaDonByPage(
+//                                1,
+//                                (int) total,
+//                                trangThai,
+//                                keyword,
+//                                dates[0],
+//                                dates[1]
+//                        );
+//
+//                        ExcelExporter reporter = new ExcelExporter();
+//                        return reporter.exportHoaDonReport(dtos, finalPath);
+//
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//                        return false;
+//                    }
+//                }
+//
+//                @Override
+//                protected void done() {
+//                    try {
+//                        if (get()) {
+//                            JOptionPane.showMessageDialog(
+//                                    HoaDonGUI.this,
+//                                    "Xuất file Excel thành công!",
+//                                    "Thông báo",
+//                                    JOptionPane.INFORMATION_MESSAGE
+//                            );
+//                        } else {
+//                            JOptionPane.showMessageDialog(
+//                                    HoaDonGUI.this,
+//                                    "Xuất file thất bại hoặc không có dữ liệu.",
+//                                    "Lỗi",
+//                                    JOptionPane.ERROR_MESSAGE
+//                            );
+//                        }
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//                        JOptionPane.showMessageDialog(
+//                                HoaDonGUI.this,
+//                                "Có lỗi xảy ra khi xuất Excel.",
+//                                "Lỗi",
+//                                JOptionPane.ERROR_MESSAGE
+//                        );
+//                    }
+//                }
+//            }.execute();
+//        }
+//    }
 }
