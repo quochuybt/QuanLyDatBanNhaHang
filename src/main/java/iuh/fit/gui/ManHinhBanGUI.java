@@ -480,13 +480,12 @@ public class ManHinhBanGUI extends JPanel {
     }
 
     private void updateRightPanelDetails(Ban ban, String tenHienThi) {
+        // 1. Reset giao diện khi không chọn bàn nào
         if (ban == null) {
             khachHangDangChon = null;
-
             statusColorBox.setBackground(COLOR_STATUS_FREE);
             lblTenBanHeader.setText("Chọn một bàn");
             lblKhuVucHeader.setText("");
-
             txtTinhTrang.setText("");
             cmbPTThanhToan.setSelectedItem("Tiền mặt");
             txtSDTKhach.setText("");
@@ -496,183 +495,129 @@ public class ManHinhBanGUI extends JPanel {
             txtGhiChu.setText("");
             txtNgayVao.setText("");
             txtGioVao.setText("");
-
             updateBillPanelFromHoaDon(null);
             return;
         }
 
         khachHangDangChon = null;
 
+        // --- CHÌA KHÓA: XỬ LÝ LOGIC CHUYỂN HƯỚNG BÀN GHÉP ---
+        String maBanThucTe = ban.getMaBan(); // Mặc định dùng mã bàn đang chọn
+        try {
+            // Sử dụng hàm bạn đã cung cấp để tìm đơn (bao gồm cả đơn ảo LINKED)
+            DonDatMonDTO checkDon = donDatMonService.getDonDatMonChuaNhanTheoMaBanBaoGomLinked(ban.getMaBan());
+
+            if (checkDon != null && checkDon.getGhiChu() != null && checkDon.getGhiChu().startsWith("LINKED:")) {
+                // Nếu phát hiện tag LINKED:Ban1 -> Chuyển hướng lấy thông tin từ Bàn 1
+                maBanThucTe = checkDon.getGhiChu().replace("LINKED:", "").trim();
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi kiểm tra bàn ghép: " + e.getMessage());
+        }
+        // ----------------------------------------------------
+
+        // Cập nhật trạng thái hiển thị (Đèn báo)
         Color statusColor;
         String tinhTrangText;
-
         TrangThaiBan trangThai = ban.getTrangThai();
-        if (trangThai == null) {
-            trangThai = TrangThaiBan.TRONG;
-        }
+        if (trangThai == null) trangThai = TrangThaiBan.TRONG;
 
         switch (trangThai) {
-            case TRONG:
-                statusColor = COLOR_STATUS_FREE;
-                tinhTrangText = "Trống";
-                break;
-            case DA_DAT_TRUOC:
-                statusColor = COLOR_STATUS_RESERVED;
-                tinhTrangText = "Đã đặt trước";
-                break;
-            case DANG_PHUC_VU:
-            default:
-                statusColor = COLOR_STATUS_OCCUPIED;
-                tinhTrangText = "Đang phục vụ";
-                break;
+            case TRONG: statusColor = COLOR_STATUS_FREE; tinhTrangText = "Trống"; break;
+            case DA_DAT_TRUOC: statusColor = COLOR_STATUS_RESERVED; tinhTrangText = "Đã đặt trước"; break;
+            default: statusColor = COLOR_STATUS_OCCUPIED; tinhTrangText = "Đang phục vụ"; break;
         }
-
         statusColorBox.setBackground(statusColor);
 
-        String headerName = (tenHienThi != null && !tenHienThi.isEmpty())
-                ? tenHienThi
-                : ban.getTenBan();
-
+        String headerName = (tenHienThi != null && !tenHienThi.isEmpty()) ? tenHienThi : ban.getTenBan();
         lblTenBanHeader.setText(headerName + " -- " + ban.getKhuVuc());
-
         txtTinhTrang.setText(tinhTrangText);
 
+        // Reset các ô nhập liệu
         cmbPTThanhToan.setSelectedItem("Tiền mặt");
         txtSDTKhach.setText("");
         txtHoTenKhach.setText("");
-        txtThanhVien.setText("");
+        txtThanhVien.setText("Vãng lai");
         txtGhiChu.setText("");
         txtMaKhuyenMai.setText("");
 
-        LocalDateTime gioMoBan = ban.getGioMoBan();
         DateTimeFormatter dtfNgay = DateTimeFormatter.ofPattern("dd-MM-yyyy");
         DateTimeFormatter dtfGio = DateTimeFormatter.ofPattern("HH:mm");
-
-        if (gioMoBan != null) {
-            txtNgayVao.setText(gioMoBan.format(dtfNgay));
-            txtGioVao.setText(gioMoBan.format(dtfGio));
-        } else {
-            txtNgayVao.setText("");
-            txtGioVao.setText("");
-        }
-
         HoaDonDTO activeHoaDon = null;
 
         if (trangThai == TrangThaiBan.DANG_PHUC_VU) {
-            activeHoaDon = hoaDonService.getHoaDonChuaThanhToan(ban.getMaBan());
+            // Lấy hóa đơn của bàn THỰC TẾ (nếu là bàn 10 ghép 1, nó sẽ lấy hóa đơn bàn 1)
+            activeHoaDon = hoaDonService.getHoaDonChuaThanhToan(maBanThucTe);
 
             if (activeHoaDon != null) {
-                txtThanhVien.setText("Vãng lai");
+                // Đổ thông tin khách hàng từ bàn chính
+                fillCustomerInfo(activeHoaDon.getMaKH());
 
-                String maKH = activeHoaDon.getMaKH();
+                // Đổ giờ vào từ hóa đơn bàn chính
+                if (activeHoaDon.getNgayLap() != null) {
+                    txtNgayVao.setText(activeHoaDon.getNgayLap().format(dtfNgay));
+                    txtGioVao.setText(activeHoaDon.getNgayLap().format(dtfGio));
+                }
 
-                if (maKH != null && !maKH.trim().isEmpty()) {
-                    try {
-                        KhachHangDTO kh = khachHangService.findByIdDTO(maKH);
-
-                        if (kh != null) {
-                            khachHangDangChon = kh;
-
-                            txtSDTKhach.setText(kh.getSdt() != null ? kh.getSdt() : "");
-                            txtHoTenKhach.setText(kh.getTenKH() != null ? kh.getTenKH() : "");
-                            txtThanhVien.setText(kh.getHangThanhVien() != null
-                                    ? kh.getHangThanhVien().toString()
-                                    : "Thành viên");
-                        } else {
-                            khachHangDangChon = null;
-                            txtThanhVien.setText("Vãng lai");
-                            hienThiKhachHangTamNeuCo(ban.getMaBan());
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        khachHangDangChon = null;
-                        txtThanhVien.setText("Vãng lai");
-                        hienThiKhachHangTamNeuCo(ban.getMaBan());
+                // Lấy ghi chú của đơn gốc (Bàn 1)
+                try {
+                    DonDatMonDTO donGoc = donDatMonService.findById(activeHoaDon.getMaDon());
+                    if (donGoc != null && donGoc.getGhiChu() != null) {
+                        String gc = donGoc.getGhiChu();
+                        if (gc.contains("LINKED:")) gc = gc.substring(0, gc.indexOf("LINKED:")).trim();
+                        txtGhiChu.setText(gc);
                     }
-                } else {
-                    khachHangDangChon = null;
-                    txtThanhVien.setText("Vãng lai");
-                    hienThiKhachHangTamNeuCo(ban.getMaBan());
-                }
+                } catch (Exception ignored) {}
 
-                String hinhThucThanhToan = getStringValue(
-                        activeHoaDon,
-                        "getHinhThucThanhToan",
-                        "getHinhthucthanhtoan"
-                );
-
-                if (hinhThucThanhToan != null && !hinhThucThanhToan.isBlank()) {
-                    cmbPTThanhToan.setSelectedItem(hinhThucThanhToan);
-                }
-
-                String maKM = getStringValue(
-                        activeHoaDon,
-                        "getMaKM",
-                        "getMaKm",
-                        "getMaKhuyenMai"
-                );
-
-                txtMaKhuyenMai.setText(maKM != null ? maKM : "");
+                txtMaKhuyenMai.setText(activeHoaDon.getMaKM() != null ? activeHoaDon.getMaKM() : "");
+                String httt = getStringValue(activeHoaDon, "getHinhThucThanhToan", "getHinhthucthanhtoan");
+                if (httt != null && !httt.isBlank()) cmbPTThanhToan.setSelectedItem(httt);
             } else {
                 hienThiKhachHangTamNeuCo(ban.getMaBan());
             }
         } else if (trangThai == TrangThaiBan.DA_DAT_TRUOC) {
-            txtThanhVien.setText("Vãng lai");
-            cmbPTThanhToan.setSelectedItem("Tiền mặt");
-
+            // Xử lý tương tự cho bàn đặt trước nếu có ghép
             try {
-                DonDatMonDTO donDatTruoc = donDatMonService.getDonDatMonDatTruoc(ban.getMaBan());
-
+                DonDatMonDTO donDatTruoc = donDatMonService.getDonDatMonDatTruoc(maBanThucTe);
                 if (donDatTruoc != null) {
-                    String maKH = donDatTruoc.getMaKH();
+                    fillCustomerInfo(donDatTruoc.getMaKH());
 
-                    if (maKH != null && !maKH.trim().isEmpty()) {
-                        KhachHangDTO kh = khachHangService.findByIdDTO(maKH);
-
-                        if (kh != null) {
-                            khachHangDangChon = kh;
-
-                            txtSDTKhach.setText(kh.getSdt() != null ? kh.getSdt() : "");
-                            txtHoTenKhach.setText(kh.getTenKH() != null ? kh.getTenKH() : "");
-                            txtThanhVien.setText(kh.getHangThanhVien() != null
-                                    ? kh.getHangThanhVien().toString()
-                                    : "Thành viên");
-                        }
-                    }
-
-                    if (donDatTruoc.getGhiChu() != null) {
-                        String ghiChu = donDatTruoc.getGhiChu();
-
-                        int linkedIndex = ghiChu.indexOf("LINKED:");
-                        if (linkedIndex >= 0) {
-                            ghiChu = ghiChu.substring(0, linkedIndex).trim();
-                        }
-
-                        txtGhiChu.setText(ghiChu);
+                    String gc = donDatTruoc.getGhiChu();
+                    if (gc != null) {
+                        if (gc.contains("LINKED:")) gc = gc.substring(0, gc.indexOf("LINKED:")).trim();
+                        txtGhiChu.setText(gc);
                     }
 
                     if (donDatTruoc.getThoiGianDen() != null) {
-                        DateTimeFormatter dtfNgayDat = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-                        DateTimeFormatter dtfGioDat = DateTimeFormatter.ofPattern("HH:mm");
-
-                        txtNgayVao.setText(donDatTruoc.getThoiGianDen().format(dtfNgayDat));
-                        txtGioVao.setText(donDatTruoc.getThoiGianDen().format(dtfGioDat));
+                        txtNgayVao.setText(donDatTruoc.getThoiGianDen().format(dtfNgay));
+                        txtGioVao.setText(donDatTruoc.getThoiGianDen().format(dtfGio));
                     }
                 }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                txtThanhVien.setText("Vãng lai");
-            }
+            } catch (Exception e) { e.printStackTrace(); }
         } else {
             hienThiKhachHangTamNeuCo(ban.getMaBan());
         }
 
-        if (billPanel != null) {
-            billPanel.setCustomHeader(lblTenBanHeader.getText());
-        }
-
+        if (billPanel != null) billPanel.setCustomHeader(lblTenBanHeader.getText());
         updateBillPanelFromHoaDon(activeHoaDon);
+    }
+
+    // Hàm hỗ trợ fill khách hàng để tránh lặp code
+    private void fillCustomerInfo(String maKH) {
+        if (maKH != null && !maKH.trim().isEmpty()) {
+            try {
+                KhachHangDTO kh = khachHangService.findByIdDTO(maKH);
+                if (kh != null) {
+                    khachHangDangChon = kh;
+                    txtSDTKhach.setText(kh.getSdt() != null ? kh.getSdt() : "");
+                    txtHoTenKhach.setText(kh.getTenKH() != null ? kh.getTenKH() : "");
+                    txtThanhVien.setText(kh.getHangThanhVien() != null ? kh.getHangThanhVien().toString() : "Thành viên");
+                    return;
+                }
+            } catch (Exception e) { e.printStackTrace(); }
+        }
+        khachHangDangChon = null;
+        txtThanhVien.setText("Vãng lai");
     }
 
     private JPanel createStatsPanel() {
