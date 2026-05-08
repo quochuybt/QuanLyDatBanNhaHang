@@ -94,7 +94,12 @@ public class TaiKhoanGUI extends JFrame {
 
         formInputPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        formInputPanel.add(createInputRow("Tên đăng nhập", txtTenDangNhap = new JTextField(), "Nhập tên đăng nhập"));
+        formInputPanel.add(createInputRow(
+                "Tên đăng nhập",
+                txtTenDangNhap = new JTextField(),
+                "Nhập tên đăng nhập",
+                "\uE77B" // icon user của Segoe MDL2 Assets
+        ));
 
         formInputPanel.add(createInputRow("Mật khẩu", txtMatKhau = new JPasswordField(), "Nhập mật khẩu"));
 
@@ -218,6 +223,10 @@ public class TaiKhoanGUI extends JFrame {
     }
 
     private JPanel createInputRow(String labelText, JComponent inputComponent, String placeholder) {
+        return createInputRow(labelText, inputComponent, placeholder, null);
+    }
+
+    private JPanel createInputRow(String labelText, JComponent inputComponent, String placeholder, String iconText) {
 
         JPanel rowPanel = new JPanel();
         rowPanel.setOpaque(false);
@@ -246,7 +255,7 @@ public class TaiKhoanGUI extends JFrame {
             fakeFieldPanel.setBorder(standardBorder);
 
             JLabel iconLabel = new JLabel("🔒");
-            iconLabel.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 16));
+            iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
             iconLabel.setForeground(Color.BLACK);
             fakeFieldPanel.add(iconLabel, BorderLayout.WEST);
 
@@ -262,8 +271,8 @@ public class TaiKhoanGUI extends JFrame {
             fakeFieldPanel.setMinimumSize(new Dimension(100, standardHeight));
             fakeFieldPanel.setPreferredSize(new Dimension(100, standardHeight));
             fakeFieldPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, standardHeight));
-
             fakeFieldPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
             rowPanel.add(fakeFieldPanel);
 
         } else if (inputComponent instanceof JComboBox) {
@@ -274,24 +283,40 @@ public class TaiKhoanGUI extends JFrame {
             cb.setMinimumSize(new Dimension(100, standardHeight));
             cb.setPreferredSize(new Dimension(100, standardHeight));
             cb.setMaximumSize(new Dimension(Integer.MAX_VALUE, standardHeight));
-
             cb.setAlignmentX(Component.LEFT_ALIGNMENT);
+
             rowPanel.add(cb);
 
         } else if (inputComponent instanceof JTextField) {
 
-            inputComponent.setFont(new Font("Arial", Font.PLAIN, 14));
-            inputComponent.setForeground(Color.BLACK);
-            inputComponent.setBorder(standardBorder);
+            JPanel fakeFieldPanel = new JPanel(new BorderLayout(10, 0));
+            fakeFieldPanel.setOpaque(true);
+            fakeFieldPanel.setBackground(Color.WHITE);
+            fakeFieldPanel.setBorder(standardBorder);
 
-            setupPlaceholder((JTextField) inputComponent, placeholder);
+            if (iconText != null && !iconText.trim().isEmpty()) {
+                JLabel iconLabel = new JLabel(iconText);
+                iconLabel.setFont(new Font("Segoe MDL2 Assets", Font.PLAIN, 16));
+                iconLabel.setForeground(Color.BLACK);
+                fakeFieldPanel.add(iconLabel, BorderLayout.WEST);
+            }
 
-            inputComponent.setMinimumSize(new Dimension(100, standardHeight));
-            inputComponent.setPreferredSize(new Dimension(100, standardHeight));
-            inputComponent.setMaximumSize(new Dimension(Integer.MAX_VALUE, standardHeight));
+            JTextField tf = (JTextField) inputComponent;
+            tf.setFont(new Font("Arial", Font.PLAIN, 14));
+            tf.setForeground(Color.BLACK);
+            tf.setOpaque(true);
+            tf.setBackground(Color.WHITE);
+            tf.setBorder(null);
 
-            inputComponent.setAlignmentX(Component.LEFT_ALIGNMENT);
-            rowPanel.add(inputComponent);
+            setupPlaceholder(tf, placeholder);
+            fakeFieldPanel.add(tf, BorderLayout.CENTER);
+
+            fakeFieldPanel.setMinimumSize(new Dimension(100, standardHeight));
+            fakeFieldPanel.setPreferredSize(new Dimension(100, standardHeight));
+            fakeFieldPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, standardHeight));
+            fakeFieldPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+            rowPanel.add(fakeFieldPanel);
         }
 
         return rowPanel;
