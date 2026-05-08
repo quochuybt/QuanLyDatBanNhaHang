@@ -118,7 +118,7 @@ public class DashboardGUI extends JFrame {
             int choice = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn đăng xuất?", "Xác nhận", JOptionPane.YES_NO_OPTION);
             if (choice == JOptionPane.YES_OPTION) {
                 dispose();
-                SwingUtilities.invokeLater(() -> new TaiKhoanGUI().setVisible(true));
+                SwingUtilities.invokeLater(() -> new ServerConnectionGUI().setVisible(true));
             }
         });
         menu.add(btnLogout);
