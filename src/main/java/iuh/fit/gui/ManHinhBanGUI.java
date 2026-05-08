@@ -619,7 +619,51 @@ public class ManHinhBanGUI extends JPanel {
         } else if (trangThai == TrangThaiBan.DA_DAT_TRUOC) {
             txtThanhVien.setText("Vãng lai");
             cmbPTThanhToan.setSelectedItem("Tiền mặt");
-            hienThiKhachHangTamNeuCo(ban.getMaBan());
+
+            try {
+                DonDatMonDTO donDatTruoc = donDatMonService.getDonDatMonDatTruoc(ban.getMaBan());
+
+                if (donDatTruoc != null) {
+                    String maKH = donDatTruoc.getMaKH();
+
+                    if (maKH != null && !maKH.trim().isEmpty()) {
+                        KhachHangDTO kh = khachHangService.findByIdDTO(maKH);
+
+                        if (kh != null) {
+                            khachHangDangChon = kh;
+
+                            txtSDTKhach.setText(kh.getSdt() != null ? kh.getSdt() : "");
+                            txtHoTenKhach.setText(kh.getTenKH() != null ? kh.getTenKH() : "");
+                            txtThanhVien.setText(kh.getHangThanhVien() != null
+                                    ? kh.getHangThanhVien().toString()
+                                    : "Thành viên");
+                        }
+                    }
+
+                    if (donDatTruoc.getGhiChu() != null) {
+                        String ghiChu = donDatTruoc.getGhiChu();
+
+                        int linkedIndex = ghiChu.indexOf("LINKED:");
+                        if (linkedIndex >= 0) {
+                            ghiChu = ghiChu.substring(0, linkedIndex).trim();
+                        }
+
+                        txtGhiChu.setText(ghiChu);
+                    }
+
+                    if (donDatTruoc.getThoiGianDen() != null) {
+                        DateTimeFormatter dtfNgayDat = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                        DateTimeFormatter dtfGioDat = DateTimeFormatter.ofPattern("HH:mm");
+
+                        txtNgayVao.setText(donDatTruoc.getThoiGianDen().format(dtfNgayDat));
+                        txtGioVao.setText(donDatTruoc.getThoiGianDen().format(dtfGioDat));
+                    }
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                txtThanhVien.setText("Vãng lai");
+            }
         } else {
             hienThiKhachHangTamNeuCo(ban.getMaBan());
         }

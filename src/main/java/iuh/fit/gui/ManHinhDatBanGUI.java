@@ -64,7 +64,7 @@ public class ManHinhDatBanGUI extends JPanel {
 
         setLayout(new BorderLayout());
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        splitPane.setDividerLocation(610);
+        splitPane.setDividerLocation(640);
         splitPane.setBorder(null);
         setBackground(Color.WHITE);
         setBorder(new EmptyBorder(10, 0, 10, 10));
