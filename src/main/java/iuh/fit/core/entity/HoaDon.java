@@ -24,8 +24,6 @@ public class HoaDon {
     @Column(name = "ngayLap", nullable = false)
     private LocalDateTime ngayLap;
 
-    @Column(name = "tongTien")
-    private float tongTien;
 
     @Column(name = "trangThai", columnDefinition = "NVARCHAR(50)")
     private String trangThai;
@@ -33,17 +31,17 @@ public class HoaDon {
     @Column(name = "hinhThucThanhToan", columnDefinition = "NVARCHAR(50)")
     private String hinhThucThanhToan;
 
-    @Column(name = "tienKhachDua")
-    private float tienKhachDua;
-
     @Column(name = "tenBan", columnDefinition = "NVARCHAR(50)")
     private String tenBan;
 
-    @Column(name = "giamGia")
-    private float giamGia;
+    @Column(name = "tongTien", nullable = false)
+    private Float tongTien = 0f;
 
-    @Column(name = "tongThanhToan")
-    private float tongThanhToan;
+    @Column(name = "tienKhachDua", nullable = false)
+    private Float tienKhachDua = 0f;
+
+    @Column(name = "giamGia", nullable = false)
+    private Float giamGia = 0f;
 
     // ====== Quan hệ với DonDatMon (1-1) ======
     @OneToOne(cascade = CascadeType.ALL)
@@ -94,12 +92,30 @@ public class HoaDon {
         return khachHang != null ? khachHang.getMaKH() : null;
     }
 
+
+    private float safeMoney(Float value) {
+        return value == null ? 0f : value;
+    }
+
+    public Float getTongThanhToan() {
+        float tong = safeMoney(this.tongTien);
+        float giam = safeMoney(this.giamGia);
+        return Math.max(0f, tong - giam);
+    }
+
     public void tinhLaiTongThanhToan() {
-        this.tongThanhToan = Math.max(0, this.tongTien - this.giamGia);
+        // Không cần làm gì nữa vì tongThanhToan là giá trị tính toán.
+    }
+
+    public void setTongThanhToan(Float tongThanhToan) {
+        // Không lưu vào DB vì HoaDon không có cột tongThanhToan.
+        // Tổng thanh toán được tính từ tongTien - giamGia.
     }
 
     public float tinhTienThoi() {
-        return Math.max(0, this.tienKhachDua - this.tongThanhToan);
+        float tienDua = safeMoney(this.tienKhachDua);
+        float thanhToan = safeMoney(getTongThanhToan());
+        return Math.max(0f, tienDua - thanhToan);
     }
 
     public String phatSinhMaHD() {
@@ -115,6 +131,19 @@ public class HoaDon {
         if (!(o instanceof HoaDon)) return false;
         HoaDon that = (HoaDon) o;
         return Objects.equals(maHD, that.maHD);
+    }
+
+    @PrePersist
+    @PreUpdate
+    public void normalizeMoneyFields() {
+        if (tongTien == null) tongTien = 0f;
+        if (tienKhachDua == null) tienKhachDua = 0f;
+        if (giamGia == null) giamGia = 0f;
+    }
+
+    @PostLoad
+    public void postLoad() {
+        normalizeMoneyFields();
     }
 
     @Override
