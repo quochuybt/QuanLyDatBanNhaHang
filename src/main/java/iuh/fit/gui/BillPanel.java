@@ -143,6 +143,9 @@ public class BillPanel extends JPanel {
         });
     }
 
+
+
+
     public void xuLyThanhToan() {
         BanDTO banHienTai = null;
         HoaDonDTO activeHoaDon = null;
@@ -156,31 +159,54 @@ public class BillPanel extends JPanel {
         }
 
         if (banHienTai == null || activeHoaDon == null) {
-            JOptionPane.showMessageDialog(this, "Chưa có bàn/hóa đơn hợp lệ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Chưa có bàn/hóa đơn hợp lệ!",
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
             return;
         }
 
         String ghiChuHoaDon = "";
         if (activeHoaDon.getMaDon() != null) {
-            DonDatMonDTO ddmRequest = new DonDatMonDTO();
-            ddmRequest.setMaDon(activeHoaDon.getMaDon());
+            DonDatMonDTO ddm = donDatMonService.findById(activeHoaDon.getMaDon());
 
-            DonDatMonDTO ddm = donDatMonService.findById(ddmRequest.getMaDon());
             if (ddm != null && ddm.getGhiChu() != null) {
                 ghiChuHoaDon = ddm.getGhiChu();
             }
         }
 
+        List<ChiTietHoaDonDTO> dsMonHienTai = null;
+        int tongSoLuong = 0;
+
         if (parentGoiMonGUI != null) {
-            if (parentGoiMonGUI.getModelChiTietHoaDon().getRowCount() == 0) return;
-            if (!luuMonAnVaoCSDL(false)) return;
+            if (parentGoiMonGUI.getModelChiTietHoaDon().getRowCount() == 0) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Chưa có món nào để thanh toán!",
+                        "Thông báo",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
+
+            if (!luuMonAnVaoCSDL(false)) {
+                return;
+            }
 
             ChiTietHoaDonDTO request = new ChiTietHoaDonDTO();
             request.setMaDon(activeHoaDon.getMaDon());
 
-            List<ChiTietHoaDonDTO> dsMonMoi = chiTietHoaDonService.getChiTietTheoMaDon(request);
+            dsMonHienTai = chiTietHoaDonService.getChiTietTheoMaDon(request);
 
             activeHoaDon = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
+
+            if (dsMonHienTai != null) {
+                for (ChiTietHoaDonDTO ct : dsMonHienTai) {
+                    tongSoLuong += ct.getSoLuong();
+                }
+            }
 
             this.currentTotal = (long) activeHoaDon.getTongThanhToan();
 
@@ -188,25 +214,24 @@ public class BillPanel extends JPanel {
                     (long) activeHoaDon.getTongTien(),
                     (long) activeHoaDon.getGiamGia(),
                     (long) activeHoaDon.getTongThanhToan(),
-                    dsMonMoi.size()
+                    tongSoLuong
             );
 
         } else if (parentBanGUI != null) {
             ChiTietHoaDonDTO request = new ChiTietHoaDonDTO();
             request.setMaDon(activeHoaDon.getMaDon());
 
-            List<ChiTietHoaDonDTO> dsMon = chiTietHoaDonService.getChiTietTheoMaDon(request);
+            dsMonHienTai = chiTietHoaDonService.getChiTietTheoMaDon(request);
 
             activeHoaDon = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
 
-            this.currentTotal = (long) activeHoaDon.getTongThanhToan();
-
-            int tongSoLuong = 0;
-            if (dsMon != null) {
-                for (ChiTietHoaDonDTO ct : dsMon) {
+            if (dsMonHienTai != null) {
+                for (ChiTietHoaDonDTO ct : dsMonHienTai) {
                     tongSoLuong += ct.getSoLuong();
                 }
             }
+
+            this.currentTotal = (long) activeHoaDon.getTongThanhToan();
 
             loadBillTotals(
                     (long) activeHoaDon.getTongTien(),
@@ -221,33 +246,55 @@ public class BillPanel extends JPanel {
         long tongPhaiTraLong = this.currentTotal;
 
         try {
-            String khachTraStr = txtKhachTra.getText().replace(",", "").replace(".", "");
+            String khachTraStr = txtKhachTra.getText()
+                    .replace(",", "")
+                    .replace(".", "")
+                    .trim();
+
             tienKhachTraLong = Long.parseLong(khachTraStr);
 
             if (tienKhachTraLong < tongPhaiTraLong) {
-                JOptionPane.showMessageDialog(this, "Tiền khách đưa không đủ!", "Lỗi", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Tiền khách đưa không đủ!",
+                        "Lỗi",
+                        JOptionPane.WARNING_MESSAGE
+                );
                 return;
             }
+
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Số tiền không hợp lệ!", "Lỗi", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Số tiền không hợp lệ!",
+                    "Lỗi",
+                    JOptionPane.WARNING_MESSAGE
+            );
             return;
         }
 
         long tienThoiLong = tienKhachTraLong - tongPhaiTraLong;
 
-        int confirm = JOptionPane.showConfirmDialog(this,
-                String.format("Xác nhận thanh toán cho %s?\nTổng: %s\nKhách đưa: %s\nTiền thối: %s",
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                String.format(
+                        "Xác nhận thanh toán cho %s?\nTổng: %s\nKhách đưa: %s\nTiền thối: %s",
                         banHienTai.getTenBan(),
                         nf.format(tongPhaiTraLong),
                         nf.format(tienKhachTraLong),
-                        nf.format(tienThoiLong)),
+                        nf.format(tienThoiLong)
+                ),
                 "Xác nhận",
-                JOptionPane.YES_NO_OPTION);
+                JOptionPane.YES_NO_OPTION
+        );
 
-        if (confirm != JOptionPane.YES_OPTION) return;
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
 
         try {
             String hinhThucTT = "Tiền mặt";
+
             if (parentBanGUI != null) {
                 hinhThucTT = parentBanGUI.getHinhThucThanhToan();
             }
@@ -260,6 +307,7 @@ public class BillPanel extends JPanel {
             banRequest.setMaBan(banHienTai.getMaBan());
 
             String tenBanInHoaDon = banService.getTenBanByMa(banRequest);
+
             if (tenBanInHoaDon == null || tenBanInHoaDon.isEmpty()) {
                 tenBanInHoaDon = banHienTai.getTenBan();
             }
@@ -269,18 +317,42 @@ public class BillPanel extends JPanel {
             }
 
             String tenBanLuuLichSu = tenBanInHoaDon;
+
             if (tenBanLuuLichSu == null || tenBanLuuLichSu.isEmpty()) {
                 tenBanLuuLichSu = banHienTai.getTenBan();
             }
 
             HoaDonDTO thanhToanDTO = new HoaDonDTO();
+
             thanhToanDTO.setMaHD(maHDCuoiCung);
+            thanhToanDTO.setMaDon(activeHoaDon.getMaDon());
+            thanhToanDTO.setMaNV(activeHoaDon.getMaNV());
+            thanhToanDTO.setMaKH(activeHoaDon.getMaKH());
+
+            thanhToanDTO.setTongTien(activeHoaDon.getTongTien());
             thanhToanDTO.setTongThanhToan(activeHoaDon.getTongThanhToan());
             thanhToanDTO.setTienKhachDua(tienKhachTraLong);
             thanhToanDTO.setHinhThucThanhToan(hinhThucTT);
+            thanhToanDTO.setTrangThai("Đã thanh toán");
+
             thanhToanDTO.setGiamGia((float) tienGiamGia);
             thanhToanDTO.setMaKM(maKM);
             thanhToanDTO.setTenBan(tenBanLuuLichSu);
+
+            /*
+             * QUAN TRỌNG:
+             * Lấy danh sách món để in TRƯỚC khi gọi thanhToanHoaDon().
+             * Vì sau khi thanh toán, parentBanGUI.getActiveHoaDon()
+             * sẽ không còn tìm thấy hóa đơn "Chưa thanh toán" nữa.
+             */
+            List<ChiTietHoaDonDTO> listToPrint = getCurrentDetailList();
+
+            int tongSoLuongIn = 0;
+            if (listToPrint != null) {
+                for (ChiTietHoaDonDTO ct : listToPrint) {
+                    tongSoLuongIn += ct.getSoLuong();
+                }
+            }
 
             boolean thanhToanOK = hoaDonService.thanhToanHoaDon(thanhToanDTO);
 
@@ -303,21 +375,27 @@ public class BillPanel extends JPanel {
                     }
                 }
 
-                List<ChiTietHoaDonDTO> listToPrint = getCurrentDetailList();
-
                 String tenNVIn = "Admin";
+
                 if (activeHoaDon.getMaNV() != null) {
                     NhanVienDTO nvRequest = new NhanVienDTO();
                     nvRequest.setMaNV(activeHoaDon.getMaNV());
 
                     NhanVienDTO nv = nhanVienService.getChiTietNhanVien(nvRequest.getMaNV());
-                    if (nv != null) tenNVIn = nv.getHoTen();
+
+                    if (nv != null) {
+                        tenNVIn = nv.getHoTen();
+                    }
                 }
 
                 String tenKHIn = "Khách lẻ";
+
                 if (activeHoaDon.getMaKH() != null) {
                     KhachHangDTO kh = khachHangService.findByIdDTO(activeHoaDon.getMaKH());
-                    if (kh != null) tenKHIn = kh.getTenKH();
+
+                    if (kh != null) {
+                        tenKHIn = kh.getTenKH();
+                    }
                 }
 
                 xuatPhieuIn(
@@ -334,8 +412,34 @@ public class BillPanel extends JPanel {
                         ghiChuHoaDon
                 );
 
+                // Load lại bill lần cuối cho khách xem bằng hàm cũ
+                loadBillTotals(
+                        (long) activeHoaDon.getTongTien(),
+                        (long) activeHoaDon.getGiamGia(),
+                        (long) activeHoaDon.getTongThanhToan(),
+                        tongSoLuongIn
+                );
+
+                this.revalidate();
+                this.repaint();
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Thanh toán thành công!\n"
+                                + "Tổng thanh toán: " + nf.format(activeHoaDon.getTongThanhToan()) + "\n"
+                                + "Khách đưa: " + nf.format(tienKhachTraLong) + "\n"
+                                + "Tiền thối: " + nf.format(tienThoiLong),
+                        "Thanh toán thành công",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+
                 if (parentGoiMonGUI != null) {
                     parentGoiMonGUI.xoaThongTinGoiMon();
+
+                    if (parentGoiMonGUI.getParentDanhSachBanGUI() != null) {
+                        parentGoiMonGUI.getParentDanhSachBanGUI().refreshManHinhBan();
+                    }
+
                 } else if (parentBanGUI != null) {
                     parentBanGUI.refreshTableList();
                     clearBill();
@@ -346,12 +450,24 @@ public class BillPanel extends JPanel {
                 if (maKM != null && !maKM.isEmpty()) {
                     khuyenMaiService.useKhuyenMai(maKM);
                 }
+
             } else {
-                JOptionPane.showMessageDialog(this, "Lỗi cập nhật CSDL!", "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Lỗi cập nhật CSDL!",
+                        "Lỗi CSDL",
+                        JOptionPane.ERROR_MESSAGE
+                );
             }
+
         } catch (Exception ex) {
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi hệ thống: " + ex.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
         }
     }
 

@@ -5,8 +5,11 @@ import iuh.fit.core.dto.HoaDonDTO;
 import iuh.fit.core.entity.Ban;
 import iuh.fit.core.entity.TrangThaiBan;
 import iuh.fit.core.mapper.JsonMapper;
+import iuh.fit.core.dto.ChiTietHoaDonDTO;
+import iuh.fit.core.service.ChiTietHoaDonService;
 import iuh.fit.core.service.BanService;
 import iuh.fit.core.service.HoaDonService;
+
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -29,6 +32,7 @@ public class ManHinhBanGUI extends JPanel {
 
     private final BanService banService = new BanService();
     private final HoaDonService hoaDonService = new HoaDonService();
+    private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
 
     private List<BanDTO> allTableDTOsFromDB = new ArrayList<>();
     private List<Ban> allTablesFromDB = new ArrayList<>();
@@ -777,20 +781,52 @@ public class ManHinhBanGUI extends JPanel {
             return;
         }
 
-        long tongTien = getLongValue(hoaDon, 0,
-                "getTongTien",
-                "getTongtien");
-
+        long tongTien = 0;
         long giamGia = getLongValue(hoaDon, 0,
                 "getGiamGia",
                 "getGiamgia");
 
-        long tongThanhToan = getLongValue(hoaDon, tongTien - giamGia,
-                "getTongThanhToan",
-                "getTongthanhtoan",
-                "getTongTienSauGiam");
+        int tongSoLuong = 0;
+        boolean coChiTiet = false;
 
-        int tongSoLuong = getTongSoLuongFromHoaDonDTO(hoaDon);
+        try {
+            String maDon = hoaDon.getMaDon();
+
+            if (maDon != null && !maDon.trim().isEmpty()) {
+                ChiTietHoaDonDTO filterDTO = ChiTietHoaDonDTO.builder()
+                        .maDon(maDon)
+                        .build();
+
+                List<ChiTietHoaDonDTO> dsChiTiet = chiTietHoaDonService.getChiTietTheoMaDon(filterDTO);
+
+                if (dsChiTiet != null && !dsChiTiet.isEmpty()) {
+                    coChiTiet = true;
+
+                    for (ChiTietHoaDonDTO ct : dsChiTiet) {
+                        tongSoLuong += ct.getSoLuong();
+                        tongTien += Math.round(ct.getThanhTien());
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // Nếu không lấy được chi tiết thì fallback về tổng tiền trong HoaDonDTO
+        if (!coChiTiet) {
+            tongTien = getLongValue(hoaDon, 0,
+                    "getTongTien",
+                    "getTongtien");
+
+            tongSoLuong = getTongSoLuongFromHoaDonDTO(hoaDon);
+        }
+
+        long tongThanhToan = tongTien - giamGia;
+
+        if (tongThanhToan < 0) {
+            tongThanhToan = 0;
+        }
 
         billPanel.loadBillTotals(tongTien, giamGia, tongThanhToan, tongSoLuong);
     }

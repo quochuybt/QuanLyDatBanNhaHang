@@ -676,6 +676,7 @@ public class ManHinhDatBanGUI extends JPanel {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn bàn!", "Chưa chọn bàn", JOptionPane.WARNING_MESSAGE);
             return;
         }
+
         String sdt = txtSDTKhach.getText().trim();
         if (sdt.isEmpty() || !sdt.matches("\\d{10}")) {
             JOptionPane.showMessageDialog(this, "Số điện thoại không hợp lệ!", "Lỗi nhập liệu",
@@ -683,6 +684,7 @@ public class ManHinhDatBanGUI extends JPanel {
             txtSDTKhach.requestFocus();
             return;
         }
+
         String tenKH = txtHoTenKhach.getText().trim();
         if (tenKH.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập tên khách hàng!", "Lỗi nhập liệu",
@@ -691,26 +693,36 @@ public class ManHinhDatBanGUI extends JPanel {
             return;
         }
 
-        LocalDateTime thoiGianDat = null;
+        LocalDateTime thoiGianDat;
         try {
             Date selectedDate = (Date) dateSpinner.getValue();
             Date selectedTime = (Date) timeSpinner.getValue();
+
             Calendar dateCal = Calendar.getInstance();
             dateCal.setTime(selectedDate);
+
             Calendar timeCal = Calendar.getInstance();
             timeCal.setTime(selectedTime);
+
             dateCal.set(Calendar.HOUR_OF_DAY, timeCal.get(Calendar.HOUR_OF_DAY));
             dateCal.set(Calendar.MINUTE, timeCal.get(Calendar.MINUTE));
             dateCal.set(Calendar.SECOND, 0);
-            thoiGianDat = dateCal.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+            dateCal.set(Calendar.MILLISECOND, 0);
+
+            thoiGianDat = dateCal.toInstant()
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDateTime();
 
             if (thoiGianDat.isBefore(LocalDateTime.now())) {
                 JOptionPane.showMessageDialog(this, "Thời gian đặt phải trong tương lai!", "Lỗi",
                         JOptionPane.WARNING_MESSAGE);
                 return;
             }
+
         } catch (Exception ex) {
             ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi xử lý thời gian đặt bàn!", "Lỗi",
+                    JOptionPane.ERROR_MESSAGE);
             return;
         }
 
@@ -720,10 +732,12 @@ public class ManHinhDatBanGUI extends JPanel {
         if (khDTO == null) {
             int choice = JOptionPane.showConfirmDialog(this,
                     "Khách hàng mới (" + sdt + "). Thêm vào danh sách thành viên?",
-                    "Khách mới", JOptionPane.YES_NO_CANCEL_OPTION);
+                    "Khách mới",
+                    JOptionPane.YES_NO_CANCEL_OPTION);
 
-            if (choice == JOptionPane.CANCEL_OPTION)
+            if (choice == JOptionPane.CANCEL_OPTION) {
                 return;
+            }
 
             khDTO = new KhachHangDTO();
             khDTO.setTenKH(tenKH);
@@ -735,20 +749,28 @@ public class ManHinhDatBanGUI extends JPanel {
 
             try {
                 khachHangService.addFromDTO(khDTO);
+
                 KhachHangDTO khMoi = khachHangService.findBySdtDTO(sdt);
                 if (khMoi != null) {
                     maKHCanDung = khMoi.getMaKH();
                 }
+
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Lỗi thêm khách hàng: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this,
+                        "Lỗi thêm khách hàng: " + ex.getMessage(),
+                        "Lỗi",
+                        JOptionPane.ERROR_MESSAGE);
                 return;
             }
+
         } else {
             maKHCanDung = khDTO.getMaKH();
         }
 
-        if (maKHCanDung == null) {
-            JOptionPane.showMessageDialog(this, "Lỗi: Không lấy được Mã Khách Hàng!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        if (maKHCanDung == null || maKHCanDung.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Lỗi: Không lấy được Mã Khách Hàng!", "Lỗi",
+                    JOptionPane.ERROR_MESSAGE);
             return;
         }
 
@@ -757,34 +779,57 @@ public class ManHinhDatBanGUI extends JPanel {
         BanDTO banChinh = dsBanDaChon.get(0);
 
         String ghiChuUser = txtGhiChu.getText().trim();
-        for (BanDTO ban : dsBanDaChon) {
-            String ghiChu;
-            if (isGhepBan) {
-                if (ban.equals(banChinh)) {
-                    ghiChu = ghiChuUser + " (Đặt chính nhóm " + dsBanDaChon.size() + " bàn)";
-                } else {
-                    ghiChu = ghiChuUser + " (Đặt cùng " + banChinh.getTenBan() + ") LINKED:" + banChinh.getMaBan();
-                }
-            } else {
-                ghiChu = ghiChuUser;
-            }
 
-            DonDatMonDTO ddmDTO = DonDatMonDTO.builder()
-                    .ngayKhoiTao(LocalDateTime.now())
-                    .thoiGianDen(thoiGianDat)
-                    .maNV("NV01102")
-                    .maKH(maKHCanDung)
-                    .maBan(ban.getMaBan())
-                    .ghiChu(ghiChu)
-                    .build();
-            donDatMonService.save(ddmDTO);
-            long phutChenhLech = java.time.Duration.between(LocalDateTime.now(), thoiGianDat).toMinutes();
-            if (phutChenhLech <= 120) {
-                if (ban.getTrangThai() != TrangThaiBan.DANG_PHUC_VU) {
-                    ban.setTrangThai(TrangThaiBan.DA_DAT_TRUOC);
-                    ban.setGioMoBan(thoiGianDat);
-                    banService.updateBan(ban);
+        for (BanDTO ban : dsBanDaChon) {
+            try {
+                String ghiChu;
+
+                if (isGhepBan) {
+                    if (ban.getMaBan().equals(banChinh.getMaBan())) {
+                        ghiChu = ghiChuUser + " (Đặt chính nhóm " + dsBanDaChon.size() + " bàn)";
+                    } else {
+                        String noteHienThi = ghiChuUser + " (Đặt cùng " + banChinh.getTenBan() + ")";
+                        String noteKyThuat = " LINKED:" + banChinh.getMaBan();
+                        ghiChu = noteHienThi + noteKyThuat;
+                    }
+                } else {
+                    ghiChu = ghiChuUser;
                 }
+
+                DonDatMonDTO ddmDTO = DonDatMonDTO.builder()
+                        .ngayKhoiTao(LocalDateTime.now())
+                        .thoiGianDen(thoiGianDat)
+                        .trangThai("Chưa thanh toán")
+                        .maNV("NV01102")
+                        .maKH(maKHCanDung)
+                        .maBan(ban.getMaBan())
+                        .ghiChu(ghiChu)
+                        .build();
+
+                donDatMonService.save(ddmDTO);
+
+                long phutChenhLech = java.time.Duration.between(LocalDateTime.now(), thoiGianDat).toMinutes();
+
+                if (phutChenhLech <= 120) {
+                    if (ban.getTrangThai() != TrangThaiBan.DANG_PHUC_VU) {
+                        ban.setTrangThai(TrangThaiBan.DA_DAT_TRUOC);
+                        ban.setGioMoBan(thoiGianDat);
+
+                        boolean updateBanOK = banService.updateBan(ban);
+                        if (!updateBanOK) {
+                            tatCaThanhCong = false;
+                        }
+                    }
+                }
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                tatCaThanhCong = false;
+
+                JOptionPane.showMessageDialog(this,
+                        "Lỗi khi lưu đơn đặt bàn cho bàn " + ban.getTenBan() + ": " + ex.getMessage(),
+                        "Lỗi",
+                        JOptionPane.ERROR_MESSAGE);
             }
         }
 
@@ -802,31 +847,59 @@ public class ManHinhDatBanGUI extends JPanel {
             if (parentDanhSachBanGUI_DatBan != null) {
                 parentDanhSachBanGUI_DatBan.refreshManHinhBan();
             }
-            JOptionPane.showMessageDialog(this, "Đặt bàn thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+
+            JOptionPane.showMessageDialog(this, "Đặt bàn thành công!", "Thành công",
+                    JOptionPane.INFORMATION_MESSAGE);
+
         } else {
-            JOptionPane.showMessageDialog(this, "Có lỗi xảy ra khi lưu đơn!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            taiDanhSachBanTrong();
+            hienThiBanPhuHop();
+            loadDanhSachDatTruoc();
+
+            JOptionPane.showMessageDialog(this, "Có lỗi xảy ra khi lưu đơn!", "Lỗi",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private void loadDanhSachDatTruoc() {
         modelListPhieuDat.clear();
+
         try {
             List<DonDatMonDTO> dsDatTruoc = donDatMonService.getAllDonDatMonChuaNhan();
 
+            System.out.println("Số phiếu đặt trước load được: " + dsDatTruoc.size());
+
             if (dsDatTruoc.isEmpty()) {
+                modelListPhieuDat.addElement(null);
             } else {
                 for (DonDatMonDTO ddm : dsDatTruoc) {
-                    String tenHienThi = banService.getTenHienThiGhep(ddm.getMaBan());
-                    if (tenHienThi != null && !tenHienThi.isEmpty()) {
-                        ddm.setMaBan(tenHienThi);
-                    }
+                    System.out.println(
+                            "Đơn: " + ddm.getMaDon()
+                                    + " | Bàn: " + ddm.getMaBan()
+                                    + " | Trạng thái: " + ddm.getTrangThai()
+                                    + " | Giờ đến: " + ddm.getThoiGianDen()
+                    );
+
+                    // Không được setMaBan thành tên hiển thị ở đây
                     modelListPhieuDat.addElement(ddm);
                 }
             }
+
         } catch (Exception e) {
-            System.err.println("Lỗi khi tải danh sách đặt trước: " + e.getMessage());
+            e.printStackTrace();
+            modelListPhieuDat.clear();
+            modelListPhieuDat.addElement(null);
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi khi tải danh sách đặt trước: " + e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
         }
+
         listPhieuDat.setModel(modelListPhieuDat);
+        listPhieuDat.revalidate();
         listPhieuDat.repaint();
     }
 
@@ -937,9 +1010,17 @@ public class ManHinhDatBanGUI extends JPanel {
 
             if (value instanceof DonDatMonDTO) {
                 DonDatMonDTO ddm = value;
-                BanDTO tempBanDTO = new BanDTO();
-                tempBanDTO.setMaBan(ddm.getMaBan());
-                String tenBan = banService.getTenBanByMa(tempBanDTO);
+                String tenBan = banService.getTenHienThiGhep(ddm.getMaBan());
+
+                if (tenBan == null || tenBan.trim().isEmpty()) {
+                    BanDTO tempBanDTO = new BanDTO();
+                    tempBanDTO.setMaBan(ddm.getMaBan());
+                    tenBan = banService.getTenBanByMa(tempBanDTO);
+                }
+
+                if (tenBan == null || tenBan.trim().isEmpty()) {
+                    tenBan = ddm.getMaBan();
+                }
                 KhachHangDTO kh = (ddm.getMaKH() != null) ? khachHangService.findByIdDTO(ddm.getMaKH()) : null;
                 String tenKH = (kh != null) ? kh.getTenKH() : "Vãng lai";
                 String sdtKH = (kh != null) ? kh.getSdt() : "--";

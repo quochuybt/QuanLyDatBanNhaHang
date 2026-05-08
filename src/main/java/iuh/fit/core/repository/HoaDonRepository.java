@@ -35,6 +35,55 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
         });
     }
 
+    public boolean thanhToanHoaDon(iuh.fit.core.dto.HoaDonDTO dto) {
+        return executeTransaction(em -> {
+            HoaDon hd = em.find(HoaDon.class, dto.getMaHD());
+
+            if (hd == null) {
+                return false;
+            }
+
+            hd.setTrangThai("Đã thanh toán");
+            hd.setNgayLap(LocalDateTime.now());
+
+            hd.setTongThanhToan(dto.getTongThanhToan());
+            hd.setTienKhachDua(dto.getTienKhachDua());
+            hd.setHinhThucThanhToan(dto.getHinhThucThanhToan());
+            hd.setGiamGia(dto.getGiamGia());
+
+            if (dto.getTongTien() > 0) {
+                hd.setTongTien(dto.getTongTien());
+            }
+
+            if (dto.getTenBan() != null && !dto.getTenBan().trim().isEmpty()) {
+                hd.setTenBan(dto.getTenBan());
+            }
+
+            if (dto.getMaKM() != null && !dto.getMaKM().trim().isEmpty()) {
+                KhuyenMai km = em.find(KhuyenMai.class, dto.getMaKM());
+                if (km != null) {
+                    hd.setKhuyenMai(km);
+                }
+            } else {
+                hd.setKhuyenMai(null);
+            }
+
+            DonDatMon don = hd.getDonDatMon();
+
+            if (don != null) {
+                don.setTrangThai("Đã thanh toán");
+
+                Ban ban = don.getBan();
+                if (ban != null) {
+                    ban.setTrangThai(TrangThaiBan.TRONG);
+                    ban.setGioMoBan(null);
+                }
+            }
+
+            return true;
+        });
+    }
+
     /**
      * Lọc danh sách hóa đơn có phân trang
      */
@@ -72,15 +121,39 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
     /**
      * Thống kê doanh thu hàng ngày
      */
+//    public Map<LocalDate, Double> getDailyRevenue(LocalDate startDate, LocalDate endDate) {
+//        return doInSession(em -> {
+//            String jpql = "SELECT CAST(hd.ngayLap AS date), SUM(hd.tongTien) " +
+//                    "FROM HoaDon hd " +
+//                    "WHERE hd.trangThai = 'Đã thanh toán' " +
+//                    "AND hd.ngayLap BETWEEN :start AND :end " +
+//                    "GROUP BY CAST(hd.ngayLap AS date) ORDER BY CAST(hd.ngayLap AS date)";
+//
+//            List<Object[]> results = em.createQuery(jpql)
+//                    .setParameter("start", startDate.atStartOfDay())
+//                    .setParameter("end", endDate.plusDays(1).atStartOfDay())
+//                    .getResultList();
+//
+//            Map<LocalDate, Double> revenueMap = new LinkedHashMap<>();
+//            for (Object[] result : results) {
+//                revenueMap.put((LocalDate) result[0], (Double) result[1]);
+//            }
+//            return revenueMap;
+//        });
+//    }
+
     public Map<LocalDate, Double> getDailyRevenue(LocalDate startDate, LocalDate endDate) {
         return doInSession(em -> {
-            String jpql = "SELECT CAST(hd.ngayLap AS date), SUM(hd.tongTien) " +
-                    "FROM HoaDon hd " +
-                    "WHERE hd.trangThai = 'Đã thanh toán' " +
-                    "AND hd.ngayLap BETWEEN :start AND :end " +
-                    "GROUP BY CAST(hd.ngayLap AS date) ORDER BY CAST(hd.ngayLap AS date)";
+            String jpql = """
+                SELECT CAST(hd.ngayLap AS date), SUM(hd.tongTien)
+                FROM HoaDon hd
+                WHERE hd.trangThai = 'Đã thanh toán'
+                  AND hd.ngayLap BETWEEN :start AND :end
+                GROUP BY CAST(hd.ngayLap AS date)
+                ORDER BY CAST(hd.ngayLap AS date)
+                """;
 
-            List<Object[]> results = em.createQuery(jpql)
+            List<Object[]> results = em.createQuery(jpql, Object[].class)
                     .setParameter("start", startDate.atStartOfDay())
                     .setParameter("end", endDate.plusDays(1).atStartOfDay())
                     .getResultList();
@@ -88,34 +161,46 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
             Map<LocalDate, Double> revenueMap = new LinkedHashMap<>();
 
             for (Object[] result : results) {
-                Object dateObj = result[0];
-                LocalDate localDate = null;
+                LocalDate ngay = convertToLocalDate(result[0]);
 
-                if (dateObj != null) {
-                    if (dateObj instanceof java.sql.Date) {
-                        localDate = ((java.sql.Date) dateObj).toLocalDate();
-                    } else if (dateObj instanceof LocalDate) {
-                        localDate = (LocalDate) dateObj;
-                    } else {
-                        localDate = LocalDate.parse(dateObj.toString());
-                    }
-                }
+                Number doanhThuNumber = (Number) result[1];
+                double doanhThu = doanhThuNumber != null ? doanhThuNumber.doubleValue() : 0.0;
 
-                Object revenueObj = result[1];
-                Double revenue = 0.0;
-
-                if (revenueObj != null) {
-                    if (revenueObj instanceof Number) {
-                        revenue = ((Number) revenueObj).doubleValue();
-                    }
-                }
-
-                if (localDate != null) {
-                    revenueMap.put(localDate, revenue);
-                }
+                revenueMap.put(ngay, doanhThu);
             }
+
             return revenueMap;
         });
+    }
+
+    private LocalDate convertToLocalDate(Object value) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof LocalDate localDate) {
+            return localDate;
+        }
+
+        if (value instanceof java.sql.Date sqlDate) {
+            return sqlDate.toLocalDate();
+        }
+
+        if (value instanceof java.sql.Timestamp timestamp) {
+            return timestamp.toLocalDateTime().toLocalDate();
+        }
+
+        if (value instanceof LocalDateTime localDateTime) {
+            return localDateTime.toLocalDate();
+        }
+
+        if (value instanceof java.util.Date utilDate) {
+            return utilDate.toInstant()
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toLocalDate();
+        }
+
+        return LocalDate.parse(value.toString());
     }
 
     /**

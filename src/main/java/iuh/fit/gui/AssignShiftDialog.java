@@ -2,6 +2,7 @@ package iuh.fit.gui;
 
 import iuh.fit.core.dto.CaLamDTO;
 import iuh.fit.core.entity.NhanVien;
+import iuh.fit.core.entity.PhanCong;
 import iuh.fit.core.service.CaLamService;
 import iuh.fit.core.service.NhanVienService;
 import iuh.fit.core.service.PhanCongService;
@@ -13,9 +14,17 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class AssignShiftDialog extends JDialog {
+
+    private static final Color COLOR_BUTTON_BLUE = new Color(40, 28, 244);
+    private static final Font FONT_LABEL = new Font("Arial", Font.BOLD, 14);
+    private static final Font FONT_COMPONENT = new Font("Arial", Font.PLAIN, 14);
 
     private final CaLamService caLamService = new CaLamService();
     private final NhanVienService nhanVienService = new NhanVienService();
@@ -23,46 +32,75 @@ public class AssignShiftDialog extends JDialog {
 
     private JSpinner dateSpinner;
     private JComboBox<CaLamDTO> cbCaLam;
-    private JList<NhanVien> listNhanVien;
+
+    private DefaultListModel<NhanVien> modelChuaPhanCong;
+    private DefaultListModel<NhanVien> modelDaPhanCong;
+
+    private JList<NhanVien> listChuaPhanCong;
+    private JList<NhanVien> listDaPhanCong;
+
+    private JButton btnAdd;
+    private JButton btnRemove;
+    private JButton btnClose;
 
     private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
 
     public AssignShiftDialog(Frame owner) {
         super(owner, "Phân công ca làm", true);
 
-        setSize(460, 520);
+        setSize(700, 500);
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout(10, 10));
-        ((JPanel) getContentPane()).setBorder(new EmptyBorder(15, 15, 15, 15));
 
-        add(createFormPanel(), BorderLayout.CENTER);
-        add(createButtonPanel(), BorderLayout.SOUTH);
+        JPanel contentPane = (JPanel) getContentPane();
+        contentPane.setBorder(new EmptyBorder(15, 15, 15, 15));
+        contentPane.setBackground(Color.WHITE);
 
-        loadData();
+        add(createTopPanel(), BorderLayout.NORTH);
+        add(createCenterPanel(), BorderLayout.CENTER);
+        add(createBottomPanel(), BorderLayout.SOUTH);
+
+        loadCaLam();
+        addEventHandlers();
+        reloadNhanVienTheoCaVaNgay();
     }
 
-    private JPanel createFormPanel() {
-        JPanel form = new JPanel(new GridBagLayout());
+    private JPanel createTopPanel() {
+        JPanel topPanel = new JPanel(new GridBagLayout());
+        topPanel.setBackground(Color.WHITE);
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        JLabel lblNgay = new JLabel("Chọn ngày:");
+        lblNgay.setFont(FONT_LABEL);
 
         gbc.gridx = 0;
         gbc.gridy = 0;
-        form.add(new JLabel("Ngày:"), gbc);
+        gbc.weightx = 0.15;
+        topPanel.add(lblNgay, gbc);
 
         dateSpinner = new JSpinner(new SpinnerDateModel());
         dateSpinner.setEditor(new JSpinner.DateEditor(dateSpinner, "dd/MM/yyyy"));
+        dateSpinner.setFont(FONT_COMPONENT);
+        dateSpinner.setValue(new Date());
 
         gbc.gridx = 1;
-        form.add(dateSpinner, gbc);
+        gbc.gridy = 0;
+        gbc.weightx = 0.85;
+        topPanel.add(dateSpinner, gbc);
+
+        JLabel lblCa = new JLabel("Chọn ca:");
+        lblCa.setFont(FONT_LABEL);
 
         gbc.gridx = 0;
         gbc.gridy = 1;
-        form.add(new JLabel("Ca làm:"), gbc);
+        gbc.weightx = 0.15;
+        topPanel.add(lblCa, gbc);
 
         cbCaLam = new JComboBox<>();
+        cbCaLam.setFont(FONT_COMPONENT);
         cbCaLam.setRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(
@@ -91,113 +129,294 @@ public class AssignShiftDialog extends JDialog {
         });
 
         gbc.gridx = 1;
-        form.add(cbCaLam, gbc);
+        gbc.gridy = 1;
+        gbc.weightx = 0.85;
+        topPanel.add(cbCaLam, gbc);
+
+        return topPanel;
+    }
+
+    private JPanel createCenterPanel() {
+        JPanel mainPanel = new JPanel(new GridBagLayout());
+        mainPanel.setBackground(Color.WHITE);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.insets = new Insets(5, 10, 5, 10);
+
+        JLabel lblChuaPhanCong = new JLabel("Nhân viên chưa phân công:");
+        lblChuaPhanCong.setFont(FONT_LABEL);
+
+        JLabel lblDaPhanCong = new JLabel("Nhân viên đã phân công:");
+        lblDaPhanCong.setFont(FONT_LABEL);
+
+        modelChuaPhanCong = new DefaultListModel<>();
+        modelDaPhanCong = new DefaultListModel<>();
+
+        listChuaPhanCong = new JList<>(modelChuaPhanCong);
+        listDaPhanCong = new JList<>(modelDaPhanCong);
+
+        listChuaPhanCong.setFont(FONT_COMPONENT);
+        listDaPhanCong.setFont(FONT_COMPONENT);
+
+        listChuaPhanCong.setCellRenderer(createNhanVienRenderer());
+        listDaPhanCong.setCellRenderer(createNhanVienRenderer());
 
         gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.gridwidth = 2;
-        form.add(new JLabel("Nhân viên:"), gbc);
+        gbc.gridy = 0;
+        gbc.weightx = 0.45;
+        gbc.weighty = 0;
+        mainPanel.add(lblChuaPhanCong, gbc);
 
-        DefaultListModel<NhanVien> model = new DefaultListModel<>();
-        listNhanVien = new JList<>(model);
-        listNhanVien.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-        listNhanVien.setCellRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(
-                    JList<?> list,
-                    Object value,
-                    int index,
-                    boolean isSelected,
-                    boolean cellHasFocus
-            ) {
-                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-
-                if (value instanceof NhanVien nv) {
-                    setText(nv.getHoten() + " (" + nv.getManv() + ")");
-                }
-
-                return this;
-            }
-        });
-
-        JScrollPane sp = new JScrollPane(listNhanVien);
-
-        gbc.gridy = 3;
+        gbc.gridy = 1;
         gbc.weighty = 1;
-        gbc.fill = GridBagConstraints.BOTH;
-        form.add(sp, gbc);
+        mainPanel.add(new JScrollPane(listChuaPhanCong), gbc);
 
-        return form;
+        JPanel buttonPanel = new JPanel(new GridLayout(4, 1, 5, 15));
+        buttonPanel.setBackground(Color.WHITE);
+
+        btnAdd = new JButton(">>");
+        btnRemove = new JButton("<<");
+
+        btnAdd.setFont(FONT_LABEL);
+        btnRemove.setFont(FONT_LABEL);
+
+        buttonPanel.add(Box.createVerticalGlue());
+        buttonPanel.add(btnAdd);
+        buttonPanel.add(btnRemove);
+        buttonPanel.add(Box.createVerticalGlue());
+
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        gbc.weightx = 0.1;
+        gbc.weighty = 1;
+        mainPanel.add(buttonPanel, gbc);
+
+        gbc.gridx = 2;
+        gbc.gridy = 0;
+        gbc.weightx = 0.45;
+        gbc.weighty = 0;
+        mainPanel.add(lblDaPhanCong, gbc);
+
+        gbc.gridy = 1;
+        gbc.weighty = 1;
+        mainPanel.add(new JScrollPane(listDaPhanCong), gbc);
+
+        return mainPanel;
     }
 
-    private JPanel createButtonPanel() {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+    private JPanel createBottomPanel() {
+        JPanel southPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        southPanel.setBackground(Color.WHITE);
 
-        JButton save = new JButton("Phân công");
-        JButton cancel = new JButton("Hủy");
+        btnClose = new JButton("Đóng");
+        btnClose.setFont(FONT_LABEL);
+        btnClose.setFocusPainted(false);
 
-        save.addActionListener(e -> assign());
-        cancel.addActionListener(e -> dispose());
+        southPanel.add(btnClose);
 
-        p.add(save);
-        p.add(cancel);
-
-        return p;
+        return southPanel;
     }
 
-    private void loadData() {
+    private ListCellRenderer<NhanVien> createNhanVienRenderer() {
+        return (list, value, index, isSelected, cellHasFocus) -> {
+            String tenNV = value.getHoten() != null ? value.getHoten() : "Không rõ";
+            String maNV = value.getManv() != null ? value.getManv() : "N/A";
+
+            JLabel label = new JLabel(tenNV + " (" + maNV + ")");
+            label.setOpaque(true);
+            label.setFont(FONT_COMPONENT);
+            label.setBorder(new EmptyBorder(6, 8, 6, 8));
+
+            if (isSelected) {
+                label.setBackground(new Color(255, 255, 200));
+                label.setForeground(Color.BLACK);
+            } else {
+                label.setBackground(list.getBackground());
+                label.setForeground(list.getForeground());
+            }
+
+            return label;
+        };
+    }
+
+    private void loadCaLam() {
         cbCaLam.removeAllItems();
 
-        for (CaLamDTO ca : caLamService.getAllCaLamOrderByGioBatDau()) {
-            cbCaLam.addItem(ca);
-        }
+        try {
+            List<CaLamDTO> dsCaLam = caLamService.getAllCaLamOrderByGioBatDau();
 
-        DefaultListModel<NhanVien> model =
-                (DefaultListModel<NhanVien>) listNhanVien.getModel();
+            for (CaLamDTO ca : dsCaLam) {
+                cbCaLam.addItem(ca);
+            }
 
-        model.clear();
-
-        for (NhanVien nv : nhanVienService.findAll()) {
-            model.addElement(nv);
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi tải danh sách ca làm: " + e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
         }
     }
 
-    private void assign() {
-        Date date = (Date) dateSpinner.getValue();
-        CaLamDTO ca = (CaLamDTO) cbCaLam.getSelectedItem();
-        List<NhanVien> nvs = listNhanVien.getSelectedValuesList();
+    private void addEventHandlers() {
+        btnAdd.addActionListener(e -> themNhanVienVaoCa());
+        btnRemove.addActionListener(e -> xoaNhanVienKhoiCa());
+        btnClose.addActionListener(e -> dispose());
 
-        if (ca == null || nvs.isEmpty()) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Vui lòng chọn ca và ít nhất 1 nhân viên"
-            );
+        cbCaLam.addActionListener(e -> reloadNhanVienTheoCaVaNgay());
+
+        dateSpinner.addChangeListener(e -> reloadNhanVienTheoCaVaNgay());
+    }
+
+    private LocalDate getSelectedDate() {
+        Date date = (Date) dateSpinner.getValue();
+
+        return date.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+    }
+
+    private CaLamDTO getSelectedCaLam() {
+        return (CaLamDTO) cbCaLam.getSelectedItem();
+    }
+
+    private void reloadNhanVienTheoCaVaNgay() {
+        if (modelChuaPhanCong == null || modelDaPhanCong == null) {
             return;
         }
 
-        LocalDate ngay = date.toInstant()
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate();
+        modelChuaPhanCong.clear();
+        modelDaPhanCong.clear();
 
-        int ok = 0;
-        int fail = 0;
+        CaLamDTO ca = getSelectedCaLam();
 
-        for (NhanVien nv : nvs) {
-            try {
-                phanCongService.phanCong(nv.getManv(), ca.getMaCa(), ngay);
-                ok++;
-            } catch (Exception ex) {
-                fail++;
-            }
+        if (ca == null || ca.getMaCa() == null) {
+            return;
         }
 
-        JOptionPane.showMessageDialog(
-                this,
-                "Thành công: " + ok + ", thất bại: " + fail
-        );
+        LocalDate ngayLam = getSelectedDate();
 
-        if (ok > 0) {
-            dispose();
+        try {
+            List<NhanVien> dsTatCaNV = nhanVienService.findAll();
+
+            List<PhanCong> dsPhanCongTrongNgay = phanCongService.findByNgayLam(ngayLam);
+
+            Set<String> idDaPhanCongCaNay = dsPhanCongTrongNgay.stream()
+                    .filter(pc -> pc.getCaLam() != null)
+                    .filter(pc -> ca.getMaCa().equals(pc.getCaLam().getMaCa()))
+                    .map(PhanCong::getNhanVien)
+                    .filter(Objects::nonNull)
+                    .map(NhanVien::getManv)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toCollection(HashSet::new));
+
+            for (NhanVien nv : dsTatCaNV) {
+                if (nv == null || nv.getManv() == null) {
+                    continue;
+                }
+
+                if (idDaPhanCongCaNay.contains(nv.getManv())) {
+                    modelDaPhanCong.addElement(nv);
+                } else {
+                    modelChuaPhanCong.addElement(nv);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi tải danh sách nhân viên theo ca/ngày: " + e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
+
+    private void themNhanVienVaoCa() {
+        NhanVien nv = listChuaPhanCong.getSelectedValue();
+        CaLamDTO ca = getSelectedCaLam();
+
+        if (nv == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn nhân viên cần thêm.");
+            return;
+        }
+
+        if (ca == null || ca.getMaCa() == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn ca làm.");
+            return;
+        }
+
+        try {
+            boolean success = phanCongService.themPhanCong(
+                    nv.getManv(),
+                    ca.getMaCa(),
+                    getSelectedDate()
+            );
+
+            if (success) {
+                modelChuaPhanCong.removeElement(nv);
+                modelDaPhanCong.addElement(nv);
+            } else {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Lỗi: Không thể thêm nhân viên. Có thể nhân viên đã có ca khác."
+                );
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi: " + e.getMessage(),
+                    "Không thể thêm nhân viên",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
+
+    private void xoaNhanVienKhoiCa() {
+        NhanVien nv = listDaPhanCong.getSelectedValue();
+        CaLamDTO ca = getSelectedCaLam();
+
+        if (nv == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn nhân viên cần xóa.");
+            return;
+        }
+
+        if (ca == null || ca.getMaCa() == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn ca làm.");
+            return;
+        }
+
+        try {
+            boolean success = phanCongService.xoaPhanCong(
+                    nv.getManv(),
+                    ca.getMaCa(),
+                    getSelectedDate()
+            );
+
+            if (success) {
+                modelDaPhanCong.removeElement(nv);
+                modelChuaPhanCong.addElement(nv);
+            } else {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Lỗi: Không thể xóa nhân viên."
+                );
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi: " + e.getMessage(),
+                    "Không thể xóa nhân viên",
+                    JOptionPane.ERROR_MESSAGE
+            );
         }
     }
 }
