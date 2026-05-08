@@ -1,10 +1,14 @@
 package iuh.fit.core.service;
 
 import iuh.fit.core.dto.KhachHangDTO;
+import iuh.fit.core.entity.HangThanhVien;
 import iuh.fit.core.entity.KhachHang;
 import iuh.fit.core.repository.KhachHangRepository;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 public class KhachHangService {
@@ -12,23 +16,47 @@ public class KhachHangService {
     private final KhachHangRepository khachHangRepo = new KhachHangRepository();
 
     public boolean addKhachHang(KhachHang kh) {
+        if (kh == null) {
+            throw new IllegalArgumentException("Khách hàng không được null.");
+        }
+
+        chuanHoaKhachHangMoi(kh);
+
         if (khachHangRepo.findById(kh.getMaKH()) != null) {
             throw new IllegalArgumentException("Mã khách hàng '" + kh.getMaKH() + "' đã tồn tại.");
         }
+
+        if (kh.getSdt() != null && !kh.getSdt().trim().isEmpty()) {
+            KhachHang khTheoSDT = khachHangRepo.findBySdt(kh.getSdt().trim());
+
+            if (khTheoSDT != null) {
+                throw new IllegalArgumentException("Số điện thoại '" + kh.getSdt() + "' đã tồn tại.");
+            }
+        }
+
         khachHangRepo.save(kh);
         return true;
     }
 
     public void addFromDTO(KhachHangDTO dto) {
-        addKhachHang(dto.toEntity());
+        if (dto == null) {
+            throw new IllegalArgumentException("Dữ liệu khách hàng không được null.");
+        }
+
+        KhachHang kh = dto.toEntity();
+        addKhachHang(kh);
     }
 
     public KhachHang findById(String maKH) {
-        return khachHangRepo.findById(maKH);
+        if (maKH == null || maKH.trim().isEmpty()) {
+            return null;
+        }
+
+        return khachHangRepo.findById(maKH.trim());
     }
 
     public KhachHangDTO findByIdDTO(String maKH) {
-        KhachHang kh = khachHangRepo.findById(maKH);
+        KhachHang kh = findById(maKH);
         return kh != null ? KhachHangDTO.fromEntity(kh) : null;
     }
 
@@ -43,51 +71,127 @@ public class KhachHangService {
     }
 
     public void update(KhachHang kh) {
-        if (khachHangRepo.findById(kh.getMaKH()) == null)
+        if (kh == null) {
+            throw new IllegalArgumentException("Khách hàng không được null.");
+        }
+
+        if (kh.getMaKH() == null || kh.getMaKH().trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã khách hàng không được rỗng.");
+        }
+
+        if (khachHangRepo.findById(kh.getMaKH()) == null) {
             throw new IllegalArgumentException("Khách hàng '" + kh.getMaKH() + "' không tồn tại.");
+        }
 
         khachHangRepo.update(kh);
     }
 
     public void updateFromDTO(KhachHangDTO dto) {
+        if (dto == null) {
+            throw new IllegalArgumentException("Dữ liệu khách hàng không được null.");
+        }
+
         update(dto.toEntity());
     }
 
     public void delete(String maKH) {
-        KhachHang kh = khachHangRepo.findById(maKH);
+        if (maKH == null || maKH.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã khách hàng không được rỗng.");
+        }
 
-        if (kh == null)
+        KhachHang kh = khachHangRepo.findById(maKH.trim());
+
+        if (kh == null) {
             throw new IllegalArgumentException("Khách hàng '" + maKH + "' không tồn tại.");
+        }
 
-        khachHangRepo.delete(maKH);
+        khachHangRepo.delete(maKH.trim());
     }
 
     public List<KhachHang> search(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return findAll();
+        }
+
         return khachHangRepo.search(keyword);
     }
 
     public List<KhachHangDTO> searchDTO(String keyword) {
-        return khachHangRepo.search(keyword).stream()
+        return search(keyword).stream()
                 .map(KhachHangDTO::fromEntity)
                 .collect(Collectors.toList());
     }
 
     public void addChiTieu(String maKH, float soTien) {
-        KhachHang kh = khachHangRepo.findById(maKH);
+        if (maKH == null || maKH.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã khách hàng không được rỗng.");
+        }
 
-        if (kh == null)
+        KhachHang kh = khachHangRepo.findById(maKH.trim());
+
+        if (kh == null) {
             throw new IllegalArgumentException("Khách hàng '" + maKH + "' không tồn tại.");
+        }
 
         kh.capNhatTongChiTieu(soTien);
         khachHangRepo.update(kh);
     }
 
     public KhachHang findBySdt(String sdt) {
-        return khachHangRepo.findBySdt(sdt);
+        if (sdt == null || sdt.trim().isEmpty()) {
+            return null;
+        }
+
+        return khachHangRepo.findBySdt(sdt.trim());
     }
 
     public KhachHangDTO findBySdtDTO(String sdt) {
-        KhachHang kh = khachHangRepo.findBySdt(sdt);
+        KhachHang kh = findBySdt(sdt);
         return kh != null ? KhachHangDTO.fromEntity(kh) : null;
+    }
+
+    private void chuanHoaKhachHangMoi(KhachHang kh) {
+        if (kh.getMaKH() == null || kh.getMaKH().trim().isEmpty()) {
+            kh.setMaKH(phatSinhMaKH());
+        }
+
+        if (kh.getTenKH() == null || kh.getTenKH().trim().isEmpty()) {
+            throw new IllegalArgumentException("Tên khách hàng không được rỗng.");
+        }
+
+        if (kh.getSdt() == null || kh.getSdt().trim().isEmpty()) {
+            throw new IllegalArgumentException("Số điện thoại không được rỗng.");
+        }
+
+        kh.setSdt(kh.getSdt().trim());
+        kh.setTenKH(kh.getTenKH().trim());
+
+        if (kh.getGioitinh() == null || kh.getGioitinh().trim().isEmpty()) {
+            kh.setGioitinh("Khác");
+        }
+
+        if (kh.getHangThanhVien() == null) {
+            kh.setHangThanhVien(HangThanhVien.NONE);
+        }
+
+        if (kh.getNgayThamGia() == null) {
+            kh.setNgayThamGia(LocalDate.now());
+        }
+
+        if (kh.getNgaySinh() == null) {
+            kh.setNgaySinh(LocalDate.of(2000, 1, 1));
+        }
+    }
+
+    private String phatSinhMaKH() {
+        String ngayGio = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
+
+        String maKH;
+        do {
+            int random = ThreadLocalRandom.current().nextInt(1000, 10000);
+            maKH = "KH" + ngayGio + random;
+        } while (khachHangRepo.findById(maKH) != null);
+
+        return maKH;
     }
 }
