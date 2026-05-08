@@ -86,8 +86,33 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
                     .getResultList();
 
             Map<LocalDate, Double> revenueMap = new LinkedHashMap<>();
+
             for (Object[] result : results) {
-                revenueMap.put((LocalDate) result[0], (Double) result[1]);
+                Object dateObj = result[0];
+                LocalDate localDate = null;
+
+                if (dateObj != null) {
+                    if (dateObj instanceof java.sql.Date) {
+                        localDate = ((java.sql.Date) dateObj).toLocalDate();
+                    } else if (dateObj instanceof LocalDate) {
+                        localDate = (LocalDate) dateObj;
+                    } else {
+                        localDate = LocalDate.parse(dateObj.toString());
+                    }
+                }
+
+                Object revenueObj = result[1];
+                Double revenue = 0.0;
+
+                if (revenueObj != null) {
+                    if (revenueObj instanceof Number) {
+                        revenue = ((Number) revenueObj).doubleValue();
+                    }
+                }
+
+                if (localDate != null) {
+                    revenueMap.put(localDate, revenue);
+                }
             }
             return revenueMap;
         });
@@ -105,11 +130,13 @@ public class HoaDonRepository extends GenericRepository<HoaDon, String> {
                     "AND hd.trangThai = 'Đã thanh toán' " +
                     "AND hd.hinhThucThanhToan = :hinhThuc";
 
-            return em.createQuery(jpql, Double.class)
+            Number result = em.createQuery(jpql, Number.class)
                     .setParameter("maNV", maNV)
                     .setParameter("startTime", thoiGianBatDauCa)
                     .setParameter("hinhThuc", hinhThuc)
                     .getSingleResult();
+
+            return result != null ? result.doubleValue() : 0.0;
         });
     }
 

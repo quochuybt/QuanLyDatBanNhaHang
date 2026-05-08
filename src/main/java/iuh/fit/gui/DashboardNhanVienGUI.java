@@ -551,7 +551,6 @@ public class DashboardNhanVienGUI extends JPanel {
     }
 
     private void loadEmployeeData() {
-        // Tận dụng SwingWorker để không làm treo UI khi load data từ DB qua Service
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() {
@@ -559,6 +558,7 @@ public class DashboardNhanVienGUI extends JPanel {
                 loadStatistics();
                 loadWorkHoursChart();
                 loadUpcomingShifts();
+                loadShiftControlInfo();
                 return null;
             }
         }.execute();

@@ -50,6 +50,9 @@ public class GiaoCaService {
      */
     public GiaoCaDTO getThongTinCaDangLam(String maNV) {
         GiaoCa entity = repository.getThongTinCaDangLam(maNV);
+        if (entity == null) {
+            return null;
+        }
         return GiaoCaDTO.fromEntity(entity);
     }
 
