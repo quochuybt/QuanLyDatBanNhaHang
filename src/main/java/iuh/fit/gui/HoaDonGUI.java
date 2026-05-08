@@ -442,12 +442,29 @@ public class HoaDonGUI extends JPanel {
                         return;
 
                     HoaDonDTO hd = dsHoaDonDisplayed.get(row);
-                    if (hd.getMaDon() == null || hd.getMaDon().isEmpty())
+                    if (hd.getMaDon() == null || hd.getMaDon().isEmpty()) {
+                        JOptionPane.showMessageDialog(
+                                HoaDonGUI.this,
+                                "Hóa đơn này thiếu mã đơn liên kết nên không thể tải chi tiết.",
+                                "Thiếu dữ liệu",
+                                JOptionPane.WARNING_MESSAGE
+                        );
                         return;
+                    }
 
                     // Tạo DTO giả lập để gọi hàm Service theo đúng chữ ký của bạn
                     ChiTietHoaDonDTO filterDTO = ChiTietHoaDonDTO.builder().maDon(hd.getMaDon()).build();
                     List<ChiTietHoaDonDTO> chiTietList = chiTietHoaDonService.getChiTietTheoMaDon(filterDTO);
+
+                    if (chiTietList == null || chiTietList.isEmpty()) {
+                        JOptionPane.showMessageDialog(
+                                HoaDonGUI.this,
+                                "Không tìm thấy chi tiết món ăn cho hóa đơn này.",
+                                "Không có dữ liệu",
+                                JOptionPane.INFORMATION_MESSAGE
+                        );
+                        return;
+                    }
 
                     showChiTietDialog(hd, chiTietList);
                 }
