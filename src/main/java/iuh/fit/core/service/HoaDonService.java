@@ -103,15 +103,12 @@ public class HoaDonService {
      * thực hiện trong một Transaction tại Repository hoặc Service này.
      */
     public boolean thanhToanHoaDon(HoaDonDTO dto) {
-        if (dto == null || dto.getMaHD() == null) return false;
-
-        // Cập nhật trạng thái và thông tin thanh toán
-        dto.setTrangThai("Đã thanh toán");
-        dto.setNgayLap(LocalDateTime.now());
+        if (dto == null || dto.getMaHD() == null || dto.getMaHD().trim().isEmpty()) {
+            return false;
+        }
 
         try {
-            repository.update(dto.toEntity());
-            return true;
+            return repository.thanhToanHoaDon(dto);
         } catch (Exception e) {
             e.printStackTrace();
             return false;

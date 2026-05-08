@@ -1,7 +1,7 @@
 package gui;
 
 import dao.GiaoCaDAO;
-import entity.VaiTro;
+import iuh.fit.core.entity.VaiTro;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

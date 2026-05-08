@@ -26,6 +26,7 @@ public class DonDatMon {
     @Column(name = "thoiGianDen")
     private LocalDateTime thoiGianDen;
 
+    
     @Column(name = "trangThai", columnDefinition = "NVARCHAR(50)")
     private String trangThai;
 

@@ -1,6 +1,7 @@
 package iuh.fit.gui;
 
 import iuh.fit.core.dto.*;
+import iuh.fit.core.entity.TrangThaiBan;
 import iuh.fit.core.service.*;
 
 import javax.swing.*;
@@ -22,7 +23,8 @@ public class ManHinhGoiMonGUI extends JPanel {
     private final BanService banService = new BanService();
     private final HoaDonService hoaDonService = new HoaDonService();
     private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
-
+    private final DonDatMonService donDatMonService = new DonDatMonService();
+    private final KhachHangService khachHangService = new KhachHangService();
     // 2. CHUYỂN ĐỔI SANG DTO
     // Quản lý trạng thái hiện tại bằng DTO thay vì Entity
     private BanDTO banHienTai;
@@ -44,7 +46,7 @@ public class ManHinhGoiMonGUI extends JPanel {
     private JTable tblChiTietHoaDon;
     private DefaultTableModel modelChiTietHoaDon;
     private BillPanel billPanel;
-
+    public static final Color COLOR_STATUS_FREE = new Color(138, 177, 254);
     public ManHinhGoiMonGUI(DanhSachBanGUI parent, String maNVDangNhap) {
         super(new BorderLayout());
         this.parentDanhSachBanGUI = parent;
@@ -56,6 +58,10 @@ public class ManHinhGoiMonGUI extends JPanel {
         buildUI();
         loadDataFromDB();
         xoaThongTinGoiMon();
+    }
+
+    public DanhSachBanGUI getParentDanhSachBanGUI() {
+        return parentDanhSachBanGUI;
     }
 
     // =====================================================================
@@ -233,42 +239,108 @@ public class ManHinhGoiMonGUI extends JPanel {
         modelChiTietHoaDon.setRowCount(0);
         this.activeHoaDon = null;
 
+        boolean requireBanRefresh = false;
+
         try {
-            String trangThai = banDuocChon.getTrangThai().toString();
+            String trangThai = banDuocChon.getTrangThai() != null
+                    ? banDuocChon.getTrangThai().toString()
+                    : "TRONG";
 
             // Logic 1: Bàn đang phục vụ -> Kéo Hóa đơn và Chi tiết về
             if ("DANG_PHUC_VU".equalsIgnoreCase(trangThai)) {
                 statusColorBox.setBackground(Color.RED);
 
-                // Gọi Service lấy hóa đơn đang active
                 activeHoaDon = hoaDonService.getHoaDonChuaThanhToan(banDuocChon.getMaBan());
 
-                if(activeHoaDon != null) {
-                    ChiTietHoaDonDTO filter = ChiTietHoaDonDTO.builder().maDon(activeHoaDon.getMaDon()).build();
-                    List<ChiTietHoaDonDTO> dsChiTiet = chiTietHoaDonService.getChiTietTheoMaDon(filter);
+                if (activeHoaDon == null) {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Lỗi dữ liệu: Bàn đang phục vụ nhưng chưa có hóa đơn.",
+                            "Lỗi",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                    return false;
+                }
 
-                    // Đổ dữ liệu vào Table JTable
+                ChiTietHoaDonDTO filter = ChiTietHoaDonDTO.builder()
+                        .maDon(activeHoaDon.getMaDon())
+                        .build();
+
+                List<ChiTietHoaDonDTO> dsChiTiet = chiTietHoaDonService.getChiTietTheoMaDon(filter);
+
+                if (dsChiTiet != null) {
                     for (ChiTietHoaDonDTO ct : dsChiTiet) {
                         modelChiTietHoaDon.addRow(new Object[]{
-                                "X", ct.getMaMonAn(), ct.getTenMon(), ct.getSoLuong(), ct.getDonGia(), ct.getThanhTien()
+                                "X",
+                                ct.getMaMonAn(),
+                                ct.getTenMon(),
+                                ct.getSoLuong(),
+                                ct.getDonGia(),
+                                ct.getThanhTien()
                         });
                     }
                 }
             }
+
             // Logic 2: Bàn trống -> Hỏi mở bàn
             else if ("TRONG".equalsIgnoreCase(trangThai)) {
                 statusColorBox.setBackground(Color.GREEN);
-                int confirm = JOptionPane.showConfirmDialog(this,
+
+                int confirm = JOptionPane.showConfirmDialog(
+                        this,
                         "Bạn có muốn mở bàn '" + banDuocChon.getTenBan() + "' cho khách không?",
-                        "Mở bàn mới", JOptionPane.YES_NO_OPTION);
+                        "Mở bàn mới",
+                        JOptionPane.YES_NO_OPTION
+                );
 
                 if (confirm == JOptionPane.YES_OPTION) {
                     moBanMoi(banDuocChon);
-                    if (parentDanhSachBanGUI != null) parentDanhSachBanGUI.refreshManHinhBan();
+                    requireBanRefresh = true;
                 } else {
                     return false;
                 }
             }
+
+            // Logic 3: Bàn đã đặt trước -> Hỏi nhận bàn rồi tạo hóa đơn active
+            else if ("DA_DAT_TRUOC".equalsIgnoreCase(trangThai)) {
+                statusColorBox.setBackground(ManHinhBanGUI.COLOR_STATUS_RESERVED);
+
+                DonDatMonDTO ddmPreview = donDatMonService.getDonDatMonDatTruoc(banDuocChon.getMaBan());
+
+                String msg = "Bàn '" + banDuocChon.getTenBan()
+                        + "' đã được đặt trước.\nBạn có muốn nhận bàn này không?";
+
+                if (ddmPreview != null) {
+                    String tenKhach = "Khách";
+
+                    if (ddmPreview.getMaKH() != null) {
+                        KhachHangDTO kh = khachHangService.findByIdDTO(ddmPreview.getMaKH());
+
+                        if (kh != null && kh.getTenKH() != null && !kh.getTenKH().trim().isEmpty()) {
+                            tenKhach = kh.getTenKH();
+                        }
+                    }
+
+                    msg = "Bàn '" + banDuocChon.getTenBan()
+                            + "' đặt bởi " + tenKhach
+                            + ".\nNhận bàn ngay?";
+                }
+
+                int confirm = JOptionPane.showConfirmDialog(
+                        this,
+                        msg,
+                        "Nhận bàn đặt",
+                        JOptionPane.YES_NO_OPTION
+                );
+
+                if (confirm == JOptionPane.YES_OPTION) {
+                    nhanBanDatTruoc(banDuocChon);
+                    requireBanRefresh = true;
+                } else {
+                    return false;
+                }
+            }
+
         } catch (Exception ex) {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "Lỗi khi tải dữ liệu bàn: " + ex.getMessage());
@@ -276,7 +348,52 @@ public class ManHinhGoiMonGUI extends JPanel {
         } finally {
             updateBillPanelTotals();
         }
+
+        if (requireBanRefresh && parentDanhSachBanGUI != null) {
+            parentDanhSachBanGUI.refreshManHinhBan();
+        }
+
         return true;
+    }
+
+    private void nhanBanDatTruoc(BanDTO banChinh) throws Exception {
+        DonDatMonDTO ddm = donDatMonService.getDonDatMonDatTruoc(banChinh.getMaBan());
+
+        if (ddm == null) {
+            throw new Exception("Không tìm thấy đơn đặt trước!");
+        }
+
+        String maKH = ddm.getMaKH();
+
+        String ghiChu = "Nhận bàn đặt trước";
+        if (ddm.getGhiChu() != null && !ddm.getGhiChu().trim().isEmpty()) {
+            ghiChu = ddm.getGhiChu();
+        }
+
+        HoaDonDTO hd = hoaDonService.moBanVaTaoHoaDon(
+                banChinh.getMaBan(),
+                maNVDangNhap,
+                maKH,
+                LocalDateTime.now(),
+                ghiChu
+        );
+
+        if (hd == null) {
+            throw new Exception("Không tạo được hóa đơn cho bàn đặt trước.");
+        }
+
+        this.activeHoaDon = hd;
+
+        banChinh.setTrangThai(TrangThaiBan.DANG_PHUC_VU);
+        banChinh.setGioMoBan(LocalDateTime.now());
+
+        boolean updateOK = banService.updateBan(banChinh);
+        if (!updateOK) {
+            throw new Exception("Lỗi cập nhật trạng thái bàn.");
+        }
+
+        this.banHienTai = banChinh;
+        statusColorBox.setBackground(Color.RED);
     }
 
     private void moBanMoi(BanDTO ban) {
@@ -338,7 +455,7 @@ public class ManHinhGoiMonGUI extends JPanel {
         if (billPanel != null) billPanel.clearBill();
         this.banHienTai = null;
         this.activeHoaDon = null;
-        if (statusColorBox != null) statusColorBox.setBackground(Color.GREEN);
+        if (statusColorBox != null) statusColorBox.setBackground(COLOR_STATUS_FREE);
     }
 
     // =====================================================================
