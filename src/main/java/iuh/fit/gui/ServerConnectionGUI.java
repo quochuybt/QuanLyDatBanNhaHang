@@ -65,23 +65,32 @@ public class ServerConnectionGUI extends JFrame {
 
     private void scanServers() {
         btnScan.setEnabled(false);
-        lblStatus.setText("Trạng thái: Đang quét server...");
-
-        new SwingWorker<List<DiscoveredServer>, Void>() {
+        serverListModel.clear();
+        lblStatus.setForeground(Color.BLACK);
+        
+        new SwingWorker<List<DiscoveredServer>, String>() {
             @Override
             protected List<DiscoveredServer> doInBackground() {
-                // Ưu tiên mDNS để user không cần nhập IP; fallback UDP nếu cần
+                publish("Đang quét tìm server qua mDNS (Ưu tiên)...");
+                
                 LanServerDiscoveryService discoveryService = new LanServerDiscoveryService(9091);
                 Map<String, List<DiscoveredServer>> byStrategy = discoveryService.discoverByStrategy(2500, 1500);
-
+                
                 List<DiscoveredServer> mdns = byStrategy.getOrDefault("mDNS", List.of());
                 if (!mdns.isEmpty()) {
-                    lblStatus.setText("Trạng thái: Đã tìm thấy server qua mDNS");
+                    publish("Tìm thấy server qua mDNS");
                     return mdns;
                 }
 
-                lblStatus.setText("Trạng thái: Không thấy mDNS, chuyển sang UDP fallback...");
+                publish("Không thấy mDNS, chuyển sang UDP fallback...");
+                try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+                
                 return byStrategy.getOrDefault("UDP", List.of());
+            }
+
+            @Override
+            protected void process(List<String> chunks) {
+                lblStatus.setText("Trạng thái: " + chunks.get(chunks.size() - 1));
             }
 
             @Override
@@ -89,19 +98,21 @@ public class ServerConnectionGUI extends JFrame {
                 btnScan.setEnabled(true);
                 try {
                     List<DiscoveredServer> servers = get();
-                    serverListModel.clear();
                     for (DiscoveredServer s : servers) {
                         serverListModel.addElement(s);
                     }
 
                     if (servers.isEmpty()) {
-                        lblStatus.setText("Trạng thái: Không tìm thấy server");
+                        lblStatus.setText("Trạng thái: Không tìm thấy server nào trong mạng LAN");
+                        lblStatus.setForeground(Color.RED);
                     } else {
                         listServers.setSelectedIndex(0);
                         lblStatus.setText("Trạng thái: Tìm thấy " + servers.size() + " server");
+                        lblStatus.setForeground(new Color(0, 100, 0));
                     }
                 } catch (Exception ex) {
                     lblStatus.setText("Trạng thái: Lỗi quét server");
+                    lblStatus.setForeground(Color.RED);
                 }
             }
         }.execute();
