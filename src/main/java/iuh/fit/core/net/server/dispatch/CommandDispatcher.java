@@ -109,7 +109,7 @@ public class CommandDispatcher {
                 handlers.put(
                                 CommandAction.DONDATMON_GET_ALL_CHUA_NHAN_BAO_GOM_LINKED.name(),
                                 new DonDatMonGetAllChuaNhanBaoGomLinkedHandler());
-
+            handlers.put(CommandAction.DONDATMON_GET_BY_ID.name(), new DonDatMonGetByIdHandler());
                 handlers.put(CommandAction.MONAN_GET_ALL.name(), new MonAnGetAllHandler());
 
                 handlers.put(

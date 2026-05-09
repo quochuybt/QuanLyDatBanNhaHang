@@ -81,6 +81,7 @@ public enum CommandAction {
     DONDATMON_GET_BAN_DA_DAT_TRONG_KHOANG,
     DONDATMON_SAVE,
     DONDATMON_HUY_DAT_BAN,
+    DONDATMON_GET_BY_ID,
 
     // ===== Gọi món / mở bàn =====
     MONAN_GET_ALL,
