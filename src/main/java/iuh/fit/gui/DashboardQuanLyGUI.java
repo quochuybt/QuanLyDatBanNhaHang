@@ -11,9 +11,7 @@ import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.dto.GiaoCaDTO;
 import iuh.fit.core.service.BanService;
-import iuh.fit.core.service.ChiTietHoaDonService;
 import iuh.fit.core.service.GiaoCaService;
-import iuh.fit.core.service.HoaDonService;
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.markers.SeriesMarkers;
 
@@ -69,10 +67,8 @@ public class DashboardQuanLyGUI extends JPanel {
 
     private JPanel pnlStaffHoursChart;
 
-    private final HoaDonService hoaDonService = new HoaDonService();
     private final BanService banService = new BanService();
     private final GiaoCaService giaoCaService = new GiaoCaService();
-    private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
     private final DashboardRemoteService dashboardRemoteService;
     private final HoaDonRemoteService hoaDonRemoteService;
 
@@ -88,7 +84,8 @@ public class DashboardQuanLyGUI extends JPanel {
             NetClientContext.getConnection().addEventListener(new ClientEventListener() {
                 @Override
                 public void onEvent(MessageEnvelope event) {
-                    if (event == null || event.getName() == null) return;
+                    if (event == null || event.getName() == null)
+                        return;
                     String name = event.getName();
                     if (EventType.TABLE_STATUS_CHANGED.name().equals(name)
                             || EventType.INVOICE_UPDATED.name().equals(name)) {
@@ -221,23 +218,28 @@ public class DashboardQuanLyGUI extends JPanel {
     }
 
     private void showGiaoCaDialogWithData(List<GiaoCaDTO> historyList, LocalDate from, LocalDate to) {
-        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Lịch sử giao ca", Dialog.ModalityType.APPLICATION_MODAL);
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Lịch sử giao ca",
+                Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setSize(1100, 600);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout());
 
-        String[] columns = {"Mã GC", "Mã NV", "Bắt đầu", "Kết thúc", "Tiền đầu ca", "Tiền cuối ca", "Doanh thu ca", "Chênh lệch", "Ghi chú"};
+        String[] columns = { "Mã GC", "Mã NV", "Bắt đầu", "Kết thúc", "Tiền đầu ca", "Tiền cuối ca", "Doanh thu ca",
+                "Chênh lệch", "Ghi chú" };
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
             @Override
-            public boolean isCellEditable(int row, int column) { return false; }
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
         };
 
         for (GiaoCaDTO gc : historyList) {
-            model.addRow(new Object[]{
+            model.addRow(new Object[] {
                     gc.getMaGiaoCa(),
                     gc.getMaNV(),
                     gc.getThoiGianBatDau().format(dateTimeFormatter),
-                    gc.getThoiGianKetThuc() != null ? gc.getThoiGianKetThuc().format(dateTimeFormatter) : "Chưa kết thúc",
+                    gc.getThoiGianKetThuc() != null ? gc.getThoiGianKetThuc().format(dateTimeFormatter)
+                            : "Chưa kết thúc",
                     currencyFormatter.format(gc.getTienDauCa()),
                     currencyFormatter.format(gc.getTienCuoiCa()),
                     currencyFormatter.format(gc.getTienHeThongTinh()),
@@ -253,22 +255,28 @@ public class DashboardQuanLyGUI extends JPanel {
 
         DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
         rightRenderer.setHorizontalAlignment(JLabel.RIGHT);
-        for(int i=4; i<=7; i++) {
+        for (int i = 4; i <= 7; i++) {
             table.getColumnModel().getColumn(i).setCellRenderer(rightRenderer);
         }
 
         table.getColumnModel().getColumn(7).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                    boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 if (!isSelected) {
                     try {
                         String s = value.toString().replaceAll("[^\\d-]", "");
                         double val = Double.parseDouble(s);
-                        if (val < 0) c.setForeground(Color.RED);
-                        else if (val > 0) c.setForeground(new Color(0, 150, 0));
-                        else c.setForeground(Color.BLACK);
-                    } catch (Exception e) { c.setForeground(Color.BLACK); }
+                        if (val < 0)
+                            c.setForeground(Color.RED);
+                        else if (val > 0)
+                            c.setForeground(new Color(0, 150, 0));
+                        else
+                            c.setForeground(Color.BLACK);
+                    } catch (Exception e) {
+                        c.setForeground(Color.BLACK);
+                    }
                 }
                 setHorizontalAlignment(JLabel.RIGHT);
                 return c;
@@ -283,7 +291,7 @@ public class DashboardQuanLyGUI extends JPanel {
         dialog.add(new JScrollPane(table), BorderLayout.CENTER);
 
         JPanel header = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        header.setBorder(new EmptyBorder(10,10,10,10));
+        header.setBorder(new EmptyBorder(10, 10, 10, 10));
         JLabel lblInfo = new JLabel("Lịch sử từ " + from.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                 + " đến " + to.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
         lblInfo.setFont(FONT_TITLE);
@@ -496,48 +504,27 @@ public class DashboardQuanLyGUI extends JPanel {
                 // 2. Tải dữ liệu từ các Services
 
                 // --- Phần Doanh thu ---
-                if (dashboardRemoteService != null) {
-                    revenueData = dashboardRemoteService.getDailyRevenue(startDate, endDate);
-                } else {
-                    revenueData = hoaDonService.getDailyRevenue(startDate, endDate);
-                }
+                revenueData = dashboardRemoteService.getDailyRevenue(startDate, endDate);
                 // Lấy tổng số hóa đơn (Dùng plusDays(1) để lấy hết ngày endDate)
-                if (hoaDonRemoteService != null) {
-                    orderCount = (int) hoaDonRemoteService.getTotalHoaDonCount(HoaDonTotalRequestDTO.builder()
-                            .trangThai("Đã thanh toán")
-                            .keyword("")
-                            .tuNgay(startDate.atStartOfDay())
-                            .denNgay(endDate.plusDays(1).atStartOfDay())
-                            .build());
-                } else {
-                    orderCount = (int) hoaDonService.getTotalHoaDonCount(
-                            "Đã thanh toán",
-                            "",
-                            startDate.atStartOfDay(),
-                            endDate.plusDays(1).atStartOfDay()
-                    );
-                }
+                orderCount = (int) hoaDonRemoteService.getTotalHoaDonCount(HoaDonTotalRequestDTO.builder()
+                        .trangThai("Đã thanh toán")
+                        .keyword("")
+                        .tuNgay(startDate.atStartOfDay())
+                        .denNgay(endDate.plusDays(1).atStartOfDay())
+                        .build());
 
                 // --- Phần Hoạt động Real-time ---
-                if (dashboardRemoteService != null) {
-                    tableStatusCounts = dashboardRemoteService.getTableStatusCounts();
-                } else {
-                    tableStatusCounts = banService.getTableStatusCounts();
-                }
+                tableStatusCounts = dashboardRemoteService.getTableStatusCounts();
                 activeStaffList = giaoCaService.getNhanVienDangLamViecChiTiet();
 
                 // --- Phần Biểu đồ Nhân viên (Lấy trong tuần hiện tại) ---
-                LocalDate startOfWeek = LocalDate.now().with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+                LocalDate startOfWeek = LocalDate.now()
+                        .with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
                 topStaffHours = giaoCaService.getTopStaffByWorkHours(startOfWeek, LocalDate.now(), 5);
 
                 // --- Phần Top Món ăn (Lấy theo khoảng thời gian đã chọn) ---
-                if (dashboardRemoteService != null) {
-                    topSellingItems = dashboardRemoteService.getTopSellingItems(startDate, endDate, 5);
-                    leastSellingItems = dashboardRemoteService.getLeastSellingItems(startDate, endDate, 5);
-                } else {
-                    topSellingItems = chiTietHoaDonService.getTopSellingItems(startDate, endDate, 5);
-                    leastSellingItems = chiTietHoaDonService.getLeastSellingItems(startDate, endDate, 5);
-                }
+                topSellingItems = dashboardRemoteService.getTopSellingItems(startDate, endDate, 5);
+                leastSellingItems = dashboardRemoteService.getLeastSellingItems(startDate, endDate, 5);
 
                 return null;
             }
@@ -630,7 +617,8 @@ public class DashboardQuanLyGUI extends JPanel {
 
     private void updateRevenueChart(Map<LocalDate, Double> data) {
         pnlRevenueChart.removeAll();
-        if (data.isEmpty()) return;
+        if (data.isEmpty())
+            return;
 
         XYChart chart = new XYChartBuilder().title("Biến động doanh thu").build();
         chart.getStyler().setChartBackgroundColor(COLOR_SECTION_BG);
@@ -658,7 +646,8 @@ public class DashboardQuanLyGUI extends JPanel {
         CategoryChart chart = new CategoryChartBuilder()
                 .width(400)
                 .height(200)
-                .title("Tuần này (" + LocalDate.now().with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)).format(DateTimeFormatter.ofPattern("dd/MM")) + ")")
+                .title("Tuần này (" + LocalDate.now().with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+                        .format(DateTimeFormatter.ofPattern("dd/MM")) + ")")
                 .xAxisTitle("Nhân viên")
                 .yAxisTitle("Số giờ làm (h)")
                 .build();
@@ -667,7 +656,7 @@ public class DashboardQuanLyGUI extends JPanel {
         chart.getStyler().setChartBackgroundColor(COLOR_SECTION_BG);
         chart.getStyler().setPlotBackgroundColor(COLOR_SECTION_BG);
         chart.getStyler().setPlotGridLinesVisible(true);
-        chart.getStyler().setSeriesColors(new Color[]{COLOR_ACCENT_BLUE});
+        chart.getStyler().setSeriesColors(new Color[] { COLOR_ACCENT_BLUE });
         chart.getStyler().setToolTipsEnabled(true);
         chart.getStyler().setYAxisDecimalPattern("#0.0");
 
@@ -730,7 +719,8 @@ public class DashboardQuanLyGUI extends JPanel {
         }
 
         @Override
-        public Component getListCellRendererComponent(JList<? extends String> list, String value, int index, boolean isSelected, boolean cellHasFocus) {
+        public Component getListCellRendererComponent(JList<? extends String> list, String value, int index,
+                boolean isSelected, boolean cellHasFocus) {
             if (isSelected) {
                 setBackground(new Color(220, 235, 255));
             } else {
@@ -754,9 +744,12 @@ public class DashboardQuanLyGUI extends JPanel {
                     lblCount.setText(count + " suất");
 
                     lblRank.setForeground(Color.WHITE);
-                    if (rank == 1) lblRank.setBackground(new Color(255, 193, 7));
-                    else if (rank == 2) lblRank.setBackground(new Color(192, 192, 192));
-                    else if (rank == 3) lblRank.setBackground(new Color(205, 127, 50));
+                    if (rank == 1)
+                        lblRank.setBackground(new Color(255, 193, 7));
+                    else if (rank == 2)
+                        lblRank.setBackground(new Color(192, 192, 192));
+                    else if (rank == 3)
+                        lblRank.setBackground(new Color(205, 127, 50));
                     else {
                         lblRank.setBackground(new Color(230, 230, 230));
                         lblRank.setForeground(COLOR_TEXT_DARK);
@@ -774,7 +767,7 @@ public class DashboardQuanLyGUI extends JPanel {
                 }
             } else {
                 lblRank.setText("");
-                lblRank.setBackground(new Color(0,0,0,0));
+                lblRank.setBackground(new Color(0, 0, 0, 0));
                 lblName.setText(value);
                 lblCount.setText("");
                 progressBar.setVisible(false);

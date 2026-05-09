@@ -42,8 +42,6 @@ import java.util.stream.Collectors;
 public class HoaDonGUI extends JPanel {
 
     // --- Services ---
-    private final HoaDonService hoaDonService = new HoaDonService();
-    private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
     private final DonDatMonService donDatMonService = new DonDatMonService();
     private final BanService banService = new BanService();
     private final HoaDonRemoteService hoaDonRemoteService;
@@ -88,7 +86,8 @@ public class HoaDonGUI extends JPanel {
             NetClientContext.getConnection().addEventListener(new ClientEventListener() {
                 @Override
                 public void onEvent(MessageEnvelope event) {
-                    if (event == null || event.getName() == null) return;
+                    if (event == null || event.getName() == null)
+                        return;
                     if (EventType.INVOICE_UPDATED.name().equals(event.getName())) {
                         SwingUtilities.invokeLater(HoaDonGUI.this::loadDataForCurrentPage);
                     }
@@ -390,7 +389,8 @@ public class HoaDonGUI extends JPanel {
     }
 
     private void loadDataForCurrentPage() {
-        // Đọc filter dates trên EDT trước khi chạy background (vì có thể hiện JOptionPane)
+        // Đọc filter dates trên EDT trước khi chạy background (vì có thể hiện
+        // JOptionPane)
         String trangThai = getSelectedTrangThaiFilter();
         LocalDateTime[] dates = getFilterDates();
         if (dates[0] == null && dates[1] == null
@@ -405,37 +405,27 @@ public class HoaDonGUI extends JPanel {
 
             @Override
             protected Void doInBackground() {
-                long totalCount;
-                if (hoaDonRemoteService != null) {
-                    totalCount = hoaDonRemoteService.getTotalHoaDonCount(HoaDonTotalRequestDTO.builder()
-                            .trangThai(trangThai)
-                            .keyword(currentKeyword)
-                            .tuNgay(dates[0])
-                            .denNgay(dates[1])
-                            .build());
-                } else {
-                    totalCount = hoaDonService.getTotalHoaDonCount(trangThai, currentKeyword, dates[0], dates[1]);
-                }
+                // 1. Lấy tổng số dòng để tính số trang
+                long totalCount = hoaDonRemoteService.getTotalHoaDonCount(HoaDonTotalRequestDTO.builder()
+                        .trangThai(trangThai)
+                        .keyword(currentKeyword)
+                        .tuNgay(dates[0])
+                        .denNgay(dates[1])
+                        .build());
 
                 totalPages = (int) Math.ceil((double) totalCount / ITEMS_PER_PAGE);
-                if (totalPages < 1)
-                    totalPages = 1;
-                if (currentPage > totalPages)
-                    currentPage = totalPages;
+                if (totalPages < 1) totalPages = 1;
+                if (currentPage > totalPages) currentPage = totalPages;
 
-                if (hoaDonRemoteService != null) {
-                    resultList = hoaDonRemoteService.getHoaDonByPage(HoaDonPageRequestDTO.builder()
-                            .page(currentPage)
-                            .itemsPerPage(ITEMS_PER_PAGE)
-                            .trangThai(trangThai)
-                            .keyword(currentKeyword)
-                            .tuNgay(dates[0])
-                            .denNgay(dates[1])
-                            .build());
-                } else {
-                    resultList = hoaDonService.getHoaDonByPage(currentPage, ITEMS_PER_PAGE, trangThai, currentKeyword,
-                            dates[0], dates[1]);
-                }
+                // 2. Lấy dữ liệu trang hiện tại
+                resultList = hoaDonRemoteService.getHoaDonByPage(HoaDonPageRequestDTO.builder()
+                        .page(currentPage)
+                        .itemsPerPage(ITEMS_PER_PAGE)
+                        .trangThai(trangThai)
+                        .keyword(currentKeyword)
+                        .tuNgay(dates[0])
+                        .denNgay(dates[1])
+                        .build());
 
                 // Enrich dữ liệu hiển thị (NV name, ghi chú) ngay trong background thread
                 // để tránh block EDT khi loadDataToTable
@@ -460,11 +450,13 @@ public class HoaDonGUI extends JPanel {
 
     /**
      * Enrich dữ liệu hiển thị cho bảng (gọi DB lấy tên NV, ghi chú).
-     * Phải gọi từ background thread (SwingWorker.doInBackground) để không block EDT.
+     * Phải gọi từ background thread (SwingWorker.doInBackground) để không block
+     * EDT.
      */
     private List<Object[]> enrichTableRows(List<HoaDonDTO> list) {
         List<Object[]> rows = new ArrayList<>();
-        if (list == null) return rows;
+        if (list == null)
+            return rows;
 
         for (HoaDonDTO hd : list) {
             String tenNV = "N/A";
@@ -513,7 +505,8 @@ public class HoaDonGUI extends JPanel {
      */
     private void loadEnrichedDataToTable(List<Object[]> rows) {
         tableModel.setRowCount(0);
-        if (rows == null) return;
+        if (rows == null)
+            return;
         for (Object[] row : rows) {
             tableModel.addRow(row);
         }
@@ -538,8 +531,7 @@ public class HoaDonGUI extends JPanel {
                                 HoaDonGUI.this,
                                 "Hóa đơn này thiếu mã đơn liên kết nên không thể tải chi tiết.",
                                 "Thiếu dữ liệu",
-                                JOptionPane.WARNING_MESSAGE
-                        );
+                                JOptionPane.WARNING_MESSAGE);
                         return;
                     }
 
@@ -547,14 +539,9 @@ public class HoaDonGUI extends JPanel {
                     new SwingWorker<List<ChiTietHoaDonDTO>, Void>() {
                         @Override
                         protected List<ChiTietHoaDonDTO> doInBackground() {
-                            if (hoaDonRemoteService != null) {
-                                return hoaDonRemoteService.getChiTietHoaDon(HoaDonDetailRequestDTO.builder()
-                                        .maDon(hd.getMaDon())
-                                        .build());
-                            } else {
-                                ChiTietHoaDonDTO filterDTO = ChiTietHoaDonDTO.builder().maDon(hd.getMaDon()).build();
-                                return chiTietHoaDonService.getChiTietTheoMaDon(filterDTO);
-                            }
+                            return hoaDonRemoteService.getChiTietHoaDon(HoaDonDetailRequestDTO.builder()
+                                    .maDon(hd.getMaDon())
+                                    .build());
                         }
 
                         @Override
@@ -566,8 +553,7 @@ public class HoaDonGUI extends JPanel {
                                             HoaDonGUI.this,
                                             "Không tìm thấy chi tiết món ăn cho hóa đơn này.",
                                             "Không có dữ liệu",
-                                            JOptionPane.INFORMATION_MESSAGE
-                                    );
+                                            JOptionPane.INFORMATION_MESSAGE);
                                     return;
                                 }
                                 showChiTietDialog(hd, chiTietList);
@@ -577,8 +563,7 @@ public class HoaDonGUI extends JPanel {
                                         HoaDonGUI.this,
                                         "Lỗi khi tải chi tiết hóa đơn: " + ex.getMessage(),
                                         "Lỗi",
-                                        JOptionPane.ERROR_MESSAGE
-                                );
+                                        JOptionPane.ERROR_MESSAGE);
                             }
                         }
                     }.execute();
@@ -780,46 +765,26 @@ public class HoaDonGUI extends JPanel {
                     try {
                         // Lấy toàn bộ danh sách theo bộ lọc, không phân trang khi xuất Excel
                         long total;
-                        if (hoaDonRemoteService != null) {
-                            total = hoaDonRemoteService.getTotalHoaDonCount(HoaDonTotalRequestDTO.builder()
-                                    .trangThai(trangThai)
-                                    .keyword(keyword)
-                                    .tuNgay(dates[0])
-                                    .denNgay(dates[1])
-                                    .build());
-                        } else {
-                            total = hoaDonService.getTotalHoaDonCount(
-                                    trangThai,
-                                    keyword,
-                                    dates[0],
-                                    dates[1]
-                            );
-                        }
+                        total = hoaDonRemoteService.getTotalHoaDonCount(HoaDonTotalRequestDTO.builder()
+                                .trangThai(trangThai)
+                                .keyword(keyword)
+                                .tuNgay(dates[0])
+                                .denNgay(dates[1])
+                                .build());
 
                         if (total == 0) {
                             return false;
                         }
 
                         List<HoaDonDTO> dtos;
-                        if (hoaDonRemoteService != null) {
-                            dtos = hoaDonRemoteService.getHoaDonByPage(HoaDonPageRequestDTO.builder()
-                                    .page(1)
-                                    .itemsPerPage((int) total)
-                                    .trangThai(trangThai)
-                                    .keyword(keyword)
-                                    .tuNgay(dates[0])
-                                    .denNgay(dates[1])
-                                    .build());
-                        } else {
-                            dtos = hoaDonService.getHoaDonByPage(
-                                    1,
-                                    (int) total,
-                                    trangThai,
-                                    keyword,
-                                    dates[0],
-                                    dates[1]
-                            );
-                        }
+                        dtos = hoaDonRemoteService.getHoaDonByPage(HoaDonPageRequestDTO.builder()
+                                .page(1)
+                                .itemsPerPage((int) total)
+                                .trangThai(trangThai)
+                                .keyword(keyword)
+                                .tuNgay(dates[0])
+                                .denNgay(dates[1])
+                                .build());
 
                         ExcelExporter reporter = new ExcelExporter();
                         return reporter.exportHoaDonReport(dtos, finalPath);
@@ -838,15 +803,13 @@ public class HoaDonGUI extends JPanel {
                                     HoaDonGUI.this,
                                     "Xuất file Excel thành công!",
                                     "Thông báo",
-                                    JOptionPane.INFORMATION_MESSAGE
-                            );
+                                    JOptionPane.INFORMATION_MESSAGE);
                         } else {
                             JOptionPane.showMessageDialog(
                                     HoaDonGUI.this,
                                     "Xuất file thất bại hoặc không có dữ liệu.",
                                     "Lỗi",
-                                    JOptionPane.ERROR_MESSAGE
-                            );
+                                    JOptionPane.ERROR_MESSAGE);
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -854,8 +817,7 @@ public class HoaDonGUI extends JPanel {
                                 HoaDonGUI.this,
                                 "Có lỗi xảy ra khi xuất Excel.",
                                 "Lỗi",
-                                JOptionPane.ERROR_MESSAGE
-                        );
+                                JOptionPane.ERROR_MESSAGE);
                     }
                 }
             }.execute();

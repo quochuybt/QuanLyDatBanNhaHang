@@ -23,15 +23,14 @@ public class BanRemoteService extends BaseRemoteService {
         MessageEnvelope response = connection.sendCommand(
                 CommandAction.BAN_GET_ALL.name(),
                 null,
-                DEFAULT_TIMEOUT_MS
-        );
+                DEFAULT_TIMEOUT_MS);
 
         ensureSuccess(response, "Không thể tải danh sách bàn.");
 
         return JsonCodec.convertValue(
                 response.getPayload(),
-                new TypeReference<List<BanDTO>>() {}
-        );
+                new TypeReference<List<BanDTO>>() {
+                });
     }
 
     public boolean updateBan(BanDTO ban) {
@@ -41,8 +40,7 @@ public class BanRemoteService extends BaseRemoteService {
         MessageEnvelope response = connection.sendCommand(
                 CommandAction.BAN_UPDATE_STATUS.name(),
                 request,
-                DEFAULT_TIMEOUT_MS
-        );
+                DEFAULT_TIMEOUT_MS);
 
         ensureSuccess(response, "Không thể cập nhật trạng thái bàn.");
 
@@ -58,8 +56,7 @@ public class BanRemoteService extends BaseRemoteService {
         MessageEnvelope response = connection.sendCommand(
                 CommandAction.BAN_CHUYEN_BAN.name(),
                 request,
-                DEFAULT_TIMEOUT_MS
-        );
+                DEFAULT_TIMEOUT_MS);
 
         ensureSuccess(response, "Không thể chuyển bàn.");
 
@@ -75,8 +72,7 @@ public class BanRemoteService extends BaseRemoteService {
         MessageEnvelope response = connection.sendCommand(
                 CommandAction.BAN_GHEP_BAN.name(),
                 request,
-                DEFAULT_TIMEOUT_MS
-        );
+                DEFAULT_TIMEOUT_MS);
 
         ensureSuccess(response, "Không thể ghép bàn.");
 

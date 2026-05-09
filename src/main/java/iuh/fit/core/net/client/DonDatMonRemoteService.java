@@ -27,15 +27,14 @@ public class DonDatMonRemoteService extends BaseRemoteService {
         MessageEnvelope response = connection.sendCommand(
                 CommandAction.DONDATMON_GET_ALL_CHUA_NHAN.name(),
                 null,
-                DEFAULT_TIMEOUT_MS
-        );
+                DEFAULT_TIMEOUT_MS);
 
         ensureSuccess(response, "Không thể tải danh sách đặt trước.");
 
         return JsonCodec.convertValue(
                 response.getPayload(),
-                new TypeReference<List<DonDatMonDTO>>() {}
-        );
+                new TypeReference<List<DonDatMonDTO>>() {
+                });
     }
 
     public List<DonDatMonDTO> timDonDatMonChuaNhan(String keyword) {
@@ -44,15 +43,14 @@ public class DonDatMonRemoteService extends BaseRemoteService {
         MessageEnvelope response = connection.sendCommand(
                 CommandAction.DONDATMON_SEARCH_CHUA_NHAN.name(),
                 request,
-                DEFAULT_TIMEOUT_MS
-        );
+                DEFAULT_TIMEOUT_MS);
 
         ensureSuccess(response, "Không thể tìm kiếm phiếu đặt.");
 
         return JsonCodec.convertValue(
                 response.getPayload(),
-                new TypeReference<List<DonDatMonDTO>>() {}
-        );
+                new TypeReference<List<DonDatMonDTO>>() {
+                });
     }
 
     public List<String> getMaBanDaDatTrongKhoang(LocalDateTime tuGio, LocalDateTime denGio) {
@@ -61,23 +59,21 @@ public class DonDatMonRemoteService extends BaseRemoteService {
         MessageEnvelope response = connection.sendCommand(
                 CommandAction.DONDATMON_GET_BAN_DA_DAT_TRONG_KHOANG.name(),
                 request,
-                DEFAULT_TIMEOUT_MS
-        );
+                DEFAULT_TIMEOUT_MS);
 
         ensureSuccess(response, "Không thể kiểm tra bàn đã đặt trong khoảng giờ.");
 
         return JsonCodec.convertValue(
                 response.getPayload(),
-                new TypeReference<List<String>>() {}
-        );
+                new TypeReference<List<String>>() {
+                });
     }
 
     public boolean save(DonDatMonDTO dto) {
         MessageEnvelope response = connection.sendCommand(
                 CommandAction.DONDATMON_SAVE.name(),
                 dto,
-                DEFAULT_TIMEOUT_MS
-        );
+                DEFAULT_TIMEOUT_MS);
 
         ensureSuccess(response, "Không thể lưu đơn đặt bàn.");
 
@@ -91,8 +87,7 @@ public class DonDatMonRemoteService extends BaseRemoteService {
         MessageEnvelope response = connection.sendCommand(
                 CommandAction.DONDATMON_HUY_DAT_BAN.name(),
                 request,
-                DEFAULT_TIMEOUT_MS
-        );
+                DEFAULT_TIMEOUT_MS);
 
         ensureSuccess(response, "Không thể hủy đặt bàn.");
 
@@ -110,8 +105,7 @@ public class DonDatMonRemoteService extends BaseRemoteService {
         MessageEnvelope response = connection.sendCommand(
                 CommandAction.DONDATMON_GET_DAT_TRUOC_BY_BAN.name(),
                 request,
-                DEFAULT_TIMEOUT_MS
-        );
+                DEFAULT_TIMEOUT_MS);
 
         ensureSuccess(response, "Không thể tải đơn đặt trước theo bàn.");
 
@@ -128,8 +122,7 @@ public class DonDatMonRemoteService extends BaseRemoteService {
         MessageEnvelope response = connection.sendCommand(
                 CommandAction.DONDATMON_GET_CHUA_NHAN_THEO_BAN_BAO_GOM_LINKED.name(),
                 request,
-                DEFAULT_TIMEOUT_MS
-        );
+                DEFAULT_TIMEOUT_MS);
 
         ensureSuccess(response, "Không thể tải đơn chưa nhận theo bàn.");
 
@@ -144,14 +137,13 @@ public class DonDatMonRemoteService extends BaseRemoteService {
         MessageEnvelope response = connection.sendCommand(
                 CommandAction.DONDATMON_GET_ALL_CHUA_NHAN_BAO_GOM_LINKED.name(),
                 null,
-                DEFAULT_TIMEOUT_MS
-        );
+                DEFAULT_TIMEOUT_MS);
 
         ensureSuccess(response, "Không thể tải danh sách đơn chưa nhận bao gồm linked.");
 
         return JsonCodec.convertValue(
                 response.getPayload(),
-                new TypeReference<List<DonDatMonDTO>>() {}
-        );
+                new TypeReference<List<DonDatMonDTO>>() {
+                });
     }
 }
