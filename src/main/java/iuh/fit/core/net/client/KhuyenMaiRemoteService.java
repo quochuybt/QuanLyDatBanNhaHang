@@ -70,4 +70,14 @@ public class KhuyenMaiRemoteService extends BaseRemoteService {
         ensureSuccess(response, "Không thể xóa khuyến mãi.");
         return Boolean.TRUE.equals(JsonCodec.fromJsonNode(response.getPayload(), Boolean.class));
     }
+
+    public KhuyenMaiDTO useKhuyenMai(String maKM) {
+        MessageEnvelope response = connection.sendCommand(
+                CommandAction.KHUYENMAI_USE.name(),
+                IdRequest.builder().id(maKM).build(),
+                DEFAULT_TIMEOUT_MS
+        );
+        ensureSuccess(response, "Không thể sử dụng khuyến mãi.");
+        return JsonCodec.fromJsonNode(response.getPayload(), KhuyenMaiDTO.class);
+    }
 }

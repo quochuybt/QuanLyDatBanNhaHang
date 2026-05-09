@@ -54,6 +54,14 @@ public class CommandDispatcher {
         handlers.put(CommandAction.KHACHHANG_UPDATE.name(), new KhachHangUpdateHandler());
         handlers.put(CommandAction.KHACHHANG_SEARCH.name(), new KhachHangSearchHandler());
 
+        // ===== Khuyến mãi =====
+        handlers.put(CommandAction.KHUYENMAI_GET_ALL.name(), new KhuyenMaiGetAllHandler());
+        handlers.put(CommandAction.KHUYENMAI_GET_BY_ID.name(), new KhuyenMaiGetByIdHandler());
+        handlers.put(CommandAction.KHUYENMAI_ADD.name(), new KhuyenMaiAddHandler());
+        handlers.put(CommandAction.KHUYENMAI_UPDATE.name(), new KhuyenMaiUpdateHandler());
+        handlers.put(CommandAction.KHUYENMAI_DELETE.name(), new KhuyenMaiDeleteHandler());
+        handlers.put(CommandAction.KHUYENMAI_USE.name(), new KhuyenMaiUseHandler());
+
         // ===== Dashboard nhân viên / giao ca =====
         handlers.put(CommandAction.GIAOCA_DASHBOARD_LOAD.name(), new GiaoCaDashboardLoadHandler());
         handlers.put(CommandAction.GIAOCA_START.name(), new GiaoCaStartHandler());

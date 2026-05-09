@@ -46,6 +46,7 @@ public enum CommandAction {
     KHUYENMAI_ADD,
     KHUYENMAI_UPDATE,
     KHUYENMAI_DELETE,
+    KHUYENMAI_USE,
 
     // ===== Danh mục món / Món ăn (admin) =====
     DANHMUCMON_GET_ALL,

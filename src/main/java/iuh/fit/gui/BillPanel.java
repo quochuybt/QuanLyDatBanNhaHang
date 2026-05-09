@@ -10,12 +10,12 @@ import iuh.fit.core.dto.NhanVienDTO;
 import iuh.fit.core.mapper.JsonMapper;
 import iuh.fit.core.net.client.NhanVienRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
+import iuh.fit.core.net.client.KhuyenMaiRemoteService;
 import iuh.fit.core.service.BanService;
 import iuh.fit.core.service.ChiTietHoaDonService;
 import iuh.fit.core.service.DonDatMonService;
 import iuh.fit.core.service.HoaDonService;
 import iuh.fit.core.service.KhachHangService;
-import iuh.fit.core.service.KhuyenMaiService;
 import iuh.fit.core.service.MonAnService;
 
 import javax.swing.*;
@@ -55,7 +55,7 @@ public class BillPanel extends JPanel {
     private NhanVienRemoteService nhanVienRemoteService;
     private MonAnService monAnService;
     private KhachHangService khachHangService;
-    private KhuyenMaiService khuyenMaiService;
+    private KhuyenMaiRemoteService khuyenMaiRemoteService;
     private DonDatMonService donDatMonService;
 
     private long currentTotal = 0;
@@ -89,9 +89,11 @@ public class BillPanel extends JPanel {
         this.hoaDonService = new HoaDonService();
         this.banService = new BanService();
         this.khachHangService = new KhachHangService();
-        this.khuyenMaiService = new KhuyenMaiService();
         this.nhanVienRemoteService = NetClientContext.isReady()
                 ? new NhanVienRemoteService(NetClientContext.getConnection())
+                : null;
+        this.khuyenMaiRemoteService = NetClientContext.isReady()
+                ? new KhuyenMaiRemoteService(NetClientContext.getConnection())
                 : null;
         this.monAnService = new MonAnService();
         this.donDatMonService = new DonDatMonService();
@@ -439,8 +441,8 @@ public class BillPanel extends JPanel {
 
                 maKM = activeHoaDon.getMaKM();
 
-                if (maKM != null && !maKM.isEmpty()) {
-                    khuyenMaiService.useKhuyenMai(maKM);
+                if (maKM != null && !maKM.isEmpty() && khuyenMaiRemoteService != null) {
+                    khuyenMaiRemoteService.useKhuyenMai(maKM);
                 }
 
             } else {

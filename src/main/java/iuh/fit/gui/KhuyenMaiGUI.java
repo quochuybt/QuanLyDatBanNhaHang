@@ -1,8 +1,10 @@
 package iuh.fit.gui;
 
 import com.toedter.calendar.JDateChooser;
+import iuh.fit.core.dto.KhuyenMaiDTO;
 import iuh.fit.core.entity.KhuyenMai;
-import iuh.fit.core.service.KhuyenMaiService;
+import iuh.fit.core.net.client.KhuyenMaiRemoteService;
+import iuh.fit.core.net.client.NetClientContext;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -35,12 +37,15 @@ public class KhuyenMaiGUI extends JPanel {
     private JComboBox<String> cbxLoc;
     private JTextField txtTimKiem;
 
-    private final KhuyenMaiService khuyenMaiService;
+    private final KhuyenMaiRemoteService khuyenMaiRemoteService;
     private List<KhuyenMai> dsKhuyenMai;
     private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public KhuyenMaiGUI() {
-        this.khuyenMaiService = new KhuyenMaiService();
+        if (!NetClientContext.isReady()) {
+            throw new IllegalStateException("Không có kết nối remote cho màn khuyến mãi.");
+        }
+        this.khuyenMaiRemoteService = new KhuyenMaiRemoteService(NetClientContext.getConnection());
 
         setLayout(new BorderLayout(10, 15));
         setBackground(COLOR_BACKGROUND);
@@ -56,7 +61,9 @@ public class KhuyenMaiGUI extends JPanel {
     }
 
     private void loadDataToTable() {
-        updateTable(khuyenMaiService.findAll());
+        List<KhuyenMaiDTO> dtos = khuyenMaiRemoteService.findAll();
+        List<KhuyenMai> entities = dtos.stream().map(KhuyenMaiDTO::toEntity).collect(Collectors.toList());
+        updateTable(entities);
     }
 
     private void updateTable(List<KhuyenMai> ds) {
@@ -248,7 +255,9 @@ public class KhuyenMaiGUI extends JPanel {
         String tuKhoa = txtTimKiem.getText().trim();
         String trangThai = (String) cbxLoc.getSelectedItem();
 
-        List<KhuyenMai> ketQua = khuyenMaiService.findAll();
+        List<KhuyenMai> ketQua = khuyenMaiRemoteService.findAll().stream()
+                .map(KhuyenMaiDTO::toEntity)
+                .collect(Collectors.toList());
 
         if (ketQua == null) {
             updateTable(null);
@@ -306,7 +315,7 @@ public class KhuyenMaiGUI extends JPanel {
                 }
 
                 km.setTrangThai("Ngưng áp dụng");
-                khuyenMaiService.update(km);
+                khuyenMaiRemoteService.update(KhuyenMaiDTO.fromEntity(km));
 
                 JOptionPane.showMessageDialog(this, "Đã cập nhật trạng thái thành công.");
                 loadDataToTable();
@@ -507,9 +516,9 @@ public class KhuyenMaiGUI extends JPanel {
                 }
 
                 if (km == null) {
-                    khuyenMaiService.add(kmMoi);
+                    khuyenMaiRemoteService.add(KhuyenMaiDTO.fromEntity(kmMoi));
                 } else {
-                    khuyenMaiService.update(kmMoi);
+                    khuyenMaiRemoteService.update(KhuyenMaiDTO.fromEntity(kmMoi));
                 }
 
                 JOptionPane.showMessageDialog(dialog, "Lưu thành công!");

@@ -5,6 +5,7 @@ import iuh.fit.core.entity.Ban;
 import iuh.fit.core.entity.TrangThaiBan;
 import iuh.fit.core.mapper.JsonMapper;
 import iuh.fit.core.net.client.BanRemoteService;
+import iuh.fit.core.net.client.KhuyenMaiRemoteService;
 import iuh.fit.core.net.client.SocketClientConnection;
 import iuh.fit.core.service.*;
 
@@ -41,7 +42,7 @@ public class ManHinhBanGUI extends JPanel {
      */
     private final HoaDonService hoaDonService = new HoaDonService();
     private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
-    private final KhuyenMaiService khuyenMaiService = new KhuyenMaiService();
+    private final KhuyenMaiRemoteService khuyenMaiRemoteService;
     private final KhachHangService khachHangService = new KhachHangService();
     private final DonDatMonService donDatMonService = new DonDatMonService();
 
@@ -141,6 +142,7 @@ public class ManHinhBanGUI extends JPanel {
         this.banRemoteService = new BanRemoteService(
                 Objects.requireNonNull(socketConnection, "SocketClientConnection không được null.")
         );
+        this.khuyenMaiRemoteService = new KhuyenMaiRemoteService(socketConnection);
 
         buildUI();
         khoiTaoTuDongCapNhat();
@@ -1116,7 +1118,7 @@ public class ManHinhBanGUI extends JPanel {
         }
 
         try {
-            KhuyenMaiDTO km = khuyenMaiService.findByIdDTO(maKMInput);
+            KhuyenMaiDTO km = khuyenMaiRemoteService.findById(maKMInput);
 
             if (km == null) {
                 JOptionPane.showMessageDialog(
