@@ -36,7 +36,21 @@ public class AuthLoginHandler extends BaseCommandHandler implements CommandHandl
             }
 
             // 3) Xác thực tài khoản qua service nghiệp vụ hiện có
-            taiKhoanService.login(dto.getTenTK(), dto.getMatKhau());
+            try {
+                taiKhoanService.login(dto.getTenTK(), dto.getMatKhau());
+            } catch (RuntimeException e) {
+                String msg = e.getMessage() != null ? e.getMessage() : "";
+                // Phân biệt lỗi DB và lỗi nghiệp vụ
+                if (msg.contains("Unable to acquire JDBC") || msg.contains("Connection refused")
+                        || msg.contains("Access denied") || msg.contains("Communications link")
+                        || e.getCause() != null && e.getCause().getMessage() != null
+                        && e.getCause().getMessage().contains("Access denied")) {
+                    LOGGER.error("[AuthLogin] Lỗi kết nối database: {}", msg);
+                    return serverError(request, "Không thể kết nối cơ sở dữ liệu. Vui lòng kiểm tra cấu hình server.");
+                }
+                throw e; // re-throw lỗi nghiệp vụ bình thường
+            }
+
             NhanVien nv = nhanVienRepository.findByTenTK(dto.getTenTK());
 
             // 4) Map dữ liệu trả về cho client

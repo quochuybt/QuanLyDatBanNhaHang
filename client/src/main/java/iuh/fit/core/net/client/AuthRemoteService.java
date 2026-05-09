@@ -21,7 +21,7 @@ public class AuthRemoteService extends BaseRemoteService {
                 .build();
 
         // 2) Gửi command AUTH_LOGIN qua socket
-        MessageEnvelope response = connection.sendCommand(CommandAction.AUTH_LOGIN.name(), req, 15000);
+        MessageEnvelope response = connection.sendCommand(CommandAction.AUTH_LOGIN.name(), req, 5000);
         ensureSuccess(response, "Đăng nhập thất bại");
 
         // 4) Map payload thành DTO kết quả login
