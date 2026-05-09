@@ -16,7 +16,7 @@ import java.util.Set;
 @Builder
 @ToString
 @Table(name = "Ban")
-public class Ban {
+public class Ban extends BaseEntity {
     @Id
     private String maBan;
     private static int soThuTuBan = 1;

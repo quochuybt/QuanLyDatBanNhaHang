@@ -17,7 +17,7 @@ import java.util.Set;
 @NoArgsConstructor
 @Entity
 @Table(name = "KhachHang")
-public class KhachHang {
+public class KhachHang extends BaseEntity {
 
     @Id
     @Column(name = "maKH", length = 20)

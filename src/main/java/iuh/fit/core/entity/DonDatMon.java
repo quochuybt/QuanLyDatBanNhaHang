@@ -14,7 +14,7 @@ import java.util.Random;
 @NoArgsConstructor
 @Entity
 @Table(name = "DonDatMon")
-public class DonDatMon {
+public class DonDatMon extends BaseEntity {
 
     @Id
     @Column(name = "maDon", length = 20)

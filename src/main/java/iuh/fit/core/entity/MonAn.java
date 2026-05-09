@@ -12,7 +12,7 @@ import java.util.Set;
 @NoArgsConstructor
 @Entity
 @Table(name = "MonAn")
-public class MonAn {
+public class MonAn extends BaseEntity {
 
     @Id
     @Column(name = "maMonAn", length = 20)

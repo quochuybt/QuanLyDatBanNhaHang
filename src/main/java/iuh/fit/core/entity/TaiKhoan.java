@@ -10,7 +10,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Entity
 @Table(name = "TaiKhoan")
-public class TaiKhoan {
+public class TaiKhoan extends BaseEntity {
 
     @Id
     @Column(name = "tenTK", length = 50)

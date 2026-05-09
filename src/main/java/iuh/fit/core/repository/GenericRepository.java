@@ -78,7 +78,12 @@ public abstract class   GenericRepository<T, ID> {
     public void delete(ID id) {
         doInTransaction(em -> {
             T entity = em.find(entityClass, id);
-            if (entity != null) em.remove(entity);
+            if (entity instanceof iuh.fit.core.entity.BaseEntity base) {
+                base.softDelete();
+                em.merge(entity);
+            } else if (entity != null) {
+                em.remove(entity);
+            }
         });
     }
 

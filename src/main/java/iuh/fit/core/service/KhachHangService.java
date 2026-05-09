@@ -119,7 +119,8 @@ public class KhachHangService {
             throw new IllegalArgumentException("Khách hàng '" + maKH + "' không tồn tại.");
         }
 
-        khachHangRepo.delete(maKH.trim());
+        kh.softDelete();
+        khachHangRepo.update(kh);
     }
 
     public List<KhachHang> search(String keyword) {

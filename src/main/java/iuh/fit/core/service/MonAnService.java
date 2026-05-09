@@ -78,8 +78,10 @@ public class MonAnService {
     }
 
     public void delete(String maMon) {
-        if (repo.findById(maMon) == null)
+        MonAn m = repo.findById(maMon);
+        if (m == null)
             throw new IllegalArgumentException("Món ăn không tồn tại");
-        repo.delete(maMon);
+        m.softDelete();
+        repo.update(m);
     }
 }

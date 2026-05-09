@@ -15,7 +15,7 @@ import java.time.LocalTime;
 @Builder
 @ToString
 @Table(name = "CaLam")
-public class CaLam {
+public class CaLam extends BaseEntity {
     @Id
     private String maCa;
     private String tenCa;

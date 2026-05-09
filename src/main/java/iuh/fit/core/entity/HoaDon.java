@@ -15,7 +15,7 @@ import java.util.concurrent.ThreadLocalRandom;
 @NoArgsConstructor
 @Entity
 @Table(name = "HoaDon")
-public class HoaDon {
+public class HoaDon extends BaseEntity {
 
     @Id
     @Column(name = "maHD", length = 20)

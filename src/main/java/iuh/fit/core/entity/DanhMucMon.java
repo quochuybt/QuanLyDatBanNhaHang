@@ -14,7 +14,7 @@ import java.util.Set;
 @Builder
 @ToString(exclude = "monAns")
 @Table(name = "DanhMucMon")
-public class DanhMucMon {
+public class DanhMucMon extends BaseEntity {
     @Id
     @Column(name = "madm", length = 20)
     private String madm;

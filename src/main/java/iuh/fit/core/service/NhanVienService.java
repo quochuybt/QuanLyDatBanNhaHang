@@ -55,7 +55,8 @@ public class NhanVienService {
         if (nv == null) {
             throw new IllegalArgumentException("Nhân viên '" + maNV + "' không tồn tại.");
         }
-        nhanVienRepo.delete(maNV);
+        nv.softDelete();
+        nhanVienRepo.update(nv);
     }
 
     public int getAccountStatus(String tenTK) {
@@ -144,7 +145,12 @@ public class NhanVienService {
 
         nhanVienRepo.update(nvMoi);
         taiKhoanRepo.save(tkMoi);
-        taiKhoanRepo.delete(oldTenTK);
+        // Soft-delete tài khoản cũ thay vì xóa cứng
+        TaiKhoan tkCuCanXoa = taiKhoanRepo.findById(oldTenTK);
+        if (tkCuCanXoa != null) {
+            tkCuCanXoa.softDelete();
+            taiKhoanRepo.update(tkCuCanXoa);
+        }
     }
 
     public void activateNhanVienAccount(String tenTK) {

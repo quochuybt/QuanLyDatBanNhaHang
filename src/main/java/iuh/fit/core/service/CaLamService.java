@@ -67,8 +67,8 @@ public class CaLamService {
         if (caLamTonTai == null) {
             throw new IllegalArgumentException("Không tìm thấy ca làm có mã: " + caLamDTO.getMaCa());
         }
-        CaLam caLam = toEntity(caLamDTO);
-        caLamRepository.delete(caLam.getMaCa());
+        caLamTonTai.softDelete();
+        caLamRepository.update(caLamTonTai);
         return true;
     }
 
