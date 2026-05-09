@@ -4,6 +4,8 @@ import iuh.fit.core.net.protocol.ErrorCode;
 import iuh.fit.core.net.protocol.JsonCodec;
 import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.net.protocol.MessageType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -14,6 +16,7 @@ import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 public class SocketClientConnection {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SocketClientConnection.class);
     private final String host;
     private final int port;
     private final int connectTimeoutMs;
@@ -99,6 +102,7 @@ public class SocketClientConnection {
             );
         } catch (Exception e) {
             pendingResponses.remove(request.getMessageId());
+            LOGGER.error("[SocketClient] Gửi command thất bại: {} | {}", actionName, e.getMessage(), e);
             throw new RuntimeException("Gửi command thất bại", e);
         }
     }
