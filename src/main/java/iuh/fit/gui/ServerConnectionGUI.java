@@ -17,6 +17,9 @@ public class ServerConnectionGUI extends JFrame {
     private final JLabel lblStatus = new JLabel("Trạng thái: Chưa quét server");
     private final JButton btnScan = new JButton("Quét server");
     private final JButton btnConnect = new JButton("Kết nối");
+    private final JTextField txtManualHost = new JTextField("192.168.1.", 15);
+    private final JTextField txtManualPort = new JTextField("9090", 5);
+    private final JButton btnManualConnect = new JButton("Kết nối thủ công");
 
     public ServerConnectionGUI() {
         setTitle("Kết nối Server - StarGuardian Restaurant");
@@ -59,6 +62,17 @@ public class ServerConnectionGUI extends JFrame {
 
         btnScan.addActionListener(e -> scanServers());
         btnConnect.addActionListener(e -> connectSelectedServer());
+        btnManualConnect.addActionListener(e -> connectManual());
+
+        // Panel nhập IP thủ công
+        JPanel manualPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        manualPanel.setBorder(BorderFactory.createTitledBorder("Kết nối thủ công (nếu không tìm thấy server)"));
+        manualPanel.add(new JLabel("IP:"));
+        manualPanel.add(txtManualHost);
+        manualPanel.add(new JLabel("Port:"));
+        manualPanel.add(txtManualPort);
+        manualPanel.add(btnManualConnect);
+        bottom.add(manualPanel, BorderLayout.CENTER);
 
         SwingUtilities.invokeLater(this::scanServers);
     }
@@ -113,6 +127,64 @@ public class ServerConnectionGUI extends JFrame {
                 } catch (Exception ex) {
                     lblStatus.setText("Trạng thái: Lỗi quét server");
                     lblStatus.setForeground(Color.RED);
+                }
+            }
+        }.execute();
+    }
+
+    private void connectManual() {
+        String host = txtManualHost.getText().trim();
+        String portStr = txtManualPort.getText().trim();
+
+        if (host.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập địa chỉ IP server.");
+            return;
+        }
+
+        int port;
+        try {
+            port = Integer.parseInt(portStr);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Port không hợp lệ.");
+            return;
+        }
+
+        btnManualConnect.setEnabled(false);
+        lblStatus.setText("Trạng thái: Đang kết nối " + host + ":" + port + "...");
+
+        final int finalPort = port;
+        new SwingWorker<SocketClientConnection, Void>() {
+            @Override
+            protected SocketClientConnection doInBackground() {
+                SocketClientConnection connection = new SocketClientConnection(host, finalPort, 5000, 15000);
+                connection.connect();
+                return connection;
+            }
+
+            @Override
+            protected void done() {
+                btnManualConnect.setEnabled(true);
+                try {
+                    SocketClientConnection connection = get();
+                    DiscoveredServer server = DiscoveredServer.builder()
+                            .serviceName("Manual")
+                            .host(host)
+                            .port(finalPort)
+                            .version("N/A")
+                            .discoverySource("Manual")
+                            .build();
+                    NetClientContext.set(connection, server);
+                    lblStatus.setText("Trạng thái: Đã kết nối " + host + ":" + finalPort);
+                    dispose();
+                    SwingUtilities.invokeLater(() -> new TaiKhoanGUI(connection, server).setVisible(true));
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(
+                            ServerConnectionGUI.this,
+                            "Không thể kết nối " + host + ":" + finalPort + "\nChi tiết: " + ex.getMessage(),
+                            "Lỗi kết nối",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                    lblStatus.setText("Trạng thái: Kết nối thất bại");
                 }
             }
         }.execute();
