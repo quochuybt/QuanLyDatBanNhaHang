@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -132,13 +133,19 @@ public class SocketClientConnection {
         readerThread = new Thread(() -> {
             try {
                 String line;
-                while (running.get() && (line = in.readLine()) != null) {
-                    // Reader loop là trung tâm nhận RESPONSE/EVENT từ server
-                    MessageEnvelope message = JsonCodec.fromJson(line, MessageEnvelope.class);
-                    handleIncoming(message);
+                while (running.get()) {
+                    try {
+                        line = in.readLine();
+                        if (line == null) break; // server đóng kết nối
+                        MessageEnvelope message = JsonCodec.fromJson(line, MessageEnvelope.class);
+                        handleIncoming(message);
+                    } catch (SocketTimeoutException ignored) {
+                        // Timeout đọc bình thường — không có data, tiếp tục loop
+                    }
                 }
             } catch (Exception e) {
                 if (running.get()) {
+                    LOGGER.warn("[SocketClient] Mất kết nối server: {}", e.getMessage());
                     listeners.forEach(l -> l.onDisconnected(e));
                 }
             } finally {
