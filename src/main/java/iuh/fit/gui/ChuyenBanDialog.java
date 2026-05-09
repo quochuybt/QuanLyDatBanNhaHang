@@ -1,10 +1,9 @@
 package iuh.fit.gui;
 
-
 import iuh.fit.core.dto.BanDTO;
-import iuh.fit.core.entity.Ban;
 import iuh.fit.core.entity.TrangThaiBan;
-import iuh.fit.core.service.BanService;
+import iuh.fit.core.net.client.BanRemoteService;
+import iuh.fit.core.net.client.SocketClientConnection;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -14,10 +13,12 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class ChuyenBanDialog extends JDialog {
 
-    private List<BanDTO> allTablesFromDB;
+    private List<BanDTO> allTablesFromDB = new ArrayList<>();
+
     private BanDTO selectedSourceTable = null;
     private BanDTO selectedTargetTable = null;
 
@@ -27,24 +28,20 @@ public class ChuyenBanDialog extends JDialog {
     private String currentLeftFilter = "Tất cả";
     private String currentRightFilter = "Tất cả";
 
-    private List<BanPanel> leftBanPanelList = new ArrayList<>();
-    private List<BanPanel> rightBanPanelList = new ArrayList<>();
+    private final List<BanPanel> leftBanPanelList = new ArrayList<>();
+    private final List<BanPanel> rightBanPanelList = new ArrayList<>();
 
-    private final BanService banService = new BanService();
+    private final BanRemoteService banRemoteService;
 
-    public ChuyenBanDialog(Window parent) {
+    private JButton btnHuyBo;
+    private JButton btnChuyen;
+
+    public ChuyenBanDialog(Window parent, SocketClientConnection socketConnection) {
         super(parent, ModalityType.APPLICATION_MODAL);
 
-        try {
-            this.allTablesFromDB = banService.getAllBan();
-
-            System.out.println("Dialog Chuyển Bàn: Tải thành công "
-                    + allTablesFromDB.size() + " bàn.");
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            this.allTablesFromDB = new ArrayList<>();
-        }
+        this.banRemoteService = new BanRemoteService(
+                Objects.requireNonNull(socketConnection, "SocketClientConnection không được null.")
+        );
 
         setUndecorated(true);
         setBackground(new Color(0, 0, 0, 100));
@@ -80,8 +77,47 @@ public class ChuyenBanDialog extends JDialog {
             setLocationRelativeTo(null);
         }
 
-        populateLeftPanel(currentLeftFilter);
-        populateRightPanel(currentRightFilter);
+        loadTablesAsync();
+    }
+
+    private void loadTablesAsync() {
+        setBusy(true);
+
+        new SwingWorker<List<BanDTO>, Void>() {
+            @Override
+            protected List<BanDTO> doInBackground() {
+                return banRemoteService.getAllBan();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<BanDTO> data = get();
+                    allTablesFromDB = data != null ? data : new ArrayList<>();
+
+                    System.out.println("[Client] Dialog Chuyển Bàn: tải thành công "
+                            + allTablesFromDB.size()
+                            + " bàn qua socket.");
+
+                    populateLeftPanel(currentLeftFilter);
+                    populateRightPanel(currentRightFilter);
+
+                } catch (Exception e) {
+                    allTablesFromDB = new ArrayList<>();
+                    populateLeftPanel(currentLeftFilter);
+                    populateRightPanel(currentRightFilter);
+
+                    JOptionPane.showMessageDialog(
+                            ChuyenBanDialog.this,
+                            "Lỗi tải danh sách bàn: " + getRootMessage(e),
+                            "Lỗi dữ liệu",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                } finally {
+                    setBusy(false);
+                }
+            }
+        }.execute();
     }
 
     private JPanel createTitleBar() {
@@ -109,11 +145,11 @@ public class ChuyenBanDialog extends JDialog {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         buttonPanel.setOpaque(false);
 
-        JButton btnHuyBo = new JButton("Hủy bỏ");
+        btnHuyBo = new JButton("Hủy bỏ");
         styleDefaultButton(btnHuyBo);
         btnHuyBo.addActionListener(e -> dispose());
 
-        JButton btnChuyen = new JButton("Chuyển");
+        btnChuyen = new JButton("Chuyển");
         stylePrimaryButton(btnChuyen);
         btnChuyen.addActionListener(e -> xuLyChuyenBan());
 
@@ -225,12 +261,24 @@ public class ChuyenBanDialog extends JDialog {
     }
 
     private void populateLeftPanel(String khuVucFilter) {
+        if (leftTableContainer == null) {
+            return;
+        }
+
         leftTableContainer.removeAll();
         leftBanPanelList.clear();
 
         boolean targetStillVisible = false;
 
+        if (allTablesFromDB == null) {
+            allTablesFromDB = new ArrayList<>();
+        }
+
         for (BanDTO ban : allTablesFromDB) {
+            if (ban == null) {
+                continue;
+            }
+
             boolean khuVucMatch = khuVucFilter.equals("Tất cả")
                     || khuVucFilter.equals(ban.getKhuVuc());
 
@@ -267,12 +315,24 @@ public class ChuyenBanDialog extends JDialog {
     }
 
     private void populateRightPanel(String khuVucFilter) {
+        if (rightTableContainer == null) {
+            return;
+        }
+
         rightTableContainer.removeAll();
         rightBanPanelList.clear();
 
         boolean sourceStillVisible = false;
 
+        if (allTablesFromDB == null) {
+            allTablesFromDB = new ArrayList<>();
+        }
+
         for (BanDTO ban : allTablesFromDB) {
+            if (ban == null) {
+                continue;
+            }
+
             boolean khuVucMatch = khuVucFilter.equals("Tất cả")
                     || khuVucFilter.equals(ban.getKhuVuc());
 
@@ -312,6 +372,10 @@ public class ChuyenBanDialog extends JDialog {
     }
 
     private void handleSelectSource(BanDTO ban, BanPanel clickedPanel) {
+        if (ban == null || ban.getMaBan() == null) {
+            return;
+        }
+
         if (isSameBan(selectedSourceTable, ban)) {
             selectedSourceTable = null;
             clickedPanel.setSelected(false);
@@ -328,6 +392,10 @@ public class ChuyenBanDialog extends JDialog {
     }
 
     private void handleSelectTarget(BanDTO ban, BanPanel clickedPanel) {
+        if (ban == null || ban.getMaBan() == null) {
+            return;
+        }
+
         if (isSameBan(selectedTargetTable, ban)) {
             selectedTargetTable = null;
             clickedPanel.setSelected(false);
@@ -347,7 +415,7 @@ public class ChuyenBanDialog extends JDialog {
         if (selectedSourceTable == null) {
             JOptionPane.showMessageDialog(
                     this,
-                    "Vui lòng chọn bàn cần chuyển (Bên trái)!",
+                    "Vui lòng chọn bàn cần chuyển!",
                     "Chưa chọn bàn nguồn",
                     JOptionPane.WARNING_MESSAGE
             );
@@ -357,7 +425,7 @@ public class ChuyenBanDialog extends JDialog {
         if (selectedTargetTable == null) {
             JOptionPane.showMessageDialog(
                     this,
-                    "Vui lòng chọn bàn mới để đến (Bên phải)!",
+                    "Vui lòng chọn bàn mới để chuyển đến!",
                     "Chưa chọn bàn đích",
                     JOptionPane.WARNING_MESSAGE
             );
@@ -379,48 +447,53 @@ public class ChuyenBanDialog extends JDialog {
             return;
         }
 
-        boolean ketQua = thucHienChuyenBanTrongDB(selectedSourceTable, selectedTargetTable);
-
-        if (ketQua) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Chuyển bàn thành công!",
-                    "Thông báo",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-
-            dispose();
-        } else {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Chuyển bàn thất bại! Vui lòng kiểm tra lại.",
-                    "Lỗi",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+        thucHienChuyenBanQuaSocket(selectedSourceTable, selectedTargetTable);
     }
 
-    private boolean thucHienChuyenBanTrongDB(BanDTO banCu, BanDTO banMoi) {
-        try {
-            return banService.chuyenBan(banCu, banMoi);
-        } catch (IllegalArgumentException e) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    e.getMessage(),
-                    "Lỗi dữ liệu",
-                    JOptionPane.WARNING_MESSAGE
-            );
-            return false;
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Lỗi hệ thống khi chuyển bàn: " + e.getMessage(),
-                    "Lỗi",
-                    JOptionPane.ERROR_MESSAGE
-            );
-            return false;
-        }
+    private void thucHienChuyenBanQuaSocket(BanDTO banCu, BanDTO banMoi) {
+        setBusy(true);
+
+        new SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() {
+                return banRemoteService.chuyenBan(banCu, banMoi);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    boolean ketQua = Boolean.TRUE.equals(get());
+
+                    if (ketQua) {
+                        JOptionPane.showMessageDialog(
+                                ChuyenBanDialog.this,
+                                "Chuyển bàn thành công!",
+                                "Thông báo",
+                                JOptionPane.INFORMATION_MESSAGE
+                        );
+
+                        dispose();
+                    } else {
+                        JOptionPane.showMessageDialog(
+                                ChuyenBanDialog.this,
+                                "Chuyển bàn thất bại! Vui lòng kiểm tra lại.",
+                                "Lỗi",
+                                JOptionPane.ERROR_MESSAGE
+                        );
+                        setBusy(false);
+                    }
+
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(
+                            ChuyenBanDialog.this,
+                            "Lỗi hệ thống khi chuyển bàn: " + getRootMessage(e),
+                            "Lỗi",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                    setBusy(false);
+                }
+            }
+        }.execute();
     }
 
     private boolean isSameBan(BanDTO a, BanDTO b) {
@@ -435,21 +508,37 @@ public class ChuyenBanDialog extends JDialog {
         return a.getMaBan().equals(b.getMaBan());
     }
 
-    private Ban toBanEntityForPanel(BanDTO dto) {
-        if (dto == null) {
-            return null;
+    private void setBusy(boolean busy) {
+        setCursor(busy
+                ? Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
+                : Cursor.getDefaultCursor()
+        );
+
+        if (btnChuyen != null) {
+            btnChuyen.setEnabled(!busy);
         }
 
-        Ban ban = new Ban();
+        if (btnHuyBo != null) {
+            btnHuyBo.setEnabled(!busy);
+        }
 
-        ban.setMaBan(dto.getMaBan());
-        ban.setTenBan(dto.getTenBan());
-        ban.setSoGhe(dto.getSoGhe());
-        ban.setTrangThai(dto.getTrangThai());
-        ban.setGioMoBan(dto.getGioMoBan());
-        ban.setKhuVuc(dto.getKhuVuc());
+        if (leftTableContainer != null) {
+            leftTableContainer.setEnabled(!busy);
+        }
 
-        return ban;
+        if (rightTableContainer != null) {
+            rightTableContainer.setEnabled(!busy);
+        }
+    }
+
+    private String getRootMessage(Exception e) {
+        Throwable t = e;
+
+        while (t.getCause() != null) {
+            t = t.getCause();
+        }
+
+        return t.getMessage() != null ? t.getMessage() : e.getMessage();
     }
 
     private void stylePrimaryButton(JButton b) {

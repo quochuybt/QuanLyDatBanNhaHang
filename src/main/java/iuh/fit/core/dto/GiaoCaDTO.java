@@ -48,6 +48,10 @@ public class GiaoCaDTO {
     private String ghiChu;
 
     public static GiaoCaDTO fromEntity(GiaoCa entity) {
+        if (entity == null) {
+            return null;
+        }
+
         return GiaoCaDTO.builder()
                 .maGiaoCa(entity.getMaGiaoCa())
                 .maNV(entity.getMaNV())

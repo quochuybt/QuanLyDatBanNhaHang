@@ -52,6 +52,10 @@ public class KhachHangDTO {
     private String email;
 
     public static KhachHangDTO fromEntity(KhachHang kh) {
+        if (kh == null) {
+            return null;
+        }
+
         return KhachHangDTO.builder()
                 .maKH(kh.getMaKH())
                 .tenKH(kh.getTenKH())

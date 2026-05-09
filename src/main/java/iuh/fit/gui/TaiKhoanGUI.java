@@ -176,7 +176,7 @@ public class TaiKhoanGUI extends JFrame {
 
                             dispose();
                             SwingUtilities.invokeLater(() -> {
-                                MainGUI mainGUI = new MainGUI(userRole, userName, maNV);
+                                MainGUI mainGUI = new MainGUI(userRole, userName, maNV, connection);
                                 mainGUI.setVisible(true);
                             });
                         } catch (Exception ex) {

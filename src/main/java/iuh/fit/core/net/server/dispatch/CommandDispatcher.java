@@ -3,23 +3,7 @@ package iuh.fit.core.net.server.dispatch;
 import iuh.fit.core.net.protocol.CommandAction;
 import iuh.fit.core.net.protocol.ErrorCode;
 import iuh.fit.core.net.protocol.MessageEnvelope;
-import iuh.fit.core.net.server.handler.AuthLoginHandler;
-import iuh.fit.core.net.server.handler.DashboardDailyRevenueHandler;
-import iuh.fit.core.net.server.handler.DashboardLeastSellingHandler;
-import iuh.fit.core.net.server.handler.DashboardTableStatusHandler;
-import iuh.fit.core.net.server.handler.DashboardTopSellingHandler;
-import iuh.fit.core.net.server.handler.BanChuyenBanHandler;
-import iuh.fit.core.net.server.handler.BanGhepBanHandler;
-import iuh.fit.core.net.server.handler.BanUpdateStatusHandler;
-import iuh.fit.core.net.server.handler.HoaDonGetByPageHandler;
-import iuh.fit.core.net.server.handler.HoaDonGetDetailHandler;
-import iuh.fit.core.net.server.handler.HoaDonGetTotalHandler;
-import iuh.fit.core.net.server.handler.KhachHangAddHandler;
-import iuh.fit.core.net.server.handler.KhachHangSearchHandler;
-import iuh.fit.core.net.server.handler.KhachHangUpdateHandler;
-import iuh.fit.core.net.server.handler.PhanCongAddHandler;
-import iuh.fit.core.net.server.handler.PhanCongListByDateHandler;
-import iuh.fit.core.net.server.handler.PhanCongRemoveHandler;
+import iuh.fit.core.net.server.handler.*;
 import iuh.fit.core.net.server.session.ClientSession;
 import iuh.fit.core.net.server.session.SessionRegistry;
 
@@ -37,6 +21,10 @@ public class CommandDispatcher {
         handlers.put(CommandAction.HOADON_GET_TOTAL.name(), new HoaDonGetTotalHandler());
         handlers.put(CommandAction.HOADON_GET_DETAIL.name(), new HoaDonGetDetailHandler());
 
+        handlers.put(CommandAction.HOADON_GET_CHUA_THANH_TOAN_BY_BAN.name(), new HoaDonGetChuaThanhToanByBanHandler());
+        handlers.put(CommandAction.HOADON_MO_BAN_TAO_HOA_DON.name(), new HoaDonMoBanTaoHoaDonHandler());
+        handlers.put(CommandAction.HOADON_CAP_NHAT_TONG_TIEN.name(), new HoaDonCapNhatTongTienHandler());
+
         // ===== Dashboard (read) =====
         handlers.put(CommandAction.DASHBOARD_DAILY_REVENUE.name(), new DashboardDailyRevenueHandler());
         handlers.put(CommandAction.DASHBOARD_TOP_SELLING.name(), new DashboardTopSellingHandler());
@@ -48,6 +36,7 @@ public class CommandDispatcher {
         handlers.put(CommandAction.PHANCONG_REMOVE.name(), new PhanCongRemoveHandler());
         handlers.put(CommandAction.PHANCONG_LIST_BY_DATE.name(), new PhanCongListByDateHandler());
 
+        handlers.put(CommandAction.BAN_GET_ALL.name(), new BanGetAllHandler());
         handlers.put(CommandAction.BAN_UPDATE_STATUS.name(), new BanUpdateStatusHandler());
         handlers.put(CommandAction.BAN_CHUYEN_BAN.name(), new BanChuyenBanHandler());
         handlers.put(CommandAction.BAN_GHEP_BAN.name(), new BanGhepBanHandler());
@@ -55,6 +44,45 @@ public class CommandDispatcher {
         handlers.put(CommandAction.KHACHHANG_ADD.name(), new KhachHangAddHandler());
         handlers.put(CommandAction.KHACHHANG_UPDATE.name(), new KhachHangUpdateHandler());
         handlers.put(CommandAction.KHACHHANG_SEARCH.name(), new KhachHangSearchHandler());
+
+        // ===== Dashboard nhân viên / giao ca =====
+        handlers.put(CommandAction.GIAOCA_DASHBOARD_LOAD.name(), new GiaoCaDashboardLoadHandler());
+        handlers.put(CommandAction.GIAOCA_START.name(), new GiaoCaStartHandler());
+        handlers.put(CommandAction.GIAOCA_END.name(), new GiaoCaEndHandler());
+
+        // ===== Đơn đặt món =====
+        handlers.put(CommandAction.DONDATMON_GET_ALL_CHUA_NHAN.name(), new DonDatMonGetAllChuaNhanHandler());
+        handlers.put(CommandAction.DONDATMON_SEARCH_CHUA_NHAN.name(), new DonDatMonSearchChuaNhanHandler());
+        handlers.put(CommandAction.DONDATMON_GET_BAN_DA_DAT_TRONG_KHOANG.name(), new DonDatMonGetBanDaDatTrongKhoangHandler());
+        handlers.put(CommandAction.DONDATMON_SAVE.name(), new DonDatMonSaveHandler());
+        handlers.put(CommandAction.DONDATMON_HUY_DAT_BAN.name(), new DonDatMonHuyDatBanHandler());
+        handlers.put(
+                CommandAction.DONDATMON_GET_DAT_TRUOC_BY_BAN.name(),
+                new DonDatMonGetDatTruocByBanHandler()
+        );
+
+        handlers.put(
+                CommandAction.DONDATMON_GET_CHUA_NHAN_THEO_BAN_BAO_GOM_LINKED.name(),
+                new DonDatMonGetChuaNhanTheoBanBaoGomLinkedHandler()
+        );
+
+        handlers.put(
+                CommandAction.DONDATMON_GET_ALL_CHUA_NHAN_BAO_GOM_LINKED.name(),
+                new DonDatMonGetAllChuaNhanBaoGomLinkedHandler()
+        );
+
+        handlers.put(CommandAction.MONAN_GET_ALL.name(), new MonAnGetAllHandler());
+
+        handlers.put(
+                CommandAction.CHITIETHOADON_GET_BY_MA_DON.name(),
+                new ChiTietHoaDonGetByMaDonHandler()
+        );
+
+        handlers.put(
+                CommandAction.CHITIETHOADON_REPLACE_BY_MA_DON.name(),
+                new ChiTietHoaDonReplaceByMaDonHandler()
+        );
+
     }
 
     public MessageEnvelope dispatch(ClientSession session, MessageEnvelope request) {

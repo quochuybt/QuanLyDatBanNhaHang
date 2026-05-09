@@ -1,6 +1,7 @@
 package iuh.fit.gui;
 
 import iuh.fit.core.entity.VaiTro;
+import iuh.fit.core.net.client.SocketClientConnection;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -11,6 +12,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 public class DashboardGUI extends JFrame {
 
@@ -20,15 +22,18 @@ public class DashboardGUI extends JFrame {
     private final String userRole;
     private final String userName;
     private final String maNV;
+    private final SocketClientConnection connection;
+
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel contentPanel = new JPanel(cardLayout);
     private final Map<String, JPanel> menuButtons = new LinkedHashMap<>();
     private JPanel activeMenuButton;
 
-    public DashboardGUI(String userRole, String userName, String maNV) {
+    public DashboardGUI(String userRole, String userName, String maNV, SocketClientConnection connection) {
         this.userRole = userRole;
         this.userName = userName;
         this.maNV = maNV;
+        this.connection = Objects.requireNonNull(connection, "SocketClientConnection không được null.");
 
         setTitle("StarGuardian Restaurant");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -37,23 +42,27 @@ public class DashboardGUI extends JFrame {
 
         add(buildHeader(), BorderLayout.NORTH);
         add(buildMenu(), BorderLayout.WEST);
+
         setupContentCards();
+
         add(contentPanel, BorderLayout.CENTER);
 
-        String defaultCard = "QUANLY".equalsIgnoreCase(userRole) ? "Dashboard" : "Dashboard";
-        showCard(defaultCard);
+        showCard("Dashboard");
     }
 
     private JPanel buildHeader() {
         JPanel header = new JPanel(new BorderLayout()) {
-            @Override protected void paintComponent(Graphics g) {
+            @Override
+            protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
+
                 Graphics2D g2 = (Graphics2D) g;
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(COLOR_BLUE);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
             }
         };
+
         header.setOpaque(false);
         header.setPreferredSize(new Dimension(0, 50));
         header.setBorder(new EmptyBorder(0, 10, 0, 10));
@@ -61,17 +70,25 @@ public class DashboardGUI extends JFrame {
         JLabel lblTime = new JLabel();
         lblTime.setFont(new Font("Segoe UI", Font.BOLD, 15));
         lblTime.setForeground(Color.WHITE);
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("EEEE, dd/MM/yyyy - HH:mm:ss", new Locale("vi", "VN"));
+
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern(
+                "EEEE, dd/MM/yyyy - HH:mm:ss",
+                new Locale("vi", "VN")
+        );
+
         Timer timer = new Timer(1000, e -> lblTime.setText(LocalDateTime.now().format(dtf)));
         timer.setInitialDelay(0);
         timer.start();
+
         header.add(lblTime, BorderLayout.WEST);
 
         JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 8));
         userPanel.setOpaque(false);
+
         JLabel lblUser = new JLabel(userName + "  |  " + userRole);
         lblUser.setFont(new Font("Arial", Font.BOLD, 14));
         lblUser.setForeground(Color.WHITE);
+
         userPanel.add(lblUser);
         header.add(userPanel, BorderLayout.EAST);
 
@@ -89,6 +106,7 @@ public class DashboardGUI extends JFrame {
         lblApp.setFont(new Font("Arial", Font.BOLD, 18));
         lblApp.setForeground(Color.WHITE);
         lblApp.setAlignmentX(Component.CENTER_ALIGNMENT);
+
         menu.add(lblApp);
         menu.add(Box.createRigidArea(new Dimension(0, 30)));
 
@@ -114,13 +132,21 @@ public class DashboardGUI extends JFrame {
         btnLogout.setFocusPainted(false);
         btnLogout.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnLogout.setMaximumSize(new Dimension(200, 40));
+
         btnLogout.addActionListener(e -> {
-            int choice = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn đăng xuất?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+            int choice = JOptionPane.showConfirmDialog(
+                    this,
+                    "Bạn có chắc muốn đăng xuất?",
+                    "Xác nhận",
+                    JOptionPane.YES_NO_OPTION
+            );
+
             if (choice == JOptionPane.YES_OPTION) {
                 dispose();
                 SwingUtilities.invokeLater(() -> new ServerConnectionGUI().setVisible(true));
             }
         });
+
         menu.add(btnLogout);
         menu.add(Box.createRigidArea(new Dimension(0, 10)));
 
@@ -132,50 +158,52 @@ public class DashboardGUI extends JFrame {
         btn.setBackground(COLOR_BLUE);
         btn.setMaximumSize(new Dimension(220, 48));
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
         JLabel lbl = new JLabel(text);
         lbl.setFont(new Font("Arial", Font.BOLD, 14));
         lbl.setForeground(Color.WHITE);
+
         btn.add(lbl);
+
         btn.addMouseListener(new MouseAdapter() {
-            @Override public void mouseEntered(MouseEvent e) {
-                if (btn != activeMenuButton) btn.setBackground(COLOR_DARK_BLUE);
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (btn != activeMenuButton) {
+                    btn.setBackground(COLOR_DARK_BLUE);
+                }
             }
-            @Override public void mouseExited(MouseEvent e)  {
-                if (btn != activeMenuButton) btn.setBackground(COLOR_BLUE);
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (btn != activeMenuButton) {
+                    btn.setBackground(COLOR_BLUE);
+                }
             }
-            @Override public void mouseClicked(MouseEvent e) {
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
                 showCard(text);
             }
         });
+
         return btn;
-    }
-
-    private JPanel buildContentPlaceholder(String title) {
-        JPanel content = new JPanel(new BorderLayout());
-        content.setBackground(new Color(245, 247, 250));
-
-        JLabel lbl = new JLabel(title, SwingConstants.CENTER);
-        lbl.setFont(new Font("Arial", Font.BOLD, 28));
-        lbl.setForeground(COLOR_DARK_BLUE);
-        content.add(lbl, BorderLayout.CENTER);
-
-        return content;
     }
 
     private void setupContentCards() {
         boolean isManager = "QUANLY".equalsIgnoreCase(userRole);
+
         if (isManager) {
-            addCardSafe("Dashboard",DashboardQuanLyGUI::new);
+            addCardSafe("Dashboard", DashboardQuanLyGUI::new);
             addCardSafe("Nhân viên", NhanVienGUI::new);
             addCardSafe("Lịch làm việc", () -> new LichLamViecGUI(VaiTro.QUANLY));
-            addCardSafe("Hóa đơn",  HoaDonGUI::new);
+            addCardSafe("Hóa đơn", HoaDonGUI::new);
             addCardSafe("Khuyến mãi", KhuyenMaiGUI::new);
         } else {
-            addCardSafe("Dashboard", () -> new DashboardNhanVienGUI(maNV, userName));
-            addCardSafe("Danh sách bàn", () -> new DanhSachBanGUI(this,maNV));
-            addCardSafe("Thành viên", KhachHangGUI::new);
+            addCardSafe("Dashboard", () -> new DashboardNhanVienGUI(maNV, userName, connection));
+            addCardSafe("Danh sách bàn", () -> new DanhSachBanGUI(this, maNV, connection));
+            addCardSafe("Thành viên", () -> new KhachHangGUI(connection));
             addCardSafe("Lịch làm việc", () -> new LichLamViecGUI(VaiTro.NHANVIEN));
-            addCardSafe("Hóa đơn",HoaDonGUI::new);
+            addCardSafe("Hóa đơn", HoaDonGUI::new);
         }
     }
 
@@ -191,21 +219,33 @@ public class DashboardGUI extends JFrame {
     private JPanel buildErrorCard(String cardName, Exception ex) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(new Color(255, 245, 245));
+
         JTextArea area = new JTextArea();
         area.setEditable(false);
         area.setLineWrap(true);
         area.setWrapStyleWord(true);
-        area.setText("Không thể tải màn hình: " + cardName + "\n\n" + ex.getClass().getSimpleName() + ": " + ex.getMessage());
+        area.setText(
+                "Không thể tải màn hình: " + cardName
+                        + "\n\n" + ex.getClass().getSimpleName()
+                        + ": " + ex.getMessage()
+        );
         area.setBorder(new EmptyBorder(20, 20, 20, 20));
+
         panel.add(area, BorderLayout.CENTER);
+
         return panel;
     }
 
     private void showCard(String cardName) {
         cardLayout.show(contentPanel, cardName);
+
         JPanel btn = menuButtons.get(cardName);
+
         if (btn != null) {
-            if (activeMenuButton != null) activeMenuButton.setBackground(COLOR_BLUE);
+            if (activeMenuButton != null) {
+                activeMenuButton.setBackground(COLOR_BLUE);
+            }
+
             activeMenuButton = btn;
             activeMenuButton.setBackground(COLOR_DARK_BLUE);
         }

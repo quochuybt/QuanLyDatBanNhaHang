@@ -2,7 +2,7 @@ package iuh.fit.gui;
 
 import iuh.fit.core.dto.*;
 import iuh.fit.core.entity.TrangThaiBan;
-import iuh.fit.core.service.*;
+import iuh.fit.core.net.client.*;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -14,15 +14,16 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 public class ManHinhGoiMonGUI extends JPanel {
 
-    private final MonAnService monAnService = new MonAnService();
-    private final BanService banService = new BanService();
-    private final HoaDonService hoaDonService = new HoaDonService();
-    private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
-    private final DonDatMonService donDatMonService = new DonDatMonService();
-    private final KhachHangService khachHangService = new KhachHangService();
+    private final MonAnRemoteService monAnRemoteService;
+    private final BanRemoteService banRemoteService;
+    private final HoaDonGoiMonRemoteService hoaDonRemoteService;
+    private final ChiTietHoaDonRemoteService chiTietHoaDonRemoteService;
+    private final DonDatMonRemoteService donDatMonRemoteService;
+    private final KhachHangRemoteService khachHangRemoteService;
 
     private BanDTO banHienTai;
     private HoaDonDTO activeHoaDon;
@@ -53,9 +54,27 @@ public class ManHinhGoiMonGUI extends JPanel {
     }
 
     public ManHinhGoiMonGUI(DanhSachBanGUI parent, String maNVDangNhap) {
+        this(parent, maNVDangNhap, parent != null ? parent.getConnection() : null);
+    }
+
+    public ManHinhGoiMonGUI(
+            DanhSachBanGUI parent,
+            String maNVDangNhap,
+            SocketClientConnection connection
+    ) {
         super(new BorderLayout());
+
         this.parentDanhSachBanGUI = parent;
         this.maNVDangNhap = maNVDangNhap;
+
+        Objects.requireNonNull(connection, "SocketClientConnection không được null.");
+
+        this.monAnRemoteService = new MonAnRemoteService(connection);
+        this.banRemoteService = new BanRemoteService(connection);
+        this.hoaDonRemoteService = new HoaDonGoiMonRemoteService(connection);
+        this.chiTietHoaDonRemoteService = new ChiTietHoaDonRemoteService(connection);
+        this.donDatMonRemoteService = new DonDatMonRemoteService(connection);
+        this.khachHangRemoteService = new KhachHangRemoteService(connection);
 
         this.dsMonAnFull = new ArrayList<>();
         this.dsMonAnPanel = new ArrayList<>();
@@ -202,12 +221,43 @@ public class ManHinhGoiMonGUI extends JPanel {
     }
 
     private void loadDataFromDB() {
-        this.dsMonAnFull = monAnService.findAllDTO();
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 
+        new SwingWorker<List<MonAnDTO>, Void>() {
+            @Override
+            protected List<MonAnDTO> doInBackground() {
+                return monAnRemoteService.findAll();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    dsMonAnFull = get();
+                    if (dsMonAnFull == null) {
+                        dsMonAnFull = new ArrayList<>();
+                    }
+
+                    renderMonAnList();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(
+                            ManHinhGoiMonGUI.this,
+                            "Lỗi tải danh sách món ăn qua socket: " + getRootMessage(e),
+                            "Lỗi",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
+    }
+
+    private void renderMonAnList() {
         pnlMenuItemContainer.removeAll();
         dsMonAnPanel.clear();
 
-        if (dsMonAnFull.isEmpty()) {
+        if (dsMonAnFull == null || dsMonAnFull.isEmpty()) {
             pnlMenuItemContainer.add(new JLabel("Không có món ăn nào trong CSDL."));
         } else {
             for (MonAnDTO mon : dsMonAnFull) {
@@ -226,9 +276,10 @@ public class ManHinhGoiMonGUI extends JPanel {
                 pnlMenuItemContainer.add(itemPanel);
             }
         }
-        renderCategoryButtons();
 
+        renderCategoryButtons();
         filterMonAn();
+
         pnlMenuItemContainer.revalidate();
         pnlMenuItemContainer.repaint();
     }
@@ -244,6 +295,8 @@ public class ManHinhGoiMonGUI extends JPanel {
         boolean requireBanRefresh = false;
 
         try {
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
             String trangThai = banDuocChon.getTrangThai() != null
                     ? banDuocChon.getTrangThai().toString()
                     : "TRONG";
@@ -251,7 +304,7 @@ public class ManHinhGoiMonGUI extends JPanel {
             if ("DANG_PHUC_VU".equalsIgnoreCase(trangThai)) {
                 statusColorBox.setBackground(Color.RED);
 
-                activeHoaDon = hoaDonService.getHoaDonChuaThanhToan(banDuocChon.getMaBan());
+                activeHoaDon = hoaDonRemoteService.getHoaDonChuaThanhToan(banDuocChon.getMaBan());
 
                 if (activeHoaDon == null) {
                     JOptionPane.showMessageDialog(
@@ -263,11 +316,8 @@ public class ManHinhGoiMonGUI extends JPanel {
                     return false;
                 }
 
-                ChiTietHoaDonDTO filter = ChiTietHoaDonDTO.builder()
-                        .maDon(activeHoaDon.getMaDon())
-                        .build();
-
-                List<ChiTietHoaDonDTO> dsChiTiet = chiTietHoaDonService.getChiTietTheoMaDon(filter);
+                List<ChiTietHoaDonDTO> dsChiTiet =
+                        chiTietHoaDonRemoteService.getChiTietTheoMaDon(activeHoaDon.getMaDon());
 
                 if (dsChiTiet != null) {
                     for (ChiTietHoaDonDTO ct : dsChiTiet) {
@@ -300,7 +350,7 @@ public class ManHinhGoiMonGUI extends JPanel {
             } else if ("DA_DAT_TRUOC".equalsIgnoreCase(trangThai)) {
                 statusColorBox.setBackground(ManHinhBanGUI.COLOR_STATUS_RESERVED);
 
-                DonDatMonDTO ddmPreview = donDatMonService.getDonDatMonDatTruoc(banDuocChon.getMaBan());
+                DonDatMonDTO ddmPreview = donDatMonRemoteService.getDonDatMonDatTruoc(banDuocChon.getMaBan());
 
                 String msg = "Bàn '" + banDuocChon.getTenBan()
                         + "' đã được đặt trước.\nBạn có muốn nhận bàn này không?";
@@ -309,7 +359,7 @@ public class ManHinhGoiMonGUI extends JPanel {
                     String tenKhach = "Khách";
 
                     if (ddmPreview.getMaKH() != null) {
-                        KhachHangDTO kh = khachHangService.findByIdDTO(ddmPreview.getMaKH());
+                        KhachHangDTO kh = findKhachHangByMa(ddmPreview.getMaKH());
 
                         if (kh != null && kh.getTenKH() != null && !kh.getTenKH().trim().isEmpty()) {
                             tenKhach = kh.getTenKH();
@@ -338,10 +388,16 @@ public class ManHinhGoiMonGUI extends JPanel {
 
         } catch (Exception ex) {
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi khi tải dữ liệu bàn: " + ex.getMessage());
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi khi tải dữ liệu bàn qua socket: " + getRootMessage(ex),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
             return false;
         } finally {
             updateBillPanelTotals();
+            setCursor(Cursor.getDefaultCursor());
         }
 
         if (requireBanRefresh && parentDanhSachBanGUI != null) {
@@ -357,7 +413,7 @@ public class ManHinhGoiMonGUI extends JPanel {
         }
 
         try {
-            DonDatMonDTO ddm = donDatMonService.getDonDatMonChuaNhanTheoMaBanBaoGomLinked(maBan);
+            DonDatMonDTO ddm = donDatMonRemoteService.getDonDatMonChuaNhanTheoMaBanBaoGomLinked(maBan);
 
             if (ddm != null) {
                 return ddm;
@@ -367,7 +423,7 @@ public class ManHinhGoiMonGUI extends JPanel {
         }
 
         try {
-            DonDatMonDTO ddm = donDatMonService.getDonDatMonDatTruoc(maBan);
+            DonDatMonDTO ddm = donDatMonRemoteService.getDonDatMonDatTruoc(maBan);
 
             if (ddm != null) {
                 return ddm;
@@ -421,7 +477,7 @@ public class ManHinhGoiMonGUI extends JPanel {
             return ketQua;
         }
 
-        List<DonDatMonDTO> dsTatCa = donDatMonService.getAllDonDatMonChuaNhanBaoGomLinked();
+        List<DonDatMonDTO> dsTatCa = donDatMonRemoteService.getAllDonDatMonChuaNhanBaoGomLinked();
 
         if (dsTatCa == null) {
             return ketQua;
@@ -463,7 +519,7 @@ public class ManHinhGoiMonGUI extends JPanel {
             return;
         }
 
-        BanDTO banCanUpdate = banService.getBanByMa(maBan);
+        BanDTO banCanUpdate = findBanByMa(maBan);
 
         if (banCanUpdate == null) {
             throw new Exception("Không tìm thấy bàn để cập nhật trạng thái: " + maBan);
@@ -472,7 +528,7 @@ public class ManHinhGoiMonGUI extends JPanel {
         banCanUpdate.setTrangThai(TrangThaiBan.DANG_PHUC_VU);
         banCanUpdate.setGioMoBan(gioMoBan);
 
-        boolean updateOK = banService.updateBan(banCanUpdate);
+        boolean updateOK = banRemoteService.updateBan(banCanUpdate);
 
         if (!updateOK) {
             throw new Exception("Lỗi cập nhật trạng thái bàn: " + banCanUpdate.getTenBan());
@@ -486,9 +542,6 @@ public class ManHinhGoiMonGUI extends JPanel {
 
         String maBanDangChon = banDuocChon.getMaBan();
 
-        // Quan trọng: không gọi trực tiếp rồi throw ngay nữa.
-        // Bàn phụ đôi khi getDonDatMonDatTruoc(maBan) trả null,
-        // nên phải có fallback quét danh sách đơn chưa nhận.
         DonDatMonDTO ddmDangChon = timDonDatTruocTheoMaBan(maBanDangChon);
 
         if (ddmDangChon == null) {
@@ -530,7 +583,7 @@ public class ManHinhGoiMonGUI extends JPanel {
                 ghiChu = "Nhận bàn đặt trước";
             }
 
-            HoaDonDTO hd = hoaDonService.moBanVaTaoHoaDon(
+            HoaDonDTO hd = hoaDonRemoteService.moBanVaTaoHoaDon(
                     maBanTrongNhom,
                     maNVDangNhap,
                     maKH,
@@ -550,11 +603,11 @@ public class ManHinhGoiMonGUI extends JPanel {
         }
 
         if (hoaDonCuaBanDangChon == null) {
-            hoaDonCuaBanDangChon = hoaDonService.getHoaDonChuaThanhToan(maBanDangChon);
+            hoaDonCuaBanDangChon = hoaDonRemoteService.getHoaDonChuaThanhToan(maBanDangChon);
         }
 
         if (hoaDonCuaBanDangChon == null) {
-            hoaDonCuaBanDangChon = hoaDonService.getHoaDonChuaThanhToan(maBanChinh);
+            hoaDonCuaBanDangChon = hoaDonRemoteService.getHoaDonChuaThanhToan(maBanChinh);
         }
 
         if (hoaDonCuaBanDangChon == null) {
@@ -593,7 +646,7 @@ public class ManHinhGoiMonGUI extends JPanel {
 
         if (sdt != null && !sdt.trim().isEmpty()) {
             try {
-                KhachHangDTO kh = khachHangService.findBySdtDTO(sdt.trim());
+                KhachHangDTO kh = findKhachHangBySdt(sdt.trim());
                 if (kh != null) {
                     return kh.getMaKH();
                 }
@@ -609,7 +662,7 @@ public class ManHinhGoiMonGUI extends JPanel {
         try {
             String maKHMoBan = layMaKHDeMoBan(ban);
 
-            HoaDonDTO hd = hoaDonService.moBanVaTaoHoaDon(
+            HoaDonDTO hd = hoaDonRemoteService.moBanVaTaoHoaDon(
                     ban.getMaBan(),
                     maNVDangNhap,
                     maKHMoBan,
@@ -633,7 +686,7 @@ public class ManHinhGoiMonGUI extends JPanel {
 
         } catch (Exception e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi tạo đơn: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Lỗi tạo đơn: " + getRootMessage(e));
         }
     }
 
@@ -643,22 +696,29 @@ public class ManHinhGoiMonGUI extends JPanel {
             return;
         }
 
+        if (activeHoaDon == null || activeHoaDon.getMaDon() == null) {
+            JOptionPane.showMessageDialog(this, "Bàn hiện tại chưa có hóa đơn hợp lệ!");
+            return;
+        }
+
         String maMon = monAn.getMaMonAn();
         String tenMon = monAn.getTenMon();
         float donGia = monAn.getDonGia();
 
         for (int i = 0; i < modelChiTietHoaDon.getRowCount(); i++) {
             if (maMon.equals(modelChiTietHoaDon.getValueAt(i, 1))) {
-                int slHienTai = (int) modelChiTietHoaDon.getValueAt(i, 3);
+                int slHienTai = toInt(modelChiTietHoaDon.getValueAt(i, 3));
                 modelChiTietHoaDon.setValueAt(slHienTai + 1, i, 3);
                 modelChiTietHoaDon.setValueAt((slHienTai + 1) * donGia, i, 5);
                 updateBillPanelTotals();
+                luuChiTietHoaDonAsync();
                 return;
             }
         }
 
         modelChiTietHoaDon.addRow(new Object[]{"X", maMon, tenMon, 1, donGia, donGia});
         updateBillPanelTotals();
+        luuChiTietHoaDonAsync();
     }
 
     public void updateBillPanelTotals() {
@@ -666,13 +726,95 @@ public class ManHinhGoiMonGUI extends JPanel {
         int tongSoLuong = 0;
 
         for (int i = 0; i < modelChiTietHoaDon.getRowCount(); i++) {
-            tongSoLuong += (int) modelChiTietHoaDon.getValueAt(i, 3);
-            tongTien += (float) modelChiTietHoaDon.getValueAt(i, 5);
+            int soLuong = toInt(modelChiTietHoaDon.getValueAt(i, 3));
+            float thanhTien = toFloat(modelChiTietHoaDon.getValueAt(i, 5));
+
+            tongSoLuong += soLuong;
+            tongTien += thanhTien;
         }
 
         if (billPanel != null) {
             billPanel.loadBillTotals((long) tongTien, 0, (long) tongTien, tongSoLuong);
         }
+    }
+
+    private void luuChiTietHoaDonAsync() {
+        if (activeHoaDon == null || activeHoaDon.getMaDon() == null) {
+            return;
+        }
+
+        String maDon = activeHoaDon.getMaDon();
+        List<ChiTietHoaDonDTO> items = layChiTietTuBang(maDon);
+
+        new SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() {
+                boolean ok = chiTietHoaDonRemoteService.replaceByMaDon(maDon, items);
+
+                capNhatTongTienHoaDonTrenServer();
+
+                return ok;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(
+                            ManHinhGoiMonGUI.this,
+                            "Lỗi lưu chi tiết hóa đơn qua socket: " + getRootMessage(e),
+                            "Lỗi",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                }
+            }
+        }.execute();
+    }
+
+    private List<ChiTietHoaDonDTO> layChiTietTuBang(String maDon) {
+        List<ChiTietHoaDonDTO> result = new ArrayList<>();
+
+        for (int i = 0; i < modelChiTietHoaDon.getRowCount(); i++) {
+            String maMonAn = String.valueOf(modelChiTietHoaDon.getValueAt(i, 1));
+            String tenMon = String.valueOf(modelChiTietHoaDon.getValueAt(i, 2));
+            int soLuong = toInt(modelChiTietHoaDon.getValueAt(i, 3));
+            float donGia = toFloat(modelChiTietHoaDon.getValueAt(i, 4));
+            float thanhTien = toFloat(modelChiTietHoaDon.getValueAt(i, 5));
+
+            if (maMonAn == null || maMonAn.trim().isEmpty() || soLuong <= 0) {
+                continue;
+            }
+
+            result.add(ChiTietHoaDonDTO.builder()
+                    .maDon(maDon)
+                    .maMonAn(maMonAn)
+                    .tenMon(tenMon)
+                    .soLuong(soLuong)
+                    .donGia(donGia)
+                    .thanhTien(thanhTien)
+                    .build());
+        }
+
+        return result;
+    }
+
+    private void capNhatTongTienHoaDonTrenServer() {
+        if (activeHoaDon == null) {
+            return;
+        }
+
+        float tongTien = 0;
+
+        for (int i = 0; i < modelChiTietHoaDon.getRowCount(); i++) {
+            tongTien += toFloat(modelChiTietHoaDon.getValueAt(i, 5));
+        }
+
+        activeHoaDon.setTongTien(tongTien);
+        activeHoaDon.setTongThanhToan(tongTien);
+
+        hoaDonRemoteService.capNhatTongTien(activeHoaDon);
     }
 
     public void xoaThongTinGoiMon() {
@@ -698,14 +840,12 @@ public class ManHinhGoiMonGUI extends JPanel {
         for (MonAnItemPanel itemPanel : dsMonAnPanel) {
             MonAnDTO mon = itemPanel.getMonAn();
 
-            // Điều kiện 1: Khớp từ khóa tìm kiếm
-            boolean matchesSearch = tuKhoa.isEmpty() || mon.getTenMon().toLowerCase().contains(tuKhoa);
+            boolean matchesSearch = tuKhoa.isEmpty()
+                    || mon.getTenMon().toLowerCase().contains(tuKhoa);
 
-            // Điều kiện 2: Khớp danh mục
-            boolean matchesCategory = currentCategoryFilter.equals("Tất cả") ||
-                    (mon.getTenDM() != null && mon.getTenDM().equals(currentCategoryFilter));
+            boolean matchesCategory = currentCategoryFilter.equals("Tất cả")
+                    || (mon.getTenDM() != null && mon.getTenDM().equals(currentCategoryFilter));
 
-            // Hiện món ăn nếu thỏa mãn CẢ HAI điều kiện
             itemPanel.setVisible(matchesSearch && matchesCategory);
         }
 
@@ -722,10 +862,9 @@ public class ManHinhGoiMonGUI extends JPanel {
     private void renderCategoryButtons() {
         if (pnlFilterButtons == null) return;
 
-        pnlFilterButtons.removeAll(); // Xóa hết nút cũ đi
+        pnlFilterButtons.removeAll();
         ButtonGroup group = new ButtonGroup();
 
-        // 1. Nút Tất cả
         JToggleButton btnAll = createFilterButton("Tất cả", true);
         btnAll.addActionListener(e -> {
             currentCategoryFilter = "Tất cả";
@@ -734,9 +873,8 @@ public class ManHinhGoiMonGUI extends JPanel {
         group.add(btnAll);
         pnlFilterButtons.add(btnAll);
 
-        // 2. Lấy danh sách tên danh mục từ dữ liệu món ăn đã load
         List<String> categories = dsMonAnFull.stream()
-                .map(m -> m.getTenDM()) // Đảm bảo MonAnDTO có getTenDM() nhé
+                .map(MonAnDTO::getTenDM)
                 .filter(name -> name != null && !name.isEmpty())
                 .distinct()
                 .sorted()
@@ -763,11 +901,8 @@ public class ManHinhGoiMonGUI extends JPanel {
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setBackground(Color.WHITE);
         btn.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        // Bạn có thể thêm border hoặc màu sắc nhấn (Accent Color) ở đây
         return btn;
     }
-
-
 
     private JPanel createSearchPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 0));
@@ -785,6 +920,100 @@ public class ManHinhGoiMonGUI extends JPanel {
         panel.add(txtTimKiem, BorderLayout.CENTER);
 
         return panel;
+    }
+
+    private BanDTO findBanByMa(String maBan) {
+        if (maBan == null || maBan.trim().isEmpty()) {
+            return null;
+        }
+
+        List<BanDTO> dsBan = banRemoteService.getAllBan();
+
+        if (dsBan == null) {
+            return null;
+        }
+
+        for (BanDTO ban : dsBan) {
+            if (ban != null && maBan.equals(ban.getMaBan())) {
+                return ban;
+            }
+        }
+
+        return null;
+    }
+
+    private KhachHangDTO findKhachHangByMa(String maKH) {
+        if (maKH == null || maKH.trim().isEmpty()) {
+            return null;
+        }
+
+        List<KhachHangDTO> dsKH = khachHangRemoteService.findAll();
+
+        if (dsKH == null) {
+            return null;
+        }
+
+        for (KhachHangDTO kh : dsKH) {
+            if (kh != null && maKH.equals(kh.getMaKH())) {
+                return kh;
+            }
+        }
+
+        return null;
+    }
+
+    private KhachHangDTO findKhachHangBySdt(String sdt) {
+        if (sdt == null || sdt.trim().isEmpty()) {
+            return null;
+        }
+
+        List<KhachHangDTO> dsKH = khachHangRemoteService.search(sdt.trim());
+
+        if (dsKH == null) {
+            return null;
+        }
+
+        for (KhachHangDTO kh : dsKH) {
+            if (kh != null && sdt.trim().equals(kh.getSdt())) {
+                return kh;
+            }
+        }
+
+        return null;
+    }
+
+    private int toInt(Object value) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private float toFloat(Object value) {
+        if (value instanceof Number number) {
+            return number.floatValue();
+        }
+
+        try {
+            return Float.parseFloat(String.valueOf(value));
+        } catch (Exception e) {
+            return 0f;
+        }
+    }
+
+    private String getRootMessage(Exception e) {
+        Throwable t = e;
+
+        while (t.getCause() != null) {
+            t = t.getCause();
+        }
+
+        return t.getMessage() != null ? t.getMessage() : e.getMessage();
     }
 
     class ButtonRenderer extends JButton implements TableCellRenderer {
@@ -849,6 +1078,7 @@ public class ManHinhGoiMonGUI extends JPanel {
                     if (editingRow < finalModel.getRowCount()) {
                         finalModel.removeRow(editingRow);
                         updateBillPanelTotals();
+                        luuChiTietHoaDonAsync();
                     }
                 });
             }
@@ -907,12 +1137,13 @@ public class ManHinhGoiMonGUI extends JPanel {
 
                     if (editingRow < model.getRowCount()) {
                         int currentQuantity = (Integer) spinner.getValue();
-                        float donGia = (Float) model.getValueAt(editingRow, 4);
+                        float donGia = toFloat(model.getValueAt(editingRow, 4));
 
                         SwingUtilities.invokeLater(() -> {
                             if (editingRow < model.getRowCount()) {
                                 model.setValueAt(currentQuantity * donGia, editingRow, 5);
                                 updateBillPanelTotals();
+                                luuChiTietHoaDonAsync();
                             }
                         });
                     }

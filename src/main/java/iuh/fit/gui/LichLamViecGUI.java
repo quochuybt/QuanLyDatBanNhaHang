@@ -4,6 +4,7 @@ import iuh.fit.core.entity.CaLam;
 import iuh.fit.core.entity.NhanVien;
 import iuh.fit.core.entity.PhanCong;
 import iuh.fit.core.entity.VaiTro;
+import iuh.fit.core.net.client.SocketClientConnection;
 import iuh.fit.core.service.NhanVienService;
 import iuh.fit.core.service.PhanCongService;
 
@@ -47,7 +48,9 @@ public class LichLamViecGUI extends JPanel {
 
     private final PhanCongService phanCongService = new PhanCongService();
     private final NhanVienService nhanVienService = new NhanVienService();
+
     private final VaiTro currentUserRole;
+    private final SocketClientConnection connection;
 
     private LocalDate weekStart = LocalDate.now().with(DayOfWeek.MONDAY);
 
@@ -62,7 +65,12 @@ public class LichLamViecGUI extends JPanel {
     private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
 
     public LichLamViecGUI(VaiTro role) {
+        this(role, null);
+    }
+
+    public LichLamViecGUI(VaiTro role, SocketClientConnection connection) {
         this.currentUserRole = role;
+        this.connection = connection;
 
         setLayout(new BorderLayout(0, 15));
         setBorder(new EmptyBorder(20, 25, 20, 25));
@@ -122,7 +130,20 @@ public class LichLamViecGUI extends JPanel {
             styleAssignButton(assign);
 
             assign.addActionListener(e -> {
-                AssignShiftDialog d = new AssignShiftDialog((Frame) SwingUtilities.getWindowAncestor(this));
+                if (connection == null) {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Không tìm thấy kết nối socket để mở màn hình phân ca.",
+                            "Lỗi kết nối",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                    return;
+                }
+
+                AssignShiftDialog d = new AssignShiftDialog(
+                        (Frame) SwingUtilities.getWindowAncestor(this),
+                        connection
+                );
                 d.setVisible(true);
                 reloadData();
             });
