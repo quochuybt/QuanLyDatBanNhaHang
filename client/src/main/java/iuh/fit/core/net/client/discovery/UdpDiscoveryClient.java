@@ -1,7 +1,5 @@
 package iuh.fit.core.net.client.discovery;
 
-import iuh.fit.core.net.server.discovery.UdpDiscoveryResponder;
-
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -22,7 +20,7 @@ public class UdpDiscoveryClient {
             socket.setBroadcast(true);
             socket.setSoTimeout(400);
 
-            byte[] req = UdpDiscoveryResponder.REQUEST_TOKEN.getBytes(StandardCharsets.UTF_8);
+            byte[] req = "SG_DISCOVER_REQUEST".getBytes(StandardCharsets.UTF_8);
             DatagramPacket requestPacket = new DatagramPacket(
                     req,
                     req.length,

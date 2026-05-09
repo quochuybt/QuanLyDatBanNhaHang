@@ -1,7 +1,5 @@
 package iuh.fit.core.net.client.discovery;
 
-import iuh.fit.core.net.server.discovery.MdnsAnnouncer;
-
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceInfo;
 import java.net.InetAddress;
@@ -16,7 +14,7 @@ public class MdnsDiscoveryClient {
         Map<String, DiscoveredServer> dedup = new LinkedHashMap<>();
 
         try (JmDNS jmdns = JmDNS.create(InetAddress.getLocalHost())) {
-            ServiceInfo[] services = jmdns.list(MdnsAnnouncer.SERVICE_TYPE, timeoutMs);
+            ServiceInfo[] services = jmdns.list("_starguardian._tcp.local.", timeoutMs);
             for (ServiceInfo service : services) {
                 String[] addresses = service.getHostAddresses();
                 if (addresses == null || addresses.length == 0) {
