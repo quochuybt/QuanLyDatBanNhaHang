@@ -1044,7 +1044,7 @@ public class ManHinhGoiMonGUI extends BaseEventAwarePanel {
 
     class ButtonEditor extends DefaultCellEditor {
         protected JButton button;
-        private int editingRow;
+        private int editingRow = -1;
         private JTable table;
 
         public ButtonEditor(JCheckBox checkBox) {
@@ -1056,7 +1056,25 @@ public class ManHinhGoiMonGUI extends BaseEventAwarePanel {
             button.setBackground(Color.WHITE);
             button.setBorder(null);
             button.setFont(new Font("Arial", Font.BOLD, 14));
-            button.addActionListener(e -> fireEditingStopped());
+
+            button.addActionListener(e -> {
+                int rowToRemove = editingRow;
+
+                if (table != null && rowToRemove >= 0) {
+                    if (table.isEditing()) {
+                        table.getCellEditor().stopCellEditing();
+                    }
+
+                    DefaultTableModel model = (DefaultTableModel) table.getModel();
+
+                    if (rowToRemove >= 0 && rowToRemove < model.getRowCount()) {
+                        model.removeRow(rowToRemove);
+                        updateBillPanelTotals();
+                    }
+                }
+
+                editingRow = -1;
+            });
         }
 
         @Override
@@ -1074,18 +1092,6 @@ public class ManHinhGoiMonGUI extends BaseEventAwarePanel {
 
         @Override
         public Object getCellEditorValue() {
-            if (table != null && editingRow >= 0) {
-                final DefaultTableModel finalModel = (DefaultTableModel) table.getModel();
-
-                SwingUtilities.invokeLater(() -> {
-                    if (editingRow < finalModel.getRowCount()) {
-                        finalModel.removeRow(editingRow);
-                        updateBillPanelTotals();
-                    }
-                });
-            }
-
-            editingRow = -1;
             return "X";
         }
     }
