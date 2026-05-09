@@ -29,6 +29,23 @@ public class DonDatMonService {
         return DonDatMonDTO.fromEntity(entity);
     }
 
+    public boolean updateGhiChu(String maDon, String ghiChu) {
+        if (maDon == null || maDon.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã đơn đặt món không được rỗng.");
+        }
+
+        DonDatMon entity = repository.findById(maDon);
+
+        if (entity == null) {
+            throw new IllegalArgumentException("Không tìm thấy đơn đặt món: " + maDon);
+        }
+
+        entity.setGhiChu(ghiChu);
+        repository.update(entity);
+
+        return true;
+    }
+
     public DonDatMonDTO getDonDatMonChuaNhanTheoMaBanBaoGomLinked(String maBan) {
         DonDatMon entity = repository.getDonDatMonChuaNhanTheoMaBanBaoGomLinked(maBan);
         return DonDatMonDTO.fromEntity(entity);

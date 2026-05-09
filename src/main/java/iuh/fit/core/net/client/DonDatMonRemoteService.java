@@ -55,6 +55,27 @@ public class DonDatMonRemoteService extends BaseRemoteService {
         return JsonCodec.fromJsonNode(response.getPayload(), DonDatMonDTO.class);
     }
 
+    public boolean updateGhiChu(String maDon, String ghiChu) {
+        DonDatMonDTO dto = new DonDatMonDTO();
+        dto.setMaDon(maDon);
+        dto.setGhiChu(ghiChu);
+
+        MessageEnvelope response = connection.sendCommand(
+                CommandAction.DONDATMON_UPDATE_GHICHU.name(),
+                JsonCodec.toJsonNode(dto),
+                DEFAULT_TIMEOUT_MS
+        );
+
+        ensureSuccess(response, "Không thể cập nhật ghi chú đơn đặt món.");
+
+        if (response.getPayload() == null || response.getPayload().isNull()) {
+            return false;
+        }
+
+        Boolean result = JsonCodec.fromJsonNode(response.getPayload(), Boolean.class);
+        return Boolean.TRUE.equals(result);
+    }
+
     public boolean update(DonDatMonDTO dto) {
         // Đa số các hệ thống dùng chung hàm lưu (saveOrUpdate) cho cả thêm và sửa.
         // Nên ở client bạn có thể chuyển hướng update() sang save() luôn cho nhanh,

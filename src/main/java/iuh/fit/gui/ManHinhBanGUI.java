@@ -276,6 +276,8 @@ public class ManHinhBanGUI extends BaseEventAwarePanel {
             }
         });
 
+        txtGhiChu.addActionListener(e -> xuLyCapNhatGhiChu());
+
         cmbPTThanhToan = new JComboBox<>(new String[]{"Tiền mặt", "Chuyển khoản"});
         cmbPTThanhToan.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         cmbPTThanhToan.setBackground(Color.WHITE);
@@ -500,6 +502,7 @@ public class ManHinhBanGUI extends BaseEventAwarePanel {
             txtThanhVien.setText("");
             txtMaKhuyenMai.setText("");
             txtGhiChu.setText("");
+            txtGhiChu.setEditable(false);
             txtNgayVao.setText("");
             txtGioVao.setText("");
             updateBillPanelFromHoaDon(null);
@@ -532,6 +535,9 @@ public class ManHinhBanGUI extends BaseEventAwarePanel {
                 tinhTrangText = "Đang phục vụ";
                 break;
         }
+
+        txtGhiChu.setEditable(trangThai == TrangThaiBan.DANG_PHUC_VU
+                || trangThai == TrangThaiBan.DA_DAT_TRUOC);
 
         statusColorBox.setBackground(statusColor);
 
@@ -989,44 +995,71 @@ public class ManHinhBanGUI extends BaseEventAwarePanel {
     }
 
     private void xuLyCapNhatGhiChu() {
-        HoaDonDTO activeHoaDon = getActiveHoaDon();
-
-        if (activeHoaDon == null) {
+        if (txtGhiChu == null) {
             return;
         }
 
-        String ghiChuMoi = txtGhiChu.getText().trim();
-        String maDon = activeHoaDon.getMaDon();
+        String ghiChuMoi = txtGhiChu.getText() != null
+                ? txtGhiChu.getText().trim()
+                : "";
 
-        if (maDon != null && !maDon.isEmpty()) {
-            try {
-                DonDatMonDTO ddmHienTai = null;
+        try {
+            DonDatMonDTO ddmHienTai = null;
+
+            HoaDonDTO activeHoaDon = getActiveHoaDon();
+
+            if (activeHoaDon != null
+                    && activeHoaDon.getMaDon() != null
+                    && !activeHoaDon.getMaDon().trim().isEmpty()) {
+                ddmHienTai = donDatMonService.findById(activeHoaDon.getMaDon());
+            }
+
+            if (ddmHienTai == null && selectedTable != null && selectedTable.getMaBan() != null) {
+                String maBanThucTe = layMaBanThucTeTheoBanGhep(selectedTable.getMaBan());
 
                 try {
-                    ddmHienTai = donDatMonService.findById(maDon);
-                } catch (NullPointerException npe) {
-                    System.err.println("Hệ thống: Không tìm thấy entity cho mã đơn " + maDon);
+                    ddmHienTai = donDatMonService.getDonDatMonChuaNhanTheoMaBanBaoGomLinked(maBanThucTe);
+                } catch (Exception ignored) {
                 }
 
-                if (ddmHienTai != null) {
-                    String ghiChuHoanChinh = ghiChuMoi;
-
-                    if (ddmHienTai.getGhiChu() != null && ddmHienTai.getGhiChu().contains("LINKED:")) {
-                        String linkedPart = ddmHienTai.getGhiChu().substring(ddmHienTai.getGhiChu().indexOf("LINKED:"));
-                        ghiChuHoanChinh = ghiChuMoi + " " + linkedPart;
+                if (ddmHienTai == null) {
+                    try {
+                        ddmHienTai = donDatMonService.getDonDatMonDatTruoc(maBanThucTe);
+                    } catch (Exception ignored) {
                     }
-
-                    ddmHienTai.setGhiChu(ghiChuHoanChinh);
-                    donDatMonService.update(ddmHienTai);
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Có lỗi xảy ra khi cập nhật ghi chú: " + e.getMessage(),
-                        "Lỗi Dữ Liệu",
-                        JOptionPane.ERROR_MESSAGE);
             }
+
+            if (ddmHienTai == null) {
+                System.err.println("Không tìm thấy đơn đặt món để cập nhật ghi chú.");
+                return;
+            }
+
+            String ghiChuHoanChinh = ghiChuMoi;
+
+            if (ddmHienTai.getGhiChu() != null && ddmHienTai.getGhiChu().contains("LINKED:")) {
+                String linkedPart = ddmHienTai.getGhiChu()
+                        .substring(ddmHienTai.getGhiChu().indexOf("LINKED:"))
+                        .trim();
+
+                if (!ghiChuMoi.isEmpty()) {
+                    ghiChuHoanChinh = ghiChuMoi + " " + linkedPart;
+                } else {
+                    ghiChuHoanChinh = linkedPart;
+                }
+            }
+
+            ddmHienTai.setGhiChu(ghiChuHoanChinh);
+            donDatMonService.updateGhiChu(ddmHienTai.getMaDon(), ghiChuHoanChinh);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Có lỗi xảy ra khi cập nhật ghi chú: " + e.getMessage(),
+                    "Lỗi Dữ Liệu",
+                    JOptionPane.ERROR_MESSAGE
+            );
         }
     }
 

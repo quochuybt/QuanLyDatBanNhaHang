@@ -2,7 +2,6 @@ package iuh.fit.core.service;
 
 import iuh.fit.core.dto.CaLamDTO;
 import iuh.fit.core.entity.CaLam;
-import iuh.fit.core.mapper.JsonMapper;
 import iuh.fit.core.repository.CaLamRepository;
 
 import java.util.List;
@@ -73,11 +72,30 @@ public class CaLamService {
     }
 
     private CaLam toEntity(CaLamDTO caLamDTO) {
-        return JsonMapper.convert(caLamDTO, CaLam.class);
+        if (caLamDTO == null) {
+            return null;
+        }
+
+        CaLam caLam = new CaLam();
+        caLam.setMaCa(caLamDTO.getMaCa());
+        caLam.setTenCa(caLamDTO.getTenCa());
+        caLam.setGioBatDau(caLamDTO.getGioBatDau());
+        caLam.setGioKetThuc(caLamDTO.getGioKetThuc());
+
+        return caLam;
     }
 
     private CaLamDTO toDTO(CaLam caLam) {
-        return JsonMapper.convert(caLam, CaLamDTO.class);
+        if (caLam == null) {
+            return null;
+        }
+
+        return CaLamDTO.builder()
+                .maCa(caLam.getMaCa())
+                .tenCa(caLam.getTenCa())
+                .gioBatDau(caLam.getGioBatDau())
+                .gioKetThuc(caLam.getGioKetThuc())
+                .build();
     }
 
     private void validateCaLamDTOForId(CaLamDTO caLamDTO) {
