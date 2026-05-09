@@ -62,6 +62,17 @@ public class CommandDispatcher {
         handlers.put(CommandAction.KHUYENMAI_DELETE.name(), new KhuyenMaiDeleteHandler());
         handlers.put(CommandAction.KHUYENMAI_USE.name(), new KhuyenMaiUseHandler());
 
+        // ===== Danh mục món / món ăn admin =====
+        handlers.put(CommandAction.DANHMUCMON_GET_ALL.name(), new DanhMucMonGetAllHandler());
+        handlers.put(CommandAction.DANHMUCMON_ADD.name(), new DanhMucMonAddHandler());
+        handlers.put(CommandAction.DANHMUCMON_UPDATE.name(), new DanhMucMonUpdateHandler());
+        handlers.put(CommandAction.DANHMUCMON_DELETE.name(), new DanhMucMonDeleteHandler());
+        handlers.put(CommandAction.MONAN_ADMIN_GET_ALL.name(), new MonAnAdminGetAllHandler());
+        handlers.put(CommandAction.MONAN_ADMIN_GET_BY_ID.name(), new MonAnAdminGetByIdHandler());
+        handlers.put(CommandAction.MONAN_ADMIN_ADD.name(), new MonAnAdminAddHandler());
+        handlers.put(CommandAction.MONAN_ADMIN_UPDATE.name(), new MonAnAdminUpdateHandler());
+        handlers.put(CommandAction.MONAN_ADMIN_UPDATE_STATUS.name(), new MonAnAdminUpdateStatusHandler());
+
         // ===== Dashboard nhân viên / giao ca =====
         handlers.put(CommandAction.GIAOCA_DASHBOARD_LOAD.name(), new GiaoCaDashboardLoadHandler());
         handlers.put(CommandAction.GIAOCA_START.name(), new GiaoCaStartHandler());

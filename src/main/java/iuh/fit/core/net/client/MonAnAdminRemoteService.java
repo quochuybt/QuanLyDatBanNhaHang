@@ -2,6 +2,7 @@ package iuh.fit.core.net.client;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import iuh.fit.core.dto.MonAnDTO;
+import iuh.fit.core.net.dto.common.IdRequest;
 import iuh.fit.core.net.protocol.CommandAction;
 import iuh.fit.core.net.protocol.JsonCodec;
 import iuh.fit.core.net.protocol.MessageEnvelope;
@@ -57,5 +58,15 @@ public class MonAnAdminRemoteService extends BaseRemoteService {
         );
         ensureSuccess(response, "Không thể cập nhật trạng thái món ăn.");
         return Boolean.TRUE.equals(JsonCodec.fromJsonNode(response.getPayload(), Boolean.class));
+    }
+
+    public MonAnDTO findById(String maMonAn) {
+        MessageEnvelope response = connection.sendCommand(
+                CommandAction.MONAN_ADMIN_GET_BY_ID.name(),
+                IdRequest.builder().id(maMonAn).build(),
+                DEFAULT_TIMEOUT_MS
+        );
+        ensureSuccess(response, "Không thể tải thông tin món ăn.");
+        return JsonCodec.fromJsonNode(response.getPayload(), MonAnDTO.class);
     }
 }

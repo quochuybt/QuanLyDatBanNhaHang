@@ -11,12 +11,12 @@ import iuh.fit.core.mapper.JsonMapper;
 import iuh.fit.core.net.client.NhanVienRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
 import iuh.fit.core.net.client.KhuyenMaiRemoteService;
+import iuh.fit.core.net.client.MonAnAdminRemoteService;
 import iuh.fit.core.service.BanService;
 import iuh.fit.core.service.ChiTietHoaDonService;
 import iuh.fit.core.service.DonDatMonService;
 import iuh.fit.core.service.HoaDonService;
 import iuh.fit.core.service.KhachHangService;
-import iuh.fit.core.service.MonAnService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -53,7 +53,7 @@ public class BillPanel extends JPanel {
     private HoaDonService hoaDonService;
     private BanService banService;
     private NhanVienRemoteService nhanVienRemoteService;
-    private MonAnService monAnService;
+    private MonAnAdminRemoteService monAnAdminRemoteService;
     private KhachHangService khachHangService;
     private KhuyenMaiRemoteService khuyenMaiRemoteService;
     private DonDatMonService donDatMonService;
@@ -92,10 +92,12 @@ public class BillPanel extends JPanel {
         this.nhanVienRemoteService = NetClientContext.isReady()
                 ? new NhanVienRemoteService(NetClientContext.getConnection())
                 : null;
+        this.monAnAdminRemoteService = NetClientContext.isReady()
+                ? new MonAnAdminRemoteService(NetClientContext.getConnection())
+                : null;
         this.khuyenMaiRemoteService = NetClientContext.isReady()
                 ? new KhuyenMaiRemoteService(NetClientContext.getConnection())
                 : null;
-        this.monAnService = new MonAnService();
         this.donDatMonService = new DonDatMonService();
 
         setBackground(Color.WHITE);
@@ -600,7 +602,9 @@ public class BillPanel extends JPanel {
                     float donGia = donGiaTrenGUI.getOrDefault(maMonGUI, 0f);
 
                     if (donGia <= 0) {
-                        iuh.fit.core.dto.MonAnDTO monAn = monAnService.findByIdDTO(maMonGUI);
+                        iuh.fit.core.dto.MonAnDTO monAn = monAnAdminRemoteService != null
+                                ? monAnAdminRemoteService.findById(maMonGUI)
+                                : null;
                         if (monAn != null) {
                             donGia = monAn.getDonGia();
                         }

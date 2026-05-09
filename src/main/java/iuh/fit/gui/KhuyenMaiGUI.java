@@ -509,16 +509,17 @@ public class KhuyenMaiGUI extends JPanel {
 
                 kmMoi.setSoLuongGioiHan(soLuongGioiHan);
 
+                KhuyenMaiDTO dto = KhuyenMaiDTO.fromEntity(kmMoi);
                 if (km != null) {
-                    kmMoi.setSoLuotDaDung(getSoLuotDaDungSafe(km));
+                    dto.setSoLuotDaDung(getSoLuotDaDungSafe(km));
                 } else {
-                    kmMoi.setSoLuotDaDung(0);
+                    dto.setSoLuotDaDung(0);
                 }
 
                 if (km == null) {
-                    khuyenMaiRemoteService.add(KhuyenMaiDTO.fromEntity(kmMoi));
+                    khuyenMaiRemoteService.add(dto);
                 } else {
-                    khuyenMaiRemoteService.update(KhuyenMaiDTO.fromEntity(kmMoi));
+                    khuyenMaiRemoteService.update(dto);
                 }
 
                 JOptionPane.showMessageDialog(dialog, "Lưu thành công!");

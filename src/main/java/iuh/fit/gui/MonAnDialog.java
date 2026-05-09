@@ -2,8 +2,9 @@ package iuh.fit.gui;
 
 import iuh.fit.core.dto.DanhMucMonDTO;
 import iuh.fit.core.dto.MonAnDTO;
-import iuh.fit.core.service.DanhMucMonService;
-import iuh.fit.core.service.MonAnService;
+import iuh.fit.core.net.client.DanhMucMonRemoteService;
+import iuh.fit.core.net.client.MonAnAdminRemoteService;
+import iuh.fit.core.net.client.NetClientContext;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -28,20 +29,32 @@ public class MonAnDialog extends JDialog {
 
     private final MonAnDTO monAn;
 
-    private final DanhMucMonService danhMucMonService = new DanhMucMonService();
-    private final MonAnService monAnService = new MonAnService();
+    private final DanhMucMonRemoteService danhMucMonRemoteService;
+    private final MonAnAdminRemoteService monAnAdminRemoteService;
 
     public MonAnDialog(Frame parent) {
         super(parent, "Thêm Món Ăn", true);
 
+        if (!NetClientContext.isReady()) {
+            throw new IllegalStateException("Không có kết nối remote cho màn món ăn.");
+        }
+        this.danhMucMonRemoteService = new DanhMucMonRemoteService(NetClientContext.getConnection());
+        this.monAnAdminRemoteService = new MonAnAdminRemoteService(NetClientContext.getConnection());
+
         this.monAn = new MonAnDTO();
-        this.monAn.setMaMonAn(monAnService.getNextMaMonAn());
+        this.monAn.setMaMonAn("MA" + System.currentTimeMillis());
 
         initUI();
     }
 
     public MonAnDialog(Frame parent, MonAnDTO existingMonAn) {
         super(parent, "Cập Nhật Món Ăn", true);
+
+        if (!NetClientContext.isReady()) {
+            throw new IllegalStateException("Không có kết nối remote cho màn món ăn.");
+        }
+        this.danhMucMonRemoteService = new DanhMucMonRemoteService(NetClientContext.getConnection());
+        this.monAnAdminRemoteService = new MonAnAdminRemoteService(NetClientContext.getConnection());
 
         this.monAn = existingMonAn;
         this.selectedImageFileName = existingMonAn.getHinhAnh();
@@ -326,7 +339,7 @@ public class MonAnDialog extends JDialog {
     }
 
     private void loadCategories() {
-        List<DanhMucMonDTO> categories = danhMucMonService.getAllDanhMuc();
+        List<DanhMucMonDTO> categories = danhMucMonRemoteService.findAll();
 
         cboDanhMuc.removeAllItems();
 

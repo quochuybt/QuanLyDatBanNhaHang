@@ -2,8 +2,9 @@ package iuh.fit.gui;
 
 import iuh.fit.core.dto.DanhMucMonDTO;
 import iuh.fit.core.dto.MonAnDTO;
-import iuh.fit.core.service.DanhMucMonService;
-import iuh.fit.core.service.MonAnService;
+import iuh.fit.core.net.client.DanhMucMonRemoteService;
+import iuh.fit.core.net.client.MonAnAdminRemoteService;
+import iuh.fit.core.net.client.NetClientContext;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -22,8 +23,8 @@ public class DanhMucMonGUI extends JPanel {
     private JScrollPane scrollPane;
     private JPanel filterButtonPanel;
 
-    private final MonAnService monAnService;
-    private final DanhMucMonService danhMucMonService;
+    private final MonAnAdminRemoteService monAnRemoteService;
+    private final DanhMucMonRemoteService danhMucMonRemoteService;
 
     private List<MonAnDTO> dsMonAnFull;
     private List<MonAnItemPanel> dsMonAnPanel;
@@ -35,8 +36,11 @@ public class DanhMucMonGUI extends JPanel {
     private static final Color COLOR_ACCENT_BLUE = new Color(56, 118, 243);
 
     public DanhMucMonGUI() {
-        this.monAnService = new MonAnService();
-        this.danhMucMonService = new DanhMucMonService();
+        if (!NetClientContext.isReady()) {
+            throw new IllegalStateException("Không có kết nối remote cho màn danh mục món ăn.");
+        }
+        this.monAnRemoteService = new MonAnAdminRemoteService(NetClientContext.getConnection());
+        this.danhMucMonRemoteService = new DanhMucMonRemoteService(NetClientContext.getConnection());
 
         this.dsMonAnFull = new ArrayList<>();
         this.dsMonAnPanel = new ArrayList<>();
@@ -168,7 +172,7 @@ public class DanhMucMonGUI extends JPanel {
 
     private void loadDataFromDB() {
         try {
-            dsMonAnFull = monAnService.findAllDTO();
+            dsMonAnFull = monAnRemoteService.findAll();
 
             pnlMenuItemContainer.removeAll();
             dsMonAnPanel.clear();
@@ -260,7 +264,7 @@ public class DanhMucMonGUI extends JPanel {
 
         if (dialog.isSucceeded()) {
             try {
-                monAnService.addFromDTO(dialog.getMonAnDTO());
+                monAnRemoteService.add(dialog.getMonAnDTO());
                 JOptionPane.showMessageDialog(this, "Thêm món thành công!");
                 loadDataFromDB();
             } catch (Exception e) {
@@ -283,7 +287,7 @@ public class DanhMucMonGUI extends JPanel {
 
         if (dialog.isSucceeded()) {
             try {
-                monAnService.updateFromDTO(dialog.getMonAnDTO());
+                monAnRemoteService.update(dialog.getMonAnDTO());
                 JOptionPane.showMessageDialog(this, "Cập nhật thành công!");
                 loadDataFromDB();
             } catch (Exception e) {
@@ -307,7 +311,11 @@ public class DanhMucMonGUI extends JPanel {
 
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                monAnService.delete(mon.getMaMonAn());
+                MonAnDTO dto = MonAnDTO.builder()
+                        .maMonAn(mon.getMaMonAn())
+                        .trangThai("Hết món")
+                        .build();
+                monAnRemoteService.updateStatus(dto);
 
                 JOptionPane.showMessageDialog(this, "Đã xóa món ăn.");
                 loadDataFromDB();
@@ -342,7 +350,7 @@ public class DanhMucMonGUI extends JPanel {
 
             btnTatCa.addActionListener(filterListener);
 
-            List<DanhMucMonDTO> dsDanhMuc = danhMucMonService.getAllDanhMuc();
+            List<DanhMucMonDTO> dsDanhMuc = danhMucMonRemoteService.findAll();
 
             if (dsDanhMuc != null) {
                 for (DanhMucMonDTO dm : dsDanhMuc) {

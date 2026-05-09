@@ -1,7 +1,8 @@
 package iuh.fit.gui;
 
 import iuh.fit.core.dto.DanhMucMonDTO;
-import iuh.fit.core.service.DanhMucMonService;
+import iuh.fit.core.net.client.DanhMucMonRemoteService;
+import iuh.fit.core.net.client.NetClientContext;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -11,12 +12,15 @@ import java.util.List;
 public class QuanLyDanhMucDialog extends JDialog {
     private JTable table;
     private DefaultTableModel model;
-    private final DanhMucMonService danhMucService;
+    private final DanhMucMonRemoteService danhMucService;
     private boolean dataChanged = false;
 
     public QuanLyDanhMucDialog(Frame parent) {
         super(parent, "Quản Lý Danh Mục", true);
-        this.danhMucService = new DanhMucMonService();
+        if (!NetClientContext.isReady()) {
+            throw new IllegalStateException("Không có kết nối remote cho quản lý danh mục.");
+        }
+        this.danhMucService = new DanhMucMonRemoteService(NetClientContext.getConnection());
         setSize(800, 400);
         setLocationRelativeTo(parent);
         setLayout(new BorderLayout(10, 10));
@@ -54,7 +58,7 @@ public class QuanLyDanhMucDialog extends JDialog {
 
     private void loadData() {
         model.setRowCount(0);
-        List<DanhMucMonDTO> list = danhMucService.getAllDanhMuc();
+        List<DanhMucMonDTO> list = danhMucService.findAll();
         for (DanhMucMonDTO dm : list) {
             model.addRow(new Object[]{dm.getMadm(), dm.getTendm(), dm.getMota()});
         }
@@ -76,7 +80,7 @@ public class QuanLyDanhMucDialog extends JDialog {
                         .tendm(txtTen.getText().trim())
                         .mota(txtMoTa.getText().trim())
                         .build();
-                if (danhMucService.themDanhMuc(dto)) {
+                if (danhMucService.add(dto)) {
                     loadData();
                     dataChanged = true;
                 }
@@ -106,7 +110,7 @@ public class QuanLyDanhMucDialog extends JDialog {
                         .tendm(txtTen.getText().trim())
                         .mota(txtMoTa.getText().trim())
                         .build();
-                if (danhMucService.capNhatDanhMuc(dto)) {
+                if (danhMucService.update(dto)) {
                     loadData();
                     dataChanged = true;
                 }
@@ -124,8 +128,7 @@ public class QuanLyDanhMucDialog extends JDialog {
         int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn xóa? Các món ăn thuộc danh mục này có thể bị ảnh hưởng.", "Cảnh báo", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                DanhMucMonDTO dto = DanhMucMonDTO.builder().madm(ma).build();
-                if (danhMucService.xoaDanhMuc(dto)) {
+                if (danhMucService.delete(ma)) {
                     loadData();
                     dataChanged = true;
                 } else {
