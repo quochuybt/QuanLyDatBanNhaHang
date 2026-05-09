@@ -81,25 +81,32 @@ public class ServerConnectionGUI extends JFrame {
         btnScan.setEnabled(false);
         serverListModel.clear();
         lblStatus.setForeground(Color.BLACK);
-        
+
         new SwingWorker<List<DiscoveredServer>, String>() {
             @Override
             protected List<DiscoveredServer> doInBackground() {
-                publish("Đang quét tìm server qua mDNS (Ưu tiên)...");
-                
-                LanServerDiscoveryService discoveryService = new LanServerDiscoveryService(9091);
+                publish("Đang quét tìm server qua mDNS...");
+                LanServerDiscoveryService discoveryService = new LanServerDiscoveryService(9091, 9090);
                 Map<String, List<DiscoveredServer>> byStrategy = discoveryService.discoverByStrategy(2500, 1500);
-                
+
                 List<DiscoveredServer> mdns = byStrategy.getOrDefault("mDNS", List.of());
                 if (!mdns.isEmpty()) {
                     publish("Tìm thấy server qua mDNS");
                     return mdns;
                 }
 
-                publish("Không thấy mDNS, chuyển sang UDP fallback...");
-                try { Thread.sleep(500); } catch (InterruptedException ignored) {}
-                
-                return byStrategy.getOrDefault("UDP", List.of());
+                List<DiscoveredServer> udp = byStrategy.getOrDefault("UDP", List.of());
+                if (!udp.isEmpty()) {
+                    publish("Tìm thấy server qua UDP");
+                    return udp;
+                }
+
+                publish("Không thấy qua mDNS/UDP, đang quét subnet TCP (có thể mất 10 giây)...");
+                List<DiscoveredServer> tcp = byStrategy.getOrDefault("TCP Scan", List.of());
+                if (!tcp.isEmpty()) {
+                    publish("Tìm thấy server qua TCP scan");
+                }
+                return tcp;
             }
 
             @Override
@@ -115,9 +122,8 @@ public class ServerConnectionGUI extends JFrame {
                     for (DiscoveredServer s : servers) {
                         serverListModel.addElement(s);
                     }
-
                     if (servers.isEmpty()) {
-                        lblStatus.setText("Trạng thái: Không tìm thấy server nào trong mạng LAN");
+                        lblStatus.setText("Trạng thái: Không tìm thấy server — thử nhập IP thủ công");
                         lblStatus.setForeground(Color.RED);
                     } else {
                         listServers.setSelectedIndex(0);
