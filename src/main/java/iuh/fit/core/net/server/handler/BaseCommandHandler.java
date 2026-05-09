@@ -54,13 +54,13 @@ public abstract class BaseCommandHandler {
     }
 
     protected MessageEnvelope badRequest(MessageEnvelope request, String message) {
-        LOGGER.info("[SocketServer] Bad request: " + message
+        LOGGER.warn("[SocketServer] Bad request: " + message
                 + " (messageId=" + request.getMessageId() + ")");
         return MessageEnvelope.responseFail(request.getMessageId(), ErrorCode.BAD_REQUEST, message);
     }
 
     protected MessageEnvelope serverError(MessageEnvelope request, String message) {
-        LOGGER.info("[SocketServer] Server error: " + message
+        LOGGER.error("[SocketServer] Server error: " + message
                 + " (messageId=" + request.getMessageId() + ")");
         return MessageEnvelope.responseFail(request.getMessageId(), ErrorCode.SERVER_ERROR, message);
     }

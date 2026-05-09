@@ -39,16 +39,31 @@ public class ClientSessionHandler implements Runnable {
 
                 // Command được route qua dispatcher đến handler tương ứng
                 if (request.getType() == MessageType.COMMAND) {
+                    long startedAt = System.currentTimeMillis();
+
                     LOGGER.info("[SocketServer] Nhận command: " + request.getName()
                             + " (messageId=" + request.getMessageId() + ", session=" + session.getSessionId() + ")");
+
                     MessageEnvelope response = commandDispatcher.dispatch(session, request);
+
+                    long afterHandler = System.currentTimeMillis();
+                    LOGGER.info("[SocketServer] Xử lý xong command={} (messageId={}, session={}, durationHandlerMs={})",
+                            request.getName(),
+                            request.getMessageId(),
+                            session.getSessionId(),
+                            (afterHandler - startedAt));
+
                     session.send(response);
+
+                    long finishedAt = System.currentTimeMillis();
                     LOGGER.info("[SocketServer] Trả response cho command: " + request.getName()
                             + " (success=" + response.isSuccess()
-                            + ", correlationId=" + response.getCorrelationId() + ")");
+                            + ", correlationId=" + response.getCorrelationId()
+                            + ", totalDurationMs=" + (finishedAt - startedAt) + ")");
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception ex) {
+            LOGGER.error("[SocketServer] Lỗi xử lý session={} : {}", session.getSessionId(), ex.getMessage(), ex);
         } finally {
             // Luôn dọn session khi client disconnect/lỗi
             sessionRegistry.remove(session);

@@ -69,9 +69,12 @@ public class SocketServerBootstrap {
         } catch (Exception e) {
             if (running) {
                 if (e instanceof BindException) {
+                    LOGGER.error("[SocketServer] Lỗi bind cổng TCP={} UDP={}: {}",
+                            tcpPort, udpPort, e.getMessage(), e);
                     throw new RuntimeException("Không thể khởi động Socket Server: cổng TCP " + tcpPort
                             + " hoặc UDP " + udpPort + " đang được sử dụng", e);
                 }
+                LOGGER.error("[SocketServer] Không thể khởi động Socket Server: {}", e.getMessage(), e);
                 throw new RuntimeException("Không thể khởi động Socket Server", e);
             }
         } finally {

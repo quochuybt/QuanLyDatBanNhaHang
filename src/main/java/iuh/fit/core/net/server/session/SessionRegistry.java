@@ -13,6 +13,9 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class SessionRegistry {
     private static final Logger LOGGER = LoggerFactory.getLogger(SessionRegistry.class);
@@ -28,11 +31,25 @@ public class SessionRegistry {
         ClientSession oldSession = byUsername.get(tenTK);
         if (oldSession != null && oldSession != newSession) {
             try {
-                oldSession.send(MessageEnvelope.event(
-                        EventType.SESSION_KICKED.name(),
-                        JsonCodec.toJsonNode(Map.of("reason", "Đăng nhập từ thiết bị khác"))
-                ));
-            } catch (IOException ignored) {
+                CompletableFuture<Void> kickFuture = CompletableFuture.runAsync(() -> {
+                    try {
+                        oldSession.send(MessageEnvelope.event(
+                                EventType.SESSION_KICKED.name(),
+                                JsonCodec.toJsonNode(Map.of("reason", "Đăng nhập từ thiết bị khác"))
+                        ));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+
+                kickFuture.get(500, TimeUnit.MILLISECONDS);
+
+            } catch (TimeoutException te) {
+                LOGGER.warn("[SocketServer] Timeout khi gửi SESSION_KICKED tới session cũ={} user={}",
+                        oldSession.getSessionId(), tenTK);
+            } catch (Exception ex) {
+                LOGGER.warn("[SocketServer] Lỗi gửi SESSION_KICKED tới session cũ={} user={} : {}",
+                        oldSession.getSessionId(), tenTK, ex.getMessage(), ex);
             } finally {
                 remove(oldSession);
                 oldSession.close();
