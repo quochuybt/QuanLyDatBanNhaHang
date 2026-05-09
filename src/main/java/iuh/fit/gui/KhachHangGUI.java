@@ -395,7 +395,6 @@ public class KhachHangGUI extends BaseEventAwarePanel {
                                 JOptionPane.INFORMATION_MESSAGE
                         );
 
-                        refreshKhachHangTable();
                         lamMoiForm();
                     } else {
                         showError("Không thể cập nhật khách hàng.", "Lỗi");
