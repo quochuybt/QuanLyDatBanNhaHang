@@ -20,6 +20,15 @@ public enum CommandAction {
     PHANCONG_ADD,
     PHANCONG_REMOVE,
     PHANCONG_LIST_BY_DATE,
+    PHANCONG_GET_BY_DATE_RANGE,
+
+    // ===== Nhân viên =====
+    NHANVIEN_GET_ALL,
+    NHANVIEN_GET_BY_ID,
+    NHANVIEN_ADD,
+    NHANVIEN_UPDATE,
+    NHANVIEN_TOGGLE_STATUS,
+    NHANVIEN_GET_EMAIL_BY_TENTK,
 
     BAN_GET_ALL,
     BAN_UPDATE_STATUS,
@@ -29,6 +38,25 @@ public enum CommandAction {
     KHACHHANG_ADD,
     KHACHHANG_UPDATE,
     KHACHHANG_SEARCH,
+
+    // ===== Khuyến mãi =====
+    KHUYENMAI_GET_ALL,
+    KHUYENMAI_GET_BY_ID,
+    KHUYENMAI_ADD,
+    KHUYENMAI_UPDATE,
+    KHUYENMAI_DELETE,
+
+    // ===== Danh mục món / Món ăn (admin) =====
+    DANHMUCMON_GET_ALL,
+    DANHMUCMON_ADD,
+    DANHMUCMON_UPDATE,
+    MONAN_ADMIN_GET_ALL,
+    MONAN_ADMIN_ADD,
+    MONAN_ADMIN_UPDATE,
+    MONAN_ADMIN_UPDATE_STATUS,
+
+    // ===== Tài khoản =====
+    TAIKHOAN_UPDATE_PASSWORD,
 
     GIAOCA_DASHBOARD_LOAD,
     GIAOCA_START,
