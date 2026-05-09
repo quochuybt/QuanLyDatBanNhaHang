@@ -80,25 +80,35 @@ public class TcpSubnetScanClient {
     }
 
     /**
-     * Lấy IP WiFi thực (bỏ qua loopback, virtual adapter).
+     * Lấy IP thực để xác định subnet.
+     * Ưu tiên: WiFi > Ethernet > bất kỳ IP non-loopback nào.
      */
     private String getLocalWifiIp() {
         try {
+            // Thử lấy IP bằng cách kết nối UDP ra ngoài (không gửi gói tin thực)
+            // Đây là cách đáng tin cậy nhất để lấy IP đang dùng
+            try (java.net.DatagramSocket socket = new java.net.DatagramSocket()) {
+                socket.connect(InetAddress.getByName("8.8.8.8"), 80);
+                String ip = socket.getLocalAddress().getHostAddress();
+                if (ip != null && !ip.equals("0.0.0.0") && !ip.startsWith("127.")) {
+                    return ip;
+                }
+            } catch (Exception ignored) {}
+
+            // Fallback: duyệt interface
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
             for (NetworkInterface ni : Collections.list(interfaces)) {
-                if (!ni.isUp() || ni.isLoopback() || ni.isVirtual()) continue;
+                if (!ni.isUp() || ni.isLoopback()) continue;
                 String name = ni.getName().toLowerCase();
-                // Bỏ qua các virtual adapter phổ biến
-                if (name.contains("vethernet") || name.contains("wsl")
-                        || name.contains("hyper") || name.contains("vmware")
-                        || name.contains("virtualbox") || name.contains("tailscale")
-                        || name.contains("openvpn") || name.contains("bluetooth")) continue;
+                if (name.contains("tailscale") || name.contains("openvpn")
+                        || name.contains("bluetooth") || name.contains("vmware")
+                        || name.contains("virtualbox")) continue;
 
                 for (InetAddress addr : Collections.list(ni.getInetAddresses())) {
                     if (addr.isLoopbackAddress() || addr.isLinkLocalAddress()) continue;
                     String ip = addr.getHostAddress();
-                    // Chỉ lấy IPv4
-                    if (ip.contains(":")) continue;
+                    if (ip.contains(":")) continue; // bỏ IPv6
+                    if (ip.startsWith("127.") || ip.startsWith("169.254.")) continue;
                     return ip;
                 }
             }
