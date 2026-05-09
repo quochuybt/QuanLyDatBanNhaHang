@@ -66,7 +66,8 @@ public class DashboardQuanLyGUI extends JPanel {
 
     private JPanel pnlStaffHoursChart;
 
-
+    
+    private final GiaoCaService giaoCaService = new GiaoCaService();
 
     private final DashboardRemoteService dashboardRemoteService;
     private final HoaDonRemoteService hoaDonRemoteService;
@@ -571,9 +572,6 @@ public class DashboardQuanLyGUI extends JPanel {
                 if (dashboardRemoteService != null) {
                     topSellingItems = dashboardRemoteService.getTopSellingItems(startDate, endDate, 5);
                     leastSellingItems = dashboardRemoteService.getLeastSellingItems(startDate, endDate, 5);
-                } else {
-                    topSellingItems = chiTietHoaDonService.getTopSellingItems(startDate, endDate, 5);
-                    leastSellingItems = chiTietHoaDonService.getLeastSellingItems(startDate, endDate, 5);
                 }
 
                 return null;

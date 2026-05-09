@@ -11,6 +11,7 @@ import iuh.fit.core.mapper.JsonMapper;
 import iuh.fit.core.net.client.*;
 import iuh.fit.core.service.BanService;
 import iuh.fit.core.net.client.BanRemoteService;
+import iuh.fit.core.net.client.ChiTietHoaDonRemoteService;
 import iuh.fit.core.net.client.KhachHangRemoteService;
 import iuh.fit.core.net.client.KhuyenMaiRemoteService;
 import iuh.fit.core.net.client.MonAnAdminRemoteService;
@@ -90,7 +91,9 @@ public class BillPanel extends JPanel {
     }
 
     private void initCommon() {
-        this.chiTietHoaDonRemoteService = new ChiTietHoaDonRemoteService(NetClientContext.getConnection());
+       this.chiTietHoaDonRemoteService = NetClientContext.isReady()
+                ? new ChiTietHoaDonRemoteService(NetClientContext.getConnection())
+                : null;
         this.hoaDonRemoteService = new HoaDonRemoteService(NetClientContext.getConnection());
 
         this.banRemoteService = NetClientContext.isReady()
@@ -216,10 +219,12 @@ public class BillPanel extends JPanel {
 
             ChiTietHoaDonDTO filterDTO = new ChiTietHoaDonDTO();
             filterDTO.setMaDon(activeHoaDon.getMaDon());
-            dsMonHienTai = chiTietHoaDonRemoteService.getChiTietTheoMaDon(filterDTO);
+        
 
             activeHoaDon = hoaDonRemoteService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
-            dsMonHienTai = chiTietHoaDonService.getChiTietTheoMaDon(request);
+            dsMonHienTai = chiTietHoaDonRemoteService != null
+                    ? chiTietHoaDonRemoteService.getChiTietTheoMaDon(activeHoaDon.getMaDon())
+                    : new ArrayList<>();
             
 
             if (dsMonHienTai != null) {
@@ -240,10 +245,12 @@ public class BillPanel extends JPanel {
         } else if (parentBanGUI != null) {
             ChiTietHoaDonDTO filterDTO = new ChiTietHoaDonDTO();
             filterDTO.setMaDon(activeHoaDon.getMaDon());
-            dsMonHienTai = chiTietHoaDonRemoteService.getChiTietTheoMaDon(filterDTO);
+
 
             activeHoaDon = hoaDonRemoteService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
-
+            dsMonHienTai = chiTietHoaDonRemoteService != null
+                    ? chiTietHoaDonRemoteService.getChiTietTheoMaDon(activeHoaDon.getMaDon())
+                    : new ArrayList<>();
 
             if (dsMonHienTai != null) {
                 for (ChiTietHoaDonDTO ct : dsMonHienTai) {
@@ -526,7 +533,9 @@ public class BillPanel extends JPanel {
                 ChiTietHoaDonDTO filterDTO = new ChiTietHoaDonDTO();
                 filterDTO.setMaDon(hd.getMaDon());
 
-                list = chiTietHoaDonRemoteService.getChiTietTheoMaDon(filterDTO);
+                list = chiTietHoaDonRemoteService != null
+                        ? chiTietHoaDonRemoteService.getChiTietTheoMaDon(hd.getMaDon())
+                        : new ArrayList<>();
             }
 
         }
@@ -593,11 +602,9 @@ public class BillPanel extends JPanel {
             }
         }
 
-        ChiTietHoaDonDTO filterDTO = new ChiTietHoaDonDTO();
-        filterDTO.setMaDon(maDon);
-
-        List<ChiTietHoaDonDTO> itemsTrongDBList = chiTietHoaDonRemoteService.getChiTietTheoMaDon(filterDTO);
-
+        List<ChiTietHoaDonDTO> itemsTrongDBList = chiTietHoaDonRemoteService != null
+                ? chiTietHoaDonRemoteService.getChiTietTheoMaDon(maDon)
+                : new ArrayList<>();
 
         Map<String, ChiTietHoaDonDTO> itemsTrongDB = new HashMap<>();
         for (ChiTietHoaDonDTO ct : itemsTrongDBList) {
@@ -607,77 +614,43 @@ public class BillPanel extends JPanel {
         boolean coLoi = false;
 
         try {
+            List<ChiTietHoaDonDTO> finalItems = new ArrayList<>();
             for (Map.Entry<String, Integer> entryGUI : itemsTrenGUI.entrySet()) {
                 String maMonGUI = entryGUI.getKey();
                 int soLuongGUI = entryGUI.getValue();
 
-                if (!itemsTrongDB.containsKey(maMonGUI)) {
-                    float donGia = donGiaTrenGUI.getOrDefault(maMonGUI, 0f);
+                float donGia = donGiaTrenGUI.getOrDefault(maMonGUI, 0f);
 
-                    if (donGia <= 0) {
-                        iuh.fit.core.dto.MonAnDTO monAn = monAnAdminRemoteService != null
-                                ? monAnAdminRemoteService.findById(maMonGUI)
-                                : null;
-                        if (monAn != null) {
-                            donGia = monAn.getDonGia();
-                        }
-                    }
+                if (donGia <= 0) {
+                    iuh.fit.core.dto.MonAnDTO monAn = monAnAdminRemoteService != null
+                            ? monAnAdminRemoteService.findById(maMonGUI)
+                            : null;
 
-                    if (donGia > 0) {
-                        ChiTietHoaDonDTO ctMoi = new ChiTietHoaDonDTO();
-                        ctMoi.setMaDon(maDon);
-                        ctMoi.setMaMonAn(maMonGUI);
-                        ctMoi.setSoLuong(soLuongGUI);
-                        ctMoi.setDonGia(donGia);
-                        ctMoi.setThanhTien(soLuongGUI * donGia);
-
-                        if (!chiTietHoaDonRemoteService.themChiTiet(ctMoi)) {
-
-                            coLoi = true;
-                            System.err.println("Lỗi khi thêm chi tiết: " + maMonGUI);
-                        }
-                    } else {
-                        System.err.println("Không tìm thấy đơn giá cho món mới: " + maMonGUI);
+                    if (monAn != null) {
+                        donGia = monAn.getDonGia();
                     }
                 }
-            }
 
-            for (Map.Entry<String, ChiTietHoaDonDTO> entryDB : itemsTrongDB.entrySet()) {
-                String maMonDB = entryDB.getKey();
-
-                if (!itemsTrenGUI.containsKey(maMonDB)) {
-                    ChiTietHoaDonDTO deleteDTO = new ChiTietHoaDonDTO();
-                    deleteDTO.setMaDon(maDon);
-                    deleteDTO.setMaMonAn(maMonDB);
-
-                    if (!chiTietHoaDonRemoteService.xoaChiTiet(deleteDTO)) {
-
-                        coLoi = true;
-                        System.err.println("Lỗi khi xóa chi tiết: " + maMonDB);
-                    }
+                if (donGia <= 0) {
+                    coLoi = true;
+                    System.err.println("Không tìm thấy đơn giá cho món: " + maMonGUI);
+                    continue;
                 }
+
+                ChiTietHoaDonDTO ct = new ChiTietHoaDonDTO();
+                ct.setMaDon(maDon);
+                ct.setMaMonAn(maMonGUI);
+                ct.setSoLuong(soLuongGUI);
+                ct.setDonGia(donGia);
+                ct.setThanhTien(soLuongGUI * donGia);
+                finalItems.add(ct);
             }
 
-            for (Map.Entry<String, Integer> entryGUI : itemsTrenGUI.entrySet()) {
-                String maMonGUI = entryGUI.getKey();
-                int soLuongGUI = entryGUI.getValue();
-
-                if (itemsTrongDB.containsKey(maMonGUI)) {
-                    ChiTietHoaDonDTO ctTrongDB = itemsTrongDB.get(maMonGUI);
-
-                    if (ctTrongDB.getSoLuong() != soLuongGUI) {
-                        ChiTietHoaDonDTO updateDTO = new ChiTietHoaDonDTO();
-                        updateDTO.setMaDon(maDon);
-                        updateDTO.setMaMonAn(maMonGUI);
-                        updateDTO.setSoLuong(soLuongGUI);
-                        updateDTO.setDonGia(ctTrongDB.getDonGia());
-
-                        if (!chiTietHoaDonRemoteService.suaChiTiet(updateDTO)) {
-
-                            coLoi = true;
-                            System.err.println("Lỗi khi sửa chi tiết: " + maMonGUI);
-                        }
-                    }
+            if (!coLoi && chiTietHoaDonRemoteService != null) {
+                boolean replaceOk = chiTietHoaDonRemoteService.replaceByMaDon(maDon, finalItems);
+                if (!replaceOk) {
+                    coLoi = true;
+                    System.err.println("Lỗi replace chi tiết hóa đơn qua remote.");
                 }
             }
 

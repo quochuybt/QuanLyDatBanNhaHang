@@ -64,4 +64,18 @@ public class ChiTietHoaDonRemoteService extends BaseRemoteService {
         ensureSuccess(response, "Không thể cập nhật chi tiết hóa đơn.");
         return Boolean.TRUE.equals(JsonCodec.fromJsonNode(response.getPayload(), Boolean.class));
     }
+
+    public boolean replaceByMaDon(List<ChiTietHoaDonDTO> itemDTOList) {
+        if (itemDTOList == null || itemDTOList.isEmpty()) {
+            throw new IllegalArgumentException("Danh sách chi tiết không được rỗng.");
+        }
+
+        String maDon = itemDTOList.get(0).getMaDon();
+
+        if (maDon == null || maDon.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã đơn không hợp lệ.");
+        }
+
+        return replaceByMaDon(maDon, itemDTOList);
+    }
 }

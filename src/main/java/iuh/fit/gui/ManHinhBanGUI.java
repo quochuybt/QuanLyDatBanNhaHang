@@ -1337,12 +1337,7 @@ public class ManHinhBanGUI extends JPanel {
         }
 
         try {
-            ChiTietHoaDonDTO filter = ChiTietHoaDonDTO.builder()
-                    .maDon(hoaDon.getMaDon())
-                    .build();
-
-            List<ChiTietHoaDonDTO> dsChiTiet = chiTietHoaDonRemoteService.getChiTietTheoMaDon(filter);
-
+            List<ChiTietHoaDonDTO> dsChiTiet = chiTietHoaDonRemoteService.getChiTietTheoMaDon(hoaDon.getMaDon());
 
             if (dsChiTiet == null) {
                 return 0;

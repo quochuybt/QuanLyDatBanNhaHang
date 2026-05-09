@@ -5,19 +5,23 @@ import iuh.fit.core.dto.ChiTietHoaDonDTO;
 import iuh.fit.core.dto.DonDatMonDTO;
 import iuh.fit.core.dto.HoaDonDTO;
 import iuh.fit.core.dto.NhanVienDTO;
-import iuh.fit.core.entity.HoaDon; // Chỉ dùng để xuất Excel tạm thời
-import iuh.fit.core.mapper.JsonMapper;
-import iuh.fit.core.net.client.*;
+import iuh.fit.core.net.client.BanRemoteService;
+import iuh.fit.core.net.client.ChiTietHoaDonRemoteService;
+import iuh.fit.core.net.client.ClientEventListener;
+import iuh.fit.core.net.client.DonDatMonRemoteService;
+import iuh.fit.core.net.client.HoaDonRemoteService;
+import iuh.fit.core.net.client.NetClientContext;
+import iuh.fit.core.net.client.NhanVienRemoteService;
 import iuh.fit.core.net.dto.hoadon.HoaDonDetailRequestDTO;
 import iuh.fit.core.net.dto.hoadon.HoaDonPageRequestDTO;
 import iuh.fit.core.net.dto.hoadon.HoaDonTotalRequestDTO;
 import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.MessageEnvelope;
-import iuh.fit.core.service.*;
+import iuh.fit.core.service.DonDatMonService;
+import iuh.fit.core.service.HoaDonService;
 import iuh.fit.core.util.ExcelExporter;
 
 import javax.swing.*;
-import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -45,6 +49,8 @@ public class HoaDonGUI extends JPanel {
     private final HoaDonRemoteService hoaDonRemoteService;
     private final NhanVienRemoteService nhanVienRemoteService;
     private final BanRemoteService banRemoteService;
+    private final ChiTietHoaDonRemoteService chiTietHoaDonRemoteService;
+    private final DonDatMonRemoteService donDatMonRemoteService;
 
     // --- UI Components ---
     private final JTable tableHoaDon;
@@ -97,7 +103,8 @@ public class HoaDonGUI extends JPanel {
             nhanVienRemoteService = new NhanVienRemoteService(NetClientContext.getConnection());
             banRemoteService = new BanRemoteService(NetClientContext.getConnection());
 
-            donDatMonService = new DonDatMonRemoteService(NetClientContext.getConnection());
+            donDatMonRemoteService = new DonDatMonRemoteService(NetClientContext.getConnection());
+            chiTietHoaDonRemoteService = new ChiTietHoaDonRemoteService(NetClientContext.getConnection());
 
             NetClientContext.getConnection().addEventListener(new ClientEventListener() {
                 @Override
@@ -115,6 +122,7 @@ public class HoaDonGUI extends JPanel {
             hoaDonRemoteService = null;
             nhanVienRemoteService = null;
             banRemoteService = null;
+            chiTietHoaDonRemoteService = null;
         }
 
         setLayout(new BorderLayout(10, 10));
@@ -529,7 +537,7 @@ public class HoaDonGUI extends JPanel {
             String ghiChu = "Không";
             if (hd.getMaDon() != null) {
                 try {
-                    DonDatMonDTO ddm = donDatMonService.findById(hd.getMaDon());
+                    DonDatMonDTO ddm = donDatMonRemoteService.findById(hd.getMaDon());
                     if (ddm != null && ddm.getGhiChu() != null && !ddm.getGhiChu().trim().isEmpty()) {
                         ghiChu = ddm.getGhiChu().trim();
                         if (ghiChu.contains("LINKED:")) {
@@ -599,6 +607,10 @@ public class HoaDonGUI extends JPanel {
                 new SwingWorker<List<ChiTietHoaDonDTO>, Void>() {
                     @Override
                     protected List<ChiTietHoaDonDTO> doInBackground() {
+                        if (chiTietHoaDonRemoteService != null) {
+                            return chiTietHoaDonRemoteService.getChiTietTheoMaDon(hd.getMaDon());
+                        }
+
                         if (hoaDonRemoteService != null) {
                             return hoaDonRemoteService.getChiTietHoaDon(
                                     HoaDonDetailRequestDTO.builder()
@@ -607,11 +619,7 @@ public class HoaDonGUI extends JPanel {
                             );
                         }
 
-                        ChiTietHoaDonDTO filterDTO = ChiTietHoaDonDTO.builder()
-                                .maDon(hd.getMaDon())
-                                .build();
-
-                        return chiTietHoaDonService.getChiTietTheoMaDon(filterDTO);
+                        return List.of();
                     }
 
                     @Override
@@ -674,7 +682,7 @@ public class HoaDonGUI extends JPanel {
 
         String tenBan = "Không rõ";
         if (hoaDon.getMaDon() != null) {
-            DonDatMonDTO ddm = donDatMonService.findById(hoaDon.getMaDon());
+            DonDatMonDTO ddm = donDatMonRemoteService.findById(hoaDon.getMaDon());
             if (ddm != null && ddm.getMaBan() != null) {
                 tenBan = layTenBanQuaRemote(ddm.getMaBan());
             }
