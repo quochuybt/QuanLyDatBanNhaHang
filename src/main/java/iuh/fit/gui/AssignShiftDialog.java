@@ -3,10 +3,10 @@ package iuh.fit.gui;
 import iuh.fit.core.dto.CaLamDTO;
 import iuh.fit.core.dto.PhanCongDTO;
 import iuh.fit.core.entity.NhanVien;
+import iuh.fit.core.net.client.NhanVienRemoteService;
 import iuh.fit.core.net.client.PhanCongRemoteService;
 import iuh.fit.core.net.client.SocketClientConnection;
 import iuh.fit.core.service.CaLamService;
-import iuh.fit.core.service.NhanVienService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -28,12 +28,10 @@ public class AssignShiftDialog extends JDialog {
     private static final Font FONT_COMPONENT = new Font("Arial", Font.PLAIN, 14);
 
     /*
-     * Tạm thời vẫn giữ CaLamService và NhanVienService local
-     * vì hiện tại bạn mới có socket skeleton cho PhanCong.
-     * Sau này nếu có command CA_LAM_LIST / NHANVIEN_LIST thì đổi tiếp 2 service này sang remote.
+     * Ca làm vẫn local, danh sách nhân viên đã chuyển remote.
      */
     private final CaLamService caLamService = new CaLamService();
-    private final NhanVienService nhanVienService = new NhanVienService();
+    private final NhanVienRemoteService nhanVienRemoteService;
 
     /*
      * Phần phân công đã đi qua socket.
@@ -62,6 +60,7 @@ public class AssignShiftDialog extends JDialog {
 
         Objects.requireNonNull(socketConnection, "SocketClientConnection không được null.");
         this.phanCongRemoteService = new PhanCongRemoteService(socketConnection);
+        this.nhanVienRemoteService = new NhanVienRemoteService(socketConnection);
 
         setSize(700, 500);
         setLocationRelativeTo(owner);
@@ -345,7 +344,9 @@ public class AssignShiftDialog extends JDialog {
         new SwingWorker<ReloadResult, Void>() {
             @Override
             protected ReloadResult doInBackground() {
-                List<NhanVien> dsTatCaNV = nhanVienService.findAll();
+                List<NhanVien> dsTatCaNV = nhanVienRemoteService.findAll().stream()
+                        .map(iuh.fit.core.dto.NhanVienDTO::toEntity)
+                        .toList();
 
                 /*
                  * Gọi socket: PHANCONG_LIST_BY_DATE

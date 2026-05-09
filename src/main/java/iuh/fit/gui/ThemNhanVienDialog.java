@@ -1,8 +1,9 @@
 package iuh.fit.gui;
 
 import iuh.fit.core.entity.NhanVien;
+import iuh.fit.core.dto.NhanVienDTO;
+import iuh.fit.core.net.client.NhanVienRemoteService;
 import iuh.fit.core.entity.VaiTro;
-import iuh.fit.core.service.NhanVienService;
 import com.toedter.calendar.JDateChooser; // IMPORT THƯ VIỆN JCALENDAR
 
 import javax.swing.*;
@@ -13,7 +14,7 @@ import java.time.ZoneId;
 
 public class ThemNhanVienDialog extends JDialog {
 
-    private final NhanVienService nhanVienService = new NhanVienService();
+    private final NhanVienRemoteService nhanVienRemoteService;
     private final NhanVienGUI parentPanel;
 
     private final JTextField txtHoTen = new JTextField(15);
@@ -33,6 +34,10 @@ public class ThemNhanVienDialog extends JDialog {
         super(SwingUtilities.getWindowAncestor(parentPanel) instanceof Frame ? (Frame) SwingUtilities.getWindowAncestor(parentPanel) : null,
                 "Thêm Nhân Viên Mới", true);
         this.parentPanel = parentPanel;
+        this.nhanVienRemoteService = parentPanel.getNhanVienRemoteService();
+        if (this.nhanVienRemoteService == null) {
+            throw new IllegalStateException("Không có kết nối remote cho chức năng nhân viên.");
+        }
         setupUI();
         pack();
         setLocationRelativeTo(null);
@@ -208,7 +213,9 @@ public class ThemNhanVienDialog extends JDialog {
                     email
             );
 
-            nhanVienService.addNhanVien(nv, tenTK, matKhau);
+            NhanVienDTO dto = NhanVienDTO.fromEntity(nv);
+            dto.setTenTK(tenTK);
+            nhanVienRemoteService.add(dto, tenTK, matKhau);
 
             JOptionPane.showMessageDialog(this, "Thêm Nhân viên và Tài khoản thành công!\nTên TK: " + tenTK + "\nMật khẩu: " + matKhau, "Thành công", JOptionPane.INFORMATION_MESSAGE);
             parentPanel.refreshTable();

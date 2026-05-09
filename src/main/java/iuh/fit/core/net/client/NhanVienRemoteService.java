@@ -5,6 +5,8 @@ import iuh.fit.core.dto.NhanVienDTO;
 import iuh.fit.core.net.dto.common.EmailByUsernameRequest;
 import iuh.fit.core.net.dto.common.IdRequest;
 import iuh.fit.core.net.dto.common.ToggleStatusRequest;
+import iuh.fit.core.net.dto.nhanvien.NhanVienAddRequest;
+import iuh.fit.core.net.dto.nhanvien.NhanVienUpdateRequest;
 import iuh.fit.core.net.protocol.CommandAction;
 import iuh.fit.core.net.protocol.JsonCodec;
 import iuh.fit.core.net.protocol.MessageEnvelope;
@@ -44,9 +46,19 @@ public class NhanVienRemoteService extends BaseRemoteService {
     }
 
     public boolean add(NhanVienDTO dto) {
+        return add(dto, dto.getTenTK(), "123456");
+    }
+
+    public boolean add(NhanVienDTO dto, String tenTK, String matKhau) {
+        NhanVienAddRequest request = NhanVienAddRequest.builder()
+                .nhanVien(dto)
+                .tenTK(tenTK)
+                .matKhau(matKhau)
+                .build();
+
         MessageEnvelope response = connection.sendCommand(
                 CommandAction.NHANVIEN_ADD.name(),
-                dto,
+                request,
                 DEFAULT_TIMEOUT_MS
         );
         ensureSuccess(response, "Không thể thêm nhân viên.");
@@ -54,9 +66,20 @@ public class NhanVienRemoteService extends BaseRemoteService {
     }
 
     public boolean update(NhanVienDTO dto) {
+        return updateNhanVienAndAccount(dto, dto.getTenTK(), dto.getTenTK(), "");
+    }
+
+    public boolean updateNhanVienAndAccount(NhanVienDTO dto, String oldTenTK, String newTenTK, String newMatKhau) {
+        NhanVienUpdateRequest request = NhanVienUpdateRequest.builder()
+                .nhanVien(dto)
+                .oldTenTK(oldTenTK)
+                .newTenTK(newTenTK)
+                .newMatKhau(newMatKhau)
+                .build();
+
         MessageEnvelope response = connection.sendCommand(
                 CommandAction.NHANVIEN_UPDATE.name(),
-                dto,
+                request,
                 DEFAULT_TIMEOUT_MS
         );
         ensureSuccess(response, "Không thể cập nhật nhân viên.");
@@ -81,5 +104,16 @@ public class NhanVienRemoteService extends BaseRemoteService {
         );
         ensureSuccess(response, "Không thể lấy email theo tài khoản.");
         return JsonCodec.fromJsonNode(response.getPayload(), String.class);
+    }
+
+    public int getAccountStatus(String tenTK) {
+        MessageEnvelope response = connection.sendCommand(
+                CommandAction.NHANVIEN_GET_ACCOUNT_STATUS.name(),
+                EmailByUsernameRequest.builder().tenTK(tenTK).build(),
+                DEFAULT_TIMEOUT_MS
+        );
+        ensureSuccess(response, "Không thể lấy trạng thái tài khoản.");
+        Integer status = JsonCodec.fromJsonNode(response.getPayload(), Integer.class);
+        return status != null ? status : -1;
     }
 }

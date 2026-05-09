@@ -2,8 +2,9 @@ package iuh.fit.gui;
 
 import iuh.fit.core.util.MailConfig;
 import iuh.fit.core.util.MailService;
-import iuh.fit.core.service.NhanVienService;
-import iuh.fit.core.service.TaiKhoanService;
+import iuh.fit.core.net.client.NhanVienRemoteService;
+import iuh.fit.core.net.client.NetClientContext;
+import iuh.fit.core.net.client.TaiKhoanRemoteService;
 
 import javax.swing.*;
 import java.awt.*;
@@ -29,12 +30,16 @@ public class ForgotPasswordDialog extends JDialog {
 
     private static final Map<String, String> otpStorage = new HashMap<>();
 
-    // Sử dụng Service thay cho DAO (kiến trúc JPA mới)
-    private final NhanVienService nhanVienService = new NhanVienService();
-    private final TaiKhoanService taiKhoanService = new TaiKhoanService();
+    private final NhanVienRemoteService nhanVienRemoteService;
+    private final TaiKhoanRemoteService taiKhoanRemoteService;
 
     public ForgotPasswordDialog(JFrame parent) {
         super(parent, "Quên Mật khẩu - Đặt lại", true);
+        if (!NetClientContext.isReady()) {
+            throw new IllegalStateException("Không tìm thấy kết nối socket để thực hiện quên mật khẩu.");
+        }
+        this.nhanVienRemoteService = new NhanVienRemoteService(NetClientContext.getConnection());
+        this.taiKhoanRemoteService = new TaiKhoanRemoteService(NetClientContext.getConnection());
         setSize(450, 400);
         setLocationRelativeTo(parent);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -100,7 +105,7 @@ public class ForgotPasswordDialog extends JDialog {
                 @Override
                 protected Boolean doInBackground() {
                     try {
-                        email = nhanVienService.getEmailByTenTK(tenTK);
+                        email = nhanVienRemoteService.getEmailByTenTK(tenTK);
                         if (email != null) {
                             currentTenTK = tenTK;
                             currentEmail = email;
@@ -242,7 +247,7 @@ public class ForgotPasswordDialog extends JDialog {
                     throw new IllegalArgumentException("Mật khẩu phải dài ít nhất 6 ký tự.");
                 }
 
-                if (taiKhoanService.updatePassword(currentTenTK, newPass)) {
+                if (taiKhoanRemoteService.updatePassword(currentTenTK, newPass)) {
                     JOptionPane.showMessageDialog(this,
                             "Đổi mật khẩu thành công! Vui lòng đăng nhập lại.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
                     dispose();

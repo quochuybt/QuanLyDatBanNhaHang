@@ -1,8 +1,10 @@
 package iuh.fit.gui;
 
 
+import iuh.fit.core.dto.NhanVienDTO;
+import iuh.fit.core.net.client.NhanVienRemoteService;
+import iuh.fit.core.net.client.NetClientContext;
 import iuh.fit.core.entity.NhanVien;
-import iuh.fit.core.service.NhanVienService;
 import iuh.fit.core.service.PhanCongService;
 import iuh.fit.core.entity.PhanCong;
 
@@ -14,14 +16,15 @@ import java.awt.event.ActionEvent;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class NhanVienGUI extends JPanel {
 
-    private final NhanVienService nhanVienService = new NhanVienService();
     private final PhanCongService phanCongService = new PhanCongService();
+    private final NhanVienRemoteService nhanVienRemoteService;
     private DefaultTableModel model;
     private JTable table;
     private final Color COLOR_ACCENT_BLUE = new Color(56, 118, 243);
@@ -33,6 +36,11 @@ public class NhanVienGUI extends JPanel {
     private JButton btnCancelSearch;
 
     public NhanVienGUI() {
+        if (NetClientContext.isReady()) {
+            nhanVienRemoteService = new NhanVienRemoteService(NetClientContext.getConnection());
+        } else {
+            nhanVienRemoteService = null;
+        }
 
         setLayout(new BorderLayout(10, 10));
         setBackground(new Color(244, 247, 252));
@@ -113,11 +121,22 @@ public class NhanVienGUI extends JPanel {
     }
 
     public void loadDataToTable() {
-        updateTableWithResults(nhanVienService.findAll());
+        List<NhanVien> ds;
+        if (nhanVienRemoteService != null) {
+            List<NhanVienDTO> remote = nhanVienRemoteService.findAll();
+            ds = remote.stream().map(NhanVienDTO::toEntity).toList();
+        } else {
+            ds = new ArrayList<>();
+        }
+        updateTableWithResults(ds);
     }
 
     public void refreshTable() {
         loadDataToTable();
+    }
+
+    public NhanVienRemoteService getNhanVienRemoteService() {
+        return nhanVienRemoteService;
     }
 
     private void handleSearch(ActionEvent e) {
@@ -131,7 +150,13 @@ public class NhanVienGUI extends JPanel {
         }
 
         try {
-            List<NhanVien> allNV = nhanVienService.findAll();
+            List<NhanVien> allNV;
+            if (nhanVienRemoteService != null) {
+                List<NhanVienDTO> remote = nhanVienRemoteService.findAll();
+                allNV = remote.stream().map(NhanVienDTO::toEntity).toList();
+            } else {
+                allNV = new ArrayList<>();
+            }
             switch (searchType) {
                 case "Tên NV":
                     searchResults = allNV.stream()

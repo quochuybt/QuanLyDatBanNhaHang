@@ -2,7 +2,7 @@ package iuh.fit.gui;
 
 import iuh.fit.core.dto.NhanVienDTO;
 import iuh.fit.core.entity.VaiTro;
-import iuh.fit.core.service.NhanVienService;
+import iuh.fit.core.net.client.NhanVienRemoteService;
 
 
 import javax.swing.*;
@@ -13,7 +13,7 @@ import java.time.format.DateTimeParseException;
 
 public class ChiTietNhanVienDialog extends JDialog {
 
-    private final NhanVienService nhanVienService = new NhanVienService();
+    private final NhanVienRemoteService nhanVienRemoteService;
 
     private final NhanVienGUI parentPanel;
     private final NhanVienDTO nhanVienGoc;
@@ -41,8 +41,9 @@ public class ChiTietNhanVienDialog extends JDialog {
         );
 
         this.parentPanel = parentPanel;
+        this.nhanVienRemoteService = parentPanel.getNhanVienRemoteService();
 
-        this.nhanVienGoc = nhanVienService.getChiTietNhanVien(maNV);
+        this.nhanVienGoc = nhanVienRemoteService.findById(maNV);
 
         if (nhanVienGoc == null) {
             JOptionPane.showMessageDialog(
@@ -55,7 +56,7 @@ public class ChiTietNhanVienDialog extends JDialog {
             return;
         }
 
-        this.accountStatus = nhanVienService.getAccountStatus(nhanVienGoc.getTenTK());
+        this.accountStatus = nhanVienRemoteService.getAccountStatus(nhanVienGoc.getTenTK());
 
         setupUI();
         loadData();
@@ -235,7 +236,7 @@ public class ChiTietNhanVienDialog extends JDialog {
                     .tenTK(newTenTK)
                     .build();
 
-            nhanVienService.updateNhanVienAndAccount(
+            nhanVienRemoteService.updateNhanVienAndAccount(
                     nvUpdate,
                     oldTenTK,
                     newTenTK,
@@ -290,7 +291,7 @@ public class ChiTietNhanVienDialog extends JDialog {
             String tenTK = nhanVienGoc.getTenTK();
 
             try {
-                nhanVienService.activateNhanVienAccount(tenTK);
+                nhanVienRemoteService.toggleStatus(tenTK);
 
                 JOptionPane.showMessageDialog(
                         this,
@@ -336,11 +337,7 @@ public class ChiTietNhanVienDialog extends JDialog {
 
         if (choice == JOptionPane.YES_OPTION) {
             try {
-                nhanVienService.suspendNhanVienAndAccount(
-                        nhanVienGoc.getMaNV(),
-                        nhanVienGoc.getTenTK(),
-                        nhanVienGoc.getVaiTro()
-                );
+                nhanVienRemoteService.toggleStatus(nhanVienGoc.getTenTK());
 
                 JOptionPane.showMessageDialog(
                         this,

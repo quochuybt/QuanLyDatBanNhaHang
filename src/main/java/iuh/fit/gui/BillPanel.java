@@ -8,6 +8,8 @@ import iuh.fit.core.dto.KhachHangDTO;
 import iuh.fit.core.dto.NhanVienDTO;
 
 import iuh.fit.core.mapper.JsonMapper;
+import iuh.fit.core.net.client.NhanVienRemoteService;
+import iuh.fit.core.net.client.NetClientContext;
 import iuh.fit.core.service.BanService;
 import iuh.fit.core.service.ChiTietHoaDonService;
 import iuh.fit.core.service.DonDatMonService;
@@ -15,7 +17,6 @@ import iuh.fit.core.service.HoaDonService;
 import iuh.fit.core.service.KhachHangService;
 import iuh.fit.core.service.KhuyenMaiService;
 import iuh.fit.core.service.MonAnService;
-import iuh.fit.core.service.NhanVienService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -51,7 +52,7 @@ public class BillPanel extends JPanel {
     private ChiTietHoaDonService chiTietHoaDonService;
     private HoaDonService hoaDonService;
     private BanService banService;
-    private NhanVienService nhanVienService;
+    private NhanVienRemoteService nhanVienRemoteService;
     private MonAnService monAnService;
     private KhachHangService khachHangService;
     private KhuyenMaiService khuyenMaiService;
@@ -89,7 +90,9 @@ public class BillPanel extends JPanel {
         this.banService = new BanService();
         this.khachHangService = new KhachHangService();
         this.khuyenMaiService = new KhuyenMaiService();
-        this.nhanVienService = new NhanVienService();
+        this.nhanVienRemoteService = NetClientContext.isReady()
+                ? new NhanVienRemoteService(NetClientContext.getConnection())
+                : null;
         this.monAnService = new MonAnService();
         this.donDatMonService = new DonDatMonService();
 
@@ -375,18 +378,17 @@ public class BillPanel extends JPanel {
                     }
                 }
 
-                String tenNVIn = "Admin";
+            String tenNVIn = "Admin";
 
-                if (activeHoaDon.getMaNV() != null) {
-                    NhanVienDTO nvRequest = new NhanVienDTO();
-                    nvRequest.setMaNV(activeHoaDon.getMaNV());
-
-                    NhanVienDTO nv = nhanVienService.getChiTietNhanVien(nvRequest.getMaNV());
+            if (activeHoaDon.getMaNV() != null) {
+                if (nhanVienRemoteService != null) {
+                    NhanVienDTO nv = nhanVienRemoteService.findById(activeHoaDon.getMaNV());
 
                     if (nv != null) {
                         tenNVIn = nv.getHoTen();
                     }
                 }
+            }
 
                 String tenKHIn = "Khách lẻ";
 
@@ -901,11 +903,10 @@ public class BillPanel extends JPanel {
 
             String tenNV = "Admin";
             if (hd.getMaNV() != null) {
-                NhanVienDTO nvRequest = new NhanVienDTO();
-                nvRequest.setMaNV(hd.getMaNV());
-
-                NhanVienDTO nv = nhanVienService.getChiTietNhanVien(nvRequest.getMaNV());
-                if (nv != null) tenNV = nv.getHoTen();
+                if (nhanVienRemoteService != null) {
+                    NhanVienDTO nv = nhanVienRemoteService.findById(hd.getMaNV());
+                    if (nv != null) tenNV = nv.getHoTen();
+                }
             }
 
             String tenKH = "Khách lẻ";

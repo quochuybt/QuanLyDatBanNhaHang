@@ -4,8 +4,8 @@ import iuh.fit.core.entity.CaLam;
 import iuh.fit.core.entity.NhanVien;
 import iuh.fit.core.entity.PhanCong;
 import iuh.fit.core.entity.VaiTro;
+import iuh.fit.core.net.client.NhanVienRemoteService;
 import iuh.fit.core.net.client.SocketClientConnection;
-import iuh.fit.core.service.NhanVienService;
 import iuh.fit.core.service.PhanCongService;
 
 import javax.swing.*;
@@ -47,7 +47,7 @@ public class LichLamViecGUI extends JPanel {
     private static final Font FONT_NAVIGATION = new Font("Arial", Font.BOLD, 16);
 
     private final PhanCongService phanCongService = new PhanCongService();
-    private final NhanVienService nhanVienService = new NhanVienService();
+    private final NhanVienRemoteService nhanVienRemoteService;
 
     private final VaiTro currentUserRole;
     private final SocketClientConnection connection;
@@ -71,6 +71,10 @@ public class LichLamViecGUI extends JPanel {
     public LichLamViecGUI(VaiTro role, SocketClientConnection connection) {
         this.currentUserRole = role;
         this.connection = connection;
+        if (connection == null) {
+            throw new IllegalStateException("Không có kết nối remote cho màn lịch làm việc.");
+        }
+        this.nhanVienRemoteService = new NhanVienRemoteService(connection);
 
         setLayout(new BorderLayout(0, 15));
         setBorder(new EmptyBorder(20, 25, 20, 25));
@@ -426,7 +430,14 @@ public class LichLamViecGUI extends JPanel {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toCollection(HashSet::new));
 
-        List<NhanVien> dsTatCaNV = nhanVienService.findAll();
+        List<NhanVien> dsTatCaNV;
+        if (nhanVienRemoteService != null) {
+            dsTatCaNV = nhanVienRemoteService.findAll().stream()
+                    .map(iuh.fit.core.dto.NhanVienDTO::toEntity)
+                    .toList();
+        } else {
+            dsTatCaNV = new ArrayList<>();
+        }
 
         List<NhanVien> dsChuaPhanCong = dsTatCaNV.stream()
                 .filter(nv -> nv.getManv() != null)

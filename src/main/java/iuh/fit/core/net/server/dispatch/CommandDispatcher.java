@@ -36,6 +36,15 @@ public class CommandDispatcher {
         handlers.put(CommandAction.PHANCONG_REMOVE.name(), new PhanCongRemoveHandler());
         handlers.put(CommandAction.PHANCONG_LIST_BY_DATE.name(), new PhanCongListByDateHandler());
 
+        // ===== Nhân viên =====
+        handlers.put(CommandAction.NHANVIEN_GET_ALL.name(), new NhanVienGetAllHandler());
+        handlers.put(CommandAction.NHANVIEN_GET_BY_ID.name(), new NhanVienGetByIdHandler());
+        handlers.put(CommandAction.NHANVIEN_ADD.name(), new NhanVienAddHandler());
+        handlers.put(CommandAction.NHANVIEN_UPDATE.name(), new NhanVienUpdateHandler());
+        handlers.put(CommandAction.NHANVIEN_TOGGLE_STATUS.name(), new NhanVienToggleStatusHandler());
+        handlers.put(CommandAction.NHANVIEN_GET_EMAIL_BY_TENTK.name(), new NhanVienGetEmailByTenTKHandler());
+        handlers.put(CommandAction.NHANVIEN_GET_ACCOUNT_STATUS.name(), new NhanVienGetAccountStatusHandler());
+
         handlers.put(CommandAction.BAN_GET_ALL.name(), new BanGetAllHandler());
         handlers.put(CommandAction.BAN_UPDATE_STATUS.name(), new BanUpdateStatusHandler());
         handlers.put(CommandAction.BAN_CHUYEN_BAN.name(), new BanChuyenBanHandler());

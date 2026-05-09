@@ -6,10 +6,10 @@ import iuh.fit.core.dto.DonDatMonDTO;
 import iuh.fit.core.dto.HoaDonDTO;
 import iuh.fit.core.dto.NhanVienDTO;
 import iuh.fit.core.entity.HoaDon; // Chỉ dùng để xuất Excel tạm thời
-import iuh.fit.core.entity.NhanVien;
 import iuh.fit.core.mapper.JsonMapper;
 import iuh.fit.core.net.client.HoaDonRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
+import iuh.fit.core.net.client.NhanVienRemoteService;
 import iuh.fit.core.net.dto.hoadon.HoaDonDetailRequestDTO;
 import iuh.fit.core.net.dto.hoadon.HoaDonPageRequestDTO;
 import iuh.fit.core.net.dto.hoadon.HoaDonTotalRequestDTO;
@@ -42,9 +42,9 @@ public class HoaDonGUI extends JPanel {
     private final HoaDonService hoaDonService = new HoaDonService();
     private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
     private final DonDatMonService donDatMonService = new DonDatMonService();
-    private final NhanVienService nhanVienService = new NhanVienService();
     private final BanService banService = new BanService();
     private final HoaDonRemoteService hoaDonRemoteService;
+    private final NhanVienRemoteService nhanVienRemoteService;
 
     // --- UI Components ---
     private final JTable tableHoaDon;
@@ -80,8 +80,10 @@ public class HoaDonGUI extends JPanel {
     public HoaDonGUI() {
         if (NetClientContext.isReady()) {
             hoaDonRemoteService = new HoaDonRemoteService(NetClientContext.getConnection());
+            nhanVienRemoteService = new NhanVienRemoteService(NetClientContext.getConnection());
         } else {
             hoaDonRemoteService = null;
+            nhanVienRemoteService = null;
         }
 
         setLayout(new BorderLayout(10, 10));
@@ -455,9 +457,12 @@ public class HoaDonGUI extends JPanel {
             String tenNV = "N/A";
             try {
                 if (hd.getMaNV() != null) {
-                    NhanVien nv = nhanVienService.findById(hd.getMaNV());
-                    if (nv != null)
-                        tenNV = nv.getHoten();
+                    if (nhanVienRemoteService != null) {
+                        NhanVienDTO nv = nhanVienRemoteService.findById(hd.getMaNV());
+                        if (nv != null) {
+                            tenNV = nv.getHoTen();
+                        }
+                    }
                 }
             } catch (Exception ignored) {
             }
