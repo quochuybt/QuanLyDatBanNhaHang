@@ -6,6 +6,7 @@ import iuh.fit.core.dto.DonDatMonDTO;
 import iuh.fit.core.dto.HoaDonDTO;
 import iuh.fit.core.dto.NhanVienDTO;
 import iuh.fit.core.net.client.BanRemoteService;
+import iuh.fit.core.net.client.ChiTietHoaDonRemoteService;
 import iuh.fit.core.net.client.ClientEventListener;
 import iuh.fit.core.net.client.HoaDonRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
@@ -15,7 +16,6 @@ import iuh.fit.core.net.dto.hoadon.HoaDonPageRequestDTO;
 import iuh.fit.core.net.dto.hoadon.HoaDonTotalRequestDTO;
 import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.MessageEnvelope;
-import iuh.fit.core.service.ChiTietHoaDonService;
 import iuh.fit.core.service.DonDatMonService;
 import iuh.fit.core.service.HoaDonService;
 import iuh.fit.core.util.ExcelExporter;
@@ -44,13 +44,13 @@ public class HoaDonGUI extends JPanel {
 
     // --- Local services còn lại ---
     private final HoaDonService hoaDonService = new HoaDonService();
-    private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
     private final DonDatMonService donDatMonService = new DonDatMonService();
 
     // --- Remote services ---
     private final HoaDonRemoteService hoaDonRemoteService;
     private final NhanVienRemoteService nhanVienRemoteService;
     private final BanRemoteService banRemoteService;
+    private final ChiTietHoaDonRemoteService chiTietHoaDonRemoteService;
 
     // --- UI Components ---
     private final JTable tableHoaDon;
@@ -102,6 +102,7 @@ public class HoaDonGUI extends JPanel {
             hoaDonRemoteService = new HoaDonRemoteService(NetClientContext.getConnection());
             nhanVienRemoteService = new NhanVienRemoteService(NetClientContext.getConnection());
             banRemoteService = new BanRemoteService(NetClientContext.getConnection());
+            chiTietHoaDonRemoteService = new ChiTietHoaDonRemoteService(NetClientContext.getConnection());
 
             NetClientContext.getConnection().addEventListener(new ClientEventListener() {
                 @Override
@@ -119,6 +120,7 @@ public class HoaDonGUI extends JPanel {
             hoaDonRemoteService = null;
             nhanVienRemoteService = null;
             banRemoteService = null;
+            chiTietHoaDonRemoteService = null;
         }
 
         setLayout(new BorderLayout(10, 10));
@@ -641,6 +643,10 @@ public class HoaDonGUI extends JPanel {
                 new SwingWorker<List<ChiTietHoaDonDTO>, Void>() {
                     @Override
                     protected List<ChiTietHoaDonDTO> doInBackground() {
+                        if (chiTietHoaDonRemoteService != null) {
+                            return chiTietHoaDonRemoteService.getChiTietTheoMaDon(hd.getMaDon());
+                        }
+
                         if (hoaDonRemoteService != null) {
                             return hoaDonRemoteService.getChiTietHoaDon(
                                     HoaDonDetailRequestDTO.builder()
@@ -649,11 +655,7 @@ public class HoaDonGUI extends JPanel {
                             );
                         }
 
-                        ChiTietHoaDonDTO filterDTO = ChiTietHoaDonDTO.builder()
-                                .maDon(hd.getMaDon())
-                                .build();
-
-                        return chiTietHoaDonService.getChiTietTheoMaDon(filterDTO);
+                        return List.of();
                     }
 
                     @Override
