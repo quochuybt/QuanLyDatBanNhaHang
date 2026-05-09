@@ -4,6 +4,7 @@ import org.slf4j.LoggerFactory;
 
 
 import iuh.fit.core.dto.MonAnDTO;
+import iuh.fit.core.entity.MonAn;
 import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.net.server.dispatch.CommandHandler;
 import iuh.fit.core.net.server.session.ClientSession;
@@ -22,12 +23,13 @@ public class MonAnAdminUpdateStatusHandler extends BaseCommandHandler implements
             requireNotBlank(payload.getMaMonAn(), "Mã món không được để trống.");
             requireNotBlank(payload.getTrangThai(), "Trạng thái món không được để trống.");
 
-            MonAnDTO old = monAnService.findByIdDTO(payload.getMaMonAn());
-            if (old == null) {
+            MonAn monAn = monAnService.findById(payload.getMaMonAn());
+            if (monAn == null) {
                 throw new IllegalArgumentException("Không tìm thấy món ăn để cập nhật trạng thái.");
             }
-            old.setTrangThai(payload.getTrangThai());
-            monAnService.updateFromDTO(old);
+
+            monAn.setTrangThai(payload.getTrangThai());
+            monAnService.update(monAn);
             return ok(request, true);
         }, "Lỗi server khi cập nhật trạng thái món ăn.");
     }
