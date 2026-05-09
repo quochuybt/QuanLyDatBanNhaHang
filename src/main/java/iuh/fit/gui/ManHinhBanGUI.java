@@ -44,7 +44,7 @@ public class ManHinhBanGUI extends JPanel {
     private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
     private final KhuyenMaiRemoteService khuyenMaiRemoteService;
     private final KhachHangRemoteService khachHangRemoteService;
-    private final DonDatMonService donDatMonService = new DonDatMonService();
+    private final DonDatMonRemoteService donDatMonService;
 
     private List<BanDTO> allTableDTOsFromDB = new ArrayList<>();
     private List<Ban> allTablesFromDB = new ArrayList<>();
@@ -143,6 +143,9 @@ public class ManHinhBanGUI extends JPanel {
                 Objects.requireNonNull(socketConnection, "SocketClientConnection không được null.")
         );
         this.khuyenMaiRemoteService = new KhuyenMaiRemoteService(socketConnection);
+
+        this.donDatMonService = new DonDatMonRemoteService(socketConnection);
+
         this.khachHangRemoteService = new KhachHangRemoteService(socketConnection);
         socketConnection.addEventListener(new ClientEventListener() {
             @Override

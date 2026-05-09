@@ -38,6 +38,31 @@ public class DonDatMonRemoteService extends BaseRemoteService {
         );
     }
 
+    public DonDatMonDTO findById(String maDon) {
+        // LƯU Ý: Bạn cần bổ sung DONDATMON_GET_BY_ID vào enum CommandAction
+        // và tạo Handler tương ứng (DonDatMonGetByIdHandler) trên Socket Server.
+        MessageEnvelope response = connection.sendCommand(
+                "DONDATMON_GET_BY_ID",
+                maDon,
+                DEFAULT_TIMEOUT_MS
+        );
+
+        ensureSuccess(response, "Không thể tìm đơn đặt món theo mã.");
+
+        if (response.getPayload() == null || response.getPayload().isNull()) {
+            return null;
+        }
+
+        return JsonCodec.fromJsonNode(response.getPayload(), DonDatMonDTO.class);
+    }
+
+    public boolean update(DonDatMonDTO dto) {
+        // Đa số các hệ thống dùng chung hàm lưu (saveOrUpdate) cho cả thêm và sửa.
+        // Nên ở client bạn có thể chuyển hướng update() sang save() luôn cho nhanh,
+        // đỡ phải viết thêm DONDATMON_UPDATE trên Server.
+        return save(dto);
+    }
+
     public List<DonDatMonDTO> timDonDatMonChuaNhan(String keyword) {
         DonDatMonSearchRequest request = new DonDatMonSearchRequest(keyword);
 
