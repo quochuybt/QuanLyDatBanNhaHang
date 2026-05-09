@@ -1,6 +1,9 @@
 package iuh.fit.core.service;
 
 import iuh.fit.core.dto.HoaDonDTO;
+import iuh.fit.core.dto.KhachHangDTO;
+import iuh.fit.core.dto.KhuyenMaiDTO;
+import iuh.fit.core.entity.HangThanhVien;
 import iuh.fit.core.entity.HoaDon;
 import iuh.fit.core.repository.HoaDonRepository;
 
@@ -13,8 +16,8 @@ import java.util.stream.Collectors;
 public class HoaDonService {
 
     private final HoaDonRepository repository = new HoaDonRepository();
-
-    // --- Các phương thức CRUD cơ bản ---
+    private final KhuyenMaiService khuyenMaiService = new KhuyenMaiService();
+    private final KhachHangService khachHangService = new KhachHangService();
 
     public void save(HoaDonDTO dto) {
         if (dto != null) {
@@ -47,75 +50,92 @@ public class HoaDonService {
         return repository.count();
     }
 
-    // --- Các phương thức nghiệp vụ nâng cao ---
-
-    /**
-     * Lấy hóa đơn chưa thanh toán tại một bàn cụ thể
-     */
     public HoaDonDTO getHoaDonChuaThanhToan(String maBan) {
         HoaDon entity = repository.getHoaDonChuaThanhToan(maBan);
         return HoaDonDTO.fromEntity(entity);
     }
 
-    /**
-     * Lấy danh sách hóa đơn theo trang và bộ lọc (Dùng cho bảng quản lý hóa đơn)
-     */
-    public List<HoaDonDTO> getHoaDonByPage(int page, int itemsPerPage, String trangThai, String keyword, LocalDateTime tuNgay, LocalDateTime denNgay) {
+    public List<HoaDonDTO> getHoaDonByPage(
+            int page,
+            int itemsPerPage,
+            String trangThai,
+            String keyword,
+            LocalDateTime tuNgay,
+            LocalDateTime denNgay
+    ) {
         return repository.getHoaDonByPage(page, itemsPerPage, trangThai, keyword, tuNgay, denNgay)
                 .stream()
                 .map(HoaDonDTO::fromEntity)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Lấy tổng số lượng hóa đơn theo bộ lọc để tính toán phân trang
-     */
-    public long getTotalHoaDonCount(String trangThai, String keyword, LocalDateTime tuNgay, LocalDateTime denNgay) {
+    public long getTotalHoaDonCount(
+            String trangThai,
+            String keyword,
+            LocalDateTime tuNgay,
+            LocalDateTime denNgay
+    ) {
         return repository.getTotalHoaDonCount(trangThai, keyword, tuNgay, denNgay);
     }
 
-    /**
-     * Thống kê doanh thu hàng ngày trong một khoảng thời gian (Dùng cho biểu đồ doanh thu)
-     */
     public Map<LocalDate, Double> getDailyRevenue(LocalDate startDate, LocalDate endDate) {
         return repository.getDailyRevenue(startDate, endDate);
     }
 
-    /**
-     * Lấy doanh thu theo hình thức thanh toán (Tiền mặt/Chuyển khoản)
-     * Thường dùng để đối soát khi nhân viên giao ca
-     */
     public double getDoanhThuTheoHinhThuc(String maNV, LocalDateTime thoiGianBatDauCa, String hinhThuc) {
         return repository.getDoanhThuTheoHinhThuc(maNV, thoiGianBatDauCa, hinhThuc);
     }
 
-    /**
-     * Cập nhật mã khuyến mãi cho hóa đơn và tính lại tổng tiền thanh toán
-     */
     public boolean capNhatMaKM(String maHD, String maKM) {
-        if (maHD == null || maHD.isEmpty()) return false;
-        return repository.capNhatMaKM(maHD, maKM);
+        if (maHD == null || maHD.trim().isEmpty()) {
+            return false;
+        }
+
+        boolean ok = repository.capNhatMaKM(maHD.trim(), normalizeBlankToNull(maKM));
+
+        if (ok) {
+            HoaDonDTO hd = findById(maHD.trim());
+            if (hd != null) {
+                capNhatTongTien(hd);
+            }
+        }
+
+        return ok;
     }
 
-    /**
-     * Cập nhật mã khách hàng cho hóa đơn và đơn đặt món liên quan
-     */
     public boolean capNhatMaKH(String maHD, String maKH) {
-        if (maHD == null || maHD.isEmpty()) return false;
-        return repository.capNhatMaKH(maHD, maKH);
+        if (maHD == null || maHD.trim().isEmpty()) {
+            return false;
+        }
+
+        boolean ok = repository.capNhatMaKH(maHD.trim(), normalizeBlankToNull(maKH));
+
+        if (ok) {
+            HoaDonDTO hd = findById(maHD.trim());
+            if (hd != null) {
+                capNhatTongTien(hd);
+            }
+        }
+
+        return ok;
     }
 
-    /**
-     * Xử lý nghiệp vụ thanh toán hóa đơn
-     * Chú ý: Logic thanh toán phức tạp (đổi trạng thái bàn, trạng thái đơn) nên được
-     * thực hiện trong một Transaction tại Repository hoặc Service này.
-     */
     public boolean thanhToanHoaDon(HoaDonDTO dto) {
         if (dto == null || dto.getMaHD() == null || dto.getMaHD().trim().isEmpty()) {
             return false;
         }
 
         try {
+            HoaDonDTO latest = tinhLaiGiamGiaVaTongTien(dto);
+
+            if (latest != null) {
+                dto.setTongTien(latest.getTongTien());
+                dto.setGiamGia(latest.getGiamGia());
+                dto.setTongThanhToan(latest.getTongThanhToan());
+                dto.setMaKM(latest.getMaKM());
+                dto.setMaKH(latest.getMaKH());
+            }
+
             return repository.thanhToanHoaDon(dto);
         } catch (Exception e) {
             e.printStackTrace();
@@ -123,24 +143,59 @@ public class HoaDonService {
         }
     }
 
-    /**
-     * Transaction mở bàn + tạo đơn + tạo hóa đơn chưa thanh toán.
-     */
-    public HoaDonDTO moBanVaTaoHoaDon(String maBan, String maNV, String maKH, LocalDateTime thoiGianDen, String ghiChu) {
+    public HoaDonDTO moBanVaTaoHoaDon(
+            String maBan,
+            String maNV,
+            String maKH,
+            LocalDateTime thoiGianDen,
+            String ghiChu
+    ) {
         HoaDon hd = repository.moBanVaTaoHoaDon(maBan, maNV, maKH, thoiGianDen, ghiChu);
         return HoaDonDTO.fromEntity(hd);
     }
+
     public HoaDonDTO tinhLaiGiamGiaVaTongTien(HoaDonDTO activeHoaDon) {
-        if (activeHoaDon == null || activeHoaDon.getMaHD() == null) {
+        if (activeHoaDon == null || activeHoaDon.getMaHD() == null || activeHoaDon.getMaHD().trim().isEmpty()) {
             return activeHoaDon;
         }
 
-        // Gọi DB để tính toán và cập nhật
-        HoaDon hdUpdated = repository.tinhLaiGiamGiaVaTongTien(activeHoaDon.getMaHD());
+        HoaDonDTO current = findById(activeHoaDon.getMaHD().trim());
 
-        // Trả về DTO mang dữ liệu mới nhất (tổng tiền mới, tổng thanh toán mới)
-        return HoaDonDTO.fromEntity(hdUpdated);
+        if (current == null) {
+            return activeHoaDon;
+        }
+
+        float tongTien = activeHoaDon.getTongTien() > 0
+                ? activeHoaDon.getTongTien()
+                : current.getTongTien();
+
+        float giamGia = tinhTongGiamGia(
+                tongTien,
+                current.getMaKM(),
+                current.getMaKH()
+        );
+
+        float tongThanhToan = Math.max(0f, tongTien - giamGia);
+
+        repository.capNhatTongTien(
+                current.getMaHD(),
+                tongTien,
+                giamGia,
+                tongThanhToan
+        );
+
+        HoaDonDTO result = findById(current.getMaHD());
+
+        if (result == null) {
+            current.setTongTien(tongTien);
+            current.setGiamGia(giamGia);
+            current.setTongThanhToan(tongThanhToan);
+            return current;
+        }
+
+        return result;
     }
+
     public boolean capNhatTongTien(HoaDonDTO dto) {
         if (dto == null || dto.getMaHD() == null || dto.getMaHD().trim().isEmpty()) {
             return false;
@@ -148,21 +203,30 @@ public class HoaDonService {
 
         String maHD = dto.getMaHD().trim();
 
+        HoaDonDTO current = findById(maHD);
+
+        if (current == null) {
+            return false;
+        }
+
         float tongTien = dto.getTongTien();
-        float giamGia = dto.getGiamGia();
 
         if (tongTien < 0) {
             tongTien = 0f;
         }
 
-        if (giamGia < 0) {
-            giamGia = 0f;
+        String maKM = current.getMaKM();
+        String maKH = current.getMaKH();
+
+        if (dto.getMaKM() != null && !dto.getMaKM().trim().isEmpty()) {
+            maKM = dto.getMaKM().trim();
         }
 
-        if (giamGia > tongTien) {
-            giamGia = tongTien;
+        if (dto.getMaKH() != null && !dto.getMaKH().trim().isEmpty()) {
+            maKH = dto.getMaKH().trim();
         }
 
+        float giamGia = tinhTongGiamGia(tongTien, maKM, maKH);
         float tongThanhToan = Math.max(0f, tongTien - giamGia);
 
         return repository.capNhatTongTien(
@@ -171,5 +235,145 @@ public class HoaDonService {
                 giamGia,
                 tongThanhToan
         );
+    }
+
+    private float tinhTongGiamGia(float tongTien, String maKM, String maKH) {
+        if (tongTien <= 0) {
+            return 0f;
+        }
+
+        float giamKhuyenMai = tinhGiamKhuyenMai(tongTien, maKM);
+        float giamThanhVien = tinhGiamThanhVien(tongTien, maKH);
+
+        float tongGiam = giamKhuyenMai + giamThanhVien;
+
+        if (tongGiam < 0) {
+            tongGiam = 0f;
+        }
+
+        return Math.min(tongTien, tongGiam);
+    }
+
+    private float tinhGiamKhuyenMai(float tongTien, String maKM) {
+        if (tongTien <= 0 || maKM == null || maKM.trim().isEmpty()) {
+            return 0f;
+        }
+
+        try {
+            KhuyenMaiDTO km = khuyenMaiService.findByIdDTO(maKM.trim());
+
+            if (km == null || !isKhuyenMaiActive(km)) {
+                return 0f;
+            }
+
+            if (tongTien < km.getDieuKienApDung()) {
+                return 0f;
+            }
+
+            float giaTri = (float) km.getGiaTri();
+
+            if (giaTri <= 0) {
+                return 0f;
+            }
+
+            String loai = km.getLoaiKhuyenMai() == null
+                    ? ""
+                    : km.getLoaiKhuyenMai().trim().toLowerCase();
+
+            float tienGiam;
+
+            if (loai.contains("%")
+                    || loai.contains("phần")
+                    || loai.contains("phan")
+                    || loai.contains("percent")) {
+                tienGiam = tongTien * giaTri / 100f;
+            } else if (loai.contains("tiền")
+                    || loai.contains("tien")
+                    || loai.contains("vnd")
+                    || loai.contains("vnđ")) {
+                tienGiam = giaTri;
+            } else {
+                tienGiam = giaTri <= 100f
+                        ? tongTien * giaTri / 100f
+                        : giaTri;
+            }
+
+            return Math.min(tongTien, Math.max(0f, tienGiam));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0f;
+        }
+    }
+
+    private boolean isKhuyenMaiActive(KhuyenMaiDTO km) {
+        if (km == null) {
+            return false;
+        }
+
+        LocalDate now = LocalDate.now();
+
+        String trangThai = km.getTrangThai() == null
+                ? ""
+                : km.getTrangThai().trim();
+
+        boolean dungTrangThai = "Đang áp dụng".equalsIgnoreCase(trangThai);
+        boolean daBatDau = km.getNgayBatDau() == null || !km.getNgayBatDau().isAfter(now);
+        boolean chuaKetThuc = km.getNgayKetThuc() == null || !km.getNgayKetThuc().isBefore(now);
+
+        int gioiHan = km.getSoLuongGioiHan();
+        int daDung = km.getSoLuotDaDung();
+
+        boolean conLuot = gioiHan <= 0 || daDung < gioiHan;
+
+        return dungTrangThai && daBatDau && chuaKetThuc && conLuot;
+    }
+
+    private float tinhGiamThanhVien(float tongTien, String maKH) {
+        if (tongTien <= 0 || maKH == null || maKH.trim().isEmpty()) {
+            return 0f;
+        }
+
+        try {
+            KhachHangDTO kh = khachHangService.findByIdDTO(maKH.trim());
+
+            if (kh == null || kh.getHangThanhVien() == null) {
+                return 0f;
+            }
+
+            float phanTram = getPhanTramGiamTheoHang(kh.getHangThanhVien());
+
+            if (phanTram <= 0) {
+                return 0f;
+            }
+
+            return tongTien * phanTram / 100f;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0f;
+        }
+    }
+
+    private float getPhanTramGiamTheoHang(HangThanhVien hang) {
+        if (hang == null) {
+            return 0f;
+        }
+
+        return switch (hang) {
+            case BRONZE -> 3f;
+            case SILVER -> 5f;
+            case GOLD -> 10f;
+            case DIAMOND -> 15f;
+            default -> 0f;
+        };
+    }
+
+    private String normalizeBlankToNull(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+
+        return value.trim();
     }
 }

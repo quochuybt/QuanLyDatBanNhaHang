@@ -111,7 +111,7 @@ public class DashboardGUI extends JFrame {
         menu.add(Box.createRigidArea(new Dimension(0, 30)));
 
         String[] items = "QUANLY".equalsIgnoreCase(userRole)
-                ? new String[]{"Dashboard", "Nhân viên", "Lịch làm việc", "Hóa đơn", "Khuyến mãi"}
+                ? new String[]{"Dashboard", "Danh mục món ăn", "Nhân viên", "Lịch làm việc", "Hóa đơn", "Khuyến mãi"}
                 : new String[]{"Dashboard", "Danh sách bàn", "Thành viên", "Lịch làm việc", "Hóa đơn"};
 
         for (String item : items) {
@@ -194,6 +194,7 @@ public class DashboardGUI extends JFrame {
 
         if (isManager) {
             addCardSafe("Dashboard", DashboardQuanLyGUI::new);
+            addCardSafe("Danh mục món ăn", DanhMucMonGUI::new);
             addCardSafe("Nhân viên", NhanVienGUI::new);
             addCardSafe("Lịch làm việc", () -> new LichLamViecGUI(VaiTro.QUANLY, connection));
             addCardSafe("Hóa đơn", HoaDonGUI::new);

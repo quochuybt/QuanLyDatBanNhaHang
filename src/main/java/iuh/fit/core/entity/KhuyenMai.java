@@ -73,22 +73,32 @@ public class KhuyenMai {
      * Kiểm tra khuyến mãi còn hiệu lực không
      */
     public boolean isActive() {
-        return "Đang áp dụng".equals(trangThai)
-                && (ngayKetThuc == null || !ngayKetThuc.isBefore(LocalDate.now()));
+        LocalDate now = LocalDate.now();
+
+        boolean dungTrangThai = "Đang áp dụng".equalsIgnoreCase(
+                trangThai != null ? trangThai.trim() : ""
+        );
+
+        boolean daBatDau = ngayBatDau == null || !ngayBatDau.isAfter(now);
+        boolean chuaKetThuc = ngayKetThuc == null || !ngayKetThuc.isBefore(now);
+
+        return dungTrangThai && daBatDau && chuaKetThuc && conLuotSuDung();
     }
 
     /**
      * Kiểm tra còn lượt sử dụng không (0 = không giới hạn)
      */
     public boolean conLuotSuDung() {
-        return soLuongGioiHan == 0 || soLuotDaDung < soLuongGioiHan;
+        int gioiHan = soLuongGioiHan == null ? 0 : soLuongGioiHan;
+        int daDung = soLuotDaDung == null ? 0 : soLuotDaDung;
+
+        // 0 hoặc nhỏ hơn 0 = không giới hạn
+        return gioiHan <= 0 || daDung < gioiHan;
     }
 
-    /**
-     * Tăng số lượt đã dùng
-     */
     public void tangLuotDaDung() {
-        this.soLuotDaDung++;
+        int daDung = soLuotDaDung == null ? 0 : soLuotDaDung;
+        this.soLuotDaDung = daDung + 1;
     }
 
     @Override
