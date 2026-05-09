@@ -1,11 +1,12 @@
 package iuh.fit.gui;
 
 import iuh.fit.core.dto.CaLamDTO;
+import iuh.fit.core.dto.PhanCongDTO;
 import iuh.fit.core.entity.NhanVien;
-import iuh.fit.core.entity.PhanCong;
+import iuh.fit.core.net.client.PhanCongRemoteService;
+import iuh.fit.core.net.client.SocketClientConnection;
 import iuh.fit.core.service.CaLamService;
 import iuh.fit.core.service.NhanVienService;
-import iuh.fit.core.service.PhanCongService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -26,9 +27,18 @@ public class AssignShiftDialog extends JDialog {
     private static final Font FONT_LABEL = new Font("Arial", Font.BOLD, 14);
     private static final Font FONT_COMPONENT = new Font("Arial", Font.PLAIN, 14);
 
+    /*
+     * Tạm thời vẫn giữ CaLamService và NhanVienService local
+     * vì hiện tại bạn mới có socket skeleton cho PhanCong.
+     * Sau này nếu có command CA_LAM_LIST / NHANVIEN_LIST thì đổi tiếp 2 service này sang remote.
+     */
     private final CaLamService caLamService = new CaLamService();
     private final NhanVienService nhanVienService = new NhanVienService();
-    private final PhanCongService phanCongService = new PhanCongService();
+
+    /*
+     * Phần phân công đã đi qua socket.
+     */
+    private final PhanCongRemoteService phanCongRemoteService;
 
     private JSpinner dateSpinner;
     private JComboBox<CaLamDTO> cbCaLam;
@@ -43,10 +53,15 @@ public class AssignShiftDialog extends JDialog {
     private JButton btnRemove;
     private JButton btnClose;
 
+    private boolean suppressReload = false;
+
     private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
 
-    public AssignShiftDialog(Frame owner) {
+    public AssignShiftDialog(Frame owner, SocketClientConnection socketConnection) {
         super(owner, "Phân công ca làm", true);
+
+        Objects.requireNonNull(socketConnection, "SocketClientConnection không được null.");
+        this.phanCongRemoteService = new PhanCongRemoteService(socketConnection);
 
         setSize(700, 500);
         setLocationRelativeTo(owner);
@@ -60,9 +75,8 @@ public class AssignShiftDialog extends JDialog {
         add(createCenterPanel(), BorderLayout.CENTER);
         add(createBottomPanel(), BorderLayout.SOUTH);
 
-        loadCaLam();
         addEventHandlers();
-        reloadNhanVienTheoCaVaNgay();
+        loadCaLam();
     }
 
     private JPanel createTopPanel() {
@@ -241,24 +255,42 @@ public class AssignShiftDialog extends JDialog {
     }
 
     private void loadCaLam() {
-        cbCaLam.removeAllItems();
+        setBusy(true);
 
-        try {
-            List<CaLamDTO> dsCaLam = caLamService.getAllCaLamOrderByGioBatDau();
-
-            for (CaLamDTO ca : dsCaLam) {
-                cbCaLam.addItem(ca);
+        new SwingWorker<List<CaLamDTO>, Void>() {
+            @Override
+            protected List<CaLamDTO> doInBackground() {
+                return caLamService.getAllCaLamOrderByGioBatDau();
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Lỗi tải danh sách ca làm: " + e.getMessage(),
-                    "Lỗi",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+            @Override
+            protected void done() {
+                try {
+                    List<CaLamDTO> dsCaLam = get();
+
+                    suppressReload = true;
+                    cbCaLam.removeAllItems();
+
+                    if (dsCaLam != null) {
+                        for (CaLamDTO ca : dsCaLam) {
+                            cbCaLam.addItem(ca);
+                        }
+                    }
+
+                    if (cbCaLam.getItemCount() > 0) {
+                        cbCaLam.setSelectedIndex(0);
+                    }
+
+                    suppressReload = false;
+                    reloadNhanVienTheoCaVaNgay();
+
+                } catch (Exception e) {
+                    suppressReload = false;
+                    showError("Lỗi tải danh sách ca làm: " + getRootMessage(e), "Lỗi");
+                    setBusy(false);
+                }
+            }
+        }.execute();
     }
 
     private void addEventHandlers() {
@@ -266,9 +298,17 @@ public class AssignShiftDialog extends JDialog {
         btnRemove.addActionListener(e -> xoaNhanVienKhoiCa());
         btnClose.addActionListener(e -> dispose());
 
-        cbCaLam.addActionListener(e -> reloadNhanVienTheoCaVaNgay());
+        cbCaLam.addActionListener(e -> {
+            if (!suppressReload) {
+                reloadNhanVienTheoCaVaNgay();
+            }
+        });
 
-        dateSpinner.addChangeListener(e -> reloadNhanVienTheoCaVaNgay());
+        dateSpinner.addChangeListener(e -> {
+            if (!suppressReload) {
+                reloadNhanVienTheoCaVaNgay();
+            }
+        });
     }
 
     private LocalDate getSelectedDate() {
@@ -288,52 +328,82 @@ public class AssignShiftDialog extends JDialog {
             return;
         }
 
-        modelChuaPhanCong.clear();
-        modelDaPhanCong.clear();
-
         CaLamDTO ca = getSelectedCaLam();
 
         if (ca == null || ca.getMaCa() == null) {
+            modelChuaPhanCong.clear();
+            modelDaPhanCong.clear();
+            setBusy(false);
             return;
         }
 
         LocalDate ngayLam = getSelectedDate();
+        String maCa = ca.getMaCa();
 
-        try {
-            List<NhanVien> dsTatCaNV = nhanVienService.findAll();
+        setBusy(true);
 
-            List<PhanCong> dsPhanCongTrongNgay = phanCongService.findByNgayLam(ngayLam);
+        new SwingWorker<ReloadResult, Void>() {
+            @Override
+            protected ReloadResult doInBackground() {
+                List<NhanVien> dsTatCaNV = nhanVienService.findAll();
 
-            Set<String> idDaPhanCongCaNay = dsPhanCongTrongNgay.stream()
-                    .filter(pc -> pc.getCaLam() != null)
-                    .filter(pc -> ca.getMaCa().equals(pc.getCaLam().getMaCa()))
-                    .map(PhanCong::getNhanVien)
-                    .filter(Objects::nonNull)
-                    .map(NhanVien::getManv)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toCollection(HashSet::new));
+                /*
+                 * Gọi socket: PHANCONG_LIST_BY_DATE
+                 */
+                List<PhanCongDTO> dsPhanCongTrongNgay = phanCongRemoteService.findByNgayLam(ngayLam);
 
-            for (NhanVien nv : dsTatCaNV) {
-                if (nv == null || nv.getManv() == null) {
-                    continue;
+                Set<String> idDaPhanCongCaNay = dsPhanCongTrongNgay.stream()
+                        .filter(Objects::nonNull)
+                        .filter(pc -> maCa.equals(pc.getMaCa()))
+                        .map(PhanCongDTO::getMaNV)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toCollection(HashSet::new));
+
+                ReloadResult result = new ReloadResult();
+
+                if (dsTatCaNV != null) {
+                    for (NhanVien nv : dsTatCaNV) {
+                        if (nv == null || nv.getManv() == null) {
+                            continue;
+                        }
+
+                        if (idDaPhanCongCaNay.contains(nv.getManv())) {
+                            result.daPhanCong.add(nv);
+                        } else {
+                            result.chuaPhanCong.add(nv);
+                        }
+                    }
                 }
 
-                if (idDaPhanCongCaNay.contains(nv.getManv())) {
-                    modelDaPhanCong.addElement(nv);
-                } else {
-                    modelChuaPhanCong.addElement(nv);
-                }
+                return result;
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Lỗi tải danh sách nhân viên theo ca/ngày: " + e.getMessage(),
-                    "Lỗi",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+            @Override
+            protected void done() {
+                try {
+                    ReloadResult result = get();
+
+                    modelChuaPhanCong.clear();
+                    modelDaPhanCong.clear();
+
+                    for (NhanVien nv : result.chuaPhanCong) {
+                        modelChuaPhanCong.addElement(nv);
+                    }
+
+                    for (NhanVien nv : result.daPhanCong) {
+                        modelDaPhanCong.addElement(nv);
+                    }
+
+                } catch (Exception e) {
+                    showError(
+                            "Lỗi tải danh sách nhân viên theo ca/ngày: " + getRootMessage(e),
+                            "Lỗi"
+                    );
+                } finally {
+                    setBusy(false);
+                }
+            }
+        }.execute();
     }
 
     private void themNhanVienVaoCa() {
@@ -350,32 +420,56 @@ public class AssignShiftDialog extends JDialog {
             return;
         }
 
-        try {
-            boolean success = phanCongService.themPhanCong(
-                    nv.getManv(),
-                    ca.getMaCa(),
-                    getSelectedDate()
-            );
+        String maNV = nv.getManv();
+        String maCa = ca.getMaCa();
+        LocalDate ngayLam = getSelectedDate();
 
-            if (success) {
-                modelChuaPhanCong.removeElement(nv);
-                modelDaPhanCong.addElement(nv);
-            } else {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Lỗi: Không thể thêm nhân viên. Có thể nhân viên đã có ca khác."
-                );
+        if (maNV == null || maNV.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Mã nhân viên không hợp lệ.");
+            return;
+        }
+
+        setBusy(true);
+
+        new SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() {
+                /*
+                 * Gọi socket: PHANCONG_ADD
+                 */
+                return phanCongRemoteService.themPhanCong(maNV, maCa, ngayLam);
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Lỗi: " + e.getMessage(),
-                    "Không thể thêm nhân viên",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+            @Override
+            protected void done() {
+                try {
+                    boolean success = Boolean.TRUE.equals(get());
+
+                    if (success) {
+                        JOptionPane.showMessageDialog(
+                                AssignShiftDialog.this,
+                                "Thêm phân công thành công.",
+                                "Thành công",
+                                JOptionPane.INFORMATION_MESSAGE
+                        );
+                        reloadNhanVienTheoCaVaNgay();
+                    } else {
+                        showError(
+                                "Không thể thêm nhân viên. Có thể nhân viên đã có ca khác.",
+                                "Không thể thêm nhân viên"
+                        );
+                        setBusy(false);
+                    }
+
+                } catch (Exception e) {
+                    showError(
+                            "Lỗi: " + getRootMessage(e),
+                            "Không thể thêm nhân viên"
+                    );
+                    setBusy(false);
+                }
+            }
+        }.execute();
     }
 
     private void xoaNhanVienKhoiCa() {
@@ -392,31 +486,114 @@ public class AssignShiftDialog extends JDialog {
             return;
         }
 
-        try {
-            boolean success = phanCongService.xoaPhanCong(
-                    nv.getManv(),
-                    ca.getMaCa(),
-                    getSelectedDate()
-            );
+        String maNV = nv.getManv();
+        String maCa = ca.getMaCa();
+        LocalDate ngayLam = getSelectedDate();
 
-            if (success) {
-                modelDaPhanCong.removeElement(nv);
-                modelChuaPhanCong.addElement(nv);
-            } else {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Lỗi: Không thể xóa nhân viên."
-                );
+        if (maNV == null || maNV.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Mã nhân viên không hợp lệ.");
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Bạn có chắc muốn hủy phân công nhân viên này khỏi ca đã chọn?",
+                "Xác nhận hủy phân công",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        setBusy(true);
+
+        new SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() {
+                /*
+                 * Gọi socket: PHANCONG_REMOVE
+                 */
+                return phanCongRemoteService.xoaPhanCong(maNV, maCa, ngayLam);
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Lỗi: " + e.getMessage(),
-                    "Không thể xóa nhân viên",
-                    JOptionPane.ERROR_MESSAGE
-            );
+            @Override
+            protected void done() {
+                try {
+                    boolean success = Boolean.TRUE.equals(get());
+
+                    if (success) {
+                        JOptionPane.showMessageDialog(
+                                AssignShiftDialog.this,
+                                "Hủy phân công thành công.",
+                                "Thành công",
+                                JOptionPane.INFORMATION_MESSAGE
+                        );
+                        reloadNhanVienTheoCaVaNgay();
+                    } else {
+                        showError("Không thể xóa nhân viên khỏi ca.", "Không thể xóa nhân viên");
+                        setBusy(false);
+                    }
+
+                } catch (Exception e) {
+                    showError(
+                            "Lỗi: " + getRootMessage(e),
+                            "Không thể xóa nhân viên"
+                    );
+                    setBusy(false);
+                }
+            }
+        }.execute();
+    }
+
+    private void setBusy(boolean busy) {
+        if (btnAdd != null) {
+            btnAdd.setEnabled(!busy);
         }
+
+        if (btnRemove != null) {
+            btnRemove.setEnabled(!busy);
+        }
+
+        if (btnClose != null) {
+            btnClose.setEnabled(!busy);
+        }
+
+        if (cbCaLam != null) {
+            cbCaLam.setEnabled(!busy);
+        }
+
+        if (dateSpinner != null) {
+            dateSpinner.setEnabled(!busy);
+        }
+
+        setCursor(busy
+                ? Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
+                : Cursor.getDefaultCursor()
+        );
+    }
+
+    private void showError(String message, String title) {
+        JOptionPane.showMessageDialog(
+                this,
+                message,
+                title,
+                JOptionPane.ERROR_MESSAGE
+        );
+    }
+
+    private String getRootMessage(Exception e) {
+        Throwable t = e;
+
+        while (t.getCause() != null) {
+            t = t.getCause();
+        }
+
+        return t.getMessage() != null ? t.getMessage() : e.getMessage();
+    }
+
+    private static class ReloadResult {
+        private final java.util.List<NhanVien> chuaPhanCong = new java.util.ArrayList<>();
+        private final java.util.List<NhanVien> daPhanCong = new java.util.ArrayList<>();
     }
 }

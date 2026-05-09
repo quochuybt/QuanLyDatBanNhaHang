@@ -35,6 +35,10 @@ public class PhanCongDTO {
     private LocalDate ngayLam;
 
     public static PhanCongDTO fromEntity(PhanCong pc) {
+        if (pc == null) {
+            return null;
+        }
+
         return PhanCongDTO.builder()
                 .maNV(pc.getNhanVien() != null ? pc.getNhanVien().getManv() : null)
                 .hoTenNV(pc.getNhanVien() != null ? pc.getNhanVien().getHoten() : null)

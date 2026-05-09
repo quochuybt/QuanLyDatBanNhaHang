@@ -1,10 +1,9 @@
 package iuh.fit.gui;
 
 import iuh.fit.core.dto.GiaoCaDTO;
-import iuh.fit.core.service.GiaoCaService;
-import iuh.fit.core.service.HoaDonService;
-import iuh.fit.core.service.NhanVienService;
-import iuh.fit.core.service.DonDatMonService; // Thay thế PhanCongDAO bằng logic Service tương ứng
+import iuh.fit.core.net.client.GiaoCaRemoteService;
+import iuh.fit.core.net.client.SocketClientConnection;
+import iuh.fit.core.net.dto.giaoca.GiaoCaDashboardResponse;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -12,47 +11,65 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class DashboardNhanVienGUI extends JPanel {
-    // ... Giữ nguyên các hằng số Color và Font như cũ ...
+
     private static final Color PRIMARY_COLOR = new Color(41, 128, 185);
     private static final Color SUCCESS_COLOR = new Color(39, 174, 96);
     private static final Color WARNING_COLOR = new Color(243, 156, 18);
     private static final Color DANGER_COLOR = new Color(231, 76, 60);
     private static final Color BACKGROUND_COLOR = new Color(245, 247, 250);
     private static final Color CARD_COLOR = Color.WHITE;
+
     private static final Font TITLE_FONT = new Font("Segoe UI", Font.BOLD, 24);
     private static final Font HEADER_FONT = new Font("Segoe UI", Font.BOLD, 16);
     private static final Font BODY_FONT = new Font("Segoe UI", Font.PLAIN, 14);
     private static final Font METRIC_FONT = new Font("Segoe UI", Font.BOLD, 32);
 
-    // Dependencies (Sử dụng Service thay vì DAO)
-    private final GiaoCaService giaoCaService = new GiaoCaService();
-    private final HoaDonService hoaDonService = new HoaDonService();
-    private final NhanVienService nhanVienService = new NhanVienService();
+    private static final int CHART_DAYS_COUNT = 7;
+
+    private final GiaoCaRemoteService giaoCaRemoteService;
 
     private final String maNV;
     private final String tenNV;
 
-    // UI Components (Giữ nguyên khai báo)
-    private JLabel lblWelcome, lblShiftStatus, lblTotalHoursWeek, lblTotalHoursMonth;
-    private JLabel lblRevenueToday, lblCashInDrawer, lblCurrentShift, lblShiftTime;
-    private JLabel lblStartMoney, lblCurrentRevenue;
-    private JButton btnStartShift, btnEndShift;
-    private JPanel shiftControlInfoPanel, chartPanel, upcomingShiftsPanel;
+    private GiaoCaDTO caHienTai;
 
-    private static final int CHART_DAYS_COUNT = 7;
+    private JLabel lblWelcome;
+    private JLabel lblShiftStatus;
+    private JLabel lblTotalHoursWeek;
+    private JLabel lblTotalHoursMonth;
+    private JLabel lblRevenueToday;
+    private JLabel lblCashInDrawer;
+    private JLabel lblCurrentShift;
+    private JLabel lblShiftTime;
+    private JLabel lblStartMoney;
+    private JLabel lblCurrentRevenue;
 
-    public DashboardNhanVienGUI(String maNV, String tenNV) {
+    private JButton btnStartShift;
+    private JButton btnEndShift;
+
+    private JPanel shiftControlInfoPanel;
+    private JPanel chartPanel;
+    private JPanel upcomingShiftsPanel;
+
+    private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+
+    public DashboardNhanVienGUI(String maNV, String tenNV, SocketClientConnection socketConnection) {
         this.maNV = maNV;
         this.tenNV = tenNV;
+        this.giaoCaRemoteService = new GiaoCaRemoteService(
+                Objects.requireNonNull(socketConnection, "SocketClientConnection không được null.")
+        );
 
         initComponents();
-        loadEmployeeData(); // Nạp dữ liệu ban đầu
+        loadEmployeeData();
     }
 
     private void initComponents() {
@@ -80,8 +97,8 @@ public class DashboardNhanVienGUI extends JPanel {
         lblWelcome.setFont(TITLE_FONT);
         lblWelcome.setForeground(new Color(44, 62, 80));
 
-
         welcomePanel.add(lblWelcome);
+
         lblShiftStatus = new JLabel("Chưa bắt đầu ca", JLabel.CENTER);
         lblShiftStatus.setFont(HEADER_FONT);
         lblShiftStatus.setOpaque(true);
@@ -175,6 +192,7 @@ public class DashboardNhanVienGUI extends JPanel {
             lblIcon.setFont(new Font("Segoe UI", Font.BOLD, 30));
             lblIcon.setForeground(accentColor);
         }
+
         lblIcon.setPreferredSize(new Dimension(60, 60));
 
         JPanel textPanel = new JPanel(new GridLayout(2, 1, 0, 5));
@@ -194,7 +212,9 @@ public class DashboardNhanVienGUI extends JPanel {
         card.add(lblIcon, BorderLayout.WEST);
         card.add(textPanel, BorderLayout.CENTER);
 
-        if (callback != null) callback.accept(lblValue);
+        if (callback != null) {
+            callback.accept(lblValue);
+        }
 
         return card;
     }
@@ -247,7 +267,6 @@ public class DashboardNhanVienGUI extends JPanel {
         centerContent.add(infoGrid);
         centerContent.add(Box.createVerticalStrut(20));
         centerContent.add(shiftControlInfoPanel);
-
         centerContent.add(Box.createVerticalGlue());
 
         JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 15, 0));
@@ -274,9 +293,14 @@ public class DashboardNhanVienGUI extends JPanel {
         JPanel infoPanel = new JPanel(new GridLayout(1, 2, 20, 0));
         infoPanel.setBackground(CARD_COLOR);
 
-        infoPanel.setBorder(new TitledBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)),
-                "Đồng nghiệp làm ca gần nhất", TitledBorder.LEFT, TitledBorder.TOP,
-                BODY_FONT, new Color(127, 140, 141)));
+        infoPanel.setBorder(new TitledBorder(
+                BorderFactory.createLineBorder(new Color(220, 220, 220)),
+                "Đồng nghiệp làm ca gần nhất",
+                TitledBorder.LEFT,
+                TitledBorder.TOP,
+                BODY_FONT,
+                new Color(127, 140, 141)
+        ));
 
         JPanel pnlPrev = new JPanel(new BorderLayout());
         pnlPrev.setBackground(CARD_COLOR);
@@ -327,17 +351,22 @@ public class DashboardNhanVienGUI extends JPanel {
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
         btn.setPreferredSize(new Dimension(0, 100));
 
         btn.addMouseListener(new MouseAdapter() {
+            @Override
             public void mouseEntered(MouseEvent evt) {
-                btn.setBackground(bgColor.darker());
+                if (btn.isEnabled()) {
+                    btn.setBackground(bgColor.darker());
+                }
             }
+
+            @Override
             public void mouseExited(MouseEvent evt) {
                 btn.setBackground(bgColor);
             }
         });
+
         return btn;
     }
 
@@ -363,9 +392,8 @@ public class DashboardNhanVienGUI extends JPanel {
         title.setFont(HEADER_FONT);
         title.setForeground(new Color(44, 62, 80));
 
-        chartPanel = new JPanel();
+        chartPanel = new JPanel(new BorderLayout());
         chartPanel.setBackground(CARD_COLOR);
-        chartPanel.setLayout(new BorderLayout());
 
         chartCard.add(title, BorderLayout.NORTH);
         chartCard.add(chartPanel, BorderLayout.CENTER);
@@ -373,32 +401,36 @@ public class DashboardNhanVienGUI extends JPanel {
         return chartCard;
     }
 
-
     private JPanel createWorkHoursBarChart(Map<String, Double> data) {
+        Map<String, Double> safeData = data != null ? data : Collections.emptyMap();
+
         JPanel chart = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
+
                 Graphics2D g2 = (Graphics2D) g;
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-                if (data.isEmpty() || data.values().stream().allMatch(v -> v == 0.0)) {
+                if (safeData.isEmpty() || safeData.values().stream().allMatch(v -> v == null || v == 0.0)) {
                     g2.setFont(BODY_FONT);
                     g2.setColor(Color.GRAY);
+
                     String msg = "Chưa có dữ liệu giờ làm";
                     FontMetrics fm = g2.getFontMetrics();
                     int x = (getWidth() - fm.stringWidth(msg)) / 2;
                     int y = getHeight() / 2;
+
                     g2.drawString(msg, x, y);
                     return;
                 }
 
-                Map<String, Double> filteredData = data.entrySet().stream()
-                        .skip(Math.max(0, data.size() - 7))
+                Map<String, Double> filteredData = safeData.entrySet().stream()
+                        .skip(Math.max(0, safeData.size() - 7))
                         .collect(java.util.stream.Collectors.toMap(
                                 Map.Entry::getKey,
-                                Map.Entry::getValue,
+                                e -> e.getValue() != null ? e.getValue() : 0.0,
                                 (e1, e2) -> e1,
                                 java.util.LinkedHashMap::new
                         ));
@@ -414,8 +446,14 @@ public class DashboardNhanVienGUI extends JPanel {
                 int chartHeight = getHeight() - paddingTop - paddingBottom;
                 int totalBars = filteredData.size();
 
+                if (totalBars <= 0 || chartHeight <= 0) {
+                    return;
+                }
+
                 int barWidth = (getWidth() - paddingLeft - paddingRight - barMargin * (totalBars - 1)) / totalBars;
-                if (barWidth < 20) barWidth = 20;
+                if (barWidth < 20) {
+                    barWidth = 20;
+                }
 
                 double maxValue = Math.max(
                         filteredData.values().stream().mapToDouble(Double::doubleValue).max().orElse(10.0),
@@ -437,19 +475,29 @@ public class DashboardNhanVienGUI extends JPanel {
                 g2.fillRect(paddingLeft, refY, getWidth() - paddingLeft - paddingRight, getHeight() - paddingBottom - refY);
 
                 g2.setColor(new Color(41, 128, 185, 180));
-                // Nét đứt
-                Stroke dashed = new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
-                        10.0f, new float[]{8.0f, 5.0f}, 0.0f);
+
+                Stroke dashed = new BasicStroke(
+                        1.5f,
+                        BasicStroke.CAP_BUTT,
+                        BasicStroke.JOIN_MITER,
+                        10.0f,
+                        new float[]{8.0f, 5.0f},
+                        0.0f
+                );
+
                 g2.setStroke(dashed);
                 g2.drawLine(paddingLeft, refY, getWidth() - paddingRight, refY);
                 g2.setStroke(new BasicStroke(1.0f));
 
                 int x = paddingLeft;
+
                 for (Map.Entry<String, Double> entry : filteredData.entrySet()) {
-                    double value = entry.getValue();
+                    double value = entry.getValue() != null ? entry.getValue() : 0.0;
                     int barHeight = (int) ((value / maxValue) * chartHeight);
 
-                    Color barColor, barColorDark;
+                    Color barColor;
+                    Color barColorDark;
+
                     if (value >= REFERENCE_LINE) {
                         barColor = new Color(39, 174, 96);
                         barColorDark = new Color(30, 132, 73);
@@ -473,19 +521,26 @@ public class DashboardNhanVienGUI extends JPanel {
                     String valueStr = String.format("%.1fh", value);
                     FontMetrics fmVal = g2.getFontMetrics();
                     int txtX = x + (barWidth - fmVal.stringWidth(valueStr)) / 2;
+
                     g2.setColor(new Color(44, 62, 80));
                     g2.drawString(valueStr, txtX, yPos - 3);
 
                     g2.setFont(new Font("Segoe UI", Font.PLAIN, 11));
                     String dateLabel = entry.getKey();
                     int dateX = x + (barWidth - g2.getFontMetrics().stringWidth(dateLabel)) / 2;
+
                     g2.drawString(dateLabel, dateX, getHeight() - paddingBottom + 18);
 
                     x += barWidth + barMargin;
                 }
 
                 g2.setColor(new Color(189, 195, 199));
-                g2.drawLine(paddingLeft, getHeight() - paddingBottom, getWidth() - paddingRight, getHeight() - paddingBottom);
+                g2.drawLine(
+                        paddingLeft,
+                        getHeight() - paddingBottom,
+                        getWidth() - paddingRight,
+                        getHeight() - paddingBottom
+                );
 
                 int legendY = getHeight() - 15;
                 int centerX = getWidth() / 2;
@@ -503,6 +558,7 @@ public class DashboardNhanVienGUI extends JPanel {
 
         chart.setBackground(CARD_COLOR);
         chart.setPreferredSize(new Dimension(0, 250));
+
         return chart;
     }
 
@@ -541,7 +597,7 @@ public class DashboardNhanVienGUI extends JPanel {
         JLabel lblIcon = new JLabel("");
         lblIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 20));
 
-        JLabel lblInfo = new JLabel(shiftInfo);
+        JLabel lblInfo = new JLabel(shiftInfo != null ? shiftInfo : "");
         lblInfo.setFont(BODY_FONT);
 
         item.add(lblIcon, BorderLayout.WEST);
@@ -551,203 +607,397 @@ public class DashboardNhanVienGUI extends JPanel {
     }
 
     private void loadEmployeeData() {
-        new SwingWorker<Void, Void>() {
+        setBusy(true);
+
+        new SwingWorker<GiaoCaDashboardResponse, Void>() {
             @Override
-            protected Void doInBackground() {
-                loadShiftStatus();
-                loadStatistics();
-                loadWorkHoursChart();
-                loadUpcomingShifts();
-                loadShiftControlInfo();
-                return null;
+            protected GiaoCaDashboardResponse doInBackground() {
+                return giaoCaRemoteService.loadDashboard(maNV);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    GiaoCaDashboardResponse response = get();
+                    updateDashboard(response);
+                } catch (Exception e) {
+                    showError(
+                            "Lỗi tải dashboard nhân viên: " + getRootMessage(e),
+                            "Lỗi"
+                    );
+                    resetShiftUI();
+                    updateWorkHoursChart(Collections.emptyMap());
+                    updateUpcomingShifts(Collections.emptyList());
+                    updateShiftControlInfo("Không có", "Không có");
+                } finally {
+                    setBusy(false);
+                }
             }
         }.execute();
     }
 
-    private void loadShiftStatus() {
-        GiaoCaDTO caHienTai = giaoCaService.getThongTinCaDangLam(maNV);
+    private void updateDashboard(GiaoCaDashboardResponse response) {
+        if (response == null) {
+            resetShiftUI();
+            return;
+        }
 
-        SwingUtilities.invokeLater(() -> {
-            if (caHienTai != null) {
-                lblShiftStatus.setText("Đang làm việc");
-                lblShiftStatus.setBackground(SUCCESS_COLOR);
+        this.caHienTai = response.getCaHienTai();
 
-                // Giả định bạn có thông tin ca làm từ lịch phân công
-                lblCurrentShift.setText("Ca đang thực hiện");
-                lblShiftTime.setText(caHienTai.getThoiGianBatDau().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")) + " - Hiện tại");
+        lblTotalHoursWeek.setText(String.format("%.1f giờ", response.getTongGioTuan()));
+        lblTotalHoursMonth.setText(String.format("%.1f giờ", response.getTongGioThang()));
+        lblRevenueToday.setText(formatMoney(response.getDoanhThuHomNay()));
 
-                lblStartMoney.setText(String.format("%,.0f ₫", caHienTai.getTienDauCa()));
+        if (caHienTai != null) {
+            updateShiftWorking(response);
+        } else {
+            resetShiftUI();
+        }
 
-                // Doanh thu trong ca (Tổng 3 hình thức)
-                double revCash = hoaDonService.getDoanhThuTheoHinhThuc(maNV, caHienTai.getThoiGianBatDau(), "Tiền mặt");
-                double revTransfer = hoaDonService.getDoanhThuTheoHinhThuc(maNV, caHienTai.getThoiGianBatDau(), "Chuyển khoản");
-                double revCard = hoaDonService.getDoanhThuTheoHinhThuc(maNV, caHienTai.getThoiGianBatDau(), "Thẻ");
+        updateWorkHoursChart(response.getGioLamTheoNgay());
+        updateUpcomingShifts(response.getCacCaLamSapToi());
+        updateShiftControlInfo(response.getCaTruoc(), response.getCaSau());
+    }
 
-                double totalShiftRev = revCash + revTransfer + revCard;
-                lblCurrentRevenue.setText(String.format("%,.0f ₫", totalShiftRev));
+    private void updateShiftWorking(GiaoCaDashboardResponse response) {
+        lblShiftStatus.setText("Đang làm việc");
+        lblShiftStatus.setBackground(SUCCESS_COLOR);
 
-                // Tiền mặt trong két = Tiền đầu ca + doanh thu tiền mặt
-                lblCashInDrawer.setText(String.format("%,.0f ₫", caHienTai.getTienDauCa() + revCash));
+        lblCurrentShift.setText("Ca đang thực hiện");
 
-                btnStartShift.setEnabled(false);
-                btnEndShift.setEnabled(true);
-            } else {
-                resetShiftUI();
-            }
-        });
+        if (caHienTai.getThoiGianBatDau() != null) {
+            lblShiftTime.setText(caHienTai.getThoiGianBatDau().format(timeFormatter) + " - Hiện tại");
+        } else {
+            lblShiftTime.setText("--:-- - Hiện tại");
+        }
+
+        lblStartMoney.setText(formatMoney(caHienTai.getTienDauCa()));
+        lblCurrentRevenue.setText(formatMoney(response.getDoanhThuCaHienTai()));
+        lblCashInDrawer.setText(formatMoney(response.getTienMatTrongKet()));
+
+        btnStartShift.setEnabled(false);
+        btnEndShift.setEnabled(true);
     }
 
     private void resetShiftUI() {
+        this.caHienTai = null;
+
         lblShiftStatus.setText("Trạng thái: Chưa bắt đầu ca");
         lblShiftStatus.setBackground(new Color(189, 195, 199));
+
         lblCurrentShift.setText("Chưa có ca");
         lblShiftTime.setText("--:-- - --:--");
         lblStartMoney.setText("0 ₫");
         lblCurrentRevenue.setText("0 ₫");
         lblCashInDrawer.setText("0 ₫");
+
         btnStartShift.setEnabled(true);
         btnEndShift.setEnabled(false);
     }
 
-    private void loadStatistics() {
-        double hoursWeek = giaoCaService.getTongGioLamTheoTuan(maNV, LocalDate.now());
-        double hoursMonth = giaoCaService.getTongGioLamTheoThang(maNV, LocalDate.now());
-
-        // Doanh thu hôm nay (từ 00:00)
-        double revenueToday = hoaDonService.getDoanhThuTheoHinhThuc(maNV, LocalDate.now().atStartOfDay(), "Tiền mặt")
-                + hoaDonService.getDoanhThuTheoHinhThuc(maNV, LocalDate.now().atStartOfDay(), "Chuyển khoản")
-                + hoaDonService.getDoanhThuTheoHinhThuc(maNV, LocalDate.now().atStartOfDay(), "Thẻ");
-
-        SwingUtilities.invokeLater(() -> {
-            lblTotalHoursWeek.setText(String.format("%.1f giờ", hoursWeek));
-            lblTotalHoursMonth.setText(String.format("%.1f giờ", hoursMonth));
-            lblRevenueToday.setText(String.format("%,.0f ₫", revenueToday));
-        });
+    private void updateWorkHoursChart(Map<String, Double> data) {
+        chartPanel.removeAll();
+        chartPanel.add(createWorkHoursBarChart(data), BorderLayout.CENTER);
+        chartPanel.revalidate();
+        chartPanel.repaint();
     }
 
-    private void loadWorkHoursChart() {
-        Map<String, Double> data = giaoCaService.getGioLamTheoNgay(maNV, 7);
-        SwingUtilities.invokeLater(() -> {
-            chartPanel.removeAll();
-            chartPanel.add(createWorkHoursBarChart(data), BorderLayout.CENTER);
-            chartPanel.revalidate();
-            chartPanel.repaint();
-        });
+    private void updateUpcomingShifts(List<String> shifts) {
+        upcomingShiftsPanel.removeAll();
+
+        if (shifts == null || shifts.isEmpty()) {
+            JLabel lblEmpty = new JLabel("Không có ca làm sắp tới", JLabel.CENTER);
+            lblEmpty.setFont(BODY_FONT);
+            lblEmpty.setForeground(Color.GRAY);
+            lblEmpty.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            upcomingShiftsPanel.add(Box.createVerticalGlue());
+            upcomingShiftsPanel.add(lblEmpty);
+            upcomingShiftsPanel.add(Box.createVerticalGlue());
+        } else {
+            for (String shift : shifts) {
+                upcomingShiftsPanel.add(createShiftItem(shift));
+                upcomingShiftsPanel.add(Box.createVerticalStrut(10));
+            }
+        }
+
+        upcomingShiftsPanel.revalidate();
+        upcomingShiftsPanel.repaint();
     }
 
-    private void loadUpcomingShifts() {
-        // Lấy dữ liệu từ Service thay vì DAO
-        List<String> shifts = giaoCaService.getCacCaLamSapToi(maNV);
+    private void updateShiftControlInfo(String caTruoc, String caSau) {
+        JLabel lblPrev = (JLabel) findComponentByName(shiftControlInfoPanel, "lblPrevShift");
+        if (lblPrev != null) {
+            lblPrev.setText("<html><center>" + safeHtml(caTruoc) + "</center></html>");
+        }
 
-        SwingUtilities.invokeLater(() -> {
-            upcomingShiftsPanel.removeAll();
-            if (shifts == null || shifts.isEmpty()) {
-                JLabel lblEmpty = new JLabel("Không có ca làm sắp tới", JLabel.CENTER);
-                lblEmpty.setFont(BODY_FONT);
-                lblEmpty.setForeground(Color.GRAY);
-                lblEmpty.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-                upcomingShiftsPanel.add(Box.createVerticalGlue());
-                upcomingShiftsPanel.add(lblEmpty);
-                upcomingShiftsPanel.add(Box.createVerticalGlue());
-            } else {
-                for (String shift : shifts) {
-                    // createShiftItem là hàm vẽ UI đã có của bạn
-                    upcomingShiftsPanel.add(createShiftItem(shift));
-                    upcomingShiftsPanel.add(Box.createVerticalStrut(10));
-                }
-            }
-            upcomingShiftsPanel.revalidate();
-            upcomingShiftsPanel.repaint();
-        });
-    }
-
-    private void loadShiftControlInfo() {
-        // Lấy dữ liệu từ Service
-        String[] shiftInfo = giaoCaService.getThongTinCaTruocSau(maNV, LocalDate.now());
-
-        SwingUtilities.invokeLater(() -> {
-            // Tìm Label bằng hàm helper findComponentByName bạn đã viết
-            JLabel lblPrev = (JLabel) findComponentByName(shiftControlInfoPanel, "lblPrevShift");
-            if (lblPrev != null && shiftInfo != null) {
-                lblPrev.setText("<html><center>" + shiftInfo[0] + "</center></html>");
-            }
-
-            JLabel lblNext = (JLabel) findComponentByName(shiftControlInfoPanel, "lblNextShift");
-            if (lblNext != null && shiftInfo != null) {
-                lblNext.setText("<html><center>" + shiftInfo[1] + "</center></html>");
-            }
-        });
+        JLabel lblNext = (JLabel) findComponentByName(shiftControlInfoPanel, "lblNextShift");
+        if (lblNext != null) {
+            lblNext.setText("<html><center>" + safeHtml(caSau) + "</center></html>");
+        }
     }
 
     private Component findComponentByName(Container container, String name) {
-        if (name.equals(container.getName())) return container;
+        if (container == null || name == null) {
+            return null;
+        }
+
+        if (name.equals(container.getName())) {
+            return container;
+        }
+
         for (Component child : container.getComponents()) {
-            if (name.equals(child.getName())) return child;
+            if (name.equals(child.getName())) {
+                return child;
+            }
+
             if (child instanceof Container) {
                 Component found = findComponentByName((Container) child, name);
-                if (found != null) return found;
+                if (found != null) {
+                    return found;
+                }
             }
         }
+
         return null;
     }
 
     private void handleStartShift() {
-        String input = JOptionPane.showInputDialog(this, "Nhập số tiền đầu ca:", "Bắt đầu ca làm", JOptionPane.QUESTION_MESSAGE);
-        if (input == null || input.isEmpty()) return;
+        String input = JOptionPane.showInputDialog(
+                this,
+                "Nhập số tiền đầu ca:",
+                "Bắt đầu ca làm",
+                JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (input == null || input.trim().isEmpty()) {
+            return;
+        }
+
+        double tienDauCa;
 
         try {
-            double tien = Double.parseDouble(input.replace(",", ""));
-
-            GiaoCaDTO newShift = GiaoCaDTO.builder()
-                    .maNV(maNV)
-                    .thoiGianBatDau(LocalDateTime.now())
-                    .tienDauCa(tien)
-                    .build();
-
-            if (giaoCaService.batDauCa(newShift)) {
-                JOptionPane.showMessageDialog(this, "Bắt đầu ca thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                loadEmployeeData();
-            } else {
-                JOptionPane.showMessageDialog(this, "Lỗi: Bạn đang có ca chưa kết thúc!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-            }
+            tienDauCa = Double.parseDouble(input.replace(",", "").trim());
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Số tiền không hợp lệ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Số tiền không hợp lệ!",
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return;
         }
+
+        if (tienDauCa < 0) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Tiền đầu ca không được âm!",
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return;
+        }
+
+        GiaoCaDTO newShift = GiaoCaDTO.builder()
+                .maNV(maNV)
+                .thoiGianBatDau(LocalDateTime.now())
+                .tienDauCa(tienDauCa)
+                .build();
+
+        setBusy(true);
+
+        new SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() {
+                return giaoCaRemoteService.batDauCa(newShift);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    boolean success = Boolean.TRUE.equals(get());
+
+                    if (success) {
+                        JOptionPane.showMessageDialog(
+                                DashboardNhanVienGUI.this,
+                                "Bắt đầu ca thành công!",
+                                "Thành công",
+                                JOptionPane.INFORMATION_MESSAGE
+                        );
+                        loadEmployeeData();
+                    } else {
+                        JOptionPane.showMessageDialog(
+                                DashboardNhanVienGUI.this,
+                                "Lỗi: Bạn đang có ca chưa kết thúc!",
+                                "Lỗi",
+                                JOptionPane.ERROR_MESSAGE
+                        );
+                        setBusy(false);
+                    }
+                } catch (Exception e) {
+                    showError(
+                            "Lỗi bắt đầu ca: " + getRootMessage(e),
+                            "Lỗi"
+                    );
+                    setBusy(false);
+                }
+            }
+        }.execute();
     }
 
     private void handleEndShift() {
-        GiaoCaDTO caHienTai = giaoCaService.getThongTinCaDangLam(maNV);
-        if (caHienTai == null) return;
+        if (caHienTai == null || caHienTai.getMaGiaoCa() == null) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Không tìm thấy ca đang làm.",
+                    "Thông báo",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+            return;
+        }
 
-        String input = JOptionPane.showInputDialog(this, "Nhập tổng tiền thực tế trong két (Tiền mặt):", "Kết thúc ca làm", JOptionPane.QUESTION_MESSAGE);
-        if (input == null) return;
+        String input = JOptionPane.showInputDialog(
+                this,
+                "Nhập tổng tiền thực tế trong két (Tiền mặt):",
+                "Kết thúc ca làm",
+                JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (input == null || input.trim().isEmpty()) {
+            return;
+        }
+
+        double tienCuoiCa;
 
         try {
-            double tienCuoi = Double.parseDouble(input.replace(",", ""));
-            String ghiChu = JOptionPane.showInputDialog(this, "Ghi chú (nếu có):");
-
-            if (giaoCaService.ketThucCa(Integer.parseInt(caHienTai.getMaGiaoCa()), tienCuoi, ghiChu)) {
-                JOptionPane.showMessageDialog(this, "Kết thúc ca thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                loadEmployeeData();
-            } else {
-                JOptionPane.showMessageDialog(this, "Lỗi khi kết thúc ca.", "Lỗi", JOptionPane.ERROR_MESSAGE);
-            }
+            tienCuoiCa = Double.parseDouble(input.replace(",", "").trim());
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Số tiền không hợp lệ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Số tiền không hợp lệ!",
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return;
         }
+
+        if (tienCuoiCa < 0) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Tiền cuối ca không được âm!",
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return;
+        }
+
+        String ghiChu = JOptionPane.showInputDialog(this, "Ghi chú (nếu có):");
+
+        setBusy(true);
+
+        new SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() {
+                return giaoCaRemoteService.ketThucCa(
+                        caHienTai.getMaGiaoCa(),
+                        tienCuoiCa,
+                        ghiChu
+                );
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    boolean success = Boolean.TRUE.equals(get());
+
+                    if (success) {
+                        JOptionPane.showMessageDialog(
+                                DashboardNhanVienGUI.this,
+                                "Kết thúc ca thành công!",
+                                "Thành công",
+                                JOptionPane.INFORMATION_MESSAGE
+                        );
+                        loadEmployeeData();
+                    } else {
+                        JOptionPane.showMessageDialog(
+                                DashboardNhanVienGUI.this,
+                                "Lỗi khi kết thúc ca.",
+                                "Lỗi",
+                                JOptionPane.ERROR_MESSAGE
+                        );
+                        setBusy(false);
+                    }
+                } catch (Exception e) {
+                    showError(
+                            "Lỗi kết thúc ca: " + getRootMessage(e),
+                            "Lỗi"
+                    );
+                    setBusy(false);
+                }
+            }
+        }.execute();
+    }
+
+    private void setBusy(boolean busy) {
+        setCursor(busy
+                ? Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
+                : Cursor.getDefaultCursor()
+        );
+
+        if (btnStartShift != null) {
+            btnStartShift.setEnabled(!busy && caHienTai == null);
+        }
+
+        if (btnEndShift != null) {
+            btnEndShift.setEnabled(!busy && caHienTai != null);
+        }
+    }
+
+    private String formatMoney(double value) {
+        return String.format("%,.0f ₫", value);
+    }
+
+    private String safeHtml(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return "Không có";
+        }
+
+        return value
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
+    }
+
+    private void showError(String message, String title) {
+        JOptionPane.showMessageDialog(
+                this,
+                message,
+                title,
+                JOptionPane.ERROR_MESSAGE
+        );
+    }
+
+    private String getRootMessage(Exception e) {
+        Throwable t = e;
+
+        while (t.getCause() != null) {
+            t = t.getCause();
+        }
+
+        return t.getMessage() != null ? t.getMessage() : e.getMessage();
     }
 
     private ImageIcon loadIcon(String path, int width, int height) {
         try {
             java.net.URL imgURL = getClass().getResource(path);
+
             if (imgURL != null) {
                 ImageIcon originalIcon = new ImageIcon(imgURL);
                 Image scaledImage = originalIcon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
                 return new ImageIcon(scaledImage);
-            } else {
-                return null;
             }
+
+            return null;
         } catch (Exception e) {
             e.printStackTrace();
             return null;
