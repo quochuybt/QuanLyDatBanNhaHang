@@ -145,12 +145,13 @@ public class SocketClientConnection {
                 }
             } catch (Exception e) {
                 if (running.get()) {
-                    LOGGER.warn("[SocketClient] Mất kết nối server: {}", e.getMessage());
+                    LOGGER.warn("[SocketClient] Reader thread exception: {} - {}", e.getClass().getSimpleName(), e.getMessage(), e);
                     listeners.forEach(l -> l.onDisconnected(e));
                 }
             } finally {
                 running.set(false);
                 closeResources();
+                LOGGER.warn("[SocketClient] Reader loop kết thúc, complete {} pending futures", pendingResponses.size());
                 pendingResponses.forEach((k, f) -> f.completeExceptionally(new RuntimeException("Mất kết nối server")));
                 pendingResponses.clear();
             }
