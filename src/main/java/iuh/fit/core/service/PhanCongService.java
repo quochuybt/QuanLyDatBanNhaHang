@@ -11,6 +11,7 @@ import jakarta.persistence.EntityTransaction;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
@@ -19,6 +20,7 @@ public class PhanCongService {
     private final PhanCongRepository phanCongRepo = new PhanCongRepository();
 
     private static final int SO_NGAY_TOI_DA_DUOC_PHAN_CONG_TRUOC = 60;
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
     public void phanCong(String maNV, String maCa, LocalDate ngayLam) {
         validateMaNV(maNV);
@@ -45,6 +47,7 @@ public class PhanCongService {
             }
 
             validateNgayLamTheoNhanVien(nv, ngayLam);
+            validateCaChuaBatDau(ca, ngayLam);
             validateTrungPhanCong(em, maNV, maCa, ngayLam);
             validateTrungThoiGianCaLam(maNV, ca, ngayLam);
 
@@ -222,6 +225,39 @@ public class PhanCongService {
         }
     }
 
+    private void validateCaChuaBatDau(CaLam ca, LocalDate ngayLam) {
+        if (ca == null) {
+            throw new IllegalArgumentException("Ca làm không hợp lệ.");
+        }
+
+        if (ca.getGioBatDau() == null) {
+            throw new IllegalArgumentException("Ca làm chưa có giờ bắt đầu, không thể phân công.");
+        }
+
+        LocalDate homNay = LocalDate.now();
+
+        if (!ngayLam.isEqual(homNay)) {
+            return;
+        }
+
+        LocalTime bayGio = LocalTime.now();
+        LocalTime gioBatDauCa = ca.getGioBatDau();
+
+        if (!bayGio.isBefore(gioBatDauCa)) {
+            String tenCa = ca.getTenCa() != null && !ca.getTenCa().trim().isEmpty()
+                    ? ca.getTenCa()
+                    : ca.getMaCa();
+
+            throw new IllegalArgumentException(
+                    "Không thể phân công vào ca "
+                            + tenCa
+                            + " vì ca đã bắt đầu lúc "
+                            + gioBatDauCa.format(TIME_FORMATTER)
+                            + "."
+            );
+        }
+    }
+
     private void validateNgayLamHuyPhanCong(LocalDate ngayLam) {
         if (ngayLam == null) {
             throw new IllegalArgumentException("Ngày làm không được để trống.");
@@ -280,15 +316,14 @@ public class PhanCongService {
         int start2Min = toMinuteOfDay(start2);
         int end2Min = toMinuteOfDay(end2);
 
-        // Chuẩn hóa ca qua đêm trên trục thời gian 48h
         if (end1Min <= start1Min) {
             end1Min += 24 * 60;
         }
+
         if (end2Min <= start2Min) {
             end2Min += 24 * 60;
         }
 
-        // So sánh trực tiếp và dịch ca 2 lên/xuống 24h để bắt các trường hợp giao nhau qua mốc ngày
         return overlaps(start1Min, end1Min, start2Min, end2Min)
                 || overlaps(start1Min, end1Min, start2Min + 24 * 60, end2Min + 24 * 60)
                 || overlaps(start1Min, end1Min, start2Min - 24 * 60, end2Min - 24 * 60);

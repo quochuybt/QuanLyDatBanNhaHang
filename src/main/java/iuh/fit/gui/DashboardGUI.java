@@ -195,14 +195,14 @@ public class DashboardGUI extends JFrame {
         if (isManager) {
             addCardSafe("Dashboard", DashboardQuanLyGUI::new);
             addCardSafe("Nhân viên", NhanVienGUI::new);
-            addCardSafe("Lịch làm việc", () -> new LichLamViecGUI(VaiTro.QUANLY));
+            addCardSafe("Lịch làm việc", () -> new LichLamViecGUI(VaiTro.QUANLY, connection));
             addCardSafe("Hóa đơn", HoaDonGUI::new);
             addCardSafe("Khuyến mãi", KhuyenMaiGUI::new);
         } else {
             addCardSafe("Dashboard", () -> new DashboardNhanVienGUI(maNV, userName, connection));
             addCardSafe("Danh sách bàn", () -> new DanhSachBanGUI(this, maNV, connection));
             addCardSafe("Thành viên", () -> new KhachHangGUI(connection));
-            addCardSafe("Lịch làm việc", () -> new LichLamViecGUI(VaiTro.NHANVIEN));
+            addCardSafe("Lịch làm việc", () -> new LichLamViecGUI(VaiTro.NHANVIEN,connection));
             addCardSafe("Hóa đơn", HoaDonGUI::new);
         }
     }
