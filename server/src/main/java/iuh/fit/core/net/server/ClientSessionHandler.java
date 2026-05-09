@@ -24,6 +24,7 @@ public class ClientSessionHandler implements Runnable {
 
     @Override
     public void run() {
+        LOGGER.info("[SocketServer] Session handler bắt đầu: session={}", session.getSessionId());
         try {
             String line;
             while ((line = session.getIn().readLine()) != null) {

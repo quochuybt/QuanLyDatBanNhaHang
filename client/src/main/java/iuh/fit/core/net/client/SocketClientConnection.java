@@ -82,6 +82,7 @@ public class SocketClientConnection {
 
     public MessageEnvelope sendCommand(String actionName, Object payload, long timeoutMs) {
         if (!running.get()) {
+            LOGGER.warn("[SocketClient] sendCommand gọi connect() lại vì running=false, command={}", actionName);
             connect();
         }
 
@@ -184,7 +185,9 @@ public class SocketClientConnection {
     }
 
     private synchronized void send(MessageEnvelope request) throws IOException {
-        out.write(JsonCodec.toJson(request));
+        String json = JsonCodec.toJson(request);
+        LOGGER.debug("[SocketClient] Gửi: type={} messageId={}", request.getType(), request.getMessageId());
+        out.write(json);
         out.write("\n");
         out.flush();
     }
