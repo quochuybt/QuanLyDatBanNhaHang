@@ -34,6 +34,50 @@ public class BanRemoteService extends BaseRemoteService {
         );
     }
 
+    public BanDTO findById(String maBan) {
+        if (maBan == null || maBan.trim().isEmpty()) {
+            return null;
+        }
+
+        String id = maBan.trim();
+
+        List<BanDTO> dsBan = getAllBan();
+
+        if (dsBan == null) {
+            return null;
+        }
+
+        for (BanDTO ban : dsBan) {
+            if (ban != null && id.equalsIgnoreCase(safe(ban.getMaBan()))) {
+                return ban;
+            }
+        }
+
+        return null;
+    }
+
+    public BanDTO findByMaBan(String maBan) {
+        return findById(maBan);
+    }
+
+    public String getTenBanByMa(String maBan) {
+        BanDTO ban = findById(maBan);
+
+        if (ban == null || ban.getTenBan() == null || ban.getTenBan().trim().isEmpty()) {
+            return null;
+        }
+
+        return ban.getTenBan();
+    }
+
+    public String getTenBanByMa(BanDTO request) {
+        if (request == null) {
+            return null;
+        }
+
+        return getTenBanByMa(request.getMaBan());
+    }
+
     public boolean updateBan(BanDTO ban) {
         BanActionRequest request = new BanActionRequest();
         request.setBan(ban);
@@ -82,5 +126,9 @@ public class BanRemoteService extends BaseRemoteService {
 
         Boolean result = JsonCodec.fromJsonNode(response.getPayload(), Boolean.class);
         return Boolean.TRUE.equals(result);
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value.trim();
     }
 }

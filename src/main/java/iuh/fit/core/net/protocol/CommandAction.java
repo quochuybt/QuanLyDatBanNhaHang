@@ -36,6 +36,10 @@ public enum CommandAction {
     BAN_CHUYEN_BAN,
     BAN_GHEP_BAN,
 
+    // ===== Khách hàng =====
+    KHACHHANG_GET_ALL,
+    KHACHHANG_GET_BY_ID,
+    KHACHHANG_GET_BY_SDT,
     KHACHHANG_ADD,
     KHACHHANG_UPDATE,
     KHACHHANG_SEARCH,

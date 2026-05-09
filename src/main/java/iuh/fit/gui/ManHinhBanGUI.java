@@ -4,10 +4,7 @@ import iuh.fit.core.dto.*;
 import iuh.fit.core.entity.Ban;
 import iuh.fit.core.entity.TrangThaiBan;
 import iuh.fit.core.mapper.JsonMapper;
-import iuh.fit.core.net.client.BanRemoteService;
-import iuh.fit.core.net.client.KhuyenMaiRemoteService;
-import iuh.fit.core.net.client.ClientEventListener;
-import iuh.fit.core.net.client.SocketClientConnection;
+import iuh.fit.core.net.client.*;
 import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.service.*;
@@ -46,7 +43,7 @@ public class ManHinhBanGUI extends JPanel {
     private final HoaDonService hoaDonService = new HoaDonService();
     private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
     private final KhuyenMaiRemoteService khuyenMaiRemoteService;
-    private final KhachHangService khachHangService = new KhachHangService();
+    private final KhachHangRemoteService khachHangRemoteService;
     private final DonDatMonService donDatMonService = new DonDatMonService();
 
     private List<BanDTO> allTableDTOsFromDB = new ArrayList<>();
@@ -146,7 +143,7 @@ public class ManHinhBanGUI extends JPanel {
                 Objects.requireNonNull(socketConnection, "SocketClientConnection không được null.")
         );
         this.khuyenMaiRemoteService = new KhuyenMaiRemoteService(socketConnection);
-
+        this.khachHangRemoteService = new KhachHangRemoteService(socketConnection);
         socketConnection.addEventListener(new ClientEventListener() {
             @Override
             public void onEvent(MessageEnvelope event) {
@@ -450,7 +447,7 @@ public class ManHinhBanGUI extends JPanel {
 
         if (timTheoSDT && !sdt.isEmpty()) {
             try {
-                KhachHangDTO kh = khachHangService.findBySdtDTO(sdt);
+                KhachHangDTO kh = khachHangRemoteService.findBySdtDTO(sdt);
 
                 if (kh != null) {
                     khachHangDangChon = kh;
@@ -485,7 +482,7 @@ public class ManHinhBanGUI extends JPanel {
 
         if (khTam.getMaKH() != null && !khTam.getMaKH().trim().isEmpty()) {
             try {
-                KhachHangDTO kh = khachHangService.findByIdDTO(khTam.getMaKH());
+                KhachHangDTO kh = khachHangRemoteService.findByIdDTO(khTam.getMaKH());
 
                 if (kh != null) {
                     khachHangDangChon = kh;
@@ -655,7 +652,7 @@ public class ManHinhBanGUI extends JPanel {
     private void fillCustomerInfo(String maKH) {
         if (maKH != null && !maKH.trim().isEmpty()) {
             try {
-                KhachHangDTO kh = khachHangService.findByIdDTO(maKH);
+                KhachHangDTO kh = khachHangRemoteService.findByIdDTO(maKH);
 
                 if (kh != null) {
                     khachHangDangChon = kh;
@@ -1037,7 +1034,7 @@ public class ManHinhBanGUI extends JPanel {
         }
 
         try {
-            KhachHangDTO khachHang = khachHangService.findBySdtDTO(sdt);
+            KhachHangDTO khachHang = khachHangRemoteService.findBySdtDTO(sdt);
 
             if (khachHang != null) {
                 khachHangDangChon = khachHang;
