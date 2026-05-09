@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.net.server.dispatch.CommandDispatcher;
 import iuh.fit.core.net.server.discovery.MdnsAnnouncer;
@@ -14,6 +16,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class SocketServerBootstrap {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SocketServerBootstrap.class);
+
     private final int tcpPort;
     private final int udpPort;
     private final SessionRegistry sessionRegistry = new SessionRegistry();
@@ -56,7 +60,7 @@ public class SocketServerBootstrap {
             while (running) {
                 // 5) Với mỗi client mới: tạo session + giao handler xử lý riêng
                 Socket socket = serverSocket.accept();
-                System.out.println("[SocketServer] Đã có client kết nối: "
+                LOGGER.info("[SocketServer] Đã có client kết nối: "
                         + socket.getInetAddress().getHostAddress() + ":" + socket.getPort());
                 ClientSession session = new ClientSession(socket);
                 sessionRegistry.register(session);

@@ -1,4 +1,7 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 import iuh.fit.core.net.dto.dashboard.DashboardRangeRequestDTO;
 import iuh.fit.core.net.protocol.MessageEnvelope;
@@ -7,6 +10,8 @@ import iuh.fit.core.net.server.session.ClientSession;
 import iuh.fit.core.service.HoaDonService;
 
 public class DashboardDailyRevenueHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DashboardDailyRevenueHandler.class);
     private final HoaDonService hoaDonService = new HoaDonService();
 
     @Override

@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.dto.MonAnDTO;
 import iuh.fit.core.net.protocol.MessageEnvelope;
@@ -10,6 +12,8 @@ import java.util.List;
 
 public class MonAnGetAllHandler extends BaseCommandHandler implements CommandHandler {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(MonAnGetAllHandler.class);
+
     private final MonAnService monAnService = new MonAnService();
 
     @Override
@@ -17,7 +21,7 @@ public class MonAnGetAllHandler extends BaseCommandHandler implements CommandHan
         return execute(request, () -> {
             List<MonAnDTO> result = monAnService.findAllDTO();
 
-            System.out.println("[SocketServer] MONAN_GET_ALL thành công"
+            LOGGER.info("[SocketServer] MONAN_GET_ALL thành công"
                     + " command=" + request.getName()
                     + ", messageId=" + request.getMessageId()
                     + ", total=" + (result != null ? result.size() : 0));

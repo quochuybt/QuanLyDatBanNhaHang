@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.dto.DonDatMonDTO;
 import iuh.fit.core.net.dto.dondatmon.DonDatMonSearchRequest;
@@ -10,6 +12,8 @@ import iuh.fit.core.service.DonDatMonService;
 import java.util.List;
 
 public class DonDatMonSearchChuaNhanHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DonDatMonSearchChuaNhanHandler.class);
 
     private final DonDatMonService donDatMonService = new DonDatMonService();
 
@@ -27,7 +31,7 @@ public class DonDatMonSearchChuaNhanHandler extends BaseCommandHandler implement
 
             List<DonDatMonDTO> result = donDatMonService.timDonDatMonChuaNhan(keyword);
 
-            System.out.println("[SocketServer] DONDATMON_SEARCH_CHUA_NHAN thành công"
+            LOGGER.info("[SocketServer] DONDATMON_SEARCH_CHUA_NHAN thành công"
                     + " command=" + request.getName()
                     + ", messageId=" + request.getMessageId()
                     + ", keyword=" + keyword

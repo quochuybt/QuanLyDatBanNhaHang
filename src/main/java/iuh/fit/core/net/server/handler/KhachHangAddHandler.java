@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.dto.KhachHangDTO;
 import iuh.fit.core.net.protocol.MessageEnvelope;
@@ -7,6 +9,8 @@ import iuh.fit.core.net.server.session.ClientSession;
 import iuh.fit.core.service.KhachHangService;
 
 public class KhachHangAddHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(KhachHangAddHandler.class);
 
     private final KhachHangService khachHangService = new KhachHangService();
 
@@ -24,7 +28,7 @@ public class KhachHangAddHandler extends BaseCommandHandler implements CommandHa
 
             khachHangService.addFromDTO(payload);
 
-            System.out.println("[SocketServer] KHACHHANG_ADD thành công"
+            LOGGER.info("[SocketServer] KHACHHANG_ADD thành công"
                     + " command=" + request.getName()
                     + ", messageId=" + request.getMessageId()
                     + ", sdt=" + payload.getSdt());

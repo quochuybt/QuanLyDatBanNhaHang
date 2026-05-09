@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.dto.BanDTO;
 import iuh.fit.core.net.dto.ban.BanActionRequest;
@@ -12,6 +14,8 @@ import iuh.fit.core.service.BanService;
 import java.util.List;
 
 public class BanGhepBanHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(BanGhepBanHandler.class);
 
     private final BanService banService = new BanService();
     private final SessionRegistry sessionRegistry;
@@ -43,7 +47,7 @@ public class BanGhepBanHandler extends BaseCommandHandler implements CommandHand
 
             boolean success = banService.ghepBanLienKet(dsBanNguon, banDich);
 
-            System.out.println("[SocketServer] BAN_GHEP_BAN thành công"
+            LOGGER.info("[SocketServer] BAN_GHEP_BAN thành công"
                     + " command=" + request.getName()
                     + ", messageId=" + request.getMessageId()
                     + ", banDich=" + banDich.getMaBan()

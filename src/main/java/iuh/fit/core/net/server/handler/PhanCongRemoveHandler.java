@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.net.dto.phancong.PhanCongRequestDTO;
 import iuh.fit.core.net.protocol.EventType;
@@ -9,6 +11,8 @@ import iuh.fit.core.net.server.session.SessionRegistry;
 import iuh.fit.core.service.PhanCongService;
 
 public class PhanCongRemoveHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PhanCongRemoveHandler.class);
 
     private final PhanCongService phanCongService = new PhanCongService();
     private final SessionRegistry sessionRegistry;
@@ -35,7 +39,7 @@ public class PhanCongRemoveHandler extends BaseCommandHandler implements Command
                     payload.getNgayLam()
             );
 
-            System.out.println("[SocketServer] PHANCONG_REMOVE thành công"
+            LOGGER.info("[SocketServer] PHANCONG_REMOVE thành công"
                     + " command=" + request.getName()
                     + ", messageId=" + request.getMessageId()
                     + ", maNV=" + payload.getMaNV()

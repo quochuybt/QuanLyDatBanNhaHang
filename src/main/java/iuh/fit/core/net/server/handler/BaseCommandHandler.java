@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.net.protocol.ErrorCode;
 import iuh.fit.core.net.protocol.JsonCodec;
@@ -11,6 +13,8 @@ import java.util.function.Function;
  * Giữ chuẩn trả response thống nhất cho toàn bộ server.
  */
 public abstract class BaseCommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(BaseCommandHandler.class);
 
     @FunctionalInterface
     protected interface HandlerWork {
@@ -50,13 +54,13 @@ public abstract class BaseCommandHandler {
     }
 
     protected MessageEnvelope badRequest(MessageEnvelope request, String message) {
-        System.out.println("[SocketServer] Bad request: " + message
+        LOGGER.info("[SocketServer] Bad request: " + message
                 + " (messageId=" + request.getMessageId() + ")");
         return MessageEnvelope.responseFail(request.getMessageId(), ErrorCode.BAD_REQUEST, message);
     }
 
     protected MessageEnvelope serverError(MessageEnvelope request, String message) {
-        System.out.println("[SocketServer] Server error: " + message
+        LOGGER.info("[SocketServer] Server error: " + message
                 + " (messageId=" + request.getMessageId() + ")");
         return MessageEnvelope.responseFail(request.getMessageId(), ErrorCode.SERVER_ERROR, message);
     }

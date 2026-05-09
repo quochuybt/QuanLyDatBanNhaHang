@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.dto.GiaoCaDTO;
 import iuh.fit.core.net.dto.giaoca.GiaoCaDashboardRequest;
@@ -15,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 
 public class GiaoCaDashboardLoadHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(GiaoCaDashboardLoadHandler.class);
 
     private final GiaoCaService giaoCaService = new GiaoCaService();
     private final HoaDonService hoaDonService = new HoaDonService();
@@ -76,7 +80,7 @@ public class GiaoCaDashboardLoadHandler extends BaseCommandHandler implements Co
                     .caSau(caTruocSau != null && caTruocSau.length > 1 ? caTruocSau[1] : "Không có")
                     .build();
 
-            System.out.println("[SocketServer] GIAOCA_DASHBOARD_LOAD thành công"
+            LOGGER.info("[SocketServer] GIAOCA_DASHBOARD_LOAD thành công"
                     + " command=" + request.getName()
                     + ", messageId=" + request.getMessageId()
                     + ", maNV=" + maNV);

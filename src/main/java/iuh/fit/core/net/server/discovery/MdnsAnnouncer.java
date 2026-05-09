@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.discovery;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceInfo;
@@ -6,6 +8,8 @@ import java.io.IOException;
 import java.net.InetAddress;
 
 public class MdnsAnnouncer {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MdnsAnnouncer.class);
+
     public static final String SERVICE_TYPE = "_starguardian._tcp.local.";
 
     private final String serviceName;
@@ -32,9 +36,9 @@ public class MdnsAnnouncer {
                     "app=StarGuardian;env=lan;version=" + version
             );
             jmdns.registerService(serviceInfo);
-            System.out.println("[SocketServer] Đã công bố mDNS: " + serviceName + " @ " + addr.getHostAddress() + ":" + tcpPort);
+            LOGGER.info("[SocketServer] Đã công bố mDNS: " + serviceName + " @ " + addr.getHostAddress() + ":" + tcpPort);
         } catch (IOException e) {
-            System.out.println("[SocketServer] Công bố mDNS thất bại, sẽ dùng UDP fallback. Lý do: " + e.getMessage());
+            LOGGER.info("[SocketServer] Công bố mDNS thất bại, sẽ dùng UDP fallback. Lý do: " + e.getMessage());
         }
     }
 

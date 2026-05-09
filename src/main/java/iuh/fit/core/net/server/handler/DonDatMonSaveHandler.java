@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.dto.DonDatMonDTO;
 import iuh.fit.core.net.protocol.MessageEnvelope;
@@ -7,6 +9,8 @@ import iuh.fit.core.net.server.session.ClientSession;
 import iuh.fit.core.service.DonDatMonService;
 
 public class DonDatMonSaveHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DonDatMonSaveHandler.class);
 
     private final DonDatMonService donDatMonService = new DonDatMonService();
 
@@ -26,7 +30,7 @@ public class DonDatMonSaveHandler extends BaseCommandHandler implements CommandH
 
             donDatMonService.save(payload);
 
-            System.out.println("[SocketServer] DONDATMON_SAVE thành công"
+            LOGGER.info("[SocketServer] DONDATMON_SAVE thành công"
                     + " command=" + request.getName()
                     + ", messageId=" + request.getMessageId()
                     + ", maBan=" + payload.getMaBan()

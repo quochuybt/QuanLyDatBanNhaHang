@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.dto.PhanCongDTO;
 import iuh.fit.core.entity.PhanCong;
@@ -13,6 +15,8 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class PhanCongListByDateHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PhanCongListByDateHandler.class);
 
     private final PhanCongService phanCongService = new PhanCongService();
 
@@ -33,7 +37,7 @@ public class PhanCongListByDateHandler extends BaseCommandHandler implements Com
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
-            System.out.println("[SocketServer] PHANCONG_LIST_BY_DATE thành công"
+            LOGGER.info("[SocketServer] PHANCONG_LIST_BY_DATE thành công"
                     + " session=" + session.getSessionId()
                     + ", ngayLam=" + payload.getNgayLam()
                     + ", total=" + result.size());

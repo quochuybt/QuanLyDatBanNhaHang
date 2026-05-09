@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.dto.DonDatMonDTO;
 import iuh.fit.core.net.dto.ban.MaBanRequest;
@@ -8,6 +10,8 @@ import iuh.fit.core.net.server.session.ClientSession;
 import iuh.fit.core.service.DonDatMonService;
 
 public class DonDatMonGetDatTruocByBanHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DonDatMonGetDatTruocByBanHandler.class);
 
     private final DonDatMonService donDatMonService = new DonDatMonService();
 
@@ -23,7 +27,7 @@ public class DonDatMonGetDatTruocByBanHandler extends BaseCommandHandler impleme
 
             DonDatMonDTO result = donDatMonService.getDonDatMonDatTruoc(payload.getMaBan().trim());
 
-            System.out.println("[SocketServer] DONDATMON_GET_DAT_TRUOC_BY_BAN thành công"
+            LOGGER.info("[SocketServer] DONDATMON_GET_DAT_TRUOC_BY_BAN thành công"
                     + " command=" + request.getName()
                     + ", messageId=" + request.getMessageId()
                     + ", maBan=" + payload.getMaBan());

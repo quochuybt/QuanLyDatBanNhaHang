@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.net.protocol.JsonCodec;
 import iuh.fit.core.net.protocol.MessageEnvelope;
@@ -8,6 +10,8 @@ import iuh.fit.core.net.server.session.ClientSession;
 import iuh.fit.core.net.server.session.SessionRegistry;
 
 public class ClientSessionHandler implements Runnable {
+    
+    private static final Logger LOGGER = LoggerFactory.getLogger(ClientSessionHandler.class);
     private final ClientSession session;
     private final SessionRegistry sessionRegistry;
     private final CommandDispatcher commandDispatcher;
@@ -35,11 +39,11 @@ public class ClientSessionHandler implements Runnable {
 
                 // Command được route qua dispatcher đến handler tương ứng
                 if (request.getType() == MessageType.COMMAND) {
-                    System.out.println("[SocketServer] Nhận command: " + request.getName()
+                    LOGGER.info("[SocketServer] Nhận command: " + request.getName()
                             + " (messageId=" + request.getMessageId() + ", session=" + session.getSessionId() + ")");
                     MessageEnvelope response = commandDispatcher.dispatch(session, request);
                     session.send(response);
-                    System.out.println("[SocketServer] Trả response cho command: " + request.getName()
+                    LOGGER.info("[SocketServer] Trả response cho command: " + request.getName()
                             + " (success=" + response.isSuccess()
                             + ", correlationId=" + response.getCorrelationId() + ")");
                 }

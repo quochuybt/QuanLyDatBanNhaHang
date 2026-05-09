@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.net.dto.giaoca.GiaoCaEndRequest;
 import iuh.fit.core.net.protocol.MessageEnvelope;
@@ -7,6 +9,8 @@ import iuh.fit.core.net.server.session.ClientSession;
 import iuh.fit.core.service.GiaoCaService;
 
 public class GiaoCaEndHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(GiaoCaEndHandler.class);
 
     private final GiaoCaService giaoCaService = new GiaoCaService();
 
@@ -34,7 +38,7 @@ public class GiaoCaEndHandler extends BaseCommandHandler implements CommandHandl
                     payload.getGhiChu()
             );
 
-            System.out.println("[SocketServer] GIAOCA_END thành công"
+            LOGGER.info("[SocketServer] GIAOCA_END thành công"
                     + " command=" + request.getName()
                     + ", messageId=" + request.getMessageId()
                     + ", maGiaoCa=" + payload.getMaGiaoCa());

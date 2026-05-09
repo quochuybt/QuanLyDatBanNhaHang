@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.heartbeat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.net.server.session.ClientSession;
 import iuh.fit.core.net.server.session.SessionRegistry;
@@ -8,6 +10,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class HeartbeatMonitor {
+    private static final Logger LOGGER = LoggerFactory.getLogger(HeartbeatMonitor.class);
+
     // Registry chứa toàn bộ session đang mở trên server.
     // Monitor sẽ duyệt registry định kỳ để loại session quá hạn heartbeat.
     private final SessionRegistry sessionRegistry;
@@ -32,7 +36,7 @@ public class HeartbeatMonitor {
             long now = System.currentTimeMillis();
             for (ClientSession session : sessionRegistry.allSessions()) {
                 if (now - session.getLastSeenAt() > timeoutMs) {
-                    System.out.println("[SocketServer] Dọn session timeout: session=" + session.getSessionId()
+                    LOGGER.info("[SocketServer] Dọn session timeout: session=" + session.getSessionId()
                             + ", user=" + (session.getTenTK() != null ? session.getTenTK() : "(ẩn danh)")
                             + ", quá " + timeoutMs + "ms không có heartbeat");
                     sessionRegistry.remove(session);

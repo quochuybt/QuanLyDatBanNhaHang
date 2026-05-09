@@ -1,4 +1,7 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 import iuh.fit.core.net.dto.hoadon.HoaDonTotalRequestDTO;
 import iuh.fit.core.net.protocol.MessageEnvelope;
@@ -9,6 +12,8 @@ import iuh.fit.core.service.HoaDonService;
 import java.util.Map;
 
 public class HoaDonGetTotalHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(HoaDonGetTotalHandler.class);
     private final HoaDonService hoaDonService = new HoaDonService();
 
     @Override

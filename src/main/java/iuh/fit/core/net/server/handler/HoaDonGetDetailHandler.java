@@ -1,4 +1,7 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 import iuh.fit.core.dto.ChiTietHoaDonDTO;
 import iuh.fit.core.net.dto.hoadon.HoaDonDetailRequestDTO;
@@ -8,6 +11,8 @@ import iuh.fit.core.net.server.session.ClientSession;
 import iuh.fit.core.service.ChiTietHoaDonService;
 
 public class HoaDonGetDetailHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(HoaDonGetDetailHandler.class);
     private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
 
     @Override

@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.dto.GiaoCaDTO;
 import iuh.fit.core.net.dto.giaoca.GiaoCaStartRequest;
@@ -8,6 +10,8 @@ import iuh.fit.core.net.server.session.ClientSession;
 import iuh.fit.core.service.GiaoCaService;
 
 public class GiaoCaStartHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(GiaoCaStartHandler.class);
 
     private final GiaoCaService giaoCaService = new GiaoCaService();
 
@@ -31,7 +35,7 @@ public class GiaoCaStartHandler extends BaseCommandHandler implements CommandHan
 
             boolean success = giaoCaService.batDauCa(dto);
 
-            System.out.println("[SocketServer] GIAOCA_START thành công"
+            LOGGER.info("[SocketServer] GIAOCA_START thành công"
                     + " command=" + request.getName()
                     + ", messageId=" + request.getMessageId()
                     + ", maNV=" + payload.getMaNV());

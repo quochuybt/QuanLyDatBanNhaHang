@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.dto.HoaDonDTO;
 import iuh.fit.core.net.protocol.EventType;
@@ -9,6 +11,8 @@ import iuh.fit.core.net.server.session.SessionRegistry;
 import iuh.fit.core.service.HoaDonService;
 
 public class HoaDonCapNhatTongTienHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(HoaDonCapNhatTongTienHandler.class);
 
     private final HoaDonService hoaDonService = new HoaDonService();
     private final SessionRegistry sessionRegistry;
@@ -29,7 +33,7 @@ public class HoaDonCapNhatTongTienHandler extends BaseCommandHandler implements 
 
             boolean success = hoaDonService.capNhatTongTien(payload);
 
-            System.out.println("[SocketServer] HOADON_CAP_NHAT_TONG_TIEN thành công"
+            LOGGER.info("[SocketServer] HOADON_CAP_NHAT_TONG_TIEN thành công"
                     + " command=" + request.getName()
                     + ", messageId=" + request.getMessageId()
                     + ", maHD=" + payload.getMaHD());

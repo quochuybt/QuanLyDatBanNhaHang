@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.dto.KhachHangDTO;
 import iuh.fit.core.net.dto.khachhang.KhachHangSearchRequest;
@@ -10,6 +12,8 @@ import iuh.fit.core.service.KhachHangService;
 import java.util.List;
 
 public class KhachHangSearchHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(KhachHangSearchHandler.class);
 
     private final KhachHangService khachHangService = new KhachHangService();
 
@@ -27,7 +31,7 @@ public class KhachHangSearchHandler extends BaseCommandHandler implements Comman
 
             List<KhachHangDTO> result = khachHangService.searchDTO(keyword);
 
-            System.out.println("[SocketServer] KHACHHANG_SEARCH thành công"
+            LOGGER.info("[SocketServer] KHACHHANG_SEARCH thành công"
                     + " command=" + request.getName()
                     + ", messageId=" + request.getMessageId()
                     + ", keyword=" + keyword

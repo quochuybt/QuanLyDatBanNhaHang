@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.dto.HoaDonDTO;
 import iuh.fit.core.net.dto.ban.MoBanRequest;
@@ -10,6 +12,8 @@ import iuh.fit.core.net.server.session.SessionRegistry;
 import iuh.fit.core.service.HoaDonService;
 
 public class HoaDonMoBanTaoHoaDonHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(HoaDonMoBanTaoHoaDonHandler.class);
 
     private final HoaDonService hoaDonService = new HoaDonService();
     private final SessionRegistry sessionRegistry;
@@ -37,7 +41,7 @@ public class HoaDonMoBanTaoHoaDonHandler extends BaseCommandHandler implements C
                     payload.getGhiChu()
             );
 
-            System.out.println("[SocketServer] HOADON_MO_BAN_TAO_HOA_DON thành công"
+            LOGGER.info("[SocketServer] HOADON_MO_BAN_TAO_HOA_DON thành công"
                     + " command=" + request.getName()
                     + ", messageId=" + request.getMessageId()
                     + ", maBan=" + payload.getMaBan()

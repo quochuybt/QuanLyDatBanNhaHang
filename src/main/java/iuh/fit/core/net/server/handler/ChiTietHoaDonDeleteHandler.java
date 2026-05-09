@@ -1,4 +1,7 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 import iuh.fit.core.dto.ChiTietHoaDonDTO;
 import iuh.fit.core.net.protocol.EventType;
@@ -9,6 +12,8 @@ import iuh.fit.core.net.server.session.SessionRegistry;
 import iuh.fit.core.service.ChiTietHoaDonService;
 
 public class ChiTietHoaDonDeleteHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ChiTietHoaDonDeleteHandler.class);
     private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
     private final SessionRegistry sessionRegistry;
 

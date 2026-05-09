@@ -1,4 +1,7 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 import iuh.fit.core.dto.MonAnDTO;
 import iuh.fit.core.net.dto.common.IdRequest;
@@ -8,6 +11,8 @@ import iuh.fit.core.net.server.session.ClientSession;
 import iuh.fit.core.service.MonAnService;
 
 public class MonAnAdminGetByIdHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MonAnAdminGetByIdHandler.class);
     private final MonAnService monAnService = new MonAnService();
 
     @Override

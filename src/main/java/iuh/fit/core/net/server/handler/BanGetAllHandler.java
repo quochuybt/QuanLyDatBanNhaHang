@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.dto.BanDTO;
 import iuh.fit.core.net.protocol.MessageEnvelope;
@@ -10,6 +12,8 @@ import java.util.List;
 
 public class BanGetAllHandler extends BaseCommandHandler implements CommandHandler {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(BanGetAllHandler.class);
+
     private final BanService banService = new BanService();
 
     @Override
@@ -17,7 +21,7 @@ public class BanGetAllHandler extends BaseCommandHandler implements CommandHandl
         return execute(request, () -> {
             List<BanDTO> result = banService.getAllBan();
 
-            System.out.println("[SocketServer] BAN_GET_ALL thành công"
+            LOGGER.info("[SocketServer] BAN_GET_ALL thành công"
                     + " command=" + request.getName()
                     + ", messageId=" + request.getMessageId()
                     + ", total=" + (result != null ? result.size() : 0));

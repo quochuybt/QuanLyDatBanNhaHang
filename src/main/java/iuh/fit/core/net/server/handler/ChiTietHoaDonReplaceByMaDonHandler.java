@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.dto.ChiTietHoaDonDTO;
 import iuh.fit.core.net.dto.chitiethoadon.ChiTietHoaDonReplaceRequest;
@@ -10,6 +12,8 @@ import iuh.fit.core.service.ChiTietHoaDonService;
 import java.util.List;
 
 public class ChiTietHoaDonReplaceByMaDonHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ChiTietHoaDonReplaceByMaDonHandler.class);
 
     private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
 
@@ -42,7 +46,7 @@ public class ChiTietHoaDonReplaceByMaDonHandler extends BaseCommandHandler imple
 
             chiTietHoaDonService.replaceByMaDon(donDTO, items);
 
-            System.out.println("[SocketServer] CHITIETHOADON_REPLACE_BY_MA_DON thành công"
+            LOGGER.info("[SocketServer] CHITIETHOADON_REPLACE_BY_MA_DON thành công"
                     + " command=" + request.getName()
                     + ", messageId=" + request.getMessageId()
                     + ", maDon=" + payload.getMaDon()

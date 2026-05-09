@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.dto.BanDTO;
 import iuh.fit.core.net.dto.ban.BanActionRequest;
@@ -10,6 +12,8 @@ import iuh.fit.core.net.server.session.SessionRegistry;
 import iuh.fit.core.service.BanService;
 
 public class BanUpdateStatusHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(BanUpdateStatusHandler.class);
 
     private final BanService banService = new BanService();
     private final SessionRegistry sessionRegistry;
@@ -38,7 +42,7 @@ public class BanUpdateStatusHandler extends BaseCommandHandler implements Comman
 
             boolean success = banService.updateBan(ban);
 
-            System.out.println("[SocketServer] BAN_UPDATE_STATUS thành công"
+            LOGGER.info("[SocketServer] BAN_UPDATE_STATUS thành công"
                     + " command=" + request.getName()
                     + ", messageId=" + request.getMessageId()
                     + ", maBan=" + ban.getMaBan()

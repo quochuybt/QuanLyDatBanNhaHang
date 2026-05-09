@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.net.dto.dondatmon.DonDatMonCancelRequest;
 import iuh.fit.core.net.protocol.MessageEnvelope;
@@ -7,6 +9,8 @@ import iuh.fit.core.net.server.session.ClientSession;
 import iuh.fit.core.service.DonDatMonService;
 
 public class DonDatMonHuyDatBanHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DonDatMonHuyDatBanHandler.class);
 
     private final DonDatMonService donDatMonService = new DonDatMonService();
 
@@ -22,7 +26,7 @@ public class DonDatMonHuyDatBanHandler extends BaseCommandHandler implements Com
 
             boolean success = donDatMonService.huyDatBanVaGiaiPhongBanGhep(payload.getMaDon());
 
-            System.out.println("[SocketServer] DONDATMON_HUY_DAT_BAN thành công"
+            LOGGER.info("[SocketServer] DONDATMON_HUY_DAT_BAN thành công"
                     + " command=" + request.getName()
                     + ", messageId=" + request.getMessageId()
                     + ", maDon=" + payload.getMaDon());

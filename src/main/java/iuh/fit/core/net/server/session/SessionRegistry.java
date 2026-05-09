@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.session;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.JsonCodec;
@@ -13,6 +15,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SessionRegistry {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SessionRegistry.class);
+
     private final Map<String, ClientSession> bySessionId = new ConcurrentHashMap<>();
     private final Map<String, ClientSession> byUsername = new ConcurrentHashMap<>();
 
@@ -37,7 +41,7 @@ public class SessionRegistry {
 
         newSession.setTenTK(tenTK);
         byUsername.put(tenTK, newSession);
-        System.out.println("[SocketServer] Người dùng đã đăng nhập: " + tenTK + " (session=" + newSession.getSessionId() + ")");
+        LOGGER.info("[SocketServer] Người dùng đã đăng nhập: " + tenTK + " (session=" + newSession.getSessionId() + ")");
     }
 
     public synchronized void remove(ClientSession session) {

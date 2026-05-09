@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.dto.ChiTietHoaDonDTO;
 import iuh.fit.core.net.dto.dondatmon.MaDonRequest;
@@ -10,6 +12,8 @@ import iuh.fit.core.service.ChiTietHoaDonService;
 import java.util.List;
 
 public class ChiTietHoaDonGetByMaDonHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ChiTietHoaDonGetByMaDonHandler.class);
 
     private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
 
@@ -29,7 +33,7 @@ public class ChiTietHoaDonGetByMaDonHandler extends BaseCommandHandler implement
 
             List<ChiTietHoaDonDTO> result = chiTietHoaDonService.getChiTietTheoMaDon(filter);
 
-            System.out.println("[SocketServer] CHITIETHOADON_GET_BY_MA_DON thành công"
+            LOGGER.info("[SocketServer] CHITIETHOADON_GET_BY_MA_DON thành công"
                     + " command=" + request.getName()
                     + ", messageId=" + request.getMessageId()
                     + ", maDon=" + payload.getMaDon()

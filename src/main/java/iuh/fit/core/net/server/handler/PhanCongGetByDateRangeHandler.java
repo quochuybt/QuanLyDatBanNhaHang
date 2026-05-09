@@ -1,4 +1,7 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 import iuh.fit.core.dto.PhanCongDTO;
 import iuh.fit.core.entity.PhanCong;
@@ -13,6 +16,8 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class PhanCongGetByDateRangeHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PhanCongGetByDateRangeHandler.class);
     private final PhanCongService phanCongService = new PhanCongService();
 
     @Override

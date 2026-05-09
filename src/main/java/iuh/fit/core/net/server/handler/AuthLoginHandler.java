@@ -1,4 +1,7 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 import iuh.fit.core.entity.NhanVien;
 import iuh.fit.core.net.dto.auth.LoginRequestDTO;
@@ -11,6 +14,8 @@ import iuh.fit.core.repository.NhanVienRepository;
 import iuh.fit.core.service.TaiKhoanService;
 
 public class AuthLoginHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthLoginHandler.class);
     private final TaiKhoanService taiKhoanService = new TaiKhoanService();
     private final NhanVienRepository nhanVienRepository = new NhanVienRepository();
     private final SessionRegistry sessionRegistry;

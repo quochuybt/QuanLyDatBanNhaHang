@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.net.dto.dondatmon.DonDatMonTimeRangeRequest;
 import iuh.fit.core.net.protocol.MessageEnvelope;
@@ -9,6 +11,8 @@ import iuh.fit.core.service.DonDatMonService;
 import java.util.List;
 
 public class DonDatMonGetBanDaDatTrongKhoangHandler extends BaseCommandHandler implements CommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DonDatMonGetBanDaDatTrongKhoangHandler.class);
 
     private final DonDatMonService donDatMonService = new DonDatMonService();
 
@@ -29,7 +33,7 @@ public class DonDatMonGetBanDaDatTrongKhoangHandler extends BaseCommandHandler i
                     payload.getDenGio()
             );
 
-            System.out.println("[SocketServer] DONDATMON_GET_BAN_DA_DAT_TRONG_KHOANG thành công"
+            LOGGER.info("[SocketServer] DONDATMON_GET_BAN_DA_DAT_TRONG_KHOANG thành công"
                     + " command=" + request.getName()
                     + ", messageId=" + request.getMessageId()
                     + ", total=" + (result != null ? result.size() : 0));

@@ -1,4 +1,6 @@
 package iuh.fit.core.net.server.dispatch;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.net.protocol.CommandAction;
 import iuh.fit.core.net.protocol.ErrorCode;
@@ -11,6 +13,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class CommandDispatcher {
+    private static final Logger LOGGER = LoggerFactory.getLogger(CommandDispatcher.class);
+
         private final Map<String, CommandHandler> handlers = new HashMap<>();
 
         public CommandDispatcher(SessionRegistry sessionRegistry) {
@@ -130,7 +134,7 @@ public class CommandDispatcher {
         public MessageEnvelope dispatch(ClientSession session, MessageEnvelope request) {
                 // request.name đóng vai trò route key đến handler
                 if (request.getName() == null) {
-                        System.out.println("[SocketServer] Bad request: thiếu tên command (messageId="
+                        LOGGER.info("[SocketServer] Bad request: thiếu tên command (messageId="
                                         + request.getMessageId() + ")");
                         return MessageEnvelope.responseFail(request.getMessageId(), ErrorCode.BAD_REQUEST,
                                         "Thiếu tên command");
@@ -138,7 +142,7 @@ public class CommandDispatcher {
 
                 CommandHandler handler = handlers.get(request.getName());
                 if (handler == null) {
-                        System.out.println("[SocketServer] Bad request: command không hỗ trợ: " + request.getName());
+                        LOGGER.info("[SocketServer] Bad request: command không hỗ trợ: " + request.getName());
                         return MessageEnvelope.responseFail(request.getMessageId(), ErrorCode.BAD_REQUEST,
                                         "Command không được hỗ trợ: " + request.getName());
                 }
