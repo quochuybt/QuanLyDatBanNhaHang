@@ -29,6 +29,7 @@ public class ClientSessionHandler implements Runnable {
             while ((line = session.getIn().readLine()) != null) {
                 // Mỗi message nhận được => cập nhật heartbeat session
                 session.touch();
+                LOGGER.debug("[SocketServer] Nhận raw data từ session={}: {}", session.getSessionId(), line.length() > 200 ? line.substring(0, 200) + "..." : line);
                 MessageEnvelope request = JsonCodec.fromJson(line, MessageEnvelope.class);
 
                 // Ping/Pong giúp duy trì và kiểm tra kết nối sống
