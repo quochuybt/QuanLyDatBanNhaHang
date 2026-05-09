@@ -102,7 +102,7 @@ public class CommandDispatcher {
                 handlers.put(
                                 CommandAction.DONDATMON_GET_DAT_TRUOC_BY_BAN.name(),
                                 new DonDatMonGetDatTruocByBanHandler());
-
+            handlers.put(CommandAction.DONDATMON_UPDATE_GHICHU.name(), new DonDatMonUpdateGhiChuHandler());
                 handlers.put(
                                 CommandAction.DONDATMON_GET_CHUA_NHAN_THEO_BAN_BAO_GOM_LINKED.name(),
                                 new DonDatMonGetChuaNhanTheoBanBaoGomLinkedHandler());
