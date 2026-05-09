@@ -189,8 +189,6 @@ public class TaiKhoanGUI extends JFrame {
                                         "Mất kết nối tới server: " + selectedServer.getHost() + "\n" +
                                                 "Vui lòng kiểm tra lại mạng LAN hoặc trạng thái Server.",
                                         "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-                                lblServerStatus.setText("Server: Mất kết nối!");
-                                lblServerStatus.setForeground(Color.RED);
                             } else if (errorMsg != null
                                     && (errorMsg.contains("AUTH_INVALID") || errorMsg.contains("Sai tên tài khoản"))) {
                                 JOptionPane.showMessageDialog(TaiKhoanGUI.this,
@@ -211,14 +209,6 @@ public class TaiKhoanGUI extends JFrame {
             }
         });
         contentPanel.add(btnDangNhap);
-
-        lblServerStatus = new JLabel(
-                "Server: " + selectedServer.getServiceName() + " (" + selectedServer.getHost() + ")");
-        lblServerStatus.setForeground(Color.DARK_GRAY);
-        lblServerStatus.setFont(new Font("Arial", Font.ITALIC, 12));
-        lblServerStatus.setAlignmentX(Component.CENTER_ALIGNMENT);
-        contentPanel.add(Box.createVerticalStrut(8));
-        contentPanel.add(lblServerStatus);
 
         JPanel linkPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         linkPanel.setOpaque(false);
