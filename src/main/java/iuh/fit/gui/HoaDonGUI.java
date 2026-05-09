@@ -5,19 +5,15 @@ import iuh.fit.core.dto.ChiTietHoaDonDTO;
 import iuh.fit.core.dto.DonDatMonDTO;
 import iuh.fit.core.dto.HoaDonDTO;
 import iuh.fit.core.dto.NhanVienDTO;
-import iuh.fit.core.net.client.BanRemoteService;
-import iuh.fit.core.net.client.ClientEventListener;
-import iuh.fit.core.net.client.HoaDonRemoteService;
-import iuh.fit.core.net.client.NetClientContext;
-import iuh.fit.core.net.client.NhanVienRemoteService;
+import iuh.fit.core.entity.HoaDon; // Chỉ dùng để xuất Excel tạm thời
+import iuh.fit.core.mapper.JsonMapper;
+import iuh.fit.core.net.client.*;
 import iuh.fit.core.net.dto.hoadon.HoaDonDetailRequestDTO;
 import iuh.fit.core.net.dto.hoadon.HoaDonPageRequestDTO;
 import iuh.fit.core.net.dto.hoadon.HoaDonTotalRequestDTO;
 import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.MessageEnvelope;
-import iuh.fit.core.service.ChiTietHoaDonService;
-import iuh.fit.core.service.DonDatMonService;
-import iuh.fit.core.service.HoaDonService;
+import iuh.fit.core.service.*;
 import iuh.fit.core.util.ExcelExporter;
 
 import javax.swing.*;
@@ -42,12 +38,10 @@ import java.util.List;
 
 public class HoaDonGUI extends JPanel {
 
-    // --- Local services còn lại ---
+    // --- Services ---
     private final HoaDonService hoaDonService = new HoaDonService();
     private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
-    private final DonDatMonService donDatMonService = new DonDatMonService();
-
-    // --- Remote services ---
+    private DonDatMonRemoteService donDatMonService;
     private final HoaDonRemoteService hoaDonRemoteService;
     private final NhanVienRemoteService nhanVienRemoteService;
     private final BanRemoteService banRemoteService;
@@ -102,6 +96,8 @@ public class HoaDonGUI extends JPanel {
             hoaDonRemoteService = new HoaDonRemoteService(NetClientContext.getConnection());
             nhanVienRemoteService = new NhanVienRemoteService(NetClientContext.getConnection());
             banRemoteService = new BanRemoteService(NetClientContext.getConnection());
+
+            donDatMonService = new DonDatMonRemoteService(NetClientContext.getConnection());
 
             NetClientContext.getConnection().addEventListener(new ClientEventListener() {
                 @Override
@@ -278,15 +274,13 @@ public class HoaDonGUI extends JPanel {
 
         JPanel inputWrapper = new JPanel(new BorderLayout(5, 0));
         inputWrapper.setOpaque(false);
-
         JLabel searchIcon = new JLabel("🔎");
         searchIcon.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 16));
-
         inputWrapper.add(searchIcon, BorderLayout.WEST);
         inputWrapper.add(txtTimKiem, BorderLayout.CENTER);
-
         searchPanel.add(inputWrapper, BorderLayout.CENTER);
 
+        // Date Filter Panel
         JPanel dateFilterPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         dateFilterPanel.setOpaque(false);
 
@@ -342,7 +336,6 @@ public class HoaDonGUI extends JPanel {
         topFilterPanel.add(dateFilterPanel, BorderLayout.EAST);
 
         panel.add(topFilterPanel, BorderLayout.NORTH);
-
         scrollPane.getViewport().setBackground(Color.WHITE);
         panel.add(scrollPane, BorderLayout.CENTER);
 
@@ -354,7 +347,6 @@ public class HoaDonGUI extends JPanel {
         table.getTableHeader().setBackground(new Color(230, 230, 230));
         table.setRowHeight(30);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-
         TableColumnModel tcm = table.getColumnModel();
         tcm.getColumn(0).setPreferredWidth(150);
         tcm.getColumn(1).setPreferredWidth(100);
@@ -370,7 +362,6 @@ public class HoaDonGUI extends JPanel {
 
     private void updatePaginationControls() {
         lblPageInfo.setText("Trang " + currentPage + "/" + totalPages);
-
         btnFirst.setEnabled(currentPage > 1);
         btnPrev.setEnabled(currentPage > 1);
         btnNext.setEnabled(currentPage < totalPages);
@@ -529,7 +520,6 @@ public class HoaDonGUI extends JPanel {
 
                     loadEnrichedDataToTable(tableRows);
                     updatePaginationControls();
-
                 } catch (Exception ex) {
                     ex.printStackTrace();
                     JOptionPane.showMessageDialog(
@@ -543,6 +533,10 @@ public class HoaDonGUI extends JPanel {
         }.execute();
     }
 
+    /**
+     * Enrich dữ liệu hiển thị cho bảng (gọi DB lấy tên NV, ghi chú).
+     * Phải gọi từ background thread (SwingWorker.doInBackground) để không block EDT.
+     */
     private List<Object[]> enrichTableRows(List<HoaDonDTO> list) {
         List<Object[]> rows = new ArrayList<>();
 
@@ -552,7 +546,6 @@ public class HoaDonGUI extends JPanel {
 
         for (HoaDonDTO hd : list) {
             String tenNV = "N/A";
-
             try {
                 if (hd.getMaNV() != null && nhanVienRemoteService != null) {
                     NhanVienDTO nv = nhanVienRemoteService.findById(hd.getMaNV());
@@ -565,14 +558,11 @@ public class HoaDonGUI extends JPanel {
             }
 
             String ghiChu = "Không";
-
             if (hd.getMaDon() != null) {
                 try {
                     DonDatMonDTO ddm = donDatMonService.findById(hd.getMaDon());
-
                     if (ddm != null && ddm.getGhiChu() != null && !ddm.getGhiChu().trim().isEmpty()) {
                         ghiChu = ddm.getGhiChu().trim();
-
                         if (ghiChu.contains("LINKED:")) {
                             int linkedIndex = ghiChu.indexOf("LINKED:");
                             String clean = ghiChu.substring(0, linkedIndex).trim();
@@ -592,10 +582,12 @@ public class HoaDonGUI extends JPanel {
                     currencyFormatter.format(hd.getTongThanhToan())
             });
         }
-
         return rows;
     }
 
+    /**
+     * Đổ dữ liệu đã enrich sẵn vào bảng — chỉ gọi trên EDT.
+     */
     private void loadEnrichedDataToTable(List<Object[]> rows) {
         tableModel.setRowCount(0);
 
@@ -715,25 +707,20 @@ public class HoaDonGUI extends JPanel {
         }
 
         String tenBan = "Không rõ";
-
         if (hoaDon.getMaDon() != null) {
             DonDatMonDTO ddm = donDatMonService.findById(hoaDon.getMaDon());
-
             if (ddm != null && ddm.getMaBan() != null) {
                 tenBan = layTenBanQuaRemote(ddm.getMaBan());
             }
         }
 
         StringBuilder html = new StringBuilder("<html><body style='font-family: Arial; font-size: 11pt;'>");
-
         html.append("<h2>Chi Tiết Hóa Đơn: ").append(hoaDon.getMaHD()).append("</h2>");
-
         html.append("<b>Ngày lập:</b> ")
                 .append(hoaDon.getNgayLap() != null
                         ? hoaDon.getNgayLap().format(tableDateFormatter)
                         : "N/A")
                 .append("<br>");
-
         html.append("<b>Bàn:</b> ").append(tenBan).append("<br><br>");
 
         html.append("<table border='1' cellpadding='5' cellspacing='0' ")
@@ -747,10 +734,8 @@ public class HoaDonGUI extends JPanel {
                 .append("</tr>");
 
         float tongTienMon = 0;
-
         for (ChiTietHoaDonDTO ct : chiTietList) {
             tongTienMon += ct.getThanhTien();
-
             html.append("<tr>")
                     .append("<td>").append(ct.getTenMon() != null ? ct.getTenMon() : ct.getMaMonAn()).append("</td>")
                     .append("<td align='right'>").append(ct.getSoLuong()).append("</td>")
@@ -758,7 +743,6 @@ public class HoaDonGUI extends JPanel {
                     .append("<td align='right'>").append(currencyFormatter.format(ct.getThanhTien())).append("</td>")
                     .append("</tr>");
         }
-
         html.append("</table><br>");
 
         html.append("<b>Tổng tiền món:</b> ")
@@ -788,17 +772,14 @@ public class HoaDonGUI extends JPanel {
         dialog.add(new JScrollPane(editorPane), BorderLayout.CENTER);
 
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-
         JButton btnPrint = new JButton("In Hóa Đơn");
         final String finalTenBan = tenBan;
         btnPrint.addActionListener(e -> showPrintPreviewDialog(hoaDon, chiTietList, finalTenBan));
-
         JButton btnClose = new JButton("Đóng");
         btnClose.addActionListener(e -> dialog.dispose());
 
         btnPanel.add(btnPrint);
         btnPanel.add(btnClose);
-
         dialog.add(btnPanel, BorderLayout.SOUTH);
         dialog.setSize(550, 450);
         dialog.setLocationRelativeTo(this);
@@ -807,9 +788,7 @@ public class HoaDonGUI extends JPanel {
 
     private void showPrintPreviewDialog(HoaDonDTO hoaDon, List<ChiTietHoaDonDTO> chiTietList, String tenBan) {
         printSessionCounter++;
-
         StringBuilder billText = new StringBuilder();
-
         billText.append("===================================================\n");
         billText.append("                   PHIẾU HÓA ĐƠN\n");
         billText.append("               PHIÊN IN COPY LẦN ").append(printSessionCounter).append("\n");
@@ -865,7 +844,6 @@ public class HoaDonGUI extends JPanel {
         JTextArea textArea = new JTextArea(billText.toString());
         textArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         textArea.setEditable(false);
-
         previewDialog.add(new JScrollPane(textArea));
         previewDialog.setSize(420, 600);
         previewDialog.setLocationRelativeTo(this);
@@ -920,20 +898,16 @@ public class HoaDonGUI extends JPanel {
                 searchTimer.restart();
             }
 
-            @Override
             public void changedUpdate(DocumentEvent e) {
             }
         };
-
         txtTimKiem.getDocument().addDocumentListener(searchListener);
     }
 
     private void resetSearchFieldIfNeeded() {
         String placeholder = " Tìm kiếm qua mã hóa đơn";
-
         if (!txtTimKiem.getText().equals(placeholder)) {
             txtTimKiem.getDocument().removeDocumentListener(searchListener);
-
             if (txtTimKiem.hasFocus()) {
                 txtTimKiem.setText("");
                 txtTimKiem.setForeground(Color.BLACK);
@@ -941,7 +915,6 @@ public class HoaDonGUI extends JPanel {
                 txtTimKiem.setText(placeholder);
                 txtTimKiem.setForeground(Color.GRAY);
             }
-
             txtTimKiem.getDocument().addDocumentListener(searchListener);
             currentKeyword = "";
         }
@@ -949,7 +922,6 @@ public class HoaDonGUI extends JPanel {
 
     private void exportDataToExcel() {
         JFileChooser fileChooser = new JFileChooser();
-
         fileChooser.setDialogTitle("Chọn nơi lưu file Excel");
         fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Excel Files", "xlsx"));
         fileChooser.setSelectedFile(new java.io.File("DanhSachHoaDon.xlsx"));

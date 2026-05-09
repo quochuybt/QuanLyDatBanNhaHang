@@ -8,6 +8,8 @@ import iuh.fit.core.dto.KhachHangDTO;
 import iuh.fit.core.dto.NhanVienDTO;
 
 import iuh.fit.core.mapper.JsonMapper;
+import iuh.fit.core.net.client.*;
+import iuh.fit.core.service.BanService;
 import iuh.fit.core.net.client.BanRemoteService;
 import iuh.fit.core.net.client.KhachHangRemoteService;
 import iuh.fit.core.net.client.KhuyenMaiRemoteService;
@@ -58,7 +60,7 @@ public class BillPanel extends JPanel {
     private MonAnAdminRemoteService monAnAdminRemoteService;
     private KhachHangRemoteService khachHangRemoteService;
     private KhuyenMaiRemoteService khuyenMaiRemoteService;
-    private DonDatMonService donDatMonService;
+    private DonDatMonRemoteService donDatMonService;
 
     private long currentTotal = 0;
     private JPanel suggestedCashPanel;
@@ -109,8 +111,9 @@ public class BillPanel extends JPanel {
         this.khuyenMaiRemoteService = NetClientContext.isReady()
                 ? new KhuyenMaiRemoteService(NetClientContext.getConnection())
                 : null;
-
-        this.donDatMonService = new DonDatMonService();
+        this.donDatMonService = NetClientContext.isReady()
+                ? new DonDatMonRemoteService(NetClientContext.getConnection())
+                : null;
 
         setBackground(Color.WHITE);
 
@@ -185,7 +188,7 @@ public class BillPanel extends JPanel {
         }
 
         String ghiChuHoaDon = "";
-        if (activeHoaDon.getMaDon() != null) {
+        if (activeHoaDon.getMaDon() != null && donDatMonService != null) {
             DonDatMonDTO ddm = donDatMonService.findById(activeHoaDon.getMaDon());
 
             if (ddm != null && ddm.getGhiChu() != null) {
@@ -237,6 +240,7 @@ public class BillPanel extends JPanel {
             request.setMaDon(activeHoaDon.getMaDon());
 
             dsMonHienTai = chiTietHoaDonService.getChiTietTheoMaDon(request);
+
             activeHoaDon = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
 
             if (dsMonHienTai != null) {
@@ -417,6 +421,7 @@ public class BillPanel extends JPanel {
                         ghiChuHoaDon
                 );
 
+                // Load lại bill lần cuối cho khách xem bằng hàm cũ
                 loadBillTotals(
                         (long) activeHoaDon.getTongTien(),
                         (long) activeHoaDon.getGiamGia(),
@@ -608,7 +613,6 @@ public class BillPanel extends JPanel {
                         iuh.fit.core.dto.MonAnDTO monAn = monAnAdminRemoteService != null
                                 ? monAnAdminRemoteService.findById(maMonGUI)
                                 : null;
-
                         if (monAn != null) {
                             donGia = monAn.getDonGia();
                         }
@@ -814,6 +818,7 @@ public class BillPanel extends JPanel {
                     khuVuc = " -- " + tenBanHienThi.substring(index + 2).trim();
                 }
 
+                // Ráp lại theo đúng thứ tự: Bàn chính + Số bàn ghép + Khu vực
                 tenBanHienThi = tenBanChinh + chuoiBanGhep + khuVuc;
             }
         } catch (Exception e) {
@@ -861,7 +866,6 @@ public class BillPanel extends JPanel {
 
         billText.append("---------------------------------------------------\n");
         billText.append(String.format("%-28s %20s\n", "Tổng cộng:", safeLabelText(lblTongCong)));
-
         if (!safeLabelText(lblKhuyenMai).equals("0 ₫") && !safeLabelText(lblKhuyenMai).equals("0")) {
             billText.append(String.format("%-28s %20s\n", "Giảm giá:", safeLabelText(lblKhuyenMai)));
         }
@@ -954,7 +958,7 @@ public class BillPanel extends JPanel {
                 DonDatMonDTO ddmRequest = new DonDatMonDTO();
                 ddmRequest.setMaDon(hd.getMaDon());
 
-                DonDatMonDTO ddm = donDatMonService.findById(ddmRequest.getMaDon());
+                DonDatMonDTO ddm = donDatMonService != null ? donDatMonService.findById(ddmRequest.getMaDon()) : null;
                 if (ddm != null && ddm.getGhiChu() != null) {
                     ghiChuHoaDon = ddm.getGhiChu();
                 }
