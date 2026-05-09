@@ -80,7 +80,6 @@ public class KhachHangGUI extends BaseEventAwarePanel {
     @Override
     protected void onBusinessEvent(EventType eventType) {
         if (eventType == EventType.KHACHHANG_UPDATED) {
-            System.out.println("[KhachHangGUI] Nhận KHACHHANG_UPDATED → refreshKhachHangTable");
             SwingUtilities.invokeLater(this::refreshKhachHangTable);
         }
     }
@@ -92,7 +91,6 @@ public class KhachHangGUI extends BaseEventAwarePanel {
     }
 
     public void refreshKhachHangTable() {
-        System.out.println("[KhachHangGUI] refreshKhachHangTable bắt đầu");
         setBusy(true);
 
         new SwingWorker<List<KhachHangDTO>, Void>() {
@@ -105,7 +103,6 @@ public class KhachHangGUI extends BaseEventAwarePanel {
             protected void done() {
                 try {
                     List<KhachHangDTO> newData = get();
-                    System.out.println("[KhachHangGUI] refreshKhachHangTable done, size=" + (newData != null ? newData.size() : 0));
                     loadDataToTable(newData);
 
                     // Cập nhật lại form nếu đang chọn khách hàng

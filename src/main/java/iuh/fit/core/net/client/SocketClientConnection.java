@@ -41,6 +41,11 @@ public class SocketClientConnection {
         t.setDaemon(true);
         return t;
     });
+    private final ScheduledExecutorService pingScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "socket-ping-scheduler");
+        t.setDaemon(true);
+        return t;
+    });
 
     public SocketClientConnection(String host, int port, int connectTimeoutMs, int readTimeoutMs) {
         this.host = host;
@@ -63,6 +68,8 @@ public class SocketClientConnection {
             out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
             running.set(true);
             startReaderLoop();
+            // Gửi PING mỗi 10 giây để giữ session sống trên server
+            pingScheduler.scheduleAtFixedRate(this::sendPing, 10, 10, TimeUnit.SECONDS);
         } catch (Exception e) {
             closeResources();
             throw new RuntimeException("Không thể kết nối server " + host + ":" + port, e);
@@ -108,6 +115,7 @@ public class SocketClientConnection {
 
     public synchronized void disconnect() {
         running.set(false);
+        pingScheduler.shutdown();
         eventDispatcher.shutdown();
         closeResources();
     }

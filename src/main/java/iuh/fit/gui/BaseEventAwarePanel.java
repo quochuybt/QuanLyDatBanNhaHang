@@ -6,8 +6,6 @@ import iuh.fit.core.net.protocol.EventType;
 import javax.swing.*;
 import java.awt.*;
 import java.util.Objects;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Base panel tự động đăng ký lắng nghe các business event từ server.
@@ -15,7 +13,6 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class BaseEventAwarePanel extends JPanel {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(BaseEventAwarePanel.class);
     protected final SocketClientConnection connection;
 
     protected BaseEventAwarePanel(SocketClientConnection connection) {
@@ -34,7 +31,6 @@ public abstract class BaseEventAwarePanel extends JPanel {
             if (event == null || event.getName() == null) return;
             try {
                 EventType type = EventType.valueOf(event.getName());
-                LOGGER.debug("[Event] {} received by {}", type, getClass().getSimpleName());
                 onBusinessEvent(type);
             } catch (IllegalArgumentException ignored) {
                 // event không thuộc EventType đã biết — bỏ qua

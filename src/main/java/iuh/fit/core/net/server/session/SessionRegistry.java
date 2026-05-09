@@ -41,9 +41,7 @@ public class SessionRegistry {
                         throw new RuntimeException(e);
                     }
                 });
-
                 kickFuture.get(500, TimeUnit.MILLISECONDS);
-
             } catch (TimeoutException te) {
                 LOGGER.warn("[SocketServer] Timeout khi gửi SESSION_KICKED tới session cũ={} user={}",
                         oldSession.getSessionId(), tenTK);
@@ -55,7 +53,6 @@ public class SessionRegistry {
                 oldSession.close();
             }
         }
-
         newSession.setTenTK(tenTK);
         byUsername.put(tenTK, newSession);
         LOGGER.info("[SocketServer] Người dùng đã đăng nhập: " + tenTK + " (session=" + newSession.getSessionId() + ")");
