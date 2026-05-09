@@ -15,6 +15,7 @@ public class CaLamRepository extends GenericRepository<CaLam, String> {
                 em.createQuery("""
                         SELECT c
                         FROM CaLam c
+                        WHERE c.deletedAt IS NULL
                         ORDER BY c.gioBatDau
                         """, CaLam.class)
                         .getResultList()

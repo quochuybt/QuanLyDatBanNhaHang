@@ -1,6 +1,7 @@
 package iuh.fit.core.repository;
 
 
+import iuh.fit.core.entity.BaseEntity;
 import iuh.fit.core.db.JPAUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
@@ -66,8 +67,12 @@ public abstract class   GenericRepository<T, ID> {
     }
 
     public List<T> findAll() {
+        boolean isSoftDeletable = BaseEntity.class.isAssignableFrom(entityClass);
+        String jpql = isSoftDeletable
+                ? "SELECT e FROM " + entityClass.getSimpleName() + " e WHERE e.deletedAt IS NULL"
+                : "SELECT e FROM " + entityClass.getSimpleName() + " e";
         return doInSession(em ->
-                em.createQuery("SELECT e FROM " + entityClass.getSimpleName() + " e", entityClass)
+                em.createQuery(jpql, entityClass)
                         .getResultList());
     }
 
@@ -88,8 +93,12 @@ public abstract class   GenericRepository<T, ID> {
     }
 
     public long count() {
+        boolean isSoftDeletable = BaseEntity.class.isAssignableFrom(entityClass);
+        String jpql = isSoftDeletable
+                ? "SELECT COUNT(e) FROM " + entityClass.getSimpleName() + " e WHERE e.deletedAt IS NULL"
+                : "SELECT COUNT(e) FROM " + entityClass.getSimpleName() + " e";
         return doInSession(em ->
-                em.createQuery("SELECT COUNT(e) FROM " + entityClass.getSimpleName() + " e", Long.class)
+                em.createQuery(jpql, Long.class)
                         .getSingleResult());
     }
 

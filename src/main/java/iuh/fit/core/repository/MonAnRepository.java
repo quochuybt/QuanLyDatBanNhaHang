@@ -15,6 +15,7 @@ public class MonAnRepository extends GenericRepository<MonAn, String> {
                 em.createQuery("""
                     SELECT m FROM MonAn m
                     LEFT JOIN FETCH m.danhMucMon
+                    WHERE m.deletedAt IS NULL
                 """, MonAn.class)
                         .getResultList()
         );
@@ -26,6 +27,7 @@ public class MonAnRepository extends GenericRepository<MonAn, String> {
                     SELECT m FROM MonAn m
                     LEFT JOIN FETCH m.danhMucMon
                     WHERE m.trangThai = 'Còn'
+                    AND m.deletedAt IS NULL
                 """, MonAn.class)
                         .getResultList()
         );
@@ -37,6 +39,7 @@ public class MonAnRepository extends GenericRepository<MonAn, String> {
                     SELECT m FROM MonAn m
                     LEFT JOIN FETCH m.danhMucMon
                     WHERE m.tenMon = :ten
+                    AND m.deletedAt IS NULL
                 """, MonAn.class)
                         .setParameter("ten", tenMon)
                         .getResultStream()

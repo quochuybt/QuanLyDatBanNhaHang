@@ -25,7 +25,7 @@ public class KhachHangRepository extends GenericRepository<KhachHang, String> {
 
         return doInSession(em ->
                 em.createQuery(
-                                "SELECT k FROM KhachHang k WHERE k.sdt = :sdt",
+                                "SELECT k FROM KhachHang k WHERE k.sdt = :sdt AND k.deletedAt IS NULL",
                                 KhachHang.class
                         )
                         .setParameter("sdt", sdt.trim())
@@ -41,7 +41,7 @@ public class KhachHangRepository extends GenericRepository<KhachHang, String> {
         return doInSession(em ->
                 em.createQuery(
                                 "SELECT k FROM KhachHang k " +
-                                        "WHERE LOWER(k.tenKH) LIKE :kw OR k.sdt LIKE :kw",
+                                        "WHERE (LOWER(k.tenKH) LIKE :kw OR k.sdt LIKE :kw) AND k.deletedAt IS NULL",
                                 KhachHang.class
                         )
                         .setParameter("kw", "%" + kw + "%")

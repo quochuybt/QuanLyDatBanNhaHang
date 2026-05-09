@@ -13,7 +13,7 @@ public class DanhMucMonRepository extends GenericRepository<DanhMucMon, String> 
 
     public List<DanhMucMon> findAllByName() {
         return doInSession(em -> em.createQuery(
-                        "SELECT d FROM DanhMucMon d ORDER BY d.tendm", DanhMucMon.class)
+                        "SELECT d FROM DanhMucMon d WHERE d.deletedAt IS NULL ORDER BY d.tendm", DanhMucMon.class)
                 .getResultList());
     }
 
@@ -22,6 +22,7 @@ public class DanhMucMonRepository extends GenericRepository<DanhMucMon, String> 
                 em.createQuery("""
                         SELECT dm
                         FROM DanhMucMon dm
+                        WHERE dm.deletedAt IS NULL
                         ORDER BY dm.madm
                         """, DanhMucMon.class)
                         .getResultList()

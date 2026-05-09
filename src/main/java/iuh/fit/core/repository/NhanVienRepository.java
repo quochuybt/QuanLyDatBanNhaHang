@@ -11,7 +11,7 @@ public class NhanVienRepository extends GenericRepository<NhanVien, String> {
 
     public NhanVien findByTenTK(String tenTK) {
         return doInSession(em ->
-                em.createQuery("SELECT n FROM NhanVien n WHERE n.taiKhoan.tentk = :tenTK", NhanVien.class)
+                em.createQuery("SELECT n FROM NhanVien n WHERE n.taiKhoan.tentk = :tenTK AND n.deletedAt IS NULL", NhanVien.class)
                         .setParameter("tenTK", tenTK)
                         .getResultStream()
                         .findFirst()
