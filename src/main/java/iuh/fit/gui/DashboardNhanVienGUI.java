@@ -4,6 +4,7 @@ import iuh.fit.core.dto.GiaoCaDTO;
 import iuh.fit.core.net.client.GiaoCaRemoteService;
 import iuh.fit.core.net.client.SocketClientConnection;
 import iuh.fit.core.net.dto.giaoca.GiaoCaDashboardResponse;
+import iuh.fit.core.net.protocol.EventType;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -16,9 +17,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
-public class DashboardNhanVienGUI extends JPanel {
+public class DashboardNhanVienGUI extends BaseEventAwarePanel {
 
     private static final Color PRIMARY_COLOR = new Color(41, 128, 185);
     private static final Color SUCCESS_COLOR = new Color(39, 174, 96);
@@ -62,14 +62,20 @@ public class DashboardNhanVienGUI extends JPanel {
     private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
 
     public DashboardNhanVienGUI(String maNV, String tenNV, SocketClientConnection socketConnection) {
+        super(socketConnection);
         this.maNV = maNV;
         this.tenNV = tenNV;
-        this.giaoCaRemoteService = new GiaoCaRemoteService(
-                Objects.requireNonNull(socketConnection, "SocketClientConnection không được null.")
-        );
+        this.giaoCaRemoteService = new GiaoCaRemoteService(socketConnection);
 
         initComponents();
         loadEmployeeData();
+    }
+
+    @Override
+    protected void onBusinessEvent(EventType eventType) {
+        if (eventType == EventType.GIAOCA_UPDATED) {
+            SwingUtilities.invokeLater(this::loadEmployeeData);
+        }
     }
 
     private void initComponents() {

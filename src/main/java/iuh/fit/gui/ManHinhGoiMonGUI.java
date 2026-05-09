@@ -3,6 +3,7 @@ package iuh.fit.gui;
 import iuh.fit.core.dto.*;
 import iuh.fit.core.entity.TrangThaiBan;
 import iuh.fit.core.net.client.*;
+import iuh.fit.core.net.protocol.EventType;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -14,9 +15,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 
-public class ManHinhGoiMonGUI extends JPanel {
+public class ManHinhGoiMonGUI extends BaseEventAwarePanel {
 
     private final MonAnRemoteService monAnRemoteService;
     private final BanRemoteService banRemoteService;
@@ -62,12 +62,10 @@ public class ManHinhGoiMonGUI extends JPanel {
             String maNVDangNhap,
             SocketClientConnection connection
     ) {
-        super(new BorderLayout());
+        super(new BorderLayout(), connection);
 
         this.parentDanhSachBanGUI = parent;
         this.maNVDangNhap = maNVDangNhap;
-
-        Objects.requireNonNull(connection, "SocketClientConnection không được null.");
 
         this.monAnRemoteService = new MonAnRemoteService(connection);
         this.banRemoteService = new BanRemoteService(connection);
@@ -82,6 +80,13 @@ public class ManHinhGoiMonGUI extends JPanel {
         buildUI();
         loadDataFromDB();
         xoaThongTinGoiMon();
+    }
+
+    @Override
+    protected void onBusinessEvent(EventType eventType) {
+        if (eventType == EventType.MENU_UPDATED) {
+            SwingUtilities.invokeLater(this::loadDataFromDB);
+        }
     }
 
     public DanhSachBanGUI getParentDanhSachBanGUI() {

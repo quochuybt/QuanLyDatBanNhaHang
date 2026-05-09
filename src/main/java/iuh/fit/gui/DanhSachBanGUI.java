@@ -271,8 +271,6 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
     }
 
     public void refreshManHinhBan() {
-        System.out.println("Đã nhận yêu cầu refresh...");
-
         if (manHinhBanGUI != null) {
             manHinhBanGUI.refreshTableList();
         }
@@ -298,7 +296,6 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
 
         dialog.setVisible(true);
 
-        System.out.println("Đang làm mới danh sách bàn sau khi ghép...");
         refreshManHinhBan();
     }
 

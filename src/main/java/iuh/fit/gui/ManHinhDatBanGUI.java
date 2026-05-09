@@ -9,6 +9,7 @@ import iuh.fit.core.net.client.BanRemoteService;
 import iuh.fit.core.net.client.DonDatMonRemoteService;
 import iuh.fit.core.net.client.KhachHangRemoteService;
 import iuh.fit.core.net.client.SocketClientConnection;
+import iuh.fit.core.net.protocol.EventType;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -21,7 +22,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.*;
 
-public class ManHinhDatBanGUI extends JPanel {
+public class ManHinhDatBanGUI extends BaseEventAwarePanel {
 
     private final BanRemoteService banRemoteService;
     private final KhachHangRemoteService khachHangRemoteService;
@@ -58,10 +59,9 @@ public class ManHinhDatBanGUI extends JPanel {
             DashboardGUI main,
             SocketClientConnection connection
     ) {
+        super(connection);
         this.parentDanhSachBanGUI_DatBan = parent;
         this.mainGUI_DatBan = main;
-
-        Objects.requireNonNull(connection, "SocketClientConnection không được null.");
 
         this.banRemoteService = new BanRemoteService(connection);
         this.khachHangRemoteService = new KhachHangRemoteService(connection);
@@ -85,6 +85,13 @@ public class ManHinhDatBanGUI extends JPanel {
         add(splitPane, BorderLayout.CENTER);
 
         refreshData();
+    }
+
+    @Override
+    protected void onBusinessEvent(EventType eventType) {
+        if (eventType == EventType.DONDATMON_UPDATED) {
+            SwingUtilities.invokeLater(this::refreshData);
+        }
     }
 
     private JPanel createLeftPanel_DatBan() {
