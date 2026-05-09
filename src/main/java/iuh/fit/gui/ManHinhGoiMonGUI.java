@@ -38,6 +38,7 @@ public class ManHinhGoiMonGUI extends JPanel {
     private String currentCategoryFilter = "Tất cả";
     private JLabel statusColorBox;
     private JLabel lblTenBanHeader;
+    private JPanel pnlFilterButtons;
 
     private JTable tblChiTietHoaDon;
     private DefaultTableModel modelChiTietHoaDon;
@@ -76,7 +77,7 @@ public class ManHinhGoiMonGUI extends JPanel {
         JPanel pnlRight = createOrderPanel();
 
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, pnlLeft, pnlRight);
-        splitPane.setDividerLocation(520);
+        splitPane.setDividerLocation(650);
         splitPane.setBorder(null);
 
         this.add(splitPane, BorderLayout.CENTER);
@@ -92,7 +93,7 @@ public class ManHinhGoiMonGUI extends JPanel {
         pnlFilter.add(createSearchPanel(), BorderLayout.SOUTH);
         panel.add(pnlFilter, BorderLayout.NORTH);
 
-        pnlMenuItemContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 15));
+        pnlMenuItemContainer = new VerticallyWrappingFlowPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
         pnlMenuItemContainer.setBackground(Color.WHITE);
         pnlMenuItemContainer.setBorder(new EmptyBorder(10, 10, 10, 10));
 
@@ -225,6 +226,7 @@ public class ManHinhGoiMonGUI extends JPanel {
                 pnlMenuItemContainer.add(itemPanel);
             }
         }
+        renderCategoryButtons();
 
         filterMonAn();
         pnlMenuItemContainer.revalidate();
@@ -695,13 +697,16 @@ public class ManHinhGoiMonGUI extends JPanel {
 
         for (MonAnItemPanel itemPanel : dsMonAnPanel) {
             MonAnDTO mon = itemPanel.getMonAn();
-            boolean show = true;
 
-            if (!tuKhoa.isEmpty() && !mon.getTenMon().toLowerCase().contains(tuKhoa)) {
-                show = false;
-            }
+            // Điều kiện 1: Khớp từ khóa tìm kiếm
+            boolean matchesSearch = tuKhoa.isEmpty() || mon.getTenMon().toLowerCase().contains(tuKhoa);
 
-            itemPanel.setVisible(show);
+            // Điều kiện 2: Khớp danh mục
+            boolean matchesCategory = currentCategoryFilter.equals("Tất cả") ||
+                    (mon.getTenDM() != null && mon.getTenDM().equals(currentCategoryFilter));
+
+            // Hiện món ăn nếu thỏa mãn CẢ HAI điều kiện
+            itemPanel.setVisible(matchesSearch && matchesCategory);
         }
 
         pnlMenuItemContainer.revalidate();
@@ -709,10 +714,60 @@ public class ManHinhGoiMonGUI extends JPanel {
     }
 
     private JPanel createCategoryFilterPanel() {
-        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        filterPanel.setOpaque(false);
-        return filterPanel;
+        pnlFilterButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
+        pnlFilterButtons.setOpaque(false);
+        return pnlFilterButtons;
     }
+
+    private void renderCategoryButtons() {
+        if (pnlFilterButtons == null) return;
+
+        pnlFilterButtons.removeAll(); // Xóa hết nút cũ đi
+        ButtonGroup group = new ButtonGroup();
+
+        // 1. Nút Tất cả
+        JToggleButton btnAll = createFilterButton("Tất cả", true);
+        btnAll.addActionListener(e -> {
+            currentCategoryFilter = "Tất cả";
+            filterMonAn();
+        });
+        group.add(btnAll);
+        pnlFilterButtons.add(btnAll);
+
+        // 2. Lấy danh sách tên danh mục từ dữ liệu món ăn đã load
+        List<String> categories = dsMonAnFull.stream()
+                .map(m -> m.getTenDM()) // Đảm bảo MonAnDTO có getTenDM() nhé
+                .filter(name -> name != null && !name.isEmpty())
+                .distinct()
+                .sorted()
+                .toList();
+
+        for (String catName : categories) {
+            JToggleButton btn = createFilterButton(catName, false);
+            btn.addActionListener(e -> {
+                currentCategoryFilter = catName;
+                filterMonAn();
+            });
+            group.add(btn);
+            pnlFilterButtons.add(btn);
+        }
+
+        pnlFilterButtons.revalidate();
+        pnlFilterButtons.repaint();
+    }
+
+    private JToggleButton createFilterButton(String text, boolean selected) {
+        JToggleButton btn = new JToggleButton(text);
+        btn.setSelected(selected);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setBackground(Color.WHITE);
+        btn.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        // Bạn có thể thêm border hoặc màu sắc nhấn (Accent Color) ở đây
+        return btn;
+    }
+
+
 
     private JPanel createSearchPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 0));

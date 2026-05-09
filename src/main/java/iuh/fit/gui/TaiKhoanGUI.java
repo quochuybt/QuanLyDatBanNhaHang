@@ -18,7 +18,6 @@ public class TaiKhoanGUI extends JFrame {
     private JTextField txtTenDangNhap;
     private JPasswordField txtMatKhau;
     private JButton btnDangNhap;
-    private JLabel lblServerStatus;
     private final SocketClientConnection connection;
     private final DiscoveredServer selectedServer;
 
@@ -146,7 +145,6 @@ public class TaiKhoanGUI extends JFrame {
                 }
 
                 btnDangNhap.setEnabled(false);
-                lblServerStatus.setText("Server: đang xác thực tài khoản...");
 
                 new SwingWorker<String[], Void>() {
                     @Override
