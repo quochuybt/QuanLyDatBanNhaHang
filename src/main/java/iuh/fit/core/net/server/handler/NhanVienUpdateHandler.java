@@ -1,18 +1,21 @@
 package iuh.fit.core.net.server.handler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 
 import iuh.fit.core.net.dto.nhanvien.NhanVienUpdateRequest;
+import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.net.server.dispatch.CommandHandler;
 import iuh.fit.core.net.server.session.ClientSession;
+import iuh.fit.core.net.server.session.SessionRegistry;
 import iuh.fit.core.service.NhanVienService;
 
 public class NhanVienUpdateHandler extends BaseCommandHandler implements CommandHandler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(NhanVienUpdateHandler.class);
     private final NhanVienService nhanVienService = new NhanVienService();
+    private final SessionRegistry sessionRegistry;
+
+    public NhanVienUpdateHandler(SessionRegistry sessionRegistry) {
+        this.sessionRegistry = sessionRegistry;
+    }
 
     @Override
     public MessageEnvelope handle(ClientSession session, MessageEnvelope request) {
@@ -22,12 +25,16 @@ public class NhanVienUpdateHandler extends BaseCommandHandler implements Command
             requireNotNull(payload.getNhanVien(), "Thông tin nhân viên không được để trống.");
             requireNotBlank(payload.getOldTenTK(), "Tên tài khoản cũ không được để trống.");
             requireNotBlank(payload.getNewTenTK(), "Tên tài khoản mới không được để trống.");
-
             nhanVienService.updateNhanVienAndAccount(
                     payload.getNhanVien(),
                     payload.getOldTenTK(),
                     payload.getNewTenTK(),
                     payload.getNewMatKhau() == null ? "" : payload.getNewMatKhau()
+            );
+            sessionRegistry.broadcastBusinessEvent(
+                    EventType.NHANVIEN_UPDATED, request.getName(),
+                    "NHANVIEN", payload.getNhanVien().getMaNV(), "UPDATED",
+                    session.getTenTK(), java.util.Map.of("action", "UPDATE")
             );
             return ok(request, true);
         }, "Lỗi server khi cập nhật nhân viên.");

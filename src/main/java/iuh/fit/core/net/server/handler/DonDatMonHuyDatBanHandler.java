@@ -1,36 +1,37 @@
 package iuh.fit.core.net.server.handler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.net.dto.dondatmon.DonDatMonCancelRequest;
+import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.net.server.dispatch.CommandHandler;
 import iuh.fit.core.net.server.session.ClientSession;
+import iuh.fit.core.net.server.session.SessionRegistry;
 import iuh.fit.core.service.DonDatMonService;
 
 public class DonDatMonHuyDatBanHandler extends BaseCommandHandler implements CommandHandler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DonDatMonHuyDatBanHandler.class);
-
     private final DonDatMonService donDatMonService = new DonDatMonService();
+    private final SessionRegistry sessionRegistry;
+
+    public DonDatMonHuyDatBanHandler(SessionRegistry sessionRegistry) {
+        this.sessionRegistry = sessionRegistry;
+    }
 
     @Override
     public MessageEnvelope handle(ClientSession session, MessageEnvelope request) {
         return execute(request, () -> {
             requireNotNull(request.getPayload(), "Payload không được để trống.");
-
             DonDatMonCancelRequest payload = parsePayload(request, DonDatMonCancelRequest.class);
-
             requireNotNull(payload, "Payload không hợp lệ.");
             requireNotBlank(payload.getMaDon(), "Mã đơn không được để trống.");
-
             boolean success = donDatMonService.huyDatBanVaGiaiPhongBanGhep(payload.getMaDon());
-
-            LOGGER.info("[SocketServer] DONDATMON_HUY_DAT_BAN thành công"
-                    + " command=" + request.getName()
-                    + ", messageId=" + request.getMessageId()
-                    + ", maDon=" + payload.getMaDon());
-
+            if (success) {
+                sessionRegistry.broadcastBusinessEvent(
+                        EventType.DONDATMON_UPDATED, request.getName(),
+                        "DONDATMON", payload.getMaDon(), "CANCELLED",
+                        session.getTenTK(), java.util.Map.of("action", "HUY_DAT_BAN")
+                );
+            }
             return ok(request, success);
         }, "Lỗi server khi hủy đặt bàn.");
     }
