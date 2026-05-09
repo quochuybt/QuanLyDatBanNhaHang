@@ -31,6 +31,11 @@ public class DonDatMonHuyDatBanHandler extends BaseCommandHandler implements Com
                         "DONDATMON", payload.getMaDon(), "CANCELLED",
                         session.getTenTK(), java.util.Map.of("action", "HUY_DAT_BAN")
                 );
+                sessionRegistry.broadcastBusinessEvent(
+                        EventType.TABLE_STATUS_CHANGED, request.getName(),
+                        "BAN", payload.getMaDon(), "TRONG",
+                        session.getTenTK(), java.util.Map.of("action", "HUY_DAT_BAN")
+                );
             }
             return ok(request, success);
         }, "Lỗi server khi hủy đặt bàn.");

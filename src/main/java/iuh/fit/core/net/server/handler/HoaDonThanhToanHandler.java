@@ -28,6 +28,11 @@ public class HoaDonThanhToanHandler extends BaseCommandHandler implements Comman
             boolean result = hoaDonService.thanhToanHoaDon(dto);
             if (result) {
                 sessionRegistry.broadcastBusinessEvent(EventType.INVOICE_UPDATED, "Hóa đơn " + dto.getMaHD() + " đã thanh toán");
+                sessionRegistry.broadcastBusinessEvent(
+                        EventType.TABLE_STATUS_CHANGED, request.getName(),
+                        "BAN", dto.getTenBan() != null ? dto.getTenBan() : "UNKNOWN", "TRONG",
+                        session.getTenTK(), java.util.Map.of("action", "THANH_TOAN", "maHD", dto.getMaHD())
+                );
             }
             return ok(request, result);
         }, "Lỗi thanh toán hóa đơn");

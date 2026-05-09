@@ -34,6 +34,11 @@ public class DonDatMonSaveHandler extends BaseCommandHandler implements CommandH
                     "DONDATMON", payload.getMaDon(), "CREATED",
                     session.getTenTK(), java.util.Map.of("action", "SAVE", "maBan", payload.getMaBan())
             );
+            sessionRegistry.broadcastBusinessEvent(
+                    EventType.TABLE_STATUS_CHANGED, request.getName(),
+                    "BAN", payload.getMaBan(), "DA_DAT_TRUOC",
+                    session.getTenTK(), java.util.Map.of("action", "DAT_BAN", "maBan", payload.getMaBan())
+            );
             return ok(request, true);
         }, "Lỗi server khi lưu đơn đặt bàn.");
     }

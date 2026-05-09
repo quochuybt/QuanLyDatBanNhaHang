@@ -38,7 +38,7 @@ public class CommandDispatcher {
                 handlers.put(CommandAction.DASHBOARD_LEAST_SELLING.name(), new DashboardLeastSellingHandler());
                 handlers.put(CommandAction.DASHBOARD_TABLE_STATUS_COUNTS.name(), new DashboardTableStatusHandler());
 
-                // ===== Phase 3 (write) - skeleton =====
+                // ===== Phân công / ca làm =====
                 handlers.put(CommandAction.PHANCONG_ADD.name(), new PhanCongAddHandler(sessionRegistry));
                 handlers.put(CommandAction.PHANCONG_REMOVE.name(), new PhanCongRemoveHandler(sessionRegistry));
                 handlers.put(CommandAction.PHANCONG_LIST_BY_DATE.name(), new PhanCongListByDateHandler());
@@ -70,7 +70,7 @@ public class CommandDispatcher {
                 handlers.put(CommandAction.KHUYENMAI_ADD.name(), new KhuyenMaiAddHandler(sessionRegistry));
                 handlers.put(CommandAction.KHUYENMAI_UPDATE.name(), new KhuyenMaiUpdateHandler(sessionRegistry));
                 handlers.put(CommandAction.KHUYENMAI_DELETE.name(), new KhuyenMaiDeleteHandler(sessionRegistry));
-                handlers.put(CommandAction.KHUYENMAI_USE.name(), new KhuyenMaiUseHandler());
+                handlers.put(CommandAction.KHUYENMAI_USE.name(), new KhuyenMaiUseHandler(sessionRegistry));
 
                 // ===== Danh mục món / món ăn admin =====
                 handlers.put(CommandAction.DANHMUCMON_GET_ALL.name(), new DanhMucMonGetAllHandler());
@@ -102,7 +102,7 @@ public class CommandDispatcher {
                 handlers.put(
                                 CommandAction.DONDATMON_GET_DAT_TRUOC_BY_BAN.name(),
                                 new DonDatMonGetDatTruocByBanHandler());
-            handlers.put(CommandAction.DONDATMON_UPDATE_GHICHU.name(), new DonDatMonUpdateGhiChuHandler());
+                handlers.put(CommandAction.DONDATMON_UPDATE_GHICHU.name(), new DonDatMonUpdateGhiChuHandler());
                 handlers.put(
                                 CommandAction.DONDATMON_GET_CHUA_NHAN_THEO_BAN_BAO_GOM_LINKED.name(),
                                 new DonDatMonGetChuaNhanTheoBanBaoGomLinkedHandler());
@@ -119,7 +119,7 @@ public class CommandDispatcher {
 
                 handlers.put(
                                 CommandAction.CHITIETHOADON_REPLACE_BY_MA_DON.name(),
-                                new ChiTietHoaDonReplaceByMaDonHandler());
+                                new ChiTietHoaDonReplaceByMaDonHandler(sessionRegistry));
 
                 handlers.put(CommandAction.HOADON_THANH_TOAN.name(), new HoaDonThanhToanHandler(sessionRegistry));
                 handlers.put(CommandAction.HOADON_CAP_NHAT_MA_KM.name(), new HoaDonCapNhatMaKMHandler(sessionRegistry));

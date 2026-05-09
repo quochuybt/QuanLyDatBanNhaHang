@@ -64,7 +64,8 @@ public class AssignShiftDialog extends JDialog {
             @Override
             public void onEvent(MessageEnvelope event) {
                 if (event == null || event.getName() == null) return;
-                if (EventType.SHIFT_UPDATED.name().equals(event.getName())) {
+                if (EventType.SHIFT_UPDATED.name().equals(event.getName())
+                        || EventType.NHANVIEN_UPDATED.name().equals(event.getName())) {
                     SwingUtilities.invokeLater(AssignShiftDialog.this::reloadNhanVienTheoCaVaNgay);
                 }
             }

@@ -178,31 +178,39 @@ public class LichLamViecGUI extends BaseEventAwarePanel {
     }
 
     private void reloadData() {
-        try {
-            LocalDate end = weekStart.plusDays(6);
+        LocalDate end = weekStart.plusDays(6);
 
-            lblWeek.setText(String.format(
-                    "Tuần: %s - %s",
-                    weekStart.format(weekRangeFormatter),
-                    end.format(weekRangeFormatter)
-            ));
+        lblWeek.setText(String.format(
+                "Tuần: %s - %s",
+                weekStart.format(weekRangeFormatter),
+                end.format(weekRangeFormatter)
+        ));
 
-            List<iuh.fit.core.dto.PhanCongDTO> data = phanCongRemoteService.findByDateRange(weekStart, end);
+        new SwingWorker<List<iuh.fit.core.dto.PhanCongDTO>, Void>() {
+            @Override
+            protected List<iuh.fit.core.dto.PhanCongDTO> doInBackground() {
+                return phanCongRemoteService.findByDateRange(weekStart, end);
+            }
 
-            weekDisplayPanel.removeAll();
-            weekDisplayPanel.add(createWeekPanel(data), BorderLayout.CENTER);
-            weekDisplayPanel.revalidate();
-            weekDisplayPanel.repaint();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Lỗi khi tải lịch làm việc: " + e.getMessage(),
-                    "Lỗi",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+            @Override
+            protected void done() {
+                try {
+                    List<iuh.fit.core.dto.PhanCongDTO> data = get();
+                    weekDisplayPanel.removeAll();
+                    weekDisplayPanel.add(createWeekPanel(data), BorderLayout.CENTER);
+                    weekDisplayPanel.revalidate();
+                    weekDisplayPanel.repaint();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(
+                            LichLamViecGUI.this,
+                            "Lỗi khi tải lịch làm việc: " + e.getMessage(),
+                            "Lỗi",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                }
+            }
+        }.execute();
     }
 
     private JPanel createWeekPanel(List<iuh.fit.core.dto.PhanCongDTO> data) {

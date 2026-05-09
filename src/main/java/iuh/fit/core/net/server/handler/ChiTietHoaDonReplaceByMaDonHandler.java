@@ -4,9 +4,11 @@ import org.slf4j.LoggerFactory;
 
 import iuh.fit.core.dto.ChiTietHoaDonDTO;
 import iuh.fit.core.net.dto.chitiethoadon.ChiTietHoaDonReplaceRequest;
+import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.net.server.dispatch.CommandHandler;
 import iuh.fit.core.net.server.session.ClientSession;
+import iuh.fit.core.net.server.session.SessionRegistry;
 import iuh.fit.core.service.ChiTietHoaDonService;
 
 import java.util.List;
@@ -16,6 +18,11 @@ public class ChiTietHoaDonReplaceByMaDonHandler extends BaseCommandHandler imple
     private static final Logger LOGGER = LoggerFactory.getLogger(ChiTietHoaDonReplaceByMaDonHandler.class);
 
     private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
+    private final SessionRegistry sessionRegistry;
+
+    public ChiTietHoaDonReplaceByMaDonHandler(SessionRegistry sessionRegistry) {
+        this.sessionRegistry = sessionRegistry;
+    }
 
     @Override
     public MessageEnvelope handle(ClientSession session, MessageEnvelope request) {
@@ -45,6 +52,12 @@ public class ChiTietHoaDonReplaceByMaDonHandler extends BaseCommandHandler imple
                     .build();
 
             chiTietHoaDonService.replaceByMaDon(donDTO, items);
+
+            sessionRegistry.broadcastBusinessEvent(
+                    EventType.INVOICE_UPDATED, request.getName(),
+                    "CHITIETHOADON", payload.getMaDon(), "REPLACED",
+                    session.getTenTK(), java.util.Map.of("maDon", payload.getMaDon(), "totalItems", items.size())
+            );
 
             LOGGER.info("[SocketServer] CHITIETHOADON_REPLACE_BY_MA_DON thành công"
                     + " command=" + request.getName()

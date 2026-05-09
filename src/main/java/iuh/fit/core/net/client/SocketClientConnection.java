@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 public class SocketClientConnection {
     private final String host;
     private final int port;
@@ -37,6 +36,11 @@ public class SocketClientConnection {
     // Dùng ConcurrentHashMap để an toàn khi nhiều thread cùng truy cập.
     private final Map<String, CompletableFuture<MessageEnvelope>> pendingResponses = new ConcurrentHashMap<>();
     private final List<ClientEventListener> listeners = new CopyOnWriteArrayList<>();
+    private final ExecutorService eventDispatcher = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "socket-event-dispatcher");
+        t.setDaemon(true);
+        return t;
+    });
 
     public SocketClientConnection(String host, int port, int connectTimeoutMs, int readTimeoutMs) {
         this.host = host;
@@ -104,6 +108,7 @@ public class SocketClientConnection {
 
     public synchronized void disconnect() {
         running.set(false);
+        eventDispatcher.shutdown();
         closeResources();
     }
 
@@ -153,8 +158,8 @@ public class SocketClientConnection {
         }
 
         if (message.getType() == MessageType.EVENT) {
-            // EVENT: broadcast đến các listener phía client/UI
-            listeners.forEach(l -> l.onEvent(message));
+            // Dispatch event sang thread riêng để không block reader thread
+            eventDispatcher.submit(() -> listeners.forEach(l -> l.onEvent(message)));
         }
     }
 

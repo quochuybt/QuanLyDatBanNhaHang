@@ -131,14 +131,23 @@ public class NhanVienGUI extends BaseEventAwarePanel {
     }
 
     public void loadDataToTable() {
-        List<NhanVien> ds;
-        if (nhanVienRemoteService != null) {
-            List<NhanVienDTO> remote = nhanVienRemoteService.findAll();
-            ds = remote.stream().map(NhanVienDTO::toEntity).toList();
-        } else {
-            ds = new ArrayList<>();
-        }
-        updateTableWithResults(ds);
+        new SwingWorker<List<NhanVien>, Void>() {
+            @Override
+            protected List<NhanVien> doInBackground() {
+                if (nhanVienRemoteService == null) return new ArrayList<>();
+                List<NhanVienDTO> remote = nhanVienRemoteService.findAll();
+                return remote.stream().map(NhanVienDTO::toEntity).toList();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    updateTableWithResults(get());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }.execute();
     }
 
     public void refreshTable() {

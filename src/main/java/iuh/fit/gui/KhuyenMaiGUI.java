@@ -73,9 +73,22 @@ public class KhuyenMaiGUI extends BaseEventAwarePanel {
     }
 
     private void loadDataToTable() {
-        List<KhuyenMaiDTO> dtos = khuyenMaiRemoteService.findAll();
-        List<KhuyenMai> entities = dtos.stream().map(KhuyenMaiDTO::toEntity).collect(Collectors.toList());
-        updateTable(entities);
+        new SwingWorker<List<KhuyenMai>, Void>() {
+            @Override
+            protected List<KhuyenMai> doInBackground() {
+                List<KhuyenMaiDTO> dtos = khuyenMaiRemoteService.findAll();
+                return dtos.stream().map(KhuyenMaiDTO::toEntity).collect(Collectors.toList());
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    updateTable(get());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }.execute();
     }
 
     private void updateTable(List<KhuyenMai> ds) {
