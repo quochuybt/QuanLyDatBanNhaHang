@@ -125,6 +125,7 @@ public class TaiKhoanGUI extends JFrame {
             public void mouseEntered(MouseEvent e) {
                 btnDangNhap.setBackground(COLOR_ACCENT_BLUE.brighter());
             }
+
             @Override
             public void mouseExited(MouseEvent e) {
                 btnDangNhap.setBackground(COLOR_ACCENT_BLUE);
@@ -137,7 +138,8 @@ public class TaiKhoanGUI extends JFrame {
                 String tenDangNhap = txtTenDangNhap.getText().trim();
                 String matKhau = new String(txtMatKhau.getPassword()).trim();
 
-                if (tenDangNhap.isEmpty() || matKhau.isEmpty() || tenDangNhap.equals("Nhập tên đăng nhập") || matKhau.equals("Nhập mật khẩu")) {
+                if (tenDangNhap.isEmpty() || matKhau.isEmpty() || tenDangNhap.equals("Nhập tên đăng nhập")
+                        || matKhau.equals("Nhập mật khẩu")) {
                     JOptionPane.showMessageDialog(TaiKhoanGUI.this, "Vui lòng nhập đầy đủ Tên đăng nhập và Mật khẩu!",
                             "Lỗi Đăng nhập", JOptionPane.ERROR_MESSAGE);
                     return;
@@ -180,20 +182,30 @@ public class TaiKhoanGUI extends JFrame {
                                 mainGUI.setVisible(true);
                             });
                         } catch (Exception ex) {
-                            String msg = ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage();
-                            if (msg != null && msg.toLowerCase().contains("khóa")) {
+                            Throwable cause = ex.getCause();
+                            String errorMsg = cause != null ? cause.getMessage() : ex.getMessage();
+
+                            if (cause instanceof java.net.ConnectException
+                                    || (errorMsg != null && errorMsg.toLowerCase().contains("timeout"))) {
                                 JOptionPane.showMessageDialog(TaiKhoanGUI.this,
-                                        "**Tài khoản đã bị tạm ngưng hoạt động!**\nVui lòng liên hệ Quản lý để được hỗ trợ kích hoạt lại.",
-                                        "Tài khoản bị Khóa", JOptionPane.WARNING_MESSAGE);
-                            } else if (msg != null && msg.contains("Sai tên tài khoản")) {
+                                        "Mất kết nối tới server: " + selectedServer.getHost() + "\n" +
+                                                "Vui lòng kiểm tra lại mạng LAN hoặc trạng thái Server.",
+                                        "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
+                                lblServerStatus.setText("Server: Mất kết nối!");
+                                lblServerStatus.setForeground(Color.RED);
+                            } else if (errorMsg != null
+                                    && (errorMsg.contains("AUTH_INVALID") || errorMsg.contains("Sai tên tài khoản"))) {
                                 JOptionPane.showMessageDialog(TaiKhoanGUI.this,
-                                        "Sai tên tài khoản hoặc mật khẩu!",
-                                        "Lỗi Đăng nhập", JOptionPane.ERROR_MESSAGE);
+                                        "Tên đăng nhập hoặc mật khẩu không chính xác.",
+                                        "Xác thực thất bại", JOptionPane.WARNING_MESSAGE);
+                            } else if (errorMsg != null && errorMsg.toLowerCase().contains("khóa")) {
+                                JOptionPane.showMessageDialog(TaiKhoanGUI.this,
+                                        "Tài khoản này đang bị khóa. Vui lòng liên hệ quản trị viên.",
+                                        "Tài khoản bị khóa", JOptionPane.ERROR_MESSAGE);
                             } else {
                                 JOptionPane.showMessageDialog(TaiKhoanGUI.this,
-                                        "Không thể đăng nhập qua server LAN.\nChi tiết: " + msg,
-                                        "Lỗi Kết nối", JOptionPane.ERROR_MESSAGE);
-                                lblServerStatus.setText("Server: lỗi kết nối/xác thực");
+                                        "Lỗi hệ thống: " + errorMsg,
+                                        "Lỗi không xác định", JOptionPane.ERROR_MESSAGE);
                             }
                         }
                     }
@@ -202,7 +214,8 @@ public class TaiKhoanGUI extends JFrame {
         });
         contentPanel.add(btnDangNhap);
 
-        lblServerStatus = new JLabel("Server: " + selectedServer.getServiceName() + " (" + selectedServer.getHost() + ")");
+        lblServerStatus = new JLabel(
+                "Server: " + selectedServer.getServiceName() + " (" + selectedServer.getHost() + ")");
         lblServerStatus.setForeground(Color.DARK_GRAY);
         lblServerStatus.setFont(new Font("Arial", Font.ITALIC, 12));
         lblServerStatus.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -221,10 +234,12 @@ public class TaiKhoanGUI extends JFrame {
             public void mouseClicked(MouseEvent e) {
                 new ForgotPasswordDialog(TaiKhoanGUI.this).setVisible(true);
             }
+
             @Override
             public void mouseEntered(MouseEvent e) {
                 lblQuenMatKhau.setText("<html><u>Quên mật khẩu?</u></html>");
             }
+
             @Override
             public void mouseExited(MouseEvent e) {
                 lblQuenMatKhau.setText("Quên mật khẩu?");
@@ -234,6 +249,23 @@ public class TaiKhoanGUI extends JFrame {
         linkPanel.add(lblQuenMatKhau);
         linkPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, linkPanel.getPreferredSize().height));
         contentPanel.add(linkPanel);
+
+        contentPanel.add(Box.createVerticalStrut(15));
+        JLabel lblBack = new JLabel("<html><u>Kết nối server khác</u></html>");
+        lblBack.setForeground(new Color(100, 100, 100));
+        lblBack.setFont(new Font("Arial", Font.PLAIN, 12));
+        lblBack.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        lblBack.setAlignmentX(Component.CENTER_ALIGNMENT);
+        lblBack.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (connection != null)
+                    connection.disconnect();
+                dispose();
+                new ServerConnectionGUI().setVisible(true);
+            }
+        });
+        contentPanel.add(lblBack);
 
         backgroundPanel.add(loginFormPanel, new GridBagConstraints());
     }
@@ -270,8 +302,7 @@ public class TaiKhoanGUI extends JFrame {
 
         javax.swing.border.Border standardBorder = BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(COLOR_INPUT_BORDER),
-                new EmptyBorder(5, 10, 5, 10)
-        );
+                new EmptyBorder(5, 10, 5, 10));
 
         int standardHeight = new JTextField().getPreferredSize().height + 12;
 
@@ -348,8 +379,10 @@ public class TaiKhoanGUI extends JFrame {
 
         return rowPanel;
     }
+
     private void setupPlaceholder(JTextField tf, String placeholder) {
-        if (placeholder == null) return;
+        if (placeholder == null)
+            return;
 
         tf.setText(placeholder);
         tf.setForeground(Color.GRAY);
@@ -361,6 +394,7 @@ public class TaiKhoanGUI extends JFrame {
                     tf.setForeground(Color.BLACK);
                 }
             }
+
             @Override
             public void focusLost(FocusEvent e) {
                 if (tf.getText().isEmpty()) {
@@ -372,11 +406,12 @@ public class TaiKhoanGUI extends JFrame {
     }
 
     private void setupPlaceholder(JPasswordField pf, String placeholder) {
-        if (placeholder == null) return;
+        if (placeholder == null)
+            return;
 
         pf.setText(placeholder);
         pf.setForeground(Color.GRAY);
-        pf.setEchoChar((char)0);
+        pf.setEchoChar((char) 0);
 
         pf.addFocusListener(new FocusAdapter() {
             @Override
@@ -387,12 +422,13 @@ public class TaiKhoanGUI extends JFrame {
                     pf.setEchoChar('•');
                 }
             }
+
             @Override
             public void focusLost(FocusEvent e) {
                 if (new String(pf.getPassword()).isEmpty()) {
                     pf.setText(placeholder);
                     pf.setForeground(Color.GRAY);
-                    pf.setEchoChar((char)0);
+                    pf.setEchoChar((char) 0);
                 }
             }
         });
