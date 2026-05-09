@@ -3,9 +3,7 @@ package iuh.fit.core.repository;
 import iuh.fit.core.entity.Ban;
 import iuh.fit.core.entity.DonDatMon;
 import iuh.fit.core.entity.TrangThaiBan;
-import jakarta.persistence.TypedQuery;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 public class DonDatMonRepository extends GenericRepository<DonDatMon, String> {

@@ -10,7 +10,6 @@ import iuh.fit.core.net.client.PhanCongRemoteService;
 import iuh.fit.core.net.client.SocketClientConnection;
 import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.MessageEnvelope;
-import iuh.fit.core.net.server.handler.DashboardDailyRevenueHandler;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

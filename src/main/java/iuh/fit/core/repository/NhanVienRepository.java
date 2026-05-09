@@ -1,7 +1,6 @@
 package iuh.fit.core.repository;
 
 import iuh.fit.core.entity.NhanVien;
-import java.util.List;
 
 public class NhanVienRepository extends GenericRepository<NhanVien, String> {
 

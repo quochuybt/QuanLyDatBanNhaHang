@@ -11,7 +11,6 @@ import iuh.fit.core.net.client.KhachHangRemoteService;
 import iuh.fit.core.net.client.SocketClientConnection;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
@@ -21,7 +20,6 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class ManHinhDatBanGUI extends JPanel {
 

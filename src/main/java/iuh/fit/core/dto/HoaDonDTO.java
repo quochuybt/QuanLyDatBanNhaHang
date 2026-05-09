@@ -3,14 +3,11 @@ package iuh.fit.core.dto;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import iuh.fit.core.entity.DonDatMon;
 import iuh.fit.core.entity.HoaDon;
-import iuh.fit.core.entity.KhachHang;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.Hibernate;
 
 import java.time.LocalDateTime;
 
