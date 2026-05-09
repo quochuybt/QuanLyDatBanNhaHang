@@ -65,6 +65,14 @@ public abstract class BaseCommandHandler {
         return MessageEnvelope.responseFail(request.getMessageId(), ErrorCode.SERVER_ERROR, message);
     }
 
+    protected MessageEnvelope serverError(MessageEnvelope request, String message, Throwable throwable) {
+        LOGGER.error("[SocketServer] Server error: {} (messageId={})",
+                message,
+                request != null ? request.getMessageId() : "N/A",
+                throwable);
+        return MessageEnvelope.responseFail(request.getMessageId(), ErrorCode.SERVER_ERROR, message);
+    }
+
     protected MessageEnvelope authInvalid(MessageEnvelope request, String message) {
         return MessageEnvelope.responseFail(request.getMessageId(), ErrorCode.AUTH_INVALID, message);
     }
@@ -82,7 +90,7 @@ public abstract class BaseCommandHandler {
         } catch (IllegalArgumentException ex) {
             return badRequest(request, ex.getMessage());
         } catch (Exception ex) {
-            return serverError(request, serverErrorMessage);
+            return serverError(request, serverErrorMessage, ex);
         }
     }
 
@@ -102,7 +110,7 @@ public abstract class BaseCommandHandler {
             String msg = ex.getMessage() != null ? ex.getMessage() : "Đăng nhập thất bại";
             return authErrorMapper.apply(msg);
         } catch (Exception ex) {
-            return serverError(request, serverErrorMessage);
+            return serverError(request, serverErrorMessage, ex);
         }
     }
 }
