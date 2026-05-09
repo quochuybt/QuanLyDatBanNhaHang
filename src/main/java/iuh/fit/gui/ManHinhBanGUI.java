@@ -33,14 +33,8 @@ public class ManHinhBanGUI extends JPanel {
     private javax.swing.Timer timerTuDongCapNhat;
 
     private final BanRemoteService banRemoteService;
-
-    /*
-     * Tạm thời giữ local service cho các nghiệp vụ chưa chuyển socket:
-     * khuyến mãi, khách hàng, đơn đặt món.
-     */
     private final HoaDonRemoteService hoaDonRemoteService;
     private final ChiTietHoaDonRemoteService chiTietHoaDonRemoteService;
-
     private final KhuyenMaiRemoteService khuyenMaiRemoteService;
     private final KhachHangRemoteService khachHangRemoteService;
     private final DonDatMonRemoteService donDatMonService;
@@ -139,20 +133,21 @@ public class ManHinhBanGUI extends JPanel {
         }
 
         this.banRemoteService = new BanRemoteService(
-                Objects.requireNonNull(socketConnection, "SocketClientConnection không được null."));
+                Objects.requireNonNull(socketConnection, "SocketClientConnection không được null.")
+        );
         this.hoaDonRemoteService = new HoaDonRemoteService(socketConnection);
         this.chiTietHoaDonRemoteService = new ChiTietHoaDonRemoteService(socketConnection);
         this.khuyenMaiRemoteService = new KhuyenMaiRemoteService(socketConnection);
-
         this.donDatMonService = new DonDatMonRemoteService(socketConnection);
-
         this.khachHangRemoteService = new KhachHangRemoteService(socketConnection);
+
         socketConnection.addEventListener(new ClientEventListener() {
             @Override
             public void onEvent(MessageEnvelope event) {
                 if (event == null || event.getName() == null) {
                     return;
                 }
+
                 if (EventType.TABLE_STATUS_CHANGED.name().equals(event.getName())) {
                     SwingUtilities.invokeLater(ManHinhBanGUI.this::refreshTableList);
                 }
@@ -223,7 +218,8 @@ public class ManHinhBanGUI extends JPanel {
         JSplitPane splitPane = new JSplitPane(
                 JSplitPane.HORIZONTAL_SPLIT,
                 leftPanel,
-                rightPanel);
+                rightPanel
+        );
 
         splitPane.setDividerLocation(520);
         splitPane.setBorder(null);
@@ -290,7 +286,7 @@ public class ManHinhBanGUI extends JPanel {
             }
         });
 
-        cmbPTThanhToan = new JComboBox<>(new String[] { "Tiền mặt", "Chuyển khoản" });
+        cmbPTThanhToan = new JComboBox<>(new String[]{"Tiền mặt", "Chuyển khoản"});
         cmbPTThanhToan.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         cmbPTThanhToan.setBackground(Color.WHITE);
         cmbPTThanhToan.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
@@ -373,7 +369,8 @@ public class ManHinhBanGUI extends JPanel {
         JSplitPane verticalSplitPane = new JSplitPane(
                 JSplitPane.VERTICAL_SPLIT,
                 infoPanel,
-                this.billPanel);
+                this.billPanel
+        );
 
         verticalSplitPane.setDividerLocation(200);
         verticalSplitPane.setBorder(null);
@@ -521,17 +518,7 @@ public class ManHinhBanGUI extends JPanel {
 
         khachHangDangChon = null;
 
-        String maBanThucTe = ban.getMaBan();
-
-        try {
-            DonDatMonDTO checkDon = donDatMonService.getDonDatMonChuaNhanTheoMaBanBaoGomLinked(ban.getMaBan());
-
-            if (checkDon != null && checkDon.getGhiChu() != null && checkDon.getGhiChu().startsWith("LINKED:")) {
-                maBanThucTe = checkDon.getGhiChu().replace("LINKED:", "").trim();
-            }
-        } catch (Exception e) {
-            System.err.println("Lỗi kiểm tra bàn ghép: " + e.getMessage());
-        }
+        String maBanThucTe = layMaBanThucTeTheoBanGhep(ban.getMaBan());
 
         Color statusColor;
         String tinhTrangText;
@@ -647,6 +634,53 @@ public class ManHinhBanGUI extends JPanel {
         }
 
         updateBillPanelFromHoaDon(activeHoaDon);
+    }
+
+    private String layMaBanChinhTuGhiChu(String ghiChu) {
+        if (ghiChu == null || ghiChu.trim().isEmpty()) {
+            return null;
+        }
+
+        int index = ghiChu.indexOf("LINKED:");
+
+        if (index < 0) {
+            return null;
+        }
+
+        String linkedPart = ghiChu.substring(index + "LINKED:".length()).trim();
+
+        if (linkedPart.isEmpty()) {
+            return null;
+        }
+
+        String[] parts = linkedPart.split("\\s+");
+        return parts[0].trim();
+    }
+
+    private String layMaBanThucTeTheoBanGhep(String maBanDangChon) {
+        if (maBanDangChon == null || maBanDangChon.trim().isEmpty()) {
+            return maBanDangChon;
+        }
+
+        try {
+            DonDatMonDTO checkDon = donDatMonService.getDonDatMonChuaNhanTheoMaBanBaoGomLinked(maBanDangChon);
+
+            if (checkDon != null) {
+                String maBanChinh = layMaBanChinhTuGhiChu(checkDon.getGhiChu());
+
+                if (maBanChinh != null && !maBanChinh.trim().isEmpty()) {
+                    return maBanChinh;
+                }
+
+                if (checkDon.getMaBan() != null && !checkDon.getMaBan().trim().isEmpty()) {
+                    return checkDon.getMaBan();
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi kiểm tra bàn ghép: " + e.getMessage());
+        }
+
+        return maBanDangChon;
     }
 
     private void fillCustomerInfo(String maKH) {
@@ -792,7 +826,7 @@ public class ManHinhBanGUI extends JPanel {
         filterPanel.setOpaque(false);
 
         ButtonGroup group = new ButtonGroup();
-        String[] filters = { "Tất cả", "Tầng trệt", "Tầng 1" };
+        String[] filters = {"Tất cả", "Tầng trệt", "Tầng 1"};
 
         ActionListener filterListener = e -> {
             String selectedFilter = e.getActionCommand();
@@ -893,7 +927,8 @@ public class ManHinhBanGUI extends JPanel {
 
     public HoaDonDTO getActiveHoaDon() {
         if (selectedTable != null && selectedTable.getTrangThai() == TrangThaiBan.DANG_PHUC_VU) {
-            return hoaDonRemoteService.getHoaDonChuaThanhToan(selectedTable.getMaBan());
+            String maBanThucTe = layMaBanThucTeTheoBanGhep(selectedTable.getMaBan());
+            return hoaDonRemoteService.getHoaDonChuaThanhToan(maBanThucTe);
         }
 
         return null;
@@ -1179,9 +1214,9 @@ public class ManHinhBanGUI extends JPanel {
                         "Áp dụng thành công mã: " + km.getTenChuongTrinh() + "\n"
                                 + "(Giảm: " + km.getGiaTri()
                                 + (km.getLoaiKhuyenMai() != null
-                                        && km.getLoaiKhuyenMai().toLowerCase().contains("tiền")
-                                                ? " VNĐ"
-                                                : "%")
+                                && km.getLoaiKhuyenMai().toLowerCase().contains("tiền")
+                                ? " VNĐ"
+                                : "%")
                                 + ")",
                         "Thành công",
                         JOptionPane.INFORMATION_MESSAGE);
