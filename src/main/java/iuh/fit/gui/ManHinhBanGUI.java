@@ -15,6 +15,7 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.lang.reflect.Method;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -565,6 +566,8 @@ public class ManHinhBanGUI extends JPanel {
             activeHoaDon = hoaDonService.getHoaDonChuaThanhToan(maBanThucTe);
 
             if (activeHoaDon != null) {
+                activeHoaDon = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
+
                 fillCustomerInfo(activeHoaDon.getMaKH());
 
                 if (activeHoaDon.getNgayLap() != null) {
@@ -1009,6 +1012,8 @@ public class ManHinhBanGUI extends JPanel {
 
             if (activeHD != null) {
                 hoaDonService.capNhatMaKH(activeHD.getMaHD(), null);
+                activeHD = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHD);
+                updateBillPanelFromHoaDon(activeHD);
             }
 
             return;
@@ -1029,6 +1034,8 @@ public class ManHinhBanGUI extends JPanel {
 
                 if (activeHD != null) {
                     hoaDonService.capNhatMaKH(activeHD.getMaHD(), khachHang.getMaKH());
+                    activeHD = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHD);
+                    updateBillPanelFromHoaDon(activeHD);
                 }
             } else {
                 khachHangDangChon = null;
@@ -1043,6 +1050,8 @@ public class ManHinhBanGUI extends JPanel {
 
                 if (activeHD != null) {
                     hoaDonService.capNhatMaKH(activeHD.getMaHD(), null);
+                    activeHD = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHD);
+                    updateBillPanelFromHoaDon(activeHD);
                 }
             }
 
@@ -1057,6 +1066,27 @@ public class ManHinhBanGUI extends JPanel {
                     JOptionPane.ERROR_MESSAGE
             );
         }
+    }
+
+    private boolean isKhuyenMaiHopLe(KhuyenMaiDTO km) {
+        if (km == null) {
+            return false;
+        }
+
+        LocalDate now = LocalDate.now();
+
+        String trangThai = km.getTrangThai() == null ? "" : km.getTrangThai().trim();
+
+        boolean dungTrangThai = "Đang áp dụng".equalsIgnoreCase(trangThai);
+        boolean daBatDau = km.getNgayBatDau() == null || !km.getNgayBatDau().isAfter(now);
+        boolean chuaHetHan = km.getNgayKetThuc() == null || !km.getNgayKetThuc().isBefore(now);
+
+        int gioiHan = km.getSoLuongGioiHan();
+        int daDung = km.getSoLuotDaDung();
+
+        boolean conLuot = gioiHan <= 0 || daDung < gioiHan;
+
+        return dungTrangThai && daBatDau && chuaHetHan && conLuot;
     }
 
     private void xuLyApDungKhuyenMai() {
@@ -1100,6 +1130,25 @@ public class ManHinhBanGUI extends JPanel {
                 return;
             }
 
+            if (!isKhuyenMaiHopLe(km)) {
+                hoaDonService.capNhatMaKM(activeHoaDon.getMaHD(), null);
+                activeHoaDon.setMaKM(null);
+
+                activeHoaDon = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
+                updateBillPanelFromHoaDon(activeHoaDon);
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Mã khuyến mãi đã hết hạn, chưa bắt đầu, hết lượt dùng hoặc ngưng áp dụng.",
+                        "Không thể áp dụng",
+                        JOptionPane.WARNING_MESSAGE
+                );
+
+                txtMaKhuyenMai.setText("");
+                txtMaKhuyenMai.requestFocus();
+                return;
+            }
+
             double tongTien = activeHoaDon.getTongTien();
 
             if (tongTien < km.getDieuKienApDung()) {
@@ -1124,7 +1173,9 @@ public class ManHinhBanGUI extends JPanel {
                         this,
                         "Áp dụng thành công mã: " + km.getTenChuongTrinh() + "\n"
                                 + "(Giảm: " + km.getGiaTri()
-                                + (km.getLoaiKhuyenMai().toLowerCase().contains("tiền") ? " VNĐ" : "%") + ")",
+                                + (km.getLoaiKhuyenMai() != null
+                                && km.getLoaiKhuyenMai().toLowerCase().contains("tiền")
+                                ? " VNĐ" : "%") + ")",
                         "Thành công",
                         JOptionPane.INFORMATION_MESSAGE
                 );
@@ -1268,7 +1319,6 @@ public class ManHinhBanGUI extends JPanel {
                 "getTongthanhtoan"
         );
 
-        // FIX: nếu DB/DTO chưa cập nhật tongThanhToan thì tự tính lại từ tongTien - giamGia
         if (tongThanhToan <= 0 && tongTien > 0) {
             tongThanhToan = Math.max(0, tongTien - giamGia);
         }

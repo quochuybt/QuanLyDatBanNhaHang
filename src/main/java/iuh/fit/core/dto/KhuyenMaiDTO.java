@@ -55,6 +55,7 @@ public class KhuyenMaiDTO {
 
     public static KhuyenMaiDTO fromEntity(KhuyenMai km) {
         if (km == null) return null;
+
         return KhuyenMaiDTO.builder()
                 .maKM(km.getMaKM())
                 .tenChuongTrinh(km.getTenChuongTrinh())
@@ -65,8 +66,8 @@ public class KhuyenMaiDTO {
                 .ngayBatDau(km.getNgayBatDau())
                 .ngayKetThuc(km.getNgayKetThuc())
                 .trangThai(km.getTrangThai())
-                .soLuongGioiHan(km.getSoLuongGioiHan())
-                .soLuotDaDung(km.getSoLuotDaDung())
+                .soLuongGioiHan(km.getSoLuongGioiHan() == null ? 0 : km.getSoLuongGioiHan())
+                .soLuotDaDung(km.getSoLuotDaDung() == null ? 0 : km.getSoLuotDaDung())
                 .build();
     }
 
