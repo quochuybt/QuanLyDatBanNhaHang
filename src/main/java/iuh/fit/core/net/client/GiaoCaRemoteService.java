@@ -4,10 +4,19 @@ import iuh.fit.core.dto.GiaoCaDTO;
 import iuh.fit.core.net.dto.giaoca.GiaoCaDashboardRequest;
 import iuh.fit.core.net.dto.giaoca.GiaoCaDashboardResponse;
 import iuh.fit.core.net.dto.giaoca.GiaoCaEndRequest;
+import iuh.fit.core.net.dto.giaoca.GiaoCaHistoryRequest;
 import iuh.fit.core.net.dto.giaoca.GiaoCaStartRequest;
+import iuh.fit.core.net.dto.giaoca.GiaoCaTopStaffRequest;
 import iuh.fit.core.net.protocol.CommandAction;
 import iuh.fit.core.net.protocol.JsonCodec;
 import iuh.fit.core.net.protocol.MessageEnvelope;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+
+import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 public class GiaoCaRemoteService extends BaseRemoteService {
 
@@ -65,5 +74,52 @@ public class GiaoCaRemoteService extends BaseRemoteService {
 
         Boolean result = JsonCodec.fromJsonNode(response.getPayload(), Boolean.class);
         return Boolean.TRUE.equals(result);
+    }
+
+    public List<GiaoCaDTO> getLichSuGiaoCa(LocalDate fromDate, LocalDate toDate) {
+        GiaoCaHistoryRequest request = GiaoCaHistoryRequest.builder()
+                .fromDate(fromDate)
+                .toDate(toDate)
+                .build();
+
+        MessageEnvelope response = connection.sendCommand(
+                CommandAction.GIAOCA_GET_LICH_SU.name(),
+                request,
+                DEFAULT_TIMEOUT_MS
+        );
+
+        ensureSuccess(response, "Không thể tải lịch sử giao ca.");
+
+        return JsonCodec.convertValue(response.getPayload(), new TypeReference<List<GiaoCaDTO>>() {});
+    }
+
+    public List<String> getNhanVienDangLamViecChiTiet() {
+        MessageEnvelope response = connection.sendCommand(
+                CommandAction.GIAOCA_GET_ACTIVE_STAFF.name(),
+                Collections.emptyMap(),
+                DEFAULT_TIMEOUT_MS
+        );
+
+        ensureSuccess(response, "Không thể tải nhân viên đang làm việc.");
+
+        return JsonCodec.convertValue(response.getPayload(), new TypeReference<List<String>>() {});
+    }
+
+    public Map<String, Double> getTopStaffByWorkHours(LocalDate startDate, LocalDate endDate, int limit) {
+        GiaoCaTopStaffRequest request = GiaoCaTopStaffRequest.builder()
+                .startDate(startDate)
+                .endDate(endDate)
+                .limit(limit)
+                .build();
+
+        MessageEnvelope response = connection.sendCommand(
+                CommandAction.GIAOCA_GET_TOP_STAFF_HOURS.name(),
+                request,
+                DEFAULT_TIMEOUT_MS
+        );
+
+        ensureSuccess(response, "Không thể tải top nhân viên theo giờ làm.");
+
+        return JsonCodec.convertValue(response.getPayload(), new TypeReference<Map<String, Double>>() {});
     }
 }

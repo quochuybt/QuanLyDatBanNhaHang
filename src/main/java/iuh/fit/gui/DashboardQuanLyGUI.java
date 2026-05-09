@@ -4,12 +4,14 @@ import com.toedter.calendar.JDateChooser;
 
 import iuh.fit.core.net.client.ClientEventListener;
 import iuh.fit.core.net.client.DashboardRemoteService;
+import iuh.fit.core.net.client.GiaoCaRemoteService;
 import iuh.fit.core.net.client.HoaDonRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
 import iuh.fit.core.net.dto.hoadon.HoaDonTotalRequestDTO;
 import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.dto.GiaoCaDTO;
+import iuh.fit.core.service.HoaDonService;
 import iuh.fit.core.service.GiaoCaService;
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.markers.SeriesMarkers;
@@ -67,7 +69,7 @@ public class DashboardQuanLyGUI extends JPanel {
     private JPanel pnlStaffHoursChart;
 
     
-    private final GiaoCaService giaoCaService = new GiaoCaService();
+    private final GiaoCaRemoteService giaoCaRemoteService;
 
     private final DashboardRemoteService dashboardRemoteService;
     private final HoaDonRemoteService hoaDonRemoteService;
@@ -80,6 +82,7 @@ public class DashboardQuanLyGUI extends JPanel {
         if (NetClientContext.isReady()) {
             dashboardRemoteService = new DashboardRemoteService(NetClientContext.getConnection());
             hoaDonRemoteService = new HoaDonRemoteService(NetClientContext.getConnection());
+            giaoCaRemoteService = new GiaoCaRemoteService(NetClientContext.getConnection());
 
             NetClientContext.getConnection().addEventListener(new ClientEventListener() {
                 @Override
@@ -99,6 +102,7 @@ public class DashboardQuanLyGUI extends JPanel {
         } else {
             dashboardRemoteService = null;
             hoaDonRemoteService = null;
+            giaoCaRemoteService = null;
         }
 
         initComponents();
@@ -201,7 +205,10 @@ public class DashboardQuanLyGUI extends JPanel {
         new SwingWorker<List<GiaoCaDTO>, Void>() {
             @Override
             protected List<GiaoCaDTO> doInBackground() {
-                return giaoCaService.getLichSuGiaoCa(from, to);
+                if (giaoCaRemoteService != null) {
+                    return giaoCaRemoteService.getLichSuGiaoCa(from, to);
+                }
+                return List.of();
             }
 
             @Override
@@ -561,12 +568,22 @@ public class DashboardQuanLyGUI extends JPanel {
                             "Đã đặt trước", 0
                     );
                 }
-                activeStaffList = giaoCaService.getNhanVienDangLamViecChiTiet();
+
+                if (giaoCaRemoteService != null) {
+                    activeStaffList = giaoCaRemoteService.getNhanVienDangLamViecChiTiet();
+                } else {
+                    activeStaffList = List.of();
+                }
 
                 // --- Phần Biểu đồ Nhân viên (Lấy trong tuần hiện tại) ---
                 LocalDate startOfWeek = LocalDate.now()
                         .with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
-                topStaffHours = giaoCaService.getTopStaffByWorkHours(startOfWeek, LocalDate.now(), 5);
+
+                if (giaoCaRemoteService != null) {
+                    topStaffHours = giaoCaRemoteService.getTopStaffByWorkHours(startOfWeek, LocalDate.now(), 5);
+                } else {
+                    topStaffHours = Map.of();
+                }
 
                 // --- Phần Top Món ăn (Lấy theo khoảng thời gian đã chọn) ---
                 if (dashboardRemoteService != null) {

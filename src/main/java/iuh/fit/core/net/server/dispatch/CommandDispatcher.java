@@ -80,6 +80,9 @@ public class CommandDispatcher {
                 handlers.put(CommandAction.GIAOCA_DASHBOARD_LOAD.name(), new GiaoCaDashboardLoadHandler());
                 handlers.put(CommandAction.GIAOCA_START.name(), new GiaoCaStartHandler());
                 handlers.put(CommandAction.GIAOCA_END.name(), new GiaoCaEndHandler());
+                handlers.put(CommandAction.GIAOCA_GET_LICH_SU.name(), new GiaoCaGetLichSuHandler());
+                handlers.put(CommandAction.GIAOCA_GET_ACTIVE_STAFF.name(), new GiaoCaGetActiveStaffHandler());
+                handlers.put(CommandAction.GIAOCA_GET_TOP_STAFF_HOURS.name(), new GiaoCaGetTopStaffHoursHandler());
 
                 // ===== Đơn đặt món =====
                 handlers.put(CommandAction.DONDATMON_GET_ALL_CHUA_NHAN.name(), new DonDatMonGetAllChuaNhanHandler());
