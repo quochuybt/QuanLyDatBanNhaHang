@@ -25,8 +25,7 @@ public class KhachHangRemoteService extends BaseRemoteService {
         MessageEnvelope response = connection.sendCommand(
                 CommandAction.KHACHHANG_ADD.name(),
                 dto,
-                DEFAULT_TIMEOUT_MS
-        );
+                DEFAULT_TIMEOUT_MS);
 
         ensureSuccess(response, "Không thể thêm khách hàng.");
 
@@ -49,8 +48,7 @@ public class KhachHangRemoteService extends BaseRemoteService {
         MessageEnvelope response = connection.sendCommand(
                 CommandAction.KHACHHANG_UPDATE.name(),
                 dto,
-                DEFAULT_TIMEOUT_MS
-        );
+                DEFAULT_TIMEOUT_MS);
 
         ensureSuccess(response, "Không thể cập nhật khách hàng.");
 
@@ -71,8 +69,7 @@ public class KhachHangRemoteService extends BaseRemoteService {
         MessageEnvelope response = connection.sendCommand(
                 CommandAction.KHACHHANG_SEARCH.name(),
                 request,
-                DEFAULT_TIMEOUT_MS
-        );
+                DEFAULT_TIMEOUT_MS);
 
         ensureSuccess(response, "Không thể tìm kiếm khách hàng.");
 

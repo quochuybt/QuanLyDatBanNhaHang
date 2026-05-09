@@ -94,4 +94,19 @@ public class SessionRegistry {
 
         broadcastEvent(eventType, payload);
     }
+
+    /**
+     * Rút gọn cho các thông báo nhanh.
+     */
+    public void broadcastBusinessEvent(EventType eventType, String message) {
+        broadcastBusinessEvent(
+                eventType,
+                "MANUAL",
+                "NOTIFICATION",
+                "NONE",
+                "UPDATE",
+                "system",
+                Map.of("message", message)
+        );
+    }
 }

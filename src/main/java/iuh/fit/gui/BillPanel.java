@@ -15,10 +15,11 @@ import iuh.fit.core.net.client.ChiTietHoaDonRemoteService;
 import iuh.fit.core.net.client.KhachHangRemoteService;
 import iuh.fit.core.net.client.KhuyenMaiRemoteService;
 import iuh.fit.core.net.client.MonAnAdminRemoteService;
+import iuh.fit.core.net.client.HoaDonRemoteService;
+import iuh.fit.core.net.client.ChiTietHoaDonRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
 import iuh.fit.core.net.client.NhanVienRemoteService;
-import iuh.fit.core.service.DonDatMonService;
-import iuh.fit.core.service.HoaDonService;
+
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -54,7 +55,8 @@ public class BillPanel extends JPanel {
     private ManHinhBanGUI parentBanGUI;
 
     private ChiTietHoaDonRemoteService chiTietHoaDonRemoteService;
-    private HoaDonService hoaDonService;
+    private HoaDonRemoteService hoaDonRemoteService;
+
     private BanRemoteService banRemoteService;
     private NhanVienRemoteService nhanVienRemoteService;
     private MonAnAdminRemoteService monAnAdminRemoteService;
@@ -89,15 +91,14 @@ public class BillPanel extends JPanel {
     }
 
     private void initCommon() {
-        this.chiTietHoaDonRemoteService = NetClientContext.isReady()
+       this.chiTietHoaDonRemoteService = NetClientContext.isReady()
                 ? new ChiTietHoaDonRemoteService(NetClientContext.getConnection())
                 : null;
-        this.hoaDonService = new HoaDonService();
+        this.hoaDonRemoteService = new HoaDonRemoteService(NetClientContext.getConnection());
 
         this.banRemoteService = NetClientContext.isReady()
                 ? new BanRemoteService(NetClientContext.getConnection())
                 : null;
-
         this.khachHangRemoteService = NetClientContext.isReady()
                 ? new KhachHangRemoteService(NetClientContext.getConnection())
                 : null;
@@ -216,13 +217,15 @@ public class BillPanel extends JPanel {
                 return;
             }
 
-            ChiTietHoaDonDTO request = new ChiTietHoaDonDTO();
-            request.setMaDon(activeHoaDon.getMaDon());
+            ChiTietHoaDonDTO filterDTO = new ChiTietHoaDonDTO();
+            filterDTO.setMaDon(activeHoaDon.getMaDon());
+        
 
+            activeHoaDon = hoaDonRemoteService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
             dsMonHienTai = chiTietHoaDonRemoteService != null
                     ? chiTietHoaDonRemoteService.getChiTietTheoMaDon(activeHoaDon.getMaDon())
                     : new ArrayList<>();
-            activeHoaDon = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
+            
 
             if (dsMonHienTai != null) {
                 for (ChiTietHoaDonDTO ct : dsMonHienTai) {
@@ -240,13 +243,14 @@ public class BillPanel extends JPanel {
             );
 
         } else if (parentBanGUI != null) {
-            ChiTietHoaDonDTO request = new ChiTietHoaDonDTO();
-            request.setMaDon(activeHoaDon.getMaDon());
+            ChiTietHoaDonDTO filterDTO = new ChiTietHoaDonDTO();
+            filterDTO.setMaDon(activeHoaDon.getMaDon());
 
+
+            activeHoaDon = hoaDonRemoteService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
             dsMonHienTai = chiTietHoaDonRemoteService != null
                     ? chiTietHoaDonRemoteService.getChiTietTheoMaDon(activeHoaDon.getMaDon())
                     : new ArrayList<>();
-            activeHoaDon = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
 
             if (dsMonHienTai != null) {
                 for (ChiTietHoaDonDTO ct : dsMonHienTai) {
@@ -368,7 +372,8 @@ public class BillPanel extends JPanel {
                 }
             }
 
-            boolean thanhToanOK = hoaDonService.thanhToanHoaDon(thanhToanDTO);
+            boolean thanhToanOK = hoaDonRemoteService.thanhToanHoaDon(thanhToanDTO);
+
 
             if (thanhToanOK) {
                 String maKH = activeHoaDon.getMaKH();
@@ -525,13 +530,14 @@ public class BillPanel extends JPanel {
             HoaDonDTO hd = JsonMapper.convert(parentBanGUI.getActiveHoaDon(), HoaDonDTO.class);
 
             if (hd != null) {
-                ChiTietHoaDonDTO request = new ChiTietHoaDonDTO();
-                request.setMaDon(hd.getMaDon());
+                ChiTietHoaDonDTO filterDTO = new ChiTietHoaDonDTO();
+                filterDTO.setMaDon(hd.getMaDon());
 
                 list = chiTietHoaDonRemoteService != null
                         ? chiTietHoaDonRemoteService.getChiTietTheoMaDon(hd.getMaDon())
                         : new ArrayList<>();
             }
+
         }
 
         return list;
@@ -673,7 +679,8 @@ public class BillPanel extends JPanel {
                 updateTongTienDTO.setMaHD(activeHoaDon.getMaHD());
                 updateTongTienDTO.setTongTien(tongTienGoc);
 
-                if (!hoaDonService.capNhatTongTien(updateTongTienDTO)) {
+                if (!hoaDonRemoteService.capNhatTongTien(updateTongTienDTO)) {
+
                     coLoi = true;
                     System.err.println("Lỗi khi cập nhật tổng tiền hóa đơn!");
                 }

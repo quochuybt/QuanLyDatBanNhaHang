@@ -43,9 +43,9 @@ import java.util.List;
 public class HoaDonGUI extends JPanel {
 
     // --- Services ---
-    private final HoaDonService hoaDonService = new HoaDonService();
 
-    // --- Remote services ---
+
+    private DonDatMonRemoteService donDatMonService;
     private final HoaDonRemoteService hoaDonRemoteService;
     private final NhanVienRemoteService nhanVienRemoteService;
     private final BanRemoteService banRemoteService;
@@ -460,57 +460,27 @@ public class HoaDonGUI extends JPanel {
 
             @Override
             protected Void doInBackground() {
-                long totalCount;
-
-                if (hoaDonRemoteService != null) {
-                    totalCount = hoaDonRemoteService.getTotalHoaDonCount(
-                            HoaDonTotalRequestDTO.builder()
-                                    .trangThai(trangThai)
-                                    .keyword(currentKeyword)
-                                    .tuNgay(dates[0])
-                                    .denNgay(dates[1])
-                                    .build()
-                    );
-                } else {
-                    totalCount = hoaDonService.getTotalHoaDonCount(
-                            trangThai,
-                            currentKeyword,
-                            dates[0],
-                            dates[1]
-                    );
-                }
+                // 1. Lấy tổng số dòng để tính số trang
+                long totalCount = hoaDonRemoteService.getTotalHoaDonCount(HoaDonTotalRequestDTO.builder()
+                        .trangThai(trangThai)
+                        .keyword(currentKeyword)
+                        .tuNgay(dates[0])
+                        .denNgay(dates[1])
+                        .build());
 
                 totalPages = (int) Math.ceil((double) totalCount / ITEMS_PER_PAGE);
+                if (totalPages < 1) totalPages = 1;
+                if (currentPage > totalPages) currentPage = totalPages;
 
-                if (totalPages < 1) {
-                    totalPages = 1;
-                }
-
-                if (currentPage > totalPages) {
-                    currentPage = totalPages;
-                }
-
-                if (hoaDonRemoteService != null) {
-                    resultList = hoaDonRemoteService.getHoaDonByPage(
-                            HoaDonPageRequestDTO.builder()
-                                    .page(currentPage)
-                                    .itemsPerPage(ITEMS_PER_PAGE)
-                                    .trangThai(trangThai)
-                                    .keyword(currentKeyword)
-                                    .tuNgay(dates[0])
-                                    .denNgay(dates[1])
-                                    .build()
-                    );
-                } else {
-                    resultList = hoaDonService.getHoaDonByPage(
-                            currentPage,
-                            ITEMS_PER_PAGE,
-                            trangThai,
-                            currentKeyword,
-                            dates[0],
-                            dates[1]
-                    );
-                }
+                // 2. Lấy dữ liệu trang hiện tại
+                resultList = hoaDonRemoteService.getHoaDonByPage(HoaDonPageRequestDTO.builder()
+                        .page(currentPage)
+                        .itemsPerPage(ITEMS_PER_PAGE)
+                        .trangThai(trangThai)
+                        .keyword(currentKeyword)
+                        .tuNgay(dates[0])
+                        .denNgay(dates[1])
+                        .build());
 
                 tableRows = enrichTableRows(resultList);
 
@@ -543,14 +513,13 @@ public class HoaDonGUI extends JPanel {
 
     /**
      * Enrich dữ liệu hiển thị cho bảng (gọi DB lấy tên NV, ghi chú).
-     * Phải gọi từ background thread (SwingWorker.doInBackground) để không block EDT.
+     * Phải gọi từ background thread (SwingWorker.doInBackground) để không block
+     * EDT.
      */
     private List<Object[]> enrichTableRows(List<HoaDonDTO> list) {
         List<Object[]> rows = new ArrayList<>();
-
-        if (list == null) {
+        if (list == null)
             return rows;
-        }
 
         for (HoaDonDTO hd : list) {
             String tenNV = "N/A";
@@ -598,11 +567,8 @@ public class HoaDonGUI extends JPanel {
      */
     private void loadEnrichedDataToTable(List<Object[]> rows) {
         tableModel.setRowCount(0);
-
-        if (rows == null) {
+        if (rows == null)
             return;
-        }
-
         for (Object[] row : rows) {
             tableModel.addRow(row);
         }
@@ -1010,23 +976,29 @@ public class HoaDonGUI extends JPanel {
                 }
             }
 
-            @Override
-            protected void done() {
-                try {
-                    if (get()) {
-                        JOptionPane.showMessageDialog(
-                                HoaDonGUI.this,
-                                "Xuất file Excel thành công!",
-                                "Thông báo",
-                                JOptionPane.INFORMATION_MESSAGE
-                        );
-                    } else {
+                @Override
+                protected void done() {
+                    try {
+                        if (get()) {
+                            JOptionPane.showMessageDialog(
+                                    HoaDonGUI.this,
+                                    "Xuất file Excel thành công!",
+                                    "Thông báo",
+                                    JOptionPane.INFORMATION_MESSAGE);
+                        } else {
+                            JOptionPane.showMessageDialog(
+                                    HoaDonGUI.this,
+                                    "Xuất file thất bại hoặc không có dữ liệu.",
+                                    "Lỗi",
+                                    JOptionPane.ERROR_MESSAGE);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                         JOptionPane.showMessageDialog(
                                 HoaDonGUI.this,
                                 "Xuất file thất bại hoặc không có dữ liệu.",
                                 "Lỗi",
-                                JOptionPane.ERROR_MESSAGE
-                        );
+                                JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();

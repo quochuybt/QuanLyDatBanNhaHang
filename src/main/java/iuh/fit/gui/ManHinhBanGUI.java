@@ -38,10 +38,11 @@ public class ManHinhBanGUI extends JPanel {
 
     /*
      * Tạm thời giữ local service cho các nghiệp vụ chưa chuyển socket:
-     * hóa đơn, chi tiết hóa đơn, khuyến mãi, khách hàng, đơn đặt món.
+     * khuyến mãi, khách hàng, đơn đặt món.
      */
-    private final HoaDonService hoaDonService = new HoaDonService();
+    private final HoaDonRemoteService hoaDonRemoteService;
     private final ChiTietHoaDonRemoteService chiTietHoaDonRemoteService;
+
     private final KhuyenMaiRemoteService khuyenMaiRemoteService;
     private final KhachHangRemoteService khachHangRemoteService;
     private final DonDatMonRemoteService donDatMonService;
@@ -140,8 +141,8 @@ public class ManHinhBanGUI extends JPanel {
         }
 
         this.banRemoteService = new BanRemoteService(
-                Objects.requireNonNull(socketConnection, "SocketClientConnection không được null.")
-        );
+                Objects.requireNonNull(socketConnection, "SocketClientConnection không được null."));
+        this.hoaDonRemoteService = new HoaDonRemoteService(socketConnection);
         this.chiTietHoaDonRemoteService = new ChiTietHoaDonRemoteService(socketConnection);
         this.khuyenMaiRemoteService = new KhuyenMaiRemoteService(socketConnection);
 
@@ -191,8 +192,7 @@ public class ManHinhBanGUI extends JPanel {
         tf.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         tf.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(220, 220, 220)),
-                new EmptyBorder(0, 5, 0, 5)
-        ));
+                new EmptyBorder(0, 5, 0, 5)));
 
         if (isEditable) {
             tf.setEditable(true);
@@ -225,8 +225,7 @@ public class ManHinhBanGUI extends JPanel {
         JSplitPane splitPane = new JSplitPane(
                 JSplitPane.HORIZONTAL_SPLIT,
                 leftPanel,
-                rightPanel
-        );
+                rightPanel);
 
         splitPane.setDividerLocation(520);
         splitPane.setBorder(null);
@@ -293,7 +292,7 @@ public class ManHinhBanGUI extends JPanel {
             }
         });
 
-        cmbPTThanhToan = new JComboBox<>(new String[]{"Tiền mặt", "Chuyển khoản"});
+        cmbPTThanhToan = new JComboBox<>(new String[] { "Tiền mặt", "Chuyển khoản" });
         cmbPTThanhToan.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         cmbPTThanhToan.setBackground(Color.WHITE);
         cmbPTThanhToan.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
@@ -376,8 +375,7 @@ public class ManHinhBanGUI extends JPanel {
         JSplitPane verticalSplitPane = new JSplitPane(
                 JSplitPane.VERTICAL_SPLIT,
                 infoPanel,
-                this.billPanel
-        );
+                this.billPanel);
 
         verticalSplitPane.setDividerLocation(200);
         verticalSplitPane.setBorder(null);
@@ -581,10 +579,10 @@ public class ManHinhBanGUI extends JPanel {
         HoaDonDTO activeHoaDon = null;
 
         if (trangThai == TrangThaiBan.DANG_PHUC_VU) {
-            activeHoaDon = hoaDonService.getHoaDonChuaThanhToan(maBanThucTe);
+            activeHoaDon = hoaDonRemoteService.getHoaDonChuaThanhToan(maBanThucTe);
 
             if (activeHoaDon != null) {
-                activeHoaDon = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
+                activeHoaDon = hoaDonRemoteService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
 
                 fillCustomerInfo(activeHoaDon.getMaKH());
 
@@ -681,8 +679,7 @@ public class ManHinhBanGUI extends JPanel {
         statsPanel.setOpaque(false);
         statsPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(220, 220, 220), 1),
-                new EmptyBorder(10, 15, 10, 15)
-        ));
+                new EmptyBorder(10, 15, 10, 15)));
 
         int countTrong = 0;
         int countDat = 0;
@@ -797,7 +794,7 @@ public class ManHinhBanGUI extends JPanel {
         filterPanel.setOpaque(false);
 
         ButtonGroup group = new ButtonGroup();
-        String[] filters = {"Tất cả", "Tầng trệt", "Tầng 1"};
+        String[] filters = { "Tất cả", "Tầng trệt", "Tầng 1" };
 
         ActionListener filterListener = e -> {
             String selectedFilter = e.getActionCommand();
@@ -837,8 +834,7 @@ public class ManHinhBanGUI extends JPanel {
                 button.setForeground(Color.BLACK);
                 button.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(Color.LIGHT_GRAY),
-                        new EmptyBorder(4, 14, 4, 14)
-                ));
+                        new EmptyBorder(4, 14, 4, 14)));
             }
         });
 
@@ -899,7 +895,7 @@ public class ManHinhBanGUI extends JPanel {
 
     public HoaDonDTO getActiveHoaDon() {
         if (selectedTable != null && selectedTable.getTrangThai() == TrangThaiBan.DANG_PHUC_VU) {
-            return hoaDonService.getHoaDonChuaThanhToan(selectedTable.getMaBan());
+            return hoaDonRemoteService.getHoaDonChuaThanhToan(selectedTable.getMaBan());
         }
 
         return null;
@@ -961,8 +957,7 @@ public class ManHinhBanGUI extends JPanel {
                             ManHinhBanGUI.this,
                             "Lỗi khi làm mới danh sách bàn qua socket.\nChi tiết: " + getRootMessage(e),
                             "Lỗi dữ liệu",
-                            JOptionPane.ERROR_MESSAGE
-                    );
+                            JOptionPane.ERROR_MESSAGE);
                 } finally {
                     setCursor(Cursor.getDefaultCursor());
                 }
@@ -1007,8 +1002,7 @@ public class ManHinhBanGUI extends JPanel {
                         this,
                         "Có lỗi xảy ra khi cập nhật ghi chú: " + e.getMessage(),
                         "Lỗi Dữ Liệu",
-                        JOptionPane.ERROR_MESSAGE
-                );
+                        JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -1029,8 +1023,8 @@ public class ManHinhBanGUI extends JPanel {
             HoaDonDTO activeHD = getActiveHoaDon();
 
             if (activeHD != null) {
-                hoaDonService.capNhatMaKH(activeHD.getMaHD(), null);
-                activeHD = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHD);
+                hoaDonRemoteService.capNhatMaKH(activeHD.getMaHD(), null);
+                activeHD = hoaDonRemoteService.tinhLaiGiamGiaVaTongTien(activeHD);
                 updateBillPanelFromHoaDon(activeHD);
             }
 
@@ -1051,8 +1045,8 @@ public class ManHinhBanGUI extends JPanel {
                 HoaDonDTO activeHD = getActiveHoaDon();
 
                 if (activeHD != null) {
-                    hoaDonService.capNhatMaKH(activeHD.getMaHD(), khachHang.getMaKH());
-                    activeHD = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHD);
+                    hoaDonRemoteService.capNhatMaKH(activeHD.getMaHD(), khachHang.getMaKH());
+                    activeHD = hoaDonRemoteService.tinhLaiGiamGiaVaTongTien(activeHD);
                     updateBillPanelFromHoaDon(activeHD);
                 }
             } else {
@@ -1067,8 +1061,9 @@ public class ManHinhBanGUI extends JPanel {
                 HoaDonDTO activeHD = getActiveHoaDon();
 
                 if (activeHD != null) {
-                    hoaDonService.capNhatMaKH(activeHD.getMaHD(), null);
-                    activeHD = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHD);
+                    hoaDonRemoteService.capNhatMaKH(activeHD.getMaHD(), null);
+                    activeHD = hoaDonRemoteService.tinhLaiGiamGiaVaTongTien(activeHD);
+
                     updateBillPanelFromHoaDon(activeHD);
                 }
             }
@@ -1081,8 +1076,7 @@ public class ManHinhBanGUI extends JPanel {
                     this,
                     "Có lỗi xảy ra khi truy xuất dữ liệu khách hàng: " + e.getMessage(),
                     "Lỗi hệ thống",
-                    JOptionPane.ERROR_MESSAGE
-            );
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -1115,8 +1109,7 @@ public class ManHinhBanGUI extends JPanel {
                     this,
                     "Vui lòng chọn bàn đang phục vụ có hóa đơn trước khi áp dụng khuyến mãi.",
                     "Chưa có hóa đơn",
-                    JOptionPane.WARNING_MESSAGE
-            );
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -1127,8 +1120,7 @@ public class ManHinhBanGUI extends JPanel {
                     this,
                     "Vui lòng nhập mã khuyến mãi.",
                     "Thiếu mã khuyến mãi",
-                    JOptionPane.WARNING_MESSAGE
-            );
+                    JOptionPane.WARNING_MESSAGE);
             txtMaKhuyenMai.requestFocus();
             return;
         }
@@ -1141,26 +1133,24 @@ public class ManHinhBanGUI extends JPanel {
                         this,
                         "Mã khuyến mãi không tồn tại!",
                         "Lỗi áp dụng",
-                        JOptionPane.WARNING_MESSAGE
-                );
+                        JOptionPane.WARNING_MESSAGE);
                 txtMaKhuyenMai.setText("");
                 txtMaKhuyenMai.requestFocus();
                 return;
             }
 
             if (!isKhuyenMaiHopLe(km)) {
-                hoaDonService.capNhatMaKM(activeHoaDon.getMaHD(), null);
+                hoaDonRemoteService.capNhatMaKM(activeHoaDon.getMaHD(), null);
                 activeHoaDon.setMaKM(null);
 
-                activeHoaDon = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
+                activeHoaDon = hoaDonRemoteService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
                 updateBillPanelFromHoaDon(activeHoaDon);
 
                 JOptionPane.showMessageDialog(
                         this,
                         "Mã khuyến mãi đã hết hạn, chưa bắt đầu, hết lượt dùng hoặc ngưng áp dụng.",
                         "Không thể áp dụng",
-                        JOptionPane.WARNING_MESSAGE
-                );
+                        JOptionPane.WARNING_MESSAGE);
 
                 txtMaKhuyenMai.setText("");
                 txtMaKhuyenMai.requestFocus();
@@ -1175,28 +1165,28 @@ public class ManHinhBanGUI extends JPanel {
                         "Không thể áp dụng mã này:\nHóa đơn chưa đạt giá trị tối thiểu ("
                                 + km.getDieuKienApDung() + " VNĐ)",
                         "Lỗi áp dụng",
-                        JOptionPane.WARNING_MESSAGE
-                );
+                        JOptionPane.WARNING_MESSAGE);
                 txtMaKhuyenMai.requestFocus();
                 return;
             }
 
-            boolean isUpdated = hoaDonService.capNhatMaKM(activeHoaDon.getMaHD(), maKMInput);
+            boolean isUpdated = hoaDonRemoteService.capNhatMaKM(activeHoaDon.getMaHD(), maKMInput);
 
             if (isUpdated) {
                 activeHoaDon.setMaKM(maKMInput);
-                activeHoaDon = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
+                activeHoaDon = hoaDonRemoteService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
 
                 JOptionPane.showMessageDialog(
                         this,
                         "Áp dụng thành công mã: " + km.getTenChuongTrinh() + "\n"
                                 + "(Giảm: " + km.getGiaTri()
                                 + (km.getLoaiKhuyenMai() != null
-                                && km.getLoaiKhuyenMai().toLowerCase().contains("tiền")
-                                ? " VNĐ" : "%") + ")",
+                                        && km.getLoaiKhuyenMai().toLowerCase().contains("tiền")
+                                                ? " VNĐ"
+                                                : "%")
+                                + ")",
                         "Thành công",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
+                        JOptionPane.INFORMATION_MESSAGE);
 
                 updateBillPanelFromHoaDon(activeHoaDon);
             } else {
@@ -1204,8 +1194,7 @@ public class ManHinhBanGUI extends JPanel {
                         this,
                         "Lỗi hệ thống: Không thể lưu mã vào hóa đơn.",
                         "Lỗi",
-                        JOptionPane.ERROR_MESSAGE
-                );
+                        JOptionPane.ERROR_MESSAGE);
             }
 
         } catch (Exception e) {
@@ -1214,8 +1203,7 @@ public class ManHinhBanGUI extends JPanel {
                     this,
                     "Lỗi hệ thống: " + e.getMessage(),
                     "Lỗi",
-                    JOptionPane.ERROR_MESSAGE
-            );
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -1320,22 +1308,19 @@ public class ManHinhBanGUI extends JPanel {
                 hoaDon,
                 0,
                 "getTongTien",
-                "getTongtien"
-        );
+                "getTongtien");
 
         long giamGia = getLongValue(
                 hoaDon,
                 0,
                 "getGiamGia",
-                "getGiamgia"
-        );
+                "getGiamgia");
 
         long tongThanhToan = getLongValue(
                 hoaDon,
                 0,
                 "getTongThanhToan",
-                "getTongthanhtoan"
-        );
+                "getTongthanhtoan");
 
         if (tongThanhToan <= 0 && tongTien > 0) {
             tongThanhToan = Math.max(0, tongTien - giamGia);
