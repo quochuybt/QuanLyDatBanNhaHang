@@ -18,7 +18,6 @@ import iuh.fit.core.net.client.HoaDonRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
 import iuh.fit.core.net.client.NhanVienRemoteService;
 
-
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
@@ -89,14 +88,18 @@ public class BillPanel extends JPanel {
     }
 
     private void initCommon() {
-       this.chiTietHoaDonRemoteService = NetClientContext.isReady()
+        this.chiTietHoaDonRemoteService = NetClientContext.isReady()
                 ? new ChiTietHoaDonRemoteService(NetClientContext.getConnection())
                 : null;
-        this.hoaDonRemoteService = new HoaDonRemoteService(NetClientContext.getConnection());
+
+        this.hoaDonRemoteService = NetClientContext.isReady()
+                ? new HoaDonRemoteService(NetClientContext.getConnection())
+                : null;
 
         this.banRemoteService = NetClientContext.isReady()
                 ? new BanRemoteService(NetClientContext.getConnection())
                 : null;
+
         this.khachHangRemoteService = NetClientContext.isReady()
                 ? new KhachHangRemoteService(NetClientContext.getConnection())
                 : null;
@@ -112,6 +115,7 @@ public class BillPanel extends JPanel {
         this.khuyenMaiRemoteService = NetClientContext.isReady()
                 ? new KhuyenMaiRemoteService(NetClientContext.getConnection())
                 : null;
+
         this.donDatMonService = NetClientContext.isReady()
                 ? new DonDatMonRemoteService(NetClientContext.getConnection())
                 : null;
@@ -217,13 +221,11 @@ public class BillPanel extends JPanel {
 
             ChiTietHoaDonDTO filterDTO = new ChiTietHoaDonDTO();
             filterDTO.setMaDon(activeHoaDon.getMaDon());
-        
 
             activeHoaDon = hoaDonRemoteService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
             dsMonHienTai = chiTietHoaDonRemoteService != null
                     ? chiTietHoaDonRemoteService.getChiTietTheoMaDon(activeHoaDon.getMaDon())
                     : new ArrayList<>();
-            
 
             if (dsMonHienTai != null) {
                 for (ChiTietHoaDonDTO ct : dsMonHienTai) {
@@ -243,7 +245,6 @@ public class BillPanel extends JPanel {
         } else if (parentBanGUI != null) {
             ChiTietHoaDonDTO filterDTO = new ChiTietHoaDonDTO();
             filterDTO.setMaDon(activeHoaDon.getMaDon());
-
 
             activeHoaDon = hoaDonRemoteService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
             dsMonHienTai = chiTietHoaDonRemoteService != null
@@ -338,10 +339,20 @@ public class BillPanel extends JPanel {
                 tenBanInHoaDon = this.customHeaderName;
             }
 
-            String tenBanLuuLichSu = tenBanInHoaDon;
+            /*
+             * QUAN TRỌNG:
+             * Tính tên nhóm bàn trước khi gọi thanh toán.
+             * Vì sau khi thanh toán, hóa đơn không còn là "chưa thanh toán",
+             * nếu quét lại nhóm bàn sẽ không còn đủ dữ liệu.
+             */
+            String tenBanLuuLichSu = layTenNhomBanQuaRemote(
+                    banHienTai.getMaBan(),
+                    activeHoaDon.getMaHD(),
+                    tenBanInHoaDon
+            );
 
-            if (tenBanLuuLichSu == null || tenBanLuuLichSu.isEmpty()) {
-                tenBanLuuLichSu = banHienTai.getTenBan();
+            if (tenBanLuuLichSu == null || tenBanLuuLichSu.trim().isEmpty()) {
+                tenBanLuuLichSu = tenBanInHoaDon;
             }
 
             HoaDonDTO thanhToanDTO = new HoaDonDTO();
@@ -371,7 +382,6 @@ public class BillPanel extends JPanel {
             }
 
             boolean thanhToanOK = hoaDonRemoteService.thanhToanHoaDon(thanhToanDTO);
-
 
             if (thanhToanOK) {
                 String maKH = activeHoaDon.getMaKH();
@@ -415,6 +425,11 @@ public class BillPanel extends JPanel {
                     }
                 }
 
+                /*
+                 * QUAN TRỌNG:
+                 * Truyền tenBanLuuLichSu vào phiếu in, không truyền tenBanInHoaDon.
+                 * Nếu truyền tenBanInHoaDon thì hóa đơn thanh toán chỉ hiện bàn đang chọn.
+                 */
                 xuatPhieuIn(
                         "HÓA ĐƠN THANH TOÁN",
                         true,
@@ -423,13 +438,12 @@ public class BillPanel extends JPanel {
                         activeHoaDon.getMaHD(),
                         listToPrint,
                         hinhThucTT,
-                        tenBanInHoaDon,
+                        tenBanLuuLichSu,
                         tenNVIn,
                         tenKHIn,
                         ghiChuHoaDon
                 );
 
-                // Load lại bill lần cuối cho khách xem bằng hàm cũ
                 loadBillTotals(
                         (long) activeHoaDon.getTongTien(),
                         (long) activeHoaDon.getGiamGia(),
@@ -535,7 +549,6 @@ public class BillPanel extends JPanel {
                         ? chiTietHoaDonRemoteService.getChiTietTheoMaDon(hd.getMaDon())
                         : new ArrayList<>();
             }
-
         }
 
         return list;
@@ -678,7 +691,6 @@ public class BillPanel extends JPanel {
                 updateTongTienDTO.setTongTien(tongTienGoc);
 
                 if (!hoaDonRemoteService.capNhatTongTien(updateTongTienDTO)) {
-
                     coLoi = true;
                     System.err.println("Lỗi khi cập nhật tổng tiền hóa đơn!");
                 }
@@ -780,26 +792,35 @@ public class BillPanel extends JPanel {
 
         if (banHienTai == null || dsMon == null || dsMon.isEmpty()) return;
 
+        /*
+         * QUAN TRỌNG:
+         * Ưu tiên tenBanThucTe truyền vào.
+         * Không để customHeaderName ghi đè khi tenBanThucTe đã là tên nhóm bàn.
+         */
         String tenBanHienThi = tenBanThucTe;
-        if (this.customHeaderName != null && !this.customHeaderName.isEmpty()) {
+
+        if ((tenBanHienThi == null || tenBanHienThi.trim().isEmpty())
+                && this.customHeaderName != null
+                && !this.customHeaderName.isEmpty()) {
             tenBanHienThi = this.customHeaderName;
         }
 
         try {
-            String chuoiBanGhep = layChuoiBanGhepQuaRemote(banHienTai.getMaBan(), maHD);
+            /*
+             * Nếu tenBanHienThi đã có dấu "+" nghĩa là đã là nhóm bàn.
+             * Không quét lại bằng hóa đơn chưa thanh toán nữa,
+             * vì sau khi thanh toán xong có thể không còn tìm được nhóm.
+             */
+            if (tenBanHienThi == null || !tenBanHienThi.contains("+")) {
+                String tenNhomBan = layTenNhomBanQuaRemote(
+                        banHienTai.getMaBan(),
+                        maHD,
+                        tenBanHienThi
+                );
 
-            if (chuoiBanGhep != null && !chuoiBanGhep.isEmpty()) {
-                String khuVuc = "";
-                String tenBanChinh = tenBanHienThi;
-
-                if (tenBanHienThi.contains("--")) {
-                    int index = tenBanHienThi.indexOf("--");
-                    tenBanChinh = tenBanHienThi.substring(0, index).trim();
-                    khuVuc = " -- " + tenBanHienThi.substring(index + 2).trim();
+                if (tenNhomBan != null && !tenNhomBan.trim().isEmpty()) {
+                    tenBanHienThi = tenNhomBan;
                 }
-
-                // Ráp lại theo đúng thứ tự: Bàn chính + Số bàn ghép + Khu vực
-                tenBanHienThi = tenBanChinh + chuoiBanGhep + khuVuc;
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -1228,9 +1249,118 @@ public class BillPanel extends JPanel {
         return ban.getTenBan();
     }
 
+    private String layTenNhomBanQuaRemote(String maBanHienTai, String maHD, String tenBanMacDinh) {
+        if (maHD == null || maHD.trim().isEmpty()) {
+            return tenBanMacDinh;
+        }
 
-    private String layChuoiBanGhepQuaRemote(String maBan, String maHD) {
-        return "";
+        if (banRemoteService == null || hoaDonRemoteService == null) {
+            return tenBanMacDinh;
+        }
+
+        try {
+            List<BanDTO> dsBan = banRemoteService.getAllBan();
+
+            if (dsBan == null || dsBan.isEmpty()) {
+                return tenBanMacDinh;
+            }
+
+            List<BanDTO> dsBanCungHoaDon = new ArrayList<>();
+
+            for (BanDTO ban : dsBan) {
+                if (ban == null || ban.getMaBan() == null) {
+                    continue;
+                }
+
+                HoaDonDTO hdDangMo = null;
+
+                try {
+                    hdDangMo = hoaDonRemoteService.getHoaDonChuaThanhToan(ban.getMaBan());
+                } catch (Exception ex) {
+                    System.err.println("Không lấy được hóa đơn đang mở của bàn "
+                            + ban.getMaBan() + ": " + ex.getMessage());
+                }
+
+                if (hdDangMo == null || hdDangMo.getMaHD() == null) {
+                    continue;
+                }
+
+                if (maHD.equals(hdDangMo.getMaHD())) {
+                    dsBanCungHoaDon.add(ban);
+                }
+            }
+
+            if (dsBanCungHoaDon.size() <= 1) {
+                return tenBanMacDinh;
+            }
+
+            dsBanCungHoaDon.sort(
+                    Comparator.comparingInt((BanDTO b) -> laySoBanTuTenBan(b.getTenBan()))
+                            .thenComparing(b -> b.getTenBan() != null ? b.getTenBan() : "")
+            );
+
+            LinkedHashSet<String> tenBanSet = new LinkedHashSet<>();
+
+            String khuVuc = layKhuVucTuTenBanMacDinh(tenBanMacDinh);
+
+            if (khuVuc == null || khuVuc.trim().isEmpty()) {
+                for (BanDTO ban : dsBanCungHoaDon) {
+                    if (ban.getKhuVuc() != null && !ban.getKhuVuc().trim().isEmpty()) {
+                        khuVuc = ban.getKhuVuc().trim();
+                        break;
+                    }
+                }
+            }
+
+            for (BanDTO ban : dsBanCungHoaDon) {
+                if (ban.getTenBan() != null && !ban.getTenBan().trim().isEmpty()) {
+                    tenBanSet.add(ban.getTenBan().trim());
+                }
+            }
+
+            if (tenBanSet.isEmpty()) {
+                return tenBanMacDinh;
+            }
+
+            String tenNhomBan = String.join(" + ", tenBanSet);
+
+            if (khuVuc != null && !khuVuc.trim().isEmpty()) {
+                tenNhomBan += " -- " + khuVuc.trim();
+            }
+
+            return tenNhomBan;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return tenBanMacDinh;
+        }
+    }
+
+    private String layKhuVucTuTenBanMacDinh(String tenBanMacDinh) {
+        if (tenBanMacDinh == null || !tenBanMacDinh.contains("--")) {
+            return "";
+        }
+
+        int index = tenBanMacDinh.indexOf("--");
+        return tenBanMacDinh.substring(index + 2).trim();
+    }
+
+    private int laySoBanTuTenBan(String tenBan) {
+        if (tenBan == null) {
+            return Integer.MAX_VALUE;
+        }
+
+        try {
+            String number = tenBan.replaceAll("[^0-9]", "");
+
+            if (number.isEmpty()) {
+                return Integer.MAX_VALUE;
+            }
+
+            return Integer.parseInt(number);
+        } catch (Exception e) {
+            return Integer.MAX_VALUE;
+        }
     }
 
     private boolean isSummaryReady() {

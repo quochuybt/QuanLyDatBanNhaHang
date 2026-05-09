@@ -559,62 +559,56 @@ public class ManHinhGoiMonGUI extends JPanel {
 
         DonDatMonDTO donChinh = timDonChinhTrongNhom(nhomDon, maBanChinh);
 
+        if (donChinh == null) {
+            donChinh = ddmDangChon;
+        }
+
         String maKH = null;
 
-        if (donChinh != null && donChinh.getMaKH() != null && !donChinh.getMaKH().trim().isEmpty()) {
+        if (donChinh.getMaKH() != null && !donChinh.getMaKH().trim().isEmpty()) {
             maKH = donChinh.getMaKH();
         } else if (ddmDangChon.getMaKH() != null && !ddmDangChon.getMaKH().trim().isEmpty()) {
             maKH = ddmDangChon.getMaKH();
         }
 
-        HoaDonDTO hoaDonCuaBanDangChon = null;
         LocalDateTime now = LocalDateTime.now();
 
+        String ghiChu = donChinh.getGhiChu();
+
+        if (ghiChu == null || ghiChu.trim().isEmpty()) {
+            ghiChu = "Nhận bàn đặt trước";
+        }
+
+        /*
+         * QUAN TRỌNG:
+         * Chỉ tạo 1 hóa đơn cho bàn chính.
+         * Không tạo hóa đơn cho từng bàn phụ nữa.
+         */
+        HoaDonDTO hoaDonChinh = hoaDonRemoteService.moBanVaTaoHoaDon(
+                maBanChinh,
+                maNVDangNhap,
+                maKH,
+                now,
+                ghiChu
+        );
+
+        if (hoaDonChinh == null) {
+            throw new Exception("Không tạo được hóa đơn cho bàn chính " + maBanChinh);
+        }
+
+        /*
+         * Các bàn trong nhóm chỉ cập nhật trạng thái đang phục vụ.
+         * Không tạo thêm hóa đơn riêng.
+         */
         for (DonDatMonDTO ddm : nhomDon) {
             if (ddm == null || ddm.getMaBan() == null || ddm.getMaBan().trim().isEmpty()) {
                 continue;
             }
 
-            String maBanTrongNhom = ddm.getMaBan();
-
-            String ghiChu = ddm.getGhiChu();
-
-            if (ghiChu == null || ghiChu.trim().isEmpty()) {
-                ghiChu = "Nhận bàn đặt trước";
-            }
-
-            HoaDonDTO hd = hoaDonRemoteService.moBanVaTaoHoaDon(
-                    maBanTrongNhom,
-                    maNVDangNhap,
-                    maKH,
-                    now,
-                    ghiChu
-            );
-
-            if (hd == null) {
-                throw new Exception("Không tạo được hóa đơn cho bàn " + maBanTrongNhom);
-            }
-
-            capNhatTrangThaiBanDangPhucVu(maBanTrongNhom, now);
-
-            if (maBanTrongNhom.equals(maBanDangChon)) {
-                hoaDonCuaBanDangChon = hd;
-            }
+            capNhatTrangThaiBanDangPhucVu(ddm.getMaBan(), now);
         }
 
-        if (hoaDonCuaBanDangChon == null) {
-            hoaDonCuaBanDangChon = hoaDonRemoteService.getHoaDonChuaThanhToan(maBanDangChon);
-        }
-
-        if (hoaDonCuaBanDangChon == null) {
-            hoaDonCuaBanDangChon = hoaDonRemoteService.getHoaDonChuaThanhToan(maBanChinh);
-        }
-
-        if (hoaDonCuaBanDangChon == null) {
-            throw new Exception("Không tìm thấy hóa đơn sau khi nhận nhóm bàn.");
-        }
-
-        this.activeHoaDon = hoaDonCuaBanDangChon;
+        this.activeHoaDon = hoaDonChinh;
 
         banDuocChon.setTrangThai(TrangThaiBan.DANG_PHUC_VU);
         banDuocChon.setGioMoBan(now);
@@ -711,14 +705,12 @@ public class ManHinhGoiMonGUI extends JPanel {
                 modelChiTietHoaDon.setValueAt(slHienTai + 1, i, 3);
                 modelChiTietHoaDon.setValueAt((slHienTai + 1) * donGia, i, 5);
                 updateBillPanelTotals();
-                luuChiTietHoaDonAsync();
                 return;
             }
         }
 
         modelChiTietHoaDon.addRow(new Object[]{"X", maMon, tenMon, 1, donGia, donGia});
         updateBillPanelTotals();
-        luuChiTietHoaDonAsync();
     }
 
     public void updateBillPanelTotals() {
@@ -1082,7 +1074,6 @@ public class ManHinhGoiMonGUI extends JPanel {
                     if (editingRow < finalModel.getRowCount()) {
                         finalModel.removeRow(editingRow);
                         updateBillPanelTotals();
-                        luuChiTietHoaDonAsync();
                     }
                 });
             }
@@ -1147,7 +1138,6 @@ public class ManHinhGoiMonGUI extends JPanel {
                             if (editingRow < model.getRowCount()) {
                                 model.setValueAt(currentQuantity * donGia, editingRow, 5);
                                 updateBillPanelTotals();
-                                luuChiTietHoaDonAsync();
                             }
                         });
                     }
