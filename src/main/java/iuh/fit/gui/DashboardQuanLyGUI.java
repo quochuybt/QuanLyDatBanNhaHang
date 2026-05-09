@@ -10,7 +10,6 @@ import iuh.fit.core.net.dto.hoadon.HoaDonTotalRequestDTO;
 import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.dto.GiaoCaDTO;
-import iuh.fit.core.service.BanService;
 import iuh.fit.core.service.GiaoCaService;
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.markers.SeriesMarkers;
@@ -67,8 +66,8 @@ public class DashboardQuanLyGUI extends JPanel {
 
     private JPanel pnlStaffHoursChart;
 
-    private final BanService banService = new BanService();
-    private final GiaoCaService giaoCaService = new GiaoCaService();
+
+
     private final DashboardRemoteService dashboardRemoteService;
     private final HoaDonRemoteService hoaDonRemoteService;
 
@@ -84,9 +83,12 @@ public class DashboardQuanLyGUI extends JPanel {
             NetClientContext.getConnection().addEventListener(new ClientEventListener() {
                 @Override
                 public void onEvent(MessageEnvelope event) {
-                    if (event == null || event.getName() == null)
+                    if (event == null || event.getName() == null) {
                         return;
+                    }
+
                     String name = event.getName();
+
                     if (EventType.TABLE_STATUS_CHANGED.name().equals(name)
                             || EventType.INVOICE_UPDATED.name().equals(name)) {
                         SwingUtilities.invokeLater(DashboardQuanLyGUI.this::loadDashboardData);
@@ -112,6 +114,7 @@ public class DashboardQuanLyGUI extends JPanel {
 
         JPanel mainContentPanel = new JPanel(new GridBagLayout());
         mainContentPanel.setOpaque(false);
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
 
@@ -145,12 +148,14 @@ public class DashboardQuanLyGUI extends JPanel {
         headerPanel.setOpaque(false);
 
         headerPanel.add(new JLabel("Từ ngày:"));
+
         dateChooserStart = new JDateChooser();
         dateChooserStart.setDateFormatString("dd/MM/yyyy");
         dateChooserStart.setPreferredSize(new Dimension(130, 30));
         headerPanel.add(dateChooserStart);
 
         headerPanel.add(new JLabel("Đến ngày:"));
+
         dateChooserEnd = new JDateChooser();
         dateChooserEnd.setDateFormatString("dd/MM/yyyy");
         dateChooserEnd.setPreferredSize(new Dimension(130, 30));
@@ -192,7 +197,6 @@ public class DashboardQuanLyGUI extends JPanel {
         btnLichSuGiaoCa.setEnabled(false);
         btnLichSuGiaoCa.setText("Đang tải...");
 
-        // Dùng SwingWorker để tải dữ liệu giao ca mà không block EDT
         new SwingWorker<List<GiaoCaDTO>, Void>() {
             @Override
             protected List<GiaoCaDTO> doInBackground() {
@@ -209,23 +213,40 @@ public class DashboardQuanLyGUI extends JPanel {
                     showGiaoCaDialogWithData(historyList, from, to);
                 } catch (Exception ex) {
                     ex.printStackTrace();
-                    JOptionPane.showMessageDialog(DashboardQuanLyGUI.this,
+                    JOptionPane.showMessageDialog(
+                            DashboardQuanLyGUI.this,
                             "Lỗi tải lịch sử giao ca: " + ex.getMessage(),
-                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                            "Lỗi",
+                            JOptionPane.ERROR_MESSAGE
+                    );
                 }
             }
         }.execute();
     }
 
     private void showGiaoCaDialogWithData(List<GiaoCaDTO> historyList, LocalDate from, LocalDate to) {
-        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Lịch sử giao ca",
-                Dialog.ModalityType.APPLICATION_MODAL);
+        JDialog dialog = new JDialog(
+                SwingUtilities.getWindowAncestor(this),
+                "Lịch sử giao ca",
+                Dialog.ModalityType.APPLICATION_MODAL
+        );
+
         dialog.setSize(1100, 600);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout());
 
-        String[] columns = { "Mã GC", "Mã NV", "Bắt đầu", "Kết thúc", "Tiền đầu ca", "Tiền cuối ca", "Doanh thu ca",
-                "Chênh lệch", "Ghi chú" };
+        String[] columns = {
+                "Mã GC",
+                "Mã NV",
+                "Bắt đầu",
+                "Kết thúc",
+                "Tiền đầu ca",
+                "Tiền cuối ca",
+                "Doanh thu ca",
+                "Chênh lệch",
+                "Ghi chú"
+        };
+
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -233,19 +254,24 @@ public class DashboardQuanLyGUI extends JPanel {
             }
         };
 
-        for (GiaoCaDTO gc : historyList) {
-            model.addRow(new Object[] {
-                    gc.getMaGiaoCa(),
-                    gc.getMaNV(),
-                    gc.getThoiGianBatDau().format(dateTimeFormatter),
-                    gc.getThoiGianKetThuc() != null ? gc.getThoiGianKetThuc().format(dateTimeFormatter)
-                            : "Chưa kết thúc",
-                    currencyFormatter.format(gc.getTienDauCa()),
-                    currencyFormatter.format(gc.getTienCuoiCa()),
-                    currencyFormatter.format(gc.getTienHeThongTinh()),
-                    currencyFormatter.format(gc.getChenhLech()),
-                    gc.getGhiChu()
-            });
+        if (historyList != null) {
+            for (GiaoCaDTO gc : historyList) {
+                model.addRow(new Object[]{
+                        gc.getMaGiaoCa(),
+                        gc.getMaNV(),
+                        gc.getThoiGianBatDau() != null
+                                ? gc.getThoiGianBatDau().format(dateTimeFormatter)
+                                : "",
+                        gc.getThoiGianKetThuc() != null
+                                ? gc.getThoiGianKetThuc().format(dateTimeFormatter)
+                                : "Chưa kết thúc",
+                        currencyFormatter.format(gc.getTienDauCa()),
+                        currencyFormatter.format(gc.getTienCuoiCa()),
+                        currencyFormatter.format(gc.getTienHeThongTinh()),
+                        currencyFormatter.format(gc.getChenhLech()),
+                        gc.getGhiChu()
+                });
+            }
         }
 
         JTable table = new JTable(model);
@@ -255,6 +281,7 @@ public class DashboardQuanLyGUI extends JPanel {
 
         DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
         rightRenderer.setHorizontalAlignment(JLabel.RIGHT);
+
         for (int i = 4; i <= 7; i++) {
             table.getColumnModel().getColumn(i).setCellRenderer(rightRenderer);
         }
@@ -278,6 +305,7 @@ public class DashboardQuanLyGUI extends JPanel {
                         c.setForeground(Color.BLACK);
                     }
                 }
+
                 setHorizontalAlignment(JLabel.RIGHT);
                 return c;
             }
@@ -328,6 +356,7 @@ public class DashboardQuanLyGUI extends JPanel {
         statsPanel.add(createStatBox("Trung bình / Đơn", lblAvgOrderValue, COLOR_ACCENT_BLUE));
 
         sectionPanel.add(statsPanel, BorderLayout.SOUTH);
+
         return sectionPanel;
     }
 
@@ -354,10 +383,12 @@ public class DashboardQuanLyGUI extends JPanel {
         tableStatusPanel.add(createStatBox("Trống", lblBanTrong, COLOR_GREEN_STAT));
         tableStatusPanel.add(createStatBox("Phục Vụ", lblBanPhucVu, COLOR_RED_STAT));
         tableStatusPanel.add(createStatBox("Đã Đặt", lblBanDatTruoc, COLOR_YELLOW_STAT));
+
         contentPanel.add(tableStatusPanel);
 
         JPanel staffPanel = new JPanel(new BorderLayout(0, 5));
         staffPanel.setOpaque(false);
+
         JLabel lblStaffTitle = new JLabel("Nhân viên đang trong ca:");
         lblStaffTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblStaffTitle.setForeground(COLOR_TEXT_LIGHT);
@@ -374,9 +405,11 @@ public class DashboardQuanLyGUI extends JPanel {
 
         staffPanel.add(lblStaffTitle, BorderLayout.NORTH);
         staffPanel.add(scrollStaff, BorderLayout.CENTER);
+
         contentPanel.add(staffPanel);
 
         sectionPanel.add(contentPanel, BorderLayout.CENTER);
+
         return sectionPanel;
     }
 
@@ -412,6 +445,7 @@ public class DashboardQuanLyGUI extends JPanel {
         tabTopItems.addTab("Ít được gọi nhất", new JScrollPane(listLeastSellers));
 
         panel.add(tabTopItems, BorderLayout.CENTER);
+
         return panel;
     }
 
@@ -420,6 +454,7 @@ public class DashboardQuanLyGUI extends JPanel {
         list.setCellRenderer(new ItemRenderer(barColor));
         list.setBackground(COLOR_SECTION_BG);
         list.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
         return list;
     }
 
@@ -458,18 +493,24 @@ public class DashboardQuanLyGUI extends JPanel {
         box.add(lblStatLabel);
         box.add(Box.createRigidArea(new Dimension(0, 5)));
         box.add(valueLabel);
+
         return box;
     }
 
     private void setDefaultDateRange() {
         LocalDate today = LocalDate.now();
         LocalDate startOfRange = today.minusMonths(1);
-        dateChooserStart.setDate(Date.from(startOfRange.atStartOfDay(ZoneId.systemDefault()).toInstant()));
-        dateChooserEnd.setDate(Date.from(today.atStartOfDay(ZoneId.systemDefault()).toInstant()));
+
+        dateChooserStart.setDate(
+                Date.from(startOfRange.atStartOfDay(ZoneId.systemDefault()).toInstant())
+        );
+
+        dateChooserEnd.setDate(
+                Date.from(today.atStartOfDay(ZoneId.systemDefault()).toInstant())
+        );
     }
 
     private void loadDashboardData() {
-        // Vô hiệu hóa nút trong lúc tải dữ liệu để tránh click nhiều lần gây lỗi
         if (btnRefreshData != null) {
             btnRefreshData.setEnabled(false);
             btnRefreshData.setText("Đang tải...");
@@ -486,7 +527,6 @@ public class DashboardQuanLyGUI extends JPanel {
 
             @Override
             protected Void doInBackground() throws Exception {
-                // 1. Lấy và kiểm tra mốc thời gian từ JDateChooser
                 Date sDate = dateChooserStart.getDate();
                 Date eDate = dateChooserEnd.getDate();
 
@@ -501,9 +541,6 @@ public class DashboardQuanLyGUI extends JPanel {
                     throw new IllegalArgumentException("Ngày bắt đầu không được lớn hơn ngày kết thúc.");
                 }
 
-                // 2. Tải dữ liệu từ các Services
-
-                // --- Phần Doanh thu ---
                 revenueData = dashboardRemoteService.getDailyRevenue(startDate, endDate);
                 // Lấy tổng số hóa đơn (Dùng plusDays(1) để lấy hết ngày endDate)
                 orderCount = (int) hoaDonRemoteService.getTotalHoaDonCount(HoaDonTotalRequestDTO.builder()
@@ -514,7 +551,15 @@ public class DashboardQuanLyGUI extends JPanel {
                         .build());
 
                 // --- Phần Hoạt động Real-time ---
-                tableStatusCounts = dashboardRemoteService.getTableStatusCounts();
+               if (dashboardRemoteService != null) {
+                    tableStatusCounts = dashboardRemoteService.getTableStatusCounts();
+                } else {
+                    tableStatusCounts = Map.of(
+                            "Trống", 0,
+                            "Đang có khách", 0,
+                            "Đã đặt trước", 0
+                    );
+                }
                 activeStaffList = giaoCaService.getNhanVienDangLamViecChiTiet();
 
                 // --- Phần Biểu đồ Nhân viên (Lấy trong tuần hiện tại) ---
@@ -523,35 +568,42 @@ public class DashboardQuanLyGUI extends JPanel {
                 topStaffHours = giaoCaService.getTopStaffByWorkHours(startOfWeek, LocalDate.now(), 5);
 
                 // --- Phần Top Món ăn (Lấy theo khoảng thời gian đã chọn) ---
-                topSellingItems = dashboardRemoteService.getTopSellingItems(startDate, endDate, 5);
-                leastSellingItems = dashboardRemoteService.getLeastSellingItems(startDate, endDate, 5);
+                if (dashboardRemoteService != null) {
+                    topSellingItems = dashboardRemoteService.getTopSellingItems(startDate, endDate, 5);
+                    leastSellingItems = dashboardRemoteService.getLeastSellingItems(startDate, endDate, 5);
+                } else {
+                    topSellingItems = chiTietHoaDonService.getTopSellingItems(startDate, endDate, 5);
+                    leastSellingItems = chiTietHoaDonService.getLeastSellingItems(startDate, endDate, 5);
+                }
 
                 return null;
             }
 
             @Override
             protected void done() {
-                // Phục hồi lại trạng thái của nút
                 if (btnRefreshData != null) {
                     btnRefreshData.setEnabled(true);
                     btnRefreshData.setText("Xem thống kê");
                 }
 
                 try {
-                    get(); // Bắt buộc gọi get() để phát hiện Exception từ doInBackground()
+                    get();
 
-                    // 3. Cập nhật dữ liệu lên giao diện
                     updateRevenueUI(revenueData, orderCount);
                     updateRealtimeUI(tableStatusCounts, activeStaffList);
                     updateTopItemsUI(topSellingItems, leastSellingItems);
                     updateStaffChart(topStaffHours);
 
                 } catch (java.util.concurrent.ExecutionException e) {
-                    // Lỗi xảy ra bên trong doInBackground
                     Throwable cause = e.getCause();
-                    JOptionPane.showMessageDialog(DashboardQuanLyGUI.this,
+
+                    JOptionPane.showMessageDialog(
+                            DashboardQuanLyGUI.this,
                             "Lỗi tải dữ liệu: " + cause.getMessage(),
-                            "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+                            "Cảnh báo",
+                            JOptionPane.WARNING_MESSAGE
+                    );
+
                     e.printStackTrace();
                 } catch (InterruptedException e) {
                     e.printStackTrace();
@@ -561,7 +613,10 @@ public class DashboardQuanLyGUI extends JPanel {
     }
 
     private void updateRevenueUI(Map<LocalDate, Double> data, int count) {
-        double total = data.values().stream().mapToDouble(Double::doubleValue).sum();
+        double total = data != null
+                ? data.values().stream().mapToDouble(Double::doubleValue).sum()
+                : 0;
+
         double avg = count > 0 ? total / count : 0;
 
         lblTotalRevenue.setText(currencyFormatter.format(total));
@@ -572,12 +627,21 @@ public class DashboardQuanLyGUI extends JPanel {
     }
 
     private void updateRealtimeUI(Map<String, Integer> tables, List<String> staff) {
+        if (tables == null) {
+            tables = Map.of(
+                    "Trống", 0,
+                    "Đang có khách", 0,
+                    "Đã đặt trước", 0
+            );
+        }
+
         lblBanTrong.setText(String.valueOf(tables.getOrDefault("Trống", 0)));
         lblBanPhucVu.setText(String.valueOf(tables.getOrDefault("Đang có khách", 0)));
         lblBanDatTruoc.setText(String.valueOf(tables.getOrDefault("Đã đặt trước", 0)));
 
         modelActiveStaff.clear();
-        if (staff.isEmpty()) {
+
+        if (staff == null || staff.isEmpty()) {
             modelActiveStaff.addElement("(Không có nhân viên trực)");
         } else {
             staff.forEach(s -> modelActiveStaff.addElement("● " + s));
@@ -586,21 +650,25 @@ public class DashboardQuanLyGUI extends JPanel {
 
     private void updateTopItemsUI(Map<String, Integer> best, Map<String, Integer> least) {
         modelBestSellers.clear();
-        if (best.isEmpty()) {
+
+        if (best == null || best.isEmpty()) {
             modelBestSellers.addElement("Chưa có dữ liệu tuần này.");
             ((ItemRenderer) listBestSellers.getCellRenderer()).setMaxCount(1);
         } else {
             int maxBest = best.values().stream().max(Integer::compare).orElse(1);
             ((ItemRenderer) listBestSellers.getCellRenderer()).setMaxCount(maxBest);
+
             int rank = 1;
             for (Map.Entry<String, Integer> e : best.entrySet()) {
                 modelBestSellers.addElement(String.format("#%d  %s (%d)", rank++, e.getKey(), e.getValue()));
             }
         }
+
         listBestSellers.repaint();
 
         modelLeastSellers.clear();
-        if (least.isEmpty()) {
+
+        if (least == null || least.isEmpty()) {
             modelLeastSellers.addElement("Chưa có dữ liệu tuần này.");
             ((ItemRenderer) listLeastSellers.getCellRenderer()).setMaxCount(1);
         } else {
@@ -612,6 +680,7 @@ public class DashboardQuanLyGUI extends JPanel {
                 modelLeastSellers.addElement(String.format("#%d  %s (%d)", rank++, e.getKey(), e.getValue()));
             }
         }
+
         listLeastSellers.repaint();
     }
 
@@ -620,22 +689,40 @@ public class DashboardQuanLyGUI extends JPanel {
         if (data.isEmpty())
             return;
 
-        XYChart chart = new XYChartBuilder().title("Biến động doanh thu").build();
+        if (data == null || data.isEmpty()) {
+            pnlRevenueChart.add(new JLabel("Chưa có dữ liệu doanh thu.", SwingConstants.CENTER));
+            pnlRevenueChart.revalidate();
+            pnlRevenueChart.repaint();
+            return;
+        }
+
+        XYChart chart = new XYChartBuilder()
+                .title("Biến động doanh thu")
+                .build();
+
         chart.getStyler().setChartBackgroundColor(COLOR_SECTION_BG);
 
-        List<Date> xData = data.keySet().stream().sorted()
+        List<Date> xData = data.keySet().stream()
+                .sorted()
                 .map(d -> Date.from(d.atStartOfDay(ZoneId.systemDefault()).toInstant()))
                 .collect(Collectors.toList());
-        List<Double> yData = data.keySet().stream().sorted().map(data::get).collect(Collectors.toList());
 
-        chart.addSeries("Doanh thu", xData, yData).setMarker(SeriesMarkers.CIRCLE);
+        List<Double> yData = data.keySet().stream()
+                .sorted()
+                .map(data::get)
+                .collect(Collectors.toList());
+
+        chart.addSeries("Doanh thu", xData, yData)
+                .setMarker(SeriesMarkers.CIRCLE);
 
         pnlRevenueChart.add(new XChartPanel<>(chart));
         pnlRevenueChart.revalidate();
+        pnlRevenueChart.repaint();
     }
 
     private void updateStaffChart(Map<String, Double> data) {
         pnlStaffHoursChart.removeAll();
+
         if (data == null || data.isEmpty()) {
             pnlStaffHoursChart.add(new JLabel("Chưa có dữ liệu chấm công tuần này.", SwingConstants.CENTER));
             pnlStaffHoursChart.revalidate();
@@ -643,11 +730,13 @@ public class DashboardQuanLyGUI extends JPanel {
             return;
         }
 
+        LocalDate startOfWeek = LocalDate.now()
+                .with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+
         CategoryChart chart = new CategoryChartBuilder()
                 .width(400)
                 .height(200)
-                .title("Tuần này (" + LocalDate.now().with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
-                        .format(DateTimeFormatter.ofPattern("dd/MM")) + ")")
+                .title("Tuần này (" + startOfWeek.format(DateTimeFormatter.ofPattern("dd/MM")) + ")")
                 .xAxisTitle("Nhân viên")
                 .yAxisTitle("Số giờ làm (h)")
                 .build();
@@ -664,6 +753,7 @@ public class DashboardQuanLyGUI extends JPanel {
         List<Double> values = new ArrayList<>(data.values());
 
         chart.addSeries("Giờ làm", names, values);
+
         pnlStaffHoursChart.add(new XChartPanel<>(chart), BorderLayout.CENTER);
         pnlStaffHoursChart.revalidate();
         pnlStaffHoursChart.repaint();
@@ -679,6 +769,7 @@ public class DashboardQuanLyGUI extends JPanel {
 
         public ItemRenderer(Color barColor) {
             this.barColor = barColor;
+
             setLayout(new BorderLayout(10, 5));
             setBorder(new EmptyBorder(8, 10, 8, 10));
             setOpaque(true);
@@ -719,8 +810,13 @@ public class DashboardQuanLyGUI extends JPanel {
         }
 
         @Override
-        public Component getListCellRendererComponent(JList<? extends String> list, String value, int index,
-                boolean isSelected, boolean cellHasFocus) {
+        public Component getListCellRendererComponent(
+                JList<? extends String> list,
+                String value,
+                int index,
+                boolean isSelected,
+                boolean cellHasFocus
+        ) {
             if (isSelected) {
                 setBackground(new Color(220, 235, 255));
             } else {
@@ -744,13 +840,14 @@ public class DashboardQuanLyGUI extends JPanel {
                     lblCount.setText(count + " suất");
 
                     lblRank.setForeground(Color.WHITE);
-                    if (rank == 1)
+
+                    if (rank == 1) {
                         lblRank.setBackground(new Color(255, 193, 7));
-                    else if (rank == 2)
+                    } else if (rank == 2) {
                         lblRank.setBackground(new Color(192, 192, 192));
-                    else if (rank == 3)
+                    } else if (rank == 3) {
                         lblRank.setBackground(new Color(205, 127, 50));
-                    else {
+                    } else {
                         lblRank.setBackground(new Color(230, 230, 230));
                         lblRank.setForeground(COLOR_TEXT_DARK);
                     }
