@@ -173,46 +173,70 @@ public class DonDatMonRepository extends GenericRepository<DonDatMon, String> {
     public boolean huyDatBanVaGiaiPhongBanGhep(String maDon) {
         return executeTransaction(em -> {
             DonDatMon donChinh = em.find(DonDatMon.class, maDon);
-            if (donChinh == null) return false;
+
+            if (donChinh == null) {
+                return false;
+            }
 
             Ban banChinh = donChinh.getBan();
-            String maBanChinh = (banChinh != null) ? banChinh.getMaBan() : "";
+            String maBanChinh = banChinh != null ? banChinh.getMaBan() : "";
 
-            // 1. Quét tìm và dọn dẹp các Bàn Phụ (Bàn ghép)
-            if (!maBanChinh.isEmpty()) {
+            // 1. Hủy các đơn phụ của bàn ghép
+            if (maBanChinh != null && !maBanChinh.trim().isEmpty()) {
                 String tagLinked = "%LINKED:" + maBanChinh + "%";
+
                 List<DonDatMon> cacDonPhu = em.createQuery(
-                                "SELECT d FROM DonDatMon d WHERE d.ghiChu LIKE :tag", DonDatMon.class)
+                                "SELECT d FROM DonDatMon d " +
+                                        "WHERE d.ghiChu LIKE :tag " +
+                                        "AND d.trangThai = 'Chưa thanh toán'",
+                                DonDatMon.class
+                        )
                         .setParameter("tag", tagLinked)
                         .getResultList();
 
                 for (DonDatMon donPhu : cacDonPhu) {
                     Ban banPhu = donPhu.getBan();
+
                     if (banPhu != null) {
                         banPhu.setTrangThai(TrangThaiBan.TRONG);
                         banPhu.setGioMoBan(null);
-                        // Xóa chữ "(Ghép...)" nếu có
-                        String tenGoc = banPhu.getTenBan().replaceAll("\\s*\\(Ghép.*\\)", "").trim();
-                        banPhu.setTenBan(tenGoc);
+
+                        if (banPhu.getTenBan() != null) {
+                            String tenGoc = banPhu.getTenBan()
+                                    .replaceAll("\\s*\\(Ghép.*\\)", "")
+                                    .trim();
+                            banPhu.setTenBan(tenGoc);
+                        }
+
                         em.merge(banPhu);
                     }
-                    // Soft-delete đơn ảo
-                    donPhu.softDelete();
+
+                    donPhu.setTrangThai("Đã hủy");
+                    donPhu.setGhiChu((donPhu.getGhiChu() != null ? donPhu.getGhiChu() : "")
+                            + " (Đã hủy đặt bàn)");
                     em.merge(donPhu);
                 }
             }
 
-            // 2. Dọn Bàn Chính
+            // 2. Trả bàn chính về trống
             if (banChinh != null) {
                 banChinh.setTrangThai(TrangThaiBan.TRONG);
                 banChinh.setGioMoBan(null);
-                String tenGoc = banChinh.getTenBan().replaceAll("\\s*\\(Ghép.*\\)", "").trim();
-                banChinh.setTenBan(tenGoc);
+
+                if (banChinh.getTenBan() != null) {
+                    String tenGoc = banChinh.getTenBan()
+                            .replaceAll("\\s*\\(Ghép.*\\)", "")
+                            .trim();
+                    banChinh.setTenBan(tenGoc);
+                }
+
                 em.merge(banChinh);
             }
 
-            // 3. Soft-delete Đơn Chính
-            donChinh.softDelete();
+            // 3. Hủy đơn chính
+            donChinh.setTrangThai("Đã hủy");
+            donChinh.setGhiChu((donChinh.getGhiChu() != null ? donChinh.getGhiChu() : "")
+                    + " (Đã hủy đặt bàn)");
             em.merge(donChinh);
 
             return true;
@@ -227,7 +251,7 @@ public class DonDatMonRepository extends GenericRepository<DonDatMon, String> {
             String jpql = "SELECT d FROM DonDatMon d " +
                     "WHERE d.ban.maBan = :maBan " +
                     "AND d.trangThai = 'Chưa thanh toán' " +
-                    "AND (d.ghiChu IS NULL OR d.ghiChu NOT LIKE 'LINKED:%') " +
+                    "AND (d.ghiChu IS NULL OR d.ghiChu NOT LIKE '%LINKED:%') " +
                     "AND NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.donDatMon = d) " +
                     "ORDER BY d.thoiGianDen ASC";
 

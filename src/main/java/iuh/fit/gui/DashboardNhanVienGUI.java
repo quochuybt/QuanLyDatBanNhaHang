@@ -576,7 +576,7 @@ public class DashboardNhanVienGUI extends BaseEventAwarePanel {
                 new EmptyBorder(20, 20, 20, 20)
         ));
 
-        JLabel title = new JLabel("Lịch làm việc gần đây");
+        JLabel title = new JLabel("Lịch làm việc sắp tới");
         title.setFont(HEADER_FONT);
         title.setForeground(new Color(44, 62, 80));
 

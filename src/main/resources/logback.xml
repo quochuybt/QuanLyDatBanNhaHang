@@ -10,9 +10,9 @@
 
     <!-- Chỉ hiện lỗi Hibernate -->
     <logger name="org.hibernate" level="ERROR"/>
-    <logger name="org.hibernate.SQL" level="OFF"/>
-    <logger name="org.hibernate.orm.jdbc.bind" level="OFF"/>
-    <logger name="org.hibernate.type.descriptor.sql" level="OFF"/>
+<!--    <logger name="org.hibernate.SQL" level="OFF"/>-->
+<!--    <logger name="org.hibernate.orm.jdbc.bind" level="OFF"/>-->
+<!--    <logger name="org.hibernate.type.descriptor.sql" level="OFF"/>-->
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
