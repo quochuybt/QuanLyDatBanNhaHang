@@ -39,12 +39,12 @@ public class CommandDispatcher {
                 handlers.put(CommandAction.DASHBOARD_TABLE_STATUS_COUNTS.name(), new DashboardTableStatusHandler());
 
                 // ===== Phase 3 (write) - skeleton =====
-        handlers.put(CommandAction.PHANCONG_ADD.name(), new PhanCongAddHandler(sessionRegistry));
-        handlers.put(CommandAction.PHANCONG_REMOVE.name(), new PhanCongRemoveHandler(sessionRegistry));
-        handlers.put(CommandAction.PHANCONG_LIST_BY_DATE.name(), new PhanCongListByDateHandler());
-        handlers.put(CommandAction.PHANCONG_GET_BY_DATE_RANGE.name(), new PhanCongGetByDateRangeHandler());
-        handlers.put(CommandAction.PHANCONG_GET_TONG_GIO_THEO_THANG.name(), new PhanCongGetTongGioTheoThangHandler());
-        handlers.put(CommandAction.CALAM_GET_ALL_ORDER_BY_START.name(), new CaLamGetAllOrderByStartHandler());
+                handlers.put(CommandAction.PHANCONG_ADD.name(), new PhanCongAddHandler(sessionRegistry));
+                handlers.put(CommandAction.PHANCONG_REMOVE.name(), new PhanCongRemoveHandler(sessionRegistry));
+                handlers.put(CommandAction.PHANCONG_LIST_BY_DATE.name(), new PhanCongListByDateHandler());
+                handlers.put(CommandAction.PHANCONG_GET_BY_DATE_RANGE.name(), new PhanCongGetByDateRangeHandler());
+                handlers.put(CommandAction.PHANCONG_GET_TONG_GIO_THEO_THANG.name(), new PhanCongGetTongGioTheoThangHandler());
+                handlers.put(CommandAction.CALAM_GET_ALL_ORDER_BY_START.name(), new CaLamGetAllOrderByStartHandler());
 
                 // ===== Nhân viên =====
                 handlers.put(CommandAction.NHANVIEN_GET_ALL.name(), new NhanVienGetAllHandler());
@@ -82,6 +82,7 @@ public class CommandDispatcher {
                 handlers.put(CommandAction.MONAN_ADMIN_ADD.name(), new MonAnAdminAddHandler());
                 handlers.put(CommandAction.MONAN_ADMIN_UPDATE.name(), new MonAnAdminUpdateHandler());
                 handlers.put(CommandAction.MONAN_ADMIN_UPDATE_STATUS.name(), new MonAnAdminUpdateStatusHandler());
+                handlers.put(CommandAction.MONAN_ADMIN_DELETE.name(), new MonAnAdminDeleteHandler());
 
                 // ===== Dashboard nhân viên / giao ca =====
                 handlers.put(CommandAction.GIAOCA_DASHBOARD_LOAD.name(), new GiaoCaDashboardLoadHandler());
@@ -109,7 +110,7 @@ public class CommandDispatcher {
                 handlers.put(
                                 CommandAction.DONDATMON_GET_ALL_CHUA_NHAN_BAO_GOM_LINKED.name(),
                                 new DonDatMonGetAllChuaNhanBaoGomLinkedHandler());
-            handlers.put(CommandAction.DONDATMON_GET_BY_ID.name(), new DonDatMonGetByIdHandler());
+                handlers.put(CommandAction.DONDATMON_GET_BY_ID.name(), new DonDatMonGetByIdHandler());
                 handlers.put(CommandAction.MONAN_GET_ALL.name(), new MonAnGetAllHandler());
 
                 handlers.put(

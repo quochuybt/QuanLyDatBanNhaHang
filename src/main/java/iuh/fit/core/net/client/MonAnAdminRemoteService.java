@@ -69,4 +69,14 @@ public class MonAnAdminRemoteService extends BaseRemoteService {
         ensureSuccess(response, "Không thể tải thông tin món ăn.");
         return JsonCodec.fromJsonNode(response.getPayload(), MonAnDTO.class);
     }
+
+    public boolean delete(String maMonAn) {
+        MessageEnvelope response = connection.sendCommand(
+                CommandAction.MONAN_ADMIN_DELETE.name(),
+                IdRequest.builder().id(maMonAn).build(),
+                DEFAULT_TIMEOUT_MS
+        );
+        ensureSuccess(response, "Không thể xóa món ăn.");
+        return Boolean.TRUE.equals(JsonCodec.fromJsonNode(response.getPayload(), Boolean.class));
+    }
 }

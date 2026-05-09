@@ -315,15 +315,9 @@ public class DanhMucMonGUI extends JPanel {
 
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                MonAnDTO dto = MonAnDTO.builder()
-                        .maMonAn(mon.getMaMonAn())
-                        .trangThai("Hết món")
-                        .build();
-                monAnRemoteService.updateStatus(dto);
-
+                monAnRemoteService.delete(mon.getMaMonAn());
                 JOptionPane.showMessageDialog(this, "Đã xóa món ăn.");
                 loadDataFromDB();
-
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(
                         this,
