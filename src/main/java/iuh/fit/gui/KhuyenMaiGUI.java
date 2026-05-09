@@ -6,6 +6,7 @@ import iuh.fit.core.entity.KhuyenMai;
 import iuh.fit.core.net.client.KhuyenMaiRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
 import iuh.fit.core.net.client.SocketClientConnection;
+import iuh.fit.core.net.protocol.EventType;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -21,7 +22,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class KhuyenMaiGUI extends JPanel {
+public class KhuyenMaiGUI extends BaseEventAwarePanel {
 
     private static final Color COLOR_BACKGROUND = new Color(244, 247, 252);
     private static final Color COLOR_BUTTON_BLUE = new Color(40, 28, 244);
@@ -48,7 +49,7 @@ public class KhuyenMaiGUI extends JPanel {
     }
 
     public KhuyenMaiGUI(SocketClientConnection connection) {
-        Objects.requireNonNull(connection, "SocketClientConnection không được null.");
+        super(connection);
         this.khuyenMaiRemoteService = new KhuyenMaiRemoteService(connection);
 
         setLayout(new BorderLayout(10, 15));
@@ -62,6 +63,13 @@ public class KhuyenMaiGUI extends JPanel {
         loadDataToTable();
         addEventListeners();
         addSearchAndFilterListeners();
+    }
+
+    @Override
+    protected void onBusinessEvent(EventType eventType) {
+        if (eventType == EventType.KHUYENMAI_UPDATED) {
+            SwingUtilities.invokeLater(this::loadDataToTable);
+        }
     }
 
     private void loadDataToTable() {

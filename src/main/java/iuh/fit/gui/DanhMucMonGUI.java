@@ -6,6 +6,7 @@ import iuh.fit.core.net.client.DanhMucMonRemoteService;
 import iuh.fit.core.net.client.MonAnAdminRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
 import iuh.fit.core.net.client.SocketClientConnection;
+import iuh.fit.core.net.protocol.EventType;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -18,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class DanhMucMonGUI extends JPanel {
+public class DanhMucMonGUI extends BaseEventAwarePanel {
 
     private JPanel pnlMenuItemContainer;
     private JTextField txtTimKiem;
@@ -42,7 +43,7 @@ public class DanhMucMonGUI extends JPanel {
     }
 
     public DanhMucMonGUI(SocketClientConnection connection) {
-        Objects.requireNonNull(connection, "SocketClientConnection không được null.");
+        super(connection);
         this.monAnRemoteService = new MonAnAdminRemoteService(connection);
         this.danhMucMonRemoteService = new DanhMucMonRemoteService(connection);
 
@@ -60,6 +61,16 @@ public class DanhMucMonGUI extends JPanel {
             loadFilterButtons();
             loadDataFromDB();
         });
+    }
+
+    @Override
+    protected void onBusinessEvent(EventType eventType) {
+        if (eventType == EventType.MENU_UPDATED) {
+            SwingUtilities.invokeLater(() -> {
+                loadFilterButtons();
+                loadDataFromDB();
+            });
+        }
     }
 
     private JPanel createHeaderPanel() {

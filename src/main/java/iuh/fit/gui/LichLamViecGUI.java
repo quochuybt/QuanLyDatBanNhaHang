@@ -2,12 +2,10 @@ package iuh.fit.gui;
 
 import iuh.fit.core.entity.NhanVien;
 import iuh.fit.core.entity.VaiTro;
-import iuh.fit.core.net.client.ClientEventListener;
 import iuh.fit.core.net.client.NhanVienRemoteService;
 import iuh.fit.core.net.client.PhanCongRemoteService;
 import iuh.fit.core.net.client.SocketClientConnection;
 import iuh.fit.core.net.protocol.EventType;
-import iuh.fit.core.net.protocol.MessageEnvelope;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -27,7 +25,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class LichLamViecGUI extends JPanel {
+public class LichLamViecGUI extends BaseEventAwarePanel {
 
     private static final Color COLOR_MAIN_BACKGROUND = Color.WHITE;
     private static final Color COLOR_DAY_HEADER_BG = new Color(220, 222, 226);
@@ -50,7 +48,6 @@ public class LichLamViecGUI extends JPanel {
     private final NhanVienRemoteService nhanVienRemoteService;
 
     private final VaiTro currentUserRole;
-    private final SocketClientConnection connection;
 
     private LocalDate weekStart = LocalDate.now().with(DayOfWeek.MONDAY);
 
@@ -69,23 +66,10 @@ public class LichLamViecGUI extends JPanel {
     }
 
     public LichLamViecGUI(VaiTro role, SocketClientConnection connection) {
+        super(Objects.requireNonNull(connection, "Không có kết nối remote cho màn lịch làm việc."));
         this.currentUserRole = role;
-        this.connection = connection;
-        if (connection == null) {
-            throw new IllegalStateException("Không có kết nối remote cho màn lịch làm việc.");
-        }
         this.phanCongRemoteService = new PhanCongRemoteService(connection);
         this.nhanVienRemoteService = new NhanVienRemoteService(connection);
-
-        connection.addEventListener(new ClientEventListener() {
-            @Override
-            public void onEvent(MessageEnvelope event) {
-                if (event == null || event.getName() == null) return;
-                if (EventType.SHIFT_UPDATED.name().equals(event.getName())) {
-                    SwingUtilities.invokeLater(LichLamViecGUI.this::reloadData);
-                }
-            }
-        });
 
         setLayout(new BorderLayout(0, 15));
         setBorder(new EmptyBorder(20, 25, 20, 25));
@@ -98,6 +82,13 @@ public class LichLamViecGUI extends JPanel {
         add(weekDisplayPanel, BorderLayout.CENTER);
 
         reloadData();
+    }
+
+    @Override
+    protected void onBusinessEvent(EventType eventType) {
+        if (eventType == EventType.SHIFT_UPDATED) {
+            SwingUtilities.invokeLater(this::reloadData);
+        }
     }
 
     private JPanel createHeader() {

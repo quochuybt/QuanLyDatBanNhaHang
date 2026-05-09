@@ -2,7 +2,6 @@ package iuh.fit.gui;
 
 import com.toedter.calendar.JDateChooser;
 
-import iuh.fit.core.net.client.ClientEventListener;
 import iuh.fit.core.net.client.DashboardRemoteService;
 import iuh.fit.core.net.client.GiaoCaRemoteService;
 import iuh.fit.core.net.client.HoaDonRemoteService;
@@ -10,7 +9,6 @@ import iuh.fit.core.net.client.NetClientContext;
 import iuh.fit.core.net.client.SocketClientConnection;
 import iuh.fit.core.net.dto.hoadon.HoaDonTotalRequestDTO;
 import iuh.fit.core.net.protocol.EventType;
-import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.dto.GiaoCaDTO;
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.markers.SeriesMarkers;
@@ -32,7 +30,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class DashboardQuanLyGUI extends JPanel {
+public class DashboardQuanLyGUI extends BaseEventAwarePanel {
 
     private static final Color COLOR_LEAST_SOLD = new Color(217, 83, 79);
     private static final Color COLOR_BACKGROUND = new Color(244, 247, 252);
@@ -83,30 +81,22 @@ public class DashboardQuanLyGUI extends JPanel {
     }
 
     public DashboardQuanLyGUI(SocketClientConnection connection) {
-        Objects.requireNonNull(connection, "SocketClientConnection không được null.");
+        super(connection);
         dashboardRemoteService = new DashboardRemoteService(connection);
         hoaDonRemoteService = new HoaDonRemoteService(connection);
         giaoCaRemoteService = new GiaoCaRemoteService(connection);
 
-        connection.addEventListener(new ClientEventListener() {
-                @Override
-                public void onEvent(MessageEnvelope event) {
-                    if (event == null || event.getName() == null) {
-                        return;
-                    }
-
-                    String name = event.getName();
-
-                    if (EventType.TABLE_STATUS_CHANGED.name().equals(name)
-                            || EventType.INVOICE_UPDATED.name().equals(name)) {
-                        SwingUtilities.invokeLater(DashboardQuanLyGUI.this::loadDashboardData);
-                    }
-                }
-        });
-
         initComponents();
         setDefaultDateRange();
         loadDashboardData();
+    }
+
+    @Override
+    protected void onBusinessEvent(EventType eventType) {
+        if (eventType == EventType.TABLE_STATUS_CHANGED
+                || eventType == EventType.INVOICE_UPDATED) {
+            SwingUtilities.invokeLater(this::loadDashboardData);
+        }
     }
 
     private void initComponents() {

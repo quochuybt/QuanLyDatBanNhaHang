@@ -7,7 +7,6 @@ import iuh.fit.core.dto.HoaDonDTO;
 import iuh.fit.core.dto.NhanVienDTO;
 import iuh.fit.core.net.client.BanRemoteService;
 import iuh.fit.core.net.client.ChiTietHoaDonRemoteService;
-import iuh.fit.core.net.client.ClientEventListener;
 import iuh.fit.core.net.client.DonDatMonRemoteService;
 import iuh.fit.core.net.client.HoaDonRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
@@ -17,7 +16,6 @@ import iuh.fit.core.net.dto.hoadon.HoaDonDetailRequestDTO;
 import iuh.fit.core.net.dto.hoadon.HoaDonPageRequestDTO;
 import iuh.fit.core.net.dto.hoadon.HoaDonTotalRequestDTO;
 import iuh.fit.core.net.protocol.EventType;
-import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.util.ExcelExporter;
 
 import javax.swing.*;
@@ -40,7 +38,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
-public class HoaDonGUI extends JPanel {
+public class HoaDonGUI extends BaseEventAwarePanel {
 
     // --- Services ---
     private final HoaDonRemoteService hoaDonRemoteService;
@@ -99,25 +97,12 @@ public class HoaDonGUI extends JPanel {
     }
 
     public HoaDonGUI(SocketClientConnection connection) {
-        Objects.requireNonNull(connection, "SocketClientConnection không được null.");
+        super(connection);
         hoaDonRemoteService = new HoaDonRemoteService(connection);
         nhanVienRemoteService = new NhanVienRemoteService(connection);
         banRemoteService = new BanRemoteService(connection);
         donDatMonRemoteService = new DonDatMonRemoteService(connection);
         chiTietHoaDonRemoteService = new ChiTietHoaDonRemoteService(connection);
-
-        connection.addEventListener(new ClientEventListener() {
-                @Override
-                public void onEvent(MessageEnvelope event) {
-                    if (event == null || event.getName() == null) {
-                        return;
-                    }
-
-                    if (EventType.INVOICE_UPDATED.name().equals(event.getName())) {
-                        SwingUtilities.invokeLater(HoaDonGUI.this::loadDataForCurrentPage);
-                    }
-                }
-        });
 
         setLayout(new BorderLayout(10, 10));
         setBackground(COLOR_BG_LIGHT);
@@ -154,6 +139,13 @@ public class HoaDonGUI extends JPanel {
         addTableClickListener();
 
         SwingUtilities.invokeLater(this::loadFirstPage);
+    }
+
+    @Override
+    protected void onBusinessEvent(EventType eventType) {
+        if (eventType == EventType.INVOICE_UPDATED) {
+            SwingUtilities.invokeLater(this::loadDataForCurrentPage);
+        }
     }
 
     // =================================================================================

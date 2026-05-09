@@ -6,7 +6,6 @@ import iuh.fit.core.entity.TrangThaiBan;
 import iuh.fit.core.mapper.JsonMapper;
 import iuh.fit.core.net.client.*;
 import iuh.fit.core.net.protocol.EventType;
-import iuh.fit.core.net.protocol.MessageEnvelope;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -24,7 +23,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class ManHinhBanGUI extends JPanel {
+public class ManHinhBanGUI extends BaseEventAwarePanel {
 
     public static final Color COLOR_STATUS_FREE = new Color(138, 177, 254);
     public static final Color COLOR_STATUS_OCCUPIED = new Color(239, 68, 68);
@@ -122,42 +121,33 @@ public class ManHinhBanGUI extends JPanel {
     }
 
     public ManHinhBanGUI(DanhSachBanGUI parent, SocketClientConnection connection) {
-        super(new BorderLayout());
+        super(new BorderLayout(), Objects.requireNonNull(
+                connection != null ? connection : (parent != null ? parent.getConnection() : null),
+                "SocketClientConnection không được null."
+        ));
 
         this.parentDanhSachBanGUI = parent;
 
-        SocketClientConnection socketConnection = connection;
+        SocketClientConnection socketConnection = this.connection;
 
-        if (socketConnection == null && parent != null) {
-            socketConnection = parent.getConnection();
-        }
-
-        this.banRemoteService = new BanRemoteService(
-                Objects.requireNonNull(socketConnection, "SocketClientConnection không được null.")
-        );
+        this.banRemoteService = new BanRemoteService(socketConnection);
         this.hoaDonRemoteService = new HoaDonRemoteService(socketConnection);
         this.chiTietHoaDonRemoteService = new ChiTietHoaDonRemoteService(socketConnection);
         this.khuyenMaiRemoteService = new KhuyenMaiRemoteService(socketConnection);
         this.donDatMonService = new DonDatMonRemoteService(socketConnection);
         this.khachHangRemoteService = new KhachHangRemoteService(socketConnection);
 
-        socketConnection.addEventListener(new ClientEventListener() {
-            @Override
-            public void onEvent(MessageEnvelope event) {
-                if (event == null || event.getName() == null) {
-                    return;
-                }
-
-                if (EventType.TABLE_STATUS_CHANGED.name().equals(event.getName())) {
-                    SwingUtilities.invokeLater(ManHinhBanGUI.this::refreshTableList);
-                }
-            }
-        });
-
         buildUI();
         khoiTaoTuDongCapNhat();
 
         SwingUtilities.invokeLater(this::refreshTableList);
+    }
+
+    @Override
+    protected void onBusinessEvent(EventType eventType) {
+        if (eventType == EventType.TABLE_STATUS_CHANGED) {
+            SwingUtilities.invokeLater(this::refreshTableList);
+        }
     }
 
     public String getMaKHDangChon() {

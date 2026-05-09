@@ -5,6 +5,7 @@ import iuh.fit.core.dto.KhachHangDTO;
 import iuh.fit.core.entity.HangThanhVien;
 import iuh.fit.core.net.client.KhachHangRemoteService;
 import iuh.fit.core.net.client.SocketClientConnection;
+import iuh.fit.core.net.protocol.EventType;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -21,7 +22,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
-public class KhachHangGUI extends JPanel {
+public class KhachHangGUI extends BaseEventAwarePanel {
 
     private static KhachHangGUI instance;
 
@@ -59,9 +60,8 @@ public class KhachHangGUI extends JPanel {
     private KhachHangDTO khachHangDangChon = null;
 
     public KhachHangGUI(SocketClientConnection socketConnection) {
-        this.khachHangRemoteService = new KhachHangRemoteService(
-                Objects.requireNonNull(socketConnection, "SocketClientConnection không được null.")
-        );
+        super(socketConnection);
+        this.khachHangRemoteService = new KhachHangRemoteService(socketConnection);
 
         instance = this;
 
@@ -75,6 +75,13 @@ public class KhachHangGUI extends JPanel {
         addEventListeners();
         refreshKhachHangTable();
         lamMoiForm();
+    }
+
+    @Override
+    protected void onBusinessEvent(EventType eventType) {
+        if (eventType == EventType.KHACHHANG_UPDATED) {
+            SwingUtilities.invokeLater(this::refreshKhachHangTable);
+        }
     }
 
     public static void reloadKhachHangTableIfAvailable() {

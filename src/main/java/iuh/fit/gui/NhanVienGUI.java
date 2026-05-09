@@ -6,6 +6,7 @@ import iuh.fit.core.net.client.NhanVienRemoteService;
 import iuh.fit.core.net.client.PhanCongRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
 import iuh.fit.core.net.client.SocketClientConnection;
+import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.entity.NhanVien;
 
 import javax.swing.*;
@@ -21,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class NhanVienGUI extends JPanel {
+public class NhanVienGUI extends BaseEventAwarePanel {
 
     private final PhanCongRemoteService phanCongRemoteService;
     private final NhanVienRemoteService nhanVienRemoteService;
@@ -40,7 +41,7 @@ public class NhanVienGUI extends JPanel {
     }
 
     public NhanVienGUI(SocketClientConnection connection) {
-        Objects.requireNonNull(connection, "SocketClientConnection không được null.");
+        super(connection);
         nhanVienRemoteService = new NhanVienRemoteService(connection);
         phanCongRemoteService = new PhanCongRemoteService(connection);
 
@@ -58,6 +59,13 @@ public class NhanVienGUI extends JPanel {
         btnCancelSearch.addActionListener(this::handleCancelSearch);
 
         loadDataToTable();
+    }
+
+    @Override
+    protected void onBusinessEvent(EventType eventType) {
+        if (eventType == EventType.NHANVIEN_UPDATED) {
+            SwingUtilities.invokeLater(this::loadDataToTable);
+        }
     }
 
     private JPanel createHeaderPanel() {
