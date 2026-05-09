@@ -50,7 +50,7 @@ public class DashboardRemoteService extends BaseRemoteService {
     }
 
     public Map<String, Integer> getTableStatusCounts() {
-        MessageEnvelope response = connection.sendCommand(CommandAction.DASHBOARD_TABLE_STATUS_COUNTS.name(), Map.of(), 7000);
+        MessageEnvelope response = connection.sendCommand(CommandAction.DASHBOARD_TABLE_STATUS_COUNTS.name(), java.util.Collections.emptyMap(), 7000);
         ensureSuccess(response, "Lỗi tải trạng thái bàn");
         return JsonCodec.convertValue(response.getPayload(), new TypeReference<Map<String, Integer>>() {});
     }

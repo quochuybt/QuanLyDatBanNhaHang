@@ -4,7 +4,10 @@ import com.toedter.calendar.JDateChooser;
 import iuh.fit.core.dto.ChiTietHoaDonDTO;
 import iuh.fit.core.dto.DonDatMonDTO;
 import iuh.fit.core.dto.HoaDonDTO;
+import iuh.fit.core.dto.NhanVienDTO;
 import iuh.fit.core.entity.HoaDon; // Chỉ dùng để xuất Excel tạm thời
+import iuh.fit.core.entity.NhanVien;
+import iuh.fit.core.mapper.JsonMapper;
 import iuh.fit.core.net.client.HoaDonRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
 import iuh.fit.core.net.dto.hoadon.HoaDonDetailRequestDTO;
@@ -372,14 +375,21 @@ public class HoaDonGUI extends JPanel {
     }
 
     private void loadDataForCurrentPage() {
+        // Đọc filter dates trên EDT trước khi chạy background (vì có thể hiện JOptionPane)
+        String trangThai = getSelectedTrangThaiFilter();
+        LocalDateTime[] dates = getFilterDates();
+        if (dates[0] == null && dates[1] == null
+                && (dateChooserTuNgay.getDate() != null || dateChooserDenNgay.getDate() != null)) {
+            // Ngày không hợp lệ (start > end), getFilterDates() đã hiện cảnh báo rồi
+            return;
+        }
+
         new SwingWorker<Void, Void>() {
             private List<HoaDonDTO> resultList;
+            private List<Object[]> tableRows;
 
             @Override
             protected Void doInBackground() {
-                String trangThai = getSelectedTrangThaiFilter();
-                LocalDateTime[] dates = getFilterDates();
-
                 long totalCount;
                 if (hoaDonRemoteService != null) {
                     totalCount = hoaDonRemoteService.getTotalHoaDonCount(HoaDonTotalRequestDTO.builder()
@@ -411,26 +421,41 @@ public class HoaDonGUI extends JPanel {
                     resultList = hoaDonService.getHoaDonByPage(currentPage, ITEMS_PER_PAGE, trangThai, currentKeyword,
                             dates[0], dates[1]);
                 }
+
+                // Enrich dữ liệu hiển thị (NV name, ghi chú) ngay trong background thread
+                // để tránh block EDT khi loadDataToTable
+                tableRows = enrichTableRows(resultList);
+
                 return null;
             }
 
             @Override
             protected void done() {
-                loadDataToTable(resultList);
-                updatePaginationControls();
+                try {
+                    get(); // bắt exception từ doInBackground
+                    dsHoaDonDisplayed = (resultList == null) ? new ArrayList<>() : resultList;
+                    loadEnrichedDataToTable(tableRows);
+                    updatePaginationControls();
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
             }
         }.execute();
     }
 
-    private void loadDataToTable(List<HoaDonDTO> list) {
-        dsHoaDonDisplayed = (list == null) ? new ArrayList<>() : list;
-        tableModel.setRowCount(0);
+    /**
+     * Enrich dữ liệu hiển thị cho bảng (gọi DB lấy tên NV, ghi chú).
+     * Phải gọi từ background thread (SwingWorker.doInBackground) để không block EDT.
+     */
+    private List<Object[]> enrichTableRows(List<HoaDonDTO> list) {
+        List<Object[]> rows = new ArrayList<>();
+        if (list == null) return rows;
 
-        for (HoaDonDTO hd : dsHoaDonDisplayed) {
+        for (HoaDonDTO hd : list) {
             String tenNV = "N/A";
             try {
                 if (hd.getMaNV() != null) {
-                    var nv = nhanVienService.findById(hd.getMaNV());
+                    NhanVien nv = nhanVienService.findById(hd.getMaNV());
                     if (nv != null)
                         tenNV = nv.getHoten();
                 }
@@ -453,7 +478,7 @@ public class HoaDonGUI extends JPanel {
                 }
             }
 
-            tableModel.addRow(new Object[] {
+            rows.add(new Object[] {
                     hd.getNgayLap() != null ? hd.getNgayLap().format(tableDateFormatter) : "N/A",
                     hd.getMaHD() != null ? hd.getMaHD() : "N/A",
                     tenNV,
@@ -461,6 +486,18 @@ public class HoaDonGUI extends JPanel {
                     hd.getHinhThucThanhToan(),
                     currencyFormatter.format(hd.getTongThanhToan())
             });
+        }
+        return rows;
+    }
+
+    /**
+     * Đổ dữ liệu đã enrich sẵn vào bảng — chỉ gọi trên EDT.
+     */
+    private void loadEnrichedDataToTable(List<Object[]> rows) {
+        tableModel.setRowCount(0);
+        if (rows == null) return;
+        for (Object[] row : rows) {
+            tableModel.addRow(row);
         }
     }
 
@@ -488,28 +525,45 @@ public class HoaDonGUI extends JPanel {
                         return;
                     }
 
-                    // Tạo DTO giả lập để gọi hàm Service theo đúng chữ ký của bạn
-                    List<ChiTietHoaDonDTO> chiTietList;
-                    if (hoaDonRemoteService != null) {
-                        chiTietList = hoaDonRemoteService.getChiTietHoaDon(HoaDonDetailRequestDTO.builder()
-                                .maDon(hd.getMaDon())
-                                .build());
-                    } else {
-                        ChiTietHoaDonDTO filterDTO = ChiTietHoaDonDTO.builder().maDon(hd.getMaDon()).build();
-                        chiTietList = chiTietHoaDonService.getChiTietTheoMaDon(filterDTO);
-                    }
+                    // Dùng SwingWorker để tải chi tiết qua socket mà không block EDT
+                    new SwingWorker<List<ChiTietHoaDonDTO>, Void>() {
+                        @Override
+                        protected List<ChiTietHoaDonDTO> doInBackground() {
+                            if (hoaDonRemoteService != null) {
+                                return hoaDonRemoteService.getChiTietHoaDon(HoaDonDetailRequestDTO.builder()
+                                        .maDon(hd.getMaDon())
+                                        .build());
+                            } else {
+                                ChiTietHoaDonDTO filterDTO = ChiTietHoaDonDTO.builder().maDon(hd.getMaDon()).build();
+                                return chiTietHoaDonService.getChiTietTheoMaDon(filterDTO);
+                            }
+                        }
 
-                    if (chiTietList == null || chiTietList.isEmpty()) {
-                        JOptionPane.showMessageDialog(
-                                HoaDonGUI.this,
-                                "Không tìm thấy chi tiết món ăn cho hóa đơn này.",
-                                "Không có dữ liệu",
-                                JOptionPane.INFORMATION_MESSAGE
-                        );
-                        return;
-                    }
-
-                    showChiTietDialog(hd, chiTietList);
+                        @Override
+                        protected void done() {
+                            try {
+                                List<ChiTietHoaDonDTO> chiTietList = get();
+                                if (chiTietList == null || chiTietList.isEmpty()) {
+                                    JOptionPane.showMessageDialog(
+                                            HoaDonGUI.this,
+                                            "Không tìm thấy chi tiết món ăn cho hóa đơn này.",
+                                            "Không có dữ liệu",
+                                            JOptionPane.INFORMATION_MESSAGE
+                                    );
+                                    return;
+                                }
+                                showChiTietDialog(hd, chiTietList);
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                                JOptionPane.showMessageDialog(
+                                        HoaDonGUI.this,
+                                        "Lỗi khi tải chi tiết hóa đơn: " + ex.getMessage(),
+                                        "Lỗi",
+                                        JOptionPane.ERROR_MESSAGE
+                                );
+                            }
+                        }
+                    }.execute();
                 }
             }
         });

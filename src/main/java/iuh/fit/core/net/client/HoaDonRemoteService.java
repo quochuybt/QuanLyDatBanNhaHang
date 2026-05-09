@@ -32,8 +32,8 @@ public class HoaDonRemoteService extends BaseRemoteService {
         ensureSuccess(response, "Lỗi đếm tổng hóa đơn");
         Map<String, Object> map = JsonCodec.convertValue(response.getPayload(), new TypeReference<Map<String, Object>>() {});
         Object total = map.get("total");
-        if (total instanceof Number n) {
-            return n.longValue();
+        if (total instanceof Number) {
+            return ((Number) total).longValue();
         }
         return 0L;
     }

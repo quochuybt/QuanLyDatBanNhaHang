@@ -3,7 +3,9 @@ package iuh.fit.gui;
 import com.toedter.calendar.JDateChooser;
 
 import iuh.fit.core.net.client.DashboardRemoteService;
+import iuh.fit.core.net.client.HoaDonRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
+import iuh.fit.core.net.dto.hoadon.HoaDonTotalRequestDTO;
 import iuh.fit.core.dto.GiaoCaDTO;
 import iuh.fit.core.service.BanService;
 import iuh.fit.core.service.ChiTietHoaDonService;
@@ -69,6 +71,7 @@ public class DashboardQuanLyGUI extends JPanel {
     private final GiaoCaService giaoCaService = new GiaoCaService();
     private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
     private final DashboardRemoteService dashboardRemoteService;
+    private final HoaDonRemoteService hoaDonRemoteService;
 
     private final DecimalFormat currencyFormatter = new DecimalFormat("#,##0 ₫");
     private final DecimalFormat numberFormatter = new DecimalFormat("#,##0");
@@ -77,8 +80,10 @@ public class DashboardQuanLyGUI extends JPanel {
     public DashboardQuanLyGUI() {
         if (NetClientContext.isReady()) {
             dashboardRemoteService = new DashboardRemoteService(NetClientContext.getConnection());
+            hoaDonRemoteService = new HoaDonRemoteService(NetClientContext.getConnection());
         } else {
             dashboardRemoteService = null;
+            hoaDonRemoteService = null;
         }
 
         initComponents();
@@ -172,8 +177,35 @@ public class DashboardQuanLyGUI extends JPanel {
         LocalDate from = sDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
         LocalDate to = eDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 
-        List<GiaoCaDTO> historyList = giaoCaService.getLichSuGiaoCa(from, to);
+        btnLichSuGiaoCa.setEnabled(false);
+        btnLichSuGiaoCa.setText("Đang tải...");
 
+        // Dùng SwingWorker để tải dữ liệu giao ca mà không block EDT
+        new SwingWorker<List<GiaoCaDTO>, Void>() {
+            @Override
+            protected List<GiaoCaDTO> doInBackground() {
+                return giaoCaService.getLichSuGiaoCa(from, to);
+            }
+
+            @Override
+            protected void done() {
+                btnLichSuGiaoCa.setEnabled(true);
+                btnLichSuGiaoCa.setText("Lịch sử giao ca");
+
+                try {
+                    List<GiaoCaDTO> historyList = get();
+                    showGiaoCaDialogWithData(historyList, from, to);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(DashboardQuanLyGUI.this,
+                            "Lỗi tải lịch sử giao ca: " + ex.getMessage(),
+                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }.execute();
+    }
+
+    private void showGiaoCaDialogWithData(List<GiaoCaDTO> historyList, LocalDate from, LocalDate to) {
         JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Lịch sử giao ca", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setSize(1100, 600);
         dialog.setLocationRelativeTo(this);
@@ -455,12 +487,21 @@ public class DashboardQuanLyGUI extends JPanel {
                     revenueData = hoaDonService.getDailyRevenue(startDate, endDate);
                 }
                 // Lấy tổng số hóa đơn (Dùng plusDays(1) để lấy hết ngày endDate)
-                orderCount = (int) hoaDonService.getTotalHoaDonCount(
-                        "Đã thanh toán",
-                        "",
-                        startDate.atStartOfDay(),
-                        endDate.plusDays(1).atStartOfDay()
-                );
+                if (hoaDonRemoteService != null) {
+                    orderCount = (int) hoaDonRemoteService.getTotalHoaDonCount(HoaDonTotalRequestDTO.builder()
+                            .trangThai("Đã thanh toán")
+                            .keyword("")
+                            .tuNgay(startDate.atStartOfDay())
+                            .denNgay(endDate.plusDays(1).atStartOfDay())
+                            .build());
+                } else {
+                    orderCount = (int) hoaDonService.getTotalHoaDonCount(
+                            "Đã thanh toán",
+                            "",
+                            startDate.atStartOfDay(),
+                            endDate.plusDays(1).atStartOfDay()
+                    );
+                }
 
                 // --- Phần Hoạt động Real-time ---
                 if (dashboardRemoteService != null) {
