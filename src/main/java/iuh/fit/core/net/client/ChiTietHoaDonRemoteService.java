@@ -55,4 +55,18 @@ public class ChiTietHoaDonRemoteService extends BaseRemoteService {
         Boolean result = JsonCodec.fromJsonNode(response.getPayload(), Boolean.class);
         return Boolean.TRUE.equals(result);
     }
+
+    public boolean replaceByMaDon(List<ChiTietHoaDonDTO> itemDTOList) {
+        if (itemDTOList == null || itemDTOList.isEmpty()) {
+            throw new IllegalArgumentException("Danh sách chi tiết không được rỗng.");
+        }
+
+        String maDon = itemDTOList.get(0).getMaDon();
+
+        if (maDon == null || maDon.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã đơn không hợp lệ.");
+        }
+
+        return replaceByMaDon(maDon, itemDTOList);
+    }
 }

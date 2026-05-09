@@ -41,7 +41,7 @@ public class ManHinhBanGUI extends JPanel {
      * hóa đơn, chi tiết hóa đơn, khuyến mãi, khách hàng, đơn đặt món.
      */
     private final HoaDonService hoaDonService = new HoaDonService();
-    private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
+    private final ChiTietHoaDonRemoteService chiTietHoaDonRemoteService;
     private final KhuyenMaiRemoteService khuyenMaiRemoteService;
     private final KhachHangRemoteService khachHangRemoteService;
     private final DonDatMonRemoteService donDatMonService;
@@ -142,6 +142,7 @@ public class ManHinhBanGUI extends JPanel {
         this.banRemoteService = new BanRemoteService(
                 Objects.requireNonNull(socketConnection, "SocketClientConnection không được null.")
         );
+        this.chiTietHoaDonRemoteService = new ChiTietHoaDonRemoteService(socketConnection);
         this.khuyenMaiRemoteService = new KhuyenMaiRemoteService(socketConnection);
 
         this.donDatMonService = new DonDatMonRemoteService(socketConnection);
@@ -1351,11 +1352,7 @@ public class ManHinhBanGUI extends JPanel {
         }
 
         try {
-            ChiTietHoaDonDTO filter = ChiTietHoaDonDTO.builder()
-                    .maDon(hoaDon.getMaDon())
-                    .build();
-
-            List<ChiTietHoaDonDTO> dsChiTiet = chiTietHoaDonService.getChiTietTheoMaDon(filter);
+            List<ChiTietHoaDonDTO> dsChiTiet = chiTietHoaDonRemoteService.getChiTietTheoMaDon(hoaDon.getMaDon());
 
             if (dsChiTiet == null) {
                 return 0;

@@ -11,12 +11,12 @@ import iuh.fit.core.mapper.JsonMapper;
 import iuh.fit.core.net.client.*;
 import iuh.fit.core.service.BanService;
 import iuh.fit.core.net.client.BanRemoteService;
+import iuh.fit.core.net.client.ChiTietHoaDonRemoteService;
 import iuh.fit.core.net.client.KhachHangRemoteService;
 import iuh.fit.core.net.client.KhuyenMaiRemoteService;
 import iuh.fit.core.net.client.MonAnAdminRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
 import iuh.fit.core.net.client.NhanVienRemoteService;
-import iuh.fit.core.service.ChiTietHoaDonService;
 import iuh.fit.core.service.DonDatMonService;
 import iuh.fit.core.service.HoaDonService;
 
@@ -53,7 +53,7 @@ public class BillPanel extends JPanel {
     private ManHinhGoiMonGUI parentGoiMonGUI;
     private ManHinhBanGUI parentBanGUI;
 
-    private ChiTietHoaDonService chiTietHoaDonService;
+    private ChiTietHoaDonRemoteService chiTietHoaDonRemoteService;
     private HoaDonService hoaDonService;
     private BanRemoteService banRemoteService;
     private NhanVienRemoteService nhanVienRemoteService;
@@ -89,7 +89,9 @@ public class BillPanel extends JPanel {
     }
 
     private void initCommon() {
-        this.chiTietHoaDonService = new ChiTietHoaDonService();
+        this.chiTietHoaDonRemoteService = NetClientContext.isReady()
+                ? new ChiTietHoaDonRemoteService(NetClientContext.getConnection())
+                : null;
         this.hoaDonService = new HoaDonService();
 
         this.banRemoteService = NetClientContext.isReady()
@@ -217,7 +219,9 @@ public class BillPanel extends JPanel {
             ChiTietHoaDonDTO request = new ChiTietHoaDonDTO();
             request.setMaDon(activeHoaDon.getMaDon());
 
-            dsMonHienTai = chiTietHoaDonService.getChiTietTheoMaDon(request);
+            dsMonHienTai = chiTietHoaDonRemoteService != null
+                    ? chiTietHoaDonRemoteService.getChiTietTheoMaDon(activeHoaDon.getMaDon())
+                    : new ArrayList<>();
             activeHoaDon = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
 
             if (dsMonHienTai != null) {
@@ -239,8 +243,9 @@ public class BillPanel extends JPanel {
             ChiTietHoaDonDTO request = new ChiTietHoaDonDTO();
             request.setMaDon(activeHoaDon.getMaDon());
 
-            dsMonHienTai = chiTietHoaDonService.getChiTietTheoMaDon(request);
-
+            dsMonHienTai = chiTietHoaDonRemoteService != null
+                    ? chiTietHoaDonRemoteService.getChiTietTheoMaDon(activeHoaDon.getMaDon())
+                    : new ArrayList<>();
             activeHoaDon = hoaDonService.tinhLaiGiamGiaVaTongTien(activeHoaDon);
 
             if (dsMonHienTai != null) {
@@ -523,7 +528,9 @@ public class BillPanel extends JPanel {
                 ChiTietHoaDonDTO request = new ChiTietHoaDonDTO();
                 request.setMaDon(hd.getMaDon());
 
-                list = chiTietHoaDonService.getChiTietTheoMaDon(request);
+                list = chiTietHoaDonRemoteService != null
+                        ? chiTietHoaDonRemoteService.getChiTietTheoMaDon(hd.getMaDon())
+                        : new ArrayList<>();
             }
         }
 
@@ -589,10 +596,9 @@ public class BillPanel extends JPanel {
             }
         }
 
-        ChiTietHoaDonDTO request = new ChiTietHoaDonDTO();
-        request.setMaDon(maDon);
-
-        List<ChiTietHoaDonDTO> itemsTrongDBList = chiTietHoaDonService.getChiTietTheoMaDon(request);
+        List<ChiTietHoaDonDTO> itemsTrongDBList = chiTietHoaDonRemoteService != null
+                ? chiTietHoaDonRemoteService.getChiTietTheoMaDon(maDon)
+                : new ArrayList<>();
 
         Map<String, ChiTietHoaDonDTO> itemsTrongDB = new HashMap<>();
         for (ChiTietHoaDonDTO ct : itemsTrongDBList) {
@@ -602,74 +608,43 @@ public class BillPanel extends JPanel {
         boolean coLoi = false;
 
         try {
+            List<ChiTietHoaDonDTO> finalItems = new ArrayList<>();
             for (Map.Entry<String, Integer> entryGUI : itemsTrenGUI.entrySet()) {
                 String maMonGUI = entryGUI.getKey();
                 int soLuongGUI = entryGUI.getValue();
 
-                if (!itemsTrongDB.containsKey(maMonGUI)) {
-                    float donGia = donGiaTrenGUI.getOrDefault(maMonGUI, 0f);
+                float donGia = donGiaTrenGUI.getOrDefault(maMonGUI, 0f);
 
-                    if (donGia <= 0) {
-                        iuh.fit.core.dto.MonAnDTO monAn = monAnAdminRemoteService != null
-                                ? monAnAdminRemoteService.findById(maMonGUI)
-                                : null;
-                        if (monAn != null) {
-                            donGia = monAn.getDonGia();
-                        }
-                    }
+                if (donGia <= 0) {
+                    iuh.fit.core.dto.MonAnDTO monAn = monAnAdminRemoteService != null
+                            ? monAnAdminRemoteService.findById(maMonGUI)
+                            : null;
 
-                    if (donGia > 0) {
-                        ChiTietHoaDonDTO ctMoi = new ChiTietHoaDonDTO();
-                        ctMoi.setMaDon(maDon);
-                        ctMoi.setMaMonAn(maMonGUI);
-                        ctMoi.setSoLuong(soLuongGUI);
-                        ctMoi.setDonGia(donGia);
-                        ctMoi.setThanhTien(soLuongGUI * donGia);
-
-                        if (!chiTietHoaDonService.themChiTiet(ctMoi)) {
-                            coLoi = true;
-                            System.err.println("Lỗi khi thêm chi tiết: " + maMonGUI);
-                        }
-                    } else {
-                        System.err.println("Không tìm thấy đơn giá cho món mới: " + maMonGUI);
+                    if (monAn != null) {
+                        donGia = monAn.getDonGia();
                     }
                 }
-            }
 
-            for (Map.Entry<String, ChiTietHoaDonDTO> entryDB : itemsTrongDB.entrySet()) {
-                String maMonDB = entryDB.getKey();
-
-                if (!itemsTrenGUI.containsKey(maMonDB)) {
-                    ChiTietHoaDonDTO deleteDTO = new ChiTietHoaDonDTO();
-                    deleteDTO.setMaDon(maDon);
-                    deleteDTO.setMaMonAn(maMonDB);
-
-                    if (!chiTietHoaDonService.xoaChiTiet(deleteDTO)) {
-                        coLoi = true;
-                        System.err.println("Lỗi khi xóa chi tiết: " + maMonDB);
-                    }
+                if (donGia <= 0) {
+                    coLoi = true;
+                    System.err.println("Không tìm thấy đơn giá cho món: " + maMonGUI);
+                    continue;
                 }
+
+                ChiTietHoaDonDTO ct = new ChiTietHoaDonDTO();
+                ct.setMaDon(maDon);
+                ct.setMaMonAn(maMonGUI);
+                ct.setSoLuong(soLuongGUI);
+                ct.setDonGia(donGia);
+                ct.setThanhTien(soLuongGUI * donGia);
+                finalItems.add(ct);
             }
 
-            for (Map.Entry<String, Integer> entryGUI : itemsTrenGUI.entrySet()) {
-                String maMonGUI = entryGUI.getKey();
-                int soLuongGUI = entryGUI.getValue();
-
-                if (itemsTrongDB.containsKey(maMonGUI)) {
-                    ChiTietHoaDonDTO ctTrongDB = itemsTrongDB.get(maMonGUI);
-
-                    if (ctTrongDB.getSoLuong() != soLuongGUI) {
-                        ChiTietHoaDonDTO updateDTO = new ChiTietHoaDonDTO();
-                        updateDTO.setMaDon(maDon);
-                        updateDTO.setMaMonAn(maMonGUI);
-                        updateDTO.setSoLuong(soLuongGUI);
-                        updateDTO.setDonGia(ctTrongDB.getDonGia());
-
-                        if (!chiTietHoaDonService.suaChiTiet(updateDTO)) {
-                            coLoi = true;
-                            System.err.println("Lỗi khi sửa chi tiết: " + maMonGUI);
-                        }
-                    }
+            if (!coLoi && chiTietHoaDonRemoteService != null) {
+                boolean replaceOk = chiTietHoaDonRemoteService.replaceByMaDon(maDon, finalItems);
+                if (!replaceOk) {
+                    coLoi = true;
+                    System.err.println("Lỗi replace chi tiết hóa đơn qua remote.");
                 }
             }
 

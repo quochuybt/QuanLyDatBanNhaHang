@@ -10,7 +10,6 @@ import iuh.fit.core.net.dto.hoadon.HoaDonTotalRequestDTO;
 import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.dto.GiaoCaDTO;
-import iuh.fit.core.service.ChiTietHoaDonService;
 import iuh.fit.core.service.GiaoCaService;
 import iuh.fit.core.service.HoaDonService;
 import org.knowm.xchart.*;
@@ -70,7 +69,6 @@ public class DashboardQuanLyGUI extends JPanel {
 
     private final HoaDonService hoaDonService = new HoaDonService();
     private final GiaoCaService giaoCaService = new GiaoCaService();
-    private final ChiTietHoaDonService chiTietHoaDonService = new ChiTietHoaDonService();
 
     private final DashboardRemoteService dashboardRemoteService;
     private final HoaDonRemoteService hoaDonRemoteService;
@@ -612,9 +610,6 @@ public class DashboardQuanLyGUI extends JPanel {
                 if (dashboardRemoteService != null) {
                     topSellingItems = dashboardRemoteService.getTopSellingItems(startDate, endDate, 5);
                     leastSellingItems = dashboardRemoteService.getLeastSellingItems(startDate, endDate, 5);
-                } else {
-                    topSellingItems = chiTietHoaDonService.getTopSellingItems(startDate, endDate, 5);
-                    leastSellingItems = chiTietHoaDonService.getLeastSellingItems(startDate, endDate, 5);
                 }
 
                 return null;
