@@ -146,12 +146,30 @@ public class HoaDonService {
             return false;
         }
 
-        // Gọi thẳng xuống Repository để update 3 trường liên quan đến tiền
+        String maHD = dto.getMaHD().trim();
+
+        float tongTien = dto.getTongTien();
+        float giamGia = dto.getGiamGia();
+
+        if (tongTien < 0) {
+            tongTien = 0f;
+        }
+
+        if (giamGia < 0) {
+            giamGia = 0f;
+        }
+
+        if (giamGia > tongTien) {
+            giamGia = tongTien;
+        }
+
+        float tongThanhToan = Math.max(0f, tongTien - giamGia);
+
         return repository.capNhatTongTien(
-                dto.getMaHD(),
-                dto.getTongTien(),
-                dto.getGiamGia(),
-                dto.getTongThanhToan()
+                maHD,
+                tongTien,
+                giamGia,
+                tongThanhToan
         );
     }
 }

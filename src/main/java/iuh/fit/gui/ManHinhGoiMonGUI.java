@@ -805,14 +805,18 @@ public class ManHinhGoiMonGUI extends JPanel {
             return;
         }
 
-        float tongTien = 0;
+        float tongTien = 0f;
 
         for (int i = 0; i < modelChiTietHoaDon.getRowCount(); i++) {
             tongTien += toFloat(modelChiTietHoaDon.getValueAt(i, 5));
         }
 
+        float giamGia = activeHoaDon.getGiamGia();
+        float tongThanhToan = Math.max(0f, tongTien - giamGia);
+
         activeHoaDon.setTongTien(tongTien);
-        activeHoaDon.setTongThanhToan(tongTien);
+        activeHoaDon.setGiamGia(giamGia);
+        activeHoaDon.setTongThanhToan(tongThanhToan);
 
         hoaDonRemoteService.capNhatTongTien(activeHoaDon);
     }

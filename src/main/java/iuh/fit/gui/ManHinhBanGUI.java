@@ -1263,10 +1263,15 @@ public class ManHinhBanGUI extends JPanel {
 
         long tongThanhToan = getLongValue(
                 hoaDon,
-                tongTien - giamGia,
+                0,
                 "getTongThanhToan",
                 "getTongthanhtoan"
         );
+
+        // FIX: nếu DB/DTO chưa cập nhật tongThanhToan thì tự tính lại từ tongTien - giamGia
+        if (tongThanhToan <= 0 && tongTien > 0) {
+            tongThanhToan = Math.max(0, tongTien - giamGia);
+        }
 
         int tongSoLuong = tinhTongSoLuongTheoHoaDon(hoaDon);
 
