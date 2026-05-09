@@ -2,14 +2,21 @@ package iuh.fit.core.net.server.handler;
 
 import iuh.fit.core.dto.BanDTO;
 import iuh.fit.core.net.dto.ban.BanActionRequest;
+import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.net.server.dispatch.CommandHandler;
 import iuh.fit.core.net.server.session.ClientSession;
+import iuh.fit.core.net.server.session.SessionRegistry;
 import iuh.fit.core.service.BanService;
 
 public class BanChuyenBanHandler extends BaseCommandHandler implements CommandHandler {
 
     private final BanService banService = new BanService();
+    private final SessionRegistry sessionRegistry;
+
+    public BanChuyenBanHandler(SessionRegistry sessionRegistry) {
+        this.sessionRegistry = sessionRegistry;
+    }
 
     @Override
     public MessageEnvelope handle(ClientSession session, MessageEnvelope request) {
@@ -36,6 +43,21 @@ public class BanChuyenBanHandler extends BaseCommandHandler implements CommandHa
                     + ", messageId=" + request.getMessageId()
                     + ", banCu=" + banCu.getMaBan()
                     + ", banMoi=" + banMoi.getMaBan());
+
+            if (success) {
+                sessionRegistry.broadcastBusinessEvent(
+                        EventType.TABLE_STATUS_CHANGED,
+                        request.getName(),
+                        "BAN",
+                        banMoi.getMaBan(),
+                        "UPDATED",
+                        session.getTenTK(),
+                        java.util.Map.of(
+                                "banCu", banCu.getMaBan(),
+                                "banMoi", banMoi.getMaBan()
+                        )
+                );
+            }
 
             return ok(request, success);
         }, "Lỗi server khi chuyển bàn.");

@@ -5,8 +5,11 @@ import iuh.fit.core.net.protocol.JsonCodec;
 import iuh.fit.core.net.protocol.MessageEnvelope;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SessionRegistry {
@@ -50,5 +53,45 @@ public class SessionRegistry {
 
     public Collection<ClientSession> allSessions() {
         return bySessionId.values();
+    }
+
+    public void broadcastEvent(EventType eventType, Map<String, Object> payload) {
+        MessageEnvelope event = MessageEnvelope.event(
+                eventType.name(),
+                JsonCodec.toJsonNode(payload != null ? payload : Map.of())
+        );
+
+        for (ClientSession s : allSessions()) {
+            try {
+                s.send(event);
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
+    /**
+     * Broadcast payload chuẩn cho realtime business event.
+     */
+    public void broadcastBusinessEvent(
+            EventType eventType,
+            String sourceCommand,
+            String entityType,
+            String entityId,
+            String changeType,
+            String actor,
+            Map<String, Object> data
+    ) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("eventId", UUID.randomUUID().toString());
+        payload.put("eventType", eventType.name());
+        payload.put("sourceCommand", sourceCommand);
+        payload.put("entityType", entityType);
+        payload.put("entityId", entityId);
+        payload.put("changeType", changeType);
+        payload.put("occurredAt", LocalDateTime.now().toString());
+        payload.put("actor", actor != null && !actor.isBlank() ? actor : "system");
+        payload.put("data", data != null ? data : Map.of());
+
+        broadcastEvent(eventType, payload);
     }
 }

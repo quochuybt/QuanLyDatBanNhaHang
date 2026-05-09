@@ -22,8 +22,8 @@ public class CommandDispatcher {
         handlers.put(CommandAction.HOADON_GET_DETAIL.name(), new HoaDonGetDetailHandler());
 
         handlers.put(CommandAction.HOADON_GET_CHUA_THANH_TOAN_BY_BAN.name(), new HoaDonGetChuaThanhToanByBanHandler());
-        handlers.put(CommandAction.HOADON_MO_BAN_TAO_HOA_DON.name(), new HoaDonMoBanTaoHoaDonHandler());
-        handlers.put(CommandAction.HOADON_CAP_NHAT_TONG_TIEN.name(), new HoaDonCapNhatTongTienHandler());
+        handlers.put(CommandAction.HOADON_MO_BAN_TAO_HOA_DON.name(), new HoaDonMoBanTaoHoaDonHandler(sessionRegistry));
+        handlers.put(CommandAction.HOADON_CAP_NHAT_TONG_TIEN.name(), new HoaDonCapNhatTongTienHandler(sessionRegistry));
 
         // ===== Dashboard (read) =====
         handlers.put(CommandAction.DASHBOARD_DAILY_REVENUE.name(), new DashboardDailyRevenueHandler());
@@ -32,8 +32,8 @@ public class CommandDispatcher {
         handlers.put(CommandAction.DASHBOARD_TABLE_STATUS_COUNTS.name(), new DashboardTableStatusHandler());
 
         // ===== Phase 3 (write) - skeleton =====
-        handlers.put(CommandAction.PHANCONG_ADD.name(), new PhanCongAddHandler());
-        handlers.put(CommandAction.PHANCONG_REMOVE.name(), new PhanCongRemoveHandler());
+        handlers.put(CommandAction.PHANCONG_ADD.name(), new PhanCongAddHandler(sessionRegistry));
+        handlers.put(CommandAction.PHANCONG_REMOVE.name(), new PhanCongRemoveHandler(sessionRegistry));
         handlers.put(CommandAction.PHANCONG_LIST_BY_DATE.name(), new PhanCongListByDateHandler());
 
         // ===== Nhân viên =====
@@ -46,9 +46,9 @@ public class CommandDispatcher {
         handlers.put(CommandAction.NHANVIEN_GET_ACCOUNT_STATUS.name(), new NhanVienGetAccountStatusHandler());
 
         handlers.put(CommandAction.BAN_GET_ALL.name(), new BanGetAllHandler());
-        handlers.put(CommandAction.BAN_UPDATE_STATUS.name(), new BanUpdateStatusHandler());
-        handlers.put(CommandAction.BAN_CHUYEN_BAN.name(), new BanChuyenBanHandler());
-        handlers.put(CommandAction.BAN_GHEP_BAN.name(), new BanGhepBanHandler());
+        handlers.put(CommandAction.BAN_UPDATE_STATUS.name(), new BanUpdateStatusHandler(sessionRegistry));
+        handlers.put(CommandAction.BAN_CHUYEN_BAN.name(), new BanChuyenBanHandler(sessionRegistry));
+        handlers.put(CommandAction.BAN_GHEP_BAN.name(), new BanGhepBanHandler(sessionRegistry));
 
         handlers.put(CommandAction.KHACHHANG_ADD.name(), new KhachHangAddHandler());
         handlers.put(CommandAction.KHACHHANG_UPDATE.name(), new KhachHangUpdateHandler());

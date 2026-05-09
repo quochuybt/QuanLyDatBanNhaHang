@@ -4,8 +4,11 @@ import iuh.fit.core.entity.CaLam;
 import iuh.fit.core.entity.NhanVien;
 import iuh.fit.core.entity.PhanCong;
 import iuh.fit.core.entity.VaiTro;
+import iuh.fit.core.net.client.ClientEventListener;
 import iuh.fit.core.net.client.NhanVienRemoteService;
 import iuh.fit.core.net.client.SocketClientConnection;
+import iuh.fit.core.net.protocol.EventType;
+import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.service.PhanCongService;
 
 import javax.swing.*;
@@ -75,6 +78,16 @@ public class LichLamViecGUI extends JPanel {
             throw new IllegalStateException("Không có kết nối remote cho màn lịch làm việc.");
         }
         this.nhanVienRemoteService = new NhanVienRemoteService(connection);
+
+        connection.addEventListener(new ClientEventListener() {
+            @Override
+            public void onEvent(MessageEnvelope event) {
+                if (event == null || event.getName() == null) return;
+                if (EventType.SHIFT_UPDATED.name().equals(event.getName())) {
+                    SwingUtilities.invokeLater(LichLamViecGUI.this::reloadData);
+                }
+            }
+        });
 
         setLayout(new BorderLayout(0, 15));
         setBorder(new EmptyBorder(20, 25, 20, 25));

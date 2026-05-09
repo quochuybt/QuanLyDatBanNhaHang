@@ -2,10 +2,13 @@ package iuh.fit.gui;
 
 import com.toedter.calendar.JDateChooser;
 
+import iuh.fit.core.net.client.ClientEventListener;
 import iuh.fit.core.net.client.DashboardRemoteService;
 import iuh.fit.core.net.client.HoaDonRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
 import iuh.fit.core.net.dto.hoadon.HoaDonTotalRequestDTO;
+import iuh.fit.core.net.protocol.EventType;
+import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.dto.GiaoCaDTO;
 import iuh.fit.core.service.BanService;
 import iuh.fit.core.service.ChiTietHoaDonService;
@@ -81,6 +84,18 @@ public class DashboardQuanLyGUI extends JPanel {
         if (NetClientContext.isReady()) {
             dashboardRemoteService = new DashboardRemoteService(NetClientContext.getConnection());
             hoaDonRemoteService = new HoaDonRemoteService(NetClientContext.getConnection());
+
+            NetClientContext.getConnection().addEventListener(new ClientEventListener() {
+                @Override
+                public void onEvent(MessageEnvelope event) {
+                    if (event == null || event.getName() == null) return;
+                    String name = event.getName();
+                    if (EventType.TABLE_STATUS_CHANGED.name().equals(name)
+                            || EventType.INVOICE_UPDATED.name().equals(name)) {
+                        SwingUtilities.invokeLater(DashboardQuanLyGUI.this::loadDashboardData);
+                    }
+                }
+            });
         } else {
             dashboardRemoteService = null;
             hoaDonRemoteService = null;

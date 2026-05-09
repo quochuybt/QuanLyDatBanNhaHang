@@ -2,7 +2,10 @@ package iuh.fit.gui;
 
 import iuh.fit.core.dto.BanDTO;
 import iuh.fit.core.mapper.JsonMapper;
+import iuh.fit.core.net.client.ClientEventListener;
 import iuh.fit.core.net.client.SocketClientConnection;
+import iuh.fit.core.net.protocol.EventType;
+import iuh.fit.core.net.protocol.MessageEnvelope;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -43,6 +46,16 @@ public class DanhSachBanGUI extends JPanel implements ActionListener {
                 connection,
                 "SocketClientConnection không được null."
         );
+
+        this.connection.addEventListener(new ClientEventListener() {
+            @Override
+            public void onEvent(MessageEnvelope event) {
+                if (event == null || event.getName() == null) return;
+                if (EventType.TABLE_STATUS_CHANGED.name().equals(event.getName())) {
+                    SwingUtilities.invokeLater(DanhSachBanGUI.this::refreshManHinhBan);
+                }
+            }
+        });
 
         setLayout(new BorderLayout());
         setBorder(new EmptyBorder(20, 10, 0, 0));

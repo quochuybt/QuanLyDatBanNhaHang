@@ -3,9 +3,12 @@ package iuh.fit.gui;
 import iuh.fit.core.dto.CaLamDTO;
 import iuh.fit.core.dto.PhanCongDTO;
 import iuh.fit.core.entity.NhanVien;
+import iuh.fit.core.net.client.ClientEventListener;
 import iuh.fit.core.net.client.NhanVienRemoteService;
 import iuh.fit.core.net.client.PhanCongRemoteService;
 import iuh.fit.core.net.client.SocketClientConnection;
+import iuh.fit.core.net.protocol.EventType;
+import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.service.CaLamService;
 
 import javax.swing.*;
@@ -61,6 +64,16 @@ public class AssignShiftDialog extends JDialog {
         Objects.requireNonNull(socketConnection, "SocketClientConnection không được null.");
         this.phanCongRemoteService = new PhanCongRemoteService(socketConnection);
         this.nhanVienRemoteService = new NhanVienRemoteService(socketConnection);
+
+        socketConnection.addEventListener(new ClientEventListener() {
+            @Override
+            public void onEvent(MessageEnvelope event) {
+                if (event == null || event.getName() == null) return;
+                if (EventType.SHIFT_UPDATED.name().equals(event.getName())) {
+                    SwingUtilities.invokeLater(AssignShiftDialog.this::reloadNhanVienTheoCaVaNgay);
+                }
+            }
+        });
 
         setSize(700, 500);
         setLocationRelativeTo(owner);

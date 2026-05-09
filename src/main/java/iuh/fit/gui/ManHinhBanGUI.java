@@ -6,7 +6,10 @@ import iuh.fit.core.entity.TrangThaiBan;
 import iuh.fit.core.mapper.JsonMapper;
 import iuh.fit.core.net.client.BanRemoteService;
 import iuh.fit.core.net.client.KhuyenMaiRemoteService;
+import iuh.fit.core.net.client.ClientEventListener;
 import iuh.fit.core.net.client.SocketClientConnection;
+import iuh.fit.core.net.protocol.EventType;
+import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.service.*;
 
 import javax.swing.*;
@@ -143,6 +146,18 @@ public class ManHinhBanGUI extends JPanel {
                 Objects.requireNonNull(socketConnection, "SocketClientConnection không được null.")
         );
         this.khuyenMaiRemoteService = new KhuyenMaiRemoteService(socketConnection);
+
+        socketConnection.addEventListener(new ClientEventListener() {
+            @Override
+            public void onEvent(MessageEnvelope event) {
+                if (event == null || event.getName() == null) {
+                    return;
+                }
+                if (EventType.TABLE_STATUS_CHANGED.name().equals(event.getName())) {
+                    SwingUtilities.invokeLater(ManHinhBanGUI.this::refreshTableList);
+                }
+            }
+        });
 
         buildUI();
         khoiTaoTuDongCapNhat();

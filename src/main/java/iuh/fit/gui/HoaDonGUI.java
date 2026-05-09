@@ -10,9 +10,12 @@ import iuh.fit.core.mapper.JsonMapper;
 import iuh.fit.core.net.client.HoaDonRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
 import iuh.fit.core.net.client.NhanVienRemoteService;
+import iuh.fit.core.net.client.ClientEventListener;
 import iuh.fit.core.net.dto.hoadon.HoaDonDetailRequestDTO;
 import iuh.fit.core.net.dto.hoadon.HoaDonPageRequestDTO;
 import iuh.fit.core.net.dto.hoadon.HoaDonTotalRequestDTO;
+import iuh.fit.core.net.protocol.EventType;
+import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.service.*;
 import iuh.fit.core.util.ExcelExporter;
 
@@ -81,6 +84,16 @@ public class HoaDonGUI extends JPanel {
         if (NetClientContext.isReady()) {
             hoaDonRemoteService = new HoaDonRemoteService(NetClientContext.getConnection());
             nhanVienRemoteService = new NhanVienRemoteService(NetClientContext.getConnection());
+
+            NetClientContext.getConnection().addEventListener(new ClientEventListener() {
+                @Override
+                public void onEvent(MessageEnvelope event) {
+                    if (event == null || event.getName() == null) return;
+                    if (EventType.INVOICE_UPDATED.name().equals(event.getName())) {
+                        SwingUtilities.invokeLater(HoaDonGUI.this::loadDataForCurrentPage);
+                    }
+                }
+            });
         } else {
             hoaDonRemoteService = null;
             nhanVienRemoteService = null;

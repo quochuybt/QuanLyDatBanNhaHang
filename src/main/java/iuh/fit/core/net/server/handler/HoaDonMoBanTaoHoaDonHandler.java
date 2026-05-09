@@ -2,14 +2,21 @@ package iuh.fit.core.net.server.handler;
 
 import iuh.fit.core.dto.HoaDonDTO;
 import iuh.fit.core.net.dto.ban.MoBanRequest;
+import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.net.server.dispatch.CommandHandler;
 import iuh.fit.core.net.server.session.ClientSession;
+import iuh.fit.core.net.server.session.SessionRegistry;
 import iuh.fit.core.service.HoaDonService;
 
 public class HoaDonMoBanTaoHoaDonHandler extends BaseCommandHandler implements CommandHandler {
 
     private final HoaDonService hoaDonService = new HoaDonService();
+    private final SessionRegistry sessionRegistry;
+
+    public HoaDonMoBanTaoHoaDonHandler(SessionRegistry sessionRegistry) {
+        this.sessionRegistry = sessionRegistry;
+    }
 
     @Override
     public MessageEnvelope handle(ClientSession session, MessageEnvelope request) {
@@ -35,6 +42,32 @@ public class HoaDonMoBanTaoHoaDonHandler extends BaseCommandHandler implements C
                     + ", messageId=" + request.getMessageId()
                     + ", maBan=" + payload.getMaBan()
                     + ", maNV=" + payload.getMaNV());
+
+            if (result != null && result.getMaHD() != null) {
+                sessionRegistry.broadcastBusinessEvent(
+                        EventType.INVOICE_UPDATED,
+                        request.getName(),
+                        "HOADON",
+                        result.getMaHD(),
+                        "CREATED",
+                        session.getTenTK(),
+                        java.util.Map.of(
+                                "maHD", result.getMaHD(),
+                                "maBan", payload.getMaBan()
+                        )
+                );
+                sessionRegistry.broadcastBusinessEvent(
+                        EventType.TABLE_STATUS_CHANGED,
+                        request.getName(),
+                        "BAN",
+                        payload.getMaBan(),
+                        "STATUS_CHANGED",
+                        session.getTenTK(),
+                        java.util.Map.of(
+                                "maBan", payload.getMaBan()
+                        )
+                );
+            }
 
             return ok(request, result);
         }, "Lỗi server khi mở bàn và tạo hóa đơn.");
