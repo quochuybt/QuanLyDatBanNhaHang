@@ -1,0 +1,24 @@
+package iuh.fit.core.net.server.handler;
+
+import iuh.fit.core.net.dto.common.IdRequest;
+import iuh.fit.core.net.protocol.MessageEnvelope;
+import iuh.fit.core.net.server.dispatch.CommandHandler;
+import iuh.fit.core.net.server.session.ClientSession;
+import iuh.fit.core.service.MonAnService;
+
+public class MonAnAdminDeleteHandler extends BaseCommandHandler implements CommandHandler {
+
+    private final MonAnService monAnService = new MonAnService();
+
+    @Override
+    public MessageEnvelope handle(ClientSession session, MessageEnvelope request) {
+        return execute(request, () -> {
+            IdRequest payload = parsePayload(request, IdRequest.class);
+            requireNotNull(payload, "Payload không hợp lệ.");
+            requireNotBlank(payload.getId(), "Mã món không được để trống.");
+
+            monAnService.delete(payload.getId());
+            return ok(request, true);
+        }, "Lỗi server khi xóa món ăn.");
+    }
+}

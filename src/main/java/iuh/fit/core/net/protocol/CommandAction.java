@@ -63,6 +63,7 @@ public enum CommandAction {
     MONAN_ADMIN_ADD,
     MONAN_ADMIN_UPDATE,
     MONAN_ADMIN_UPDATE_STATUS,
+    MONAN_ADMIN_DELETE,
 
     // ===== Tài khoản =====
     TAIKHOAN_UPDATE_PASSWORD,

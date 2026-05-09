@@ -842,7 +842,9 @@ public class ManHinhGoiMonGUI extends JPanel {
             boolean matchesCategory = currentCategoryFilter.equals("Tất cả")
                     || (mon.getTenDM() != null && mon.getTenDM().equals(currentCategoryFilter));
 
-            itemPanel.setVisible(matchesSearch && matchesCategory);
+            boolean dangKinhDoanh = "Còn".equalsIgnoreCase(mon.getTrangThai());
+
+            itemPanel.setVisible(matchesSearch && matchesCategory && dangKinhDoanh);
         }
 
         pnlMenuItemContainer.revalidate();

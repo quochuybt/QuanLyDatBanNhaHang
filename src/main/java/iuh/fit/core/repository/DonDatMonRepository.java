@@ -198,8 +198,9 @@ public class DonDatMonRepository extends GenericRepository<DonDatMon, String> {
                         banPhu.setTenBan(tenGoc);
                         em.merge(banPhu);
                     }
-                    // Xóa đơn ảo
-                    em.remove(donPhu);
+                    // Soft-delete đơn ảo
+                    donPhu.softDelete();
+                    em.merge(donPhu);
                 }
             }
 
@@ -212,8 +213,9 @@ public class DonDatMonRepository extends GenericRepository<DonDatMon, String> {
                 em.merge(banChinh);
             }
 
-            // 3. Xóa Đơn Chính
-            em.remove(donChinh);
+            // 3. Soft-delete Đơn Chính
+            donChinh.softDelete();
+            em.merge(donChinh);
 
             return true;
         });

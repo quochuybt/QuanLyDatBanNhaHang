@@ -64,7 +64,8 @@ public class DanhMucMonRepository extends GenericRepository<DanhMucMon, String> 
                 return false;
             }
 
-            em.remove(dm);
+            dm.softDelete();
+            em.merge(dm);
             return true;
         });
     }

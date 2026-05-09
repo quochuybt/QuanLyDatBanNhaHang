@@ -8,10 +8,11 @@ import java.util.Objects;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
+@EqualsAndHashCode(callSuper = false)
 @Entity
 @Table(name = "GiaoCa")
 @Builder
-public class GiaoCa {
+public class GiaoCa extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

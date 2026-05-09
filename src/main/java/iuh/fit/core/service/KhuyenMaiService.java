@@ -75,9 +75,11 @@ public class KhuyenMaiService {
     }
 
     public void delete(String maKM) {
-        if (repo.findById(maKM) == null)
+        KhuyenMai km = repo.findById(maKM);
+        if (km == null)
             throw new IllegalArgumentException("Không tồn tại khuyến mãi");
-        repo.delete(maKM);
+        km.softDelete();
+        repo.update(km);
     }
 
     /**
