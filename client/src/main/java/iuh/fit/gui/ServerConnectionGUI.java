@@ -162,7 +162,7 @@ public class ServerConnectionGUI extends JFrame {
         new SwingWorker<SocketClientConnection, Void>() {
             @Override
             protected SocketClientConnection doInBackground() {
-                SocketClientConnection connection = new SocketClientConnection(host, finalPort, 5000, 15000);
+                SocketClientConnection connection = new SocketClientConnection(host, finalPort, 5000, 30000);
                 connection.connect();
                 return connection;
             }
@@ -214,7 +214,7 @@ public class ServerConnectionGUI extends JFrame {
                         selected.getHost(),
                         selected.getPort(),
                         5000,
-                        15000
+                        30000
                 );
                 connection.connect();
                 return connection;
