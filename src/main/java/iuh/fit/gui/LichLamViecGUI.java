@@ -1,15 +1,13 @@
 package iuh.fit.gui;
 
-import iuh.fit.core.entity.CaLam;
 import iuh.fit.core.entity.NhanVien;
-import iuh.fit.core.entity.PhanCong;
 import iuh.fit.core.entity.VaiTro;
 import iuh.fit.core.net.client.ClientEventListener;
 import iuh.fit.core.net.client.NhanVienRemoteService;
+import iuh.fit.core.net.client.PhanCongRemoteService;
 import iuh.fit.core.net.client.SocketClientConnection;
 import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.MessageEnvelope;
-import iuh.fit.core.service.PhanCongService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -21,7 +19,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -49,7 +46,7 @@ public class LichLamViecGUI extends JPanel {
     private static final Font FONT_CARD_BODY_BOLD = new Font("Arial", Font.BOLD, 14);
     private static final Font FONT_NAVIGATION = new Font("Arial", Font.BOLD, 16);
 
-    private final PhanCongService phanCongService = new PhanCongService();
+    private final PhanCongRemoteService phanCongRemoteService;
     private final NhanVienRemoteService nhanVienRemoteService;
 
     private final VaiTro currentUserRole;
@@ -77,6 +74,7 @@ public class LichLamViecGUI extends JPanel {
         if (connection == null) {
             throw new IllegalStateException("Không có kết nối remote cho màn lịch làm việc.");
         }
+        this.phanCongRemoteService = new PhanCongRemoteService(connection);
         this.nhanVienRemoteService = new NhanVienRemoteService(connection);
 
         connection.addEventListener(new ClientEventListener() {
@@ -198,7 +196,7 @@ public class LichLamViecGUI extends JPanel {
                     end.format(weekRangeFormatter)
             ));
 
-            List<PhanCong> data = phanCongService.getPhanCongChiTiet(weekStart, end);
+            List<iuh.fit.core.dto.PhanCongDTO> data = phanCongRemoteService.findByDateRange(weekStart, end);
 
             weekDisplayPanel.removeAll();
             weekDisplayPanel.add(createWeekPanel(data), BorderLayout.CENTER);
@@ -216,13 +214,13 @@ public class LichLamViecGUI extends JPanel {
         }
     }
 
-    private JPanel createWeekPanel(List<PhanCong> data) {
+    private JPanel createWeekPanel(List<iuh.fit.core.dto.PhanCongDTO> data) {
         JPanel weekPanel = new JPanel(new GridLayout(1, 7, 15, 15));
         weekPanel.setOpaque(false);
 
-        Map<LocalDate, List<PhanCong>> mapTheoNgay = data.stream()
+        Map<LocalDate, List<iuh.fit.core.dto.PhanCongDTO>> mapTheoNgay = data.stream()
                 .filter(pc -> pc.getNgayLam() != null)
-                .collect(Collectors.groupingBy(PhanCong::getNgayLam));
+                .collect(Collectors.groupingBy(iuh.fit.core.dto.PhanCongDTO::getNgayLam));
 
         Locale vi = new Locale("vi", "VN");
 
@@ -234,7 +232,7 @@ public class LichLamViecGUI extends JPanel {
 
             tenThu = tenThu.substring(0, 1).toUpperCase() + tenThu.substring(1);
 
-            List<PhanCong> phanCongCuaNgay = mapTheoNgay.get(ngayTrongTuan);
+            List<iuh.fit.core.dto.PhanCongDTO> phanCongCuaNgay = mapTheoNgay.get(ngayTrongTuan);
 
             weekPanel.add(createDayColumn(tenThu, ngayTrongTuan, phanCongCuaNgay));
         }
@@ -242,7 +240,7 @@ public class LichLamViecGUI extends JPanel {
         return weekPanel;
     }
 
-    private JPanel createDayColumn(String dayTitle, LocalDate ngayLam, List<PhanCong> phanCongCuaNgay) {
+    private JPanel createDayColumn(String dayTitle, LocalDate ngayLam, List<iuh.fit.core.dto.PhanCongDTO> phanCongCuaNgay) {
         JPanel columnPanel = new JPanel(new BorderLayout(0, 10));
         columnPanel.setOpaque(false);
 
@@ -273,19 +271,16 @@ public class LichLamViecGUI extends JPanel {
         cardsContainer.setBorder(new EmptyBorder(10, 10, 10, 10));
 
         if (phanCongCuaNgay != null && !phanCongCuaNgay.isEmpty()) {
-            Map<CaLam, List<PhanCong>> mapTheoCa = phanCongCuaNgay.stream()
-                    .filter(pc -> pc.getCaLam() != null)
-                    .collect(Collectors.groupingBy(PhanCong::getCaLam));
+            Map<String, List<iuh.fit.core.dto.PhanCongDTO>> mapTheoCa = phanCongCuaNgay.stream()
+                    .filter(pc -> pc.getMaCa() != null)
+                    .collect(Collectors.groupingBy(iuh.fit.core.dto.PhanCongDTO::getMaCa));
 
-            List<CaLam> caLamSorted = mapTheoCa.keySet().stream()
-                    .filter(Objects::nonNull)
-                    .sorted(Comparator.comparing(CaLam::getGioBatDau))
-                    .collect(Collectors.toList());
+            List<String> maCaSorted = mapTheoCa.keySet().stream().sorted().collect(Collectors.toList());
 
-            for (CaLam ca : caLamSorted) {
-                List<PhanCong> dsPhanCongTrongCa = mapTheoCa.get(ca);
+            for (String maCa : maCaSorted) {
+                List<iuh.fit.core.dto.PhanCongDTO> dsPhanCongTrongCa = mapTheoCa.get(maCa);
 
-                cardsContainer.add(createShiftCard(ca, dsPhanCongTrongCa, ngayLam));
+                cardsContainer.add(createShiftCard(maCa, dsPhanCongTrongCa, ngayLam));
                 cardsContainer.add(Box.createRigidArea(new Dimension(0, 10)));
             }
         } else {
@@ -305,19 +300,13 @@ public class LichLamViecGUI extends JPanel {
         return columnPanel;
     }
 
-    private JPanel createShiftCard(CaLam ca, List<PhanCong> dsPhanCongTrongCa, LocalDate ngayLam) {
+    private JPanel createShiftCard(String maCa, List<iuh.fit.core.dto.PhanCongDTO> dsPhanCongTrongCa, LocalDate ngayLam) {
         RoundedPanel card = new RoundedPanel(12, COLOR_CARD_BG);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBorder(new EmptyBorder(12, 15, 12, 15));
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        String thoiGian = String.format(
-                "%s - %s",
-                ca.getGioBatDau() != null ? ca.getGioBatDau().format(timeFormatter) : "N/A",
-                ca.getGioKetThuc() != null ? ca.getGioKetThuc().format(timeFormatter) : "N/A"
-        );
-
-        JLabel lblTime = new JLabel(thoiGian);
+        JLabel lblTime = new JLabel(maCa != null ? maCa : "N/A");
         lblTime.setFont(FONT_CARD_TIME);
         card.add(lblTime);
 
@@ -330,16 +319,9 @@ public class LichLamViecGUI extends JPanel {
         card.add(Box.createRigidArea(new Dimension(0, 3)));
 
         if (dsPhanCongTrongCa != null && !dsPhanCongTrongCa.isEmpty()) {
-            for (PhanCong pc : dsPhanCongTrongCa) {
-                NhanVien nv = pc.getNhanVien();
-
-                String tenNV = "Không rõ";
-                String maNV = "";
-
-                if (nv != null) {
-                    tenNV = nv.getHoten() != null ? nv.getHoten() : "Không rõ";
-                    maNV = nv.getManv() != null ? " - " + nv.getManv() : "";
-                }
+            for (iuh.fit.core.dto.PhanCongDTO pc : dsPhanCongTrongCa) {
+                String tenNV = pc.getHoTenNV() != null ? pc.getHoTenNV() : "Không rõ";
+                String maNV = pc.getMaNV() != null ? " - " + pc.getMaNV() : "";
 
                 JLabel lblEmp = new JLabel(tenNV + maNV);
                 lblEmp.setFont(FONT_CARD_BODY);
@@ -354,7 +336,7 @@ public class LichLamViecGUI extends JPanel {
 
         if (currentUserRole == VaiTro.QUANLY) {
             card.add(Box.createRigidArea(new Dimension(0, 10)));
-            card.add(createAddEmployeeButton(ca, ngayLam, dsPhanCongTrongCa));
+            card.add(createAddEmployeeButton(maCa, ngayLam, dsPhanCongTrongCa));
         }
 
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, card.getPreferredSize().height));
@@ -362,7 +344,7 @@ public class LichLamViecGUI extends JPanel {
         return card;
     }
 
-    private JPanel createAddEmployeeButton(CaLam ca, LocalDate ngayLam, List<PhanCong> dsPhanCongTrongCa) {
+    private JPanel createAddEmployeeButton(String maCa, LocalDate ngayLam, List<iuh.fit.core.dto.PhanCongDTO> dsPhanCongTrongCa) {
         RoundedPanel pnlAdd = new RoundedPanel(8, COLOR_NOTE_BG_BLUE);
         pnlAdd.setLayout(new BoxLayout(pnlAdd, BoxLayout.X_AXIS));
         pnlAdd.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -379,25 +361,29 @@ public class LichLamViecGUI extends JPanel {
             @Override
             public void mouseClicked(MouseEvent e) {
                 List<NhanVien> dsDaPhanCong = getNhanVienDaPhanCong(dsPhanCongTrongCa);
-                showPhanCongDialog(ca, ngayLam, dsDaPhanCong);
+                showPhanCongDialog(maCa, ngayLam, dsDaPhanCong);
             }
         });
 
         return pnlAdd;
     }
 
-    private List<NhanVien> getNhanVienDaPhanCong(List<PhanCong> dsPhanCongTrongCa) {
+    private List<NhanVien> getNhanVienDaPhanCong(List<iuh.fit.core.dto.PhanCongDTO> dsPhanCongTrongCa) {
         if (dsPhanCongTrongCa == null) {
             return new ArrayList<>();
         }
 
         return dsPhanCongTrongCa.stream()
-                .map(PhanCong::getNhanVien)
-                .filter(Objects::nonNull)
+                .map(pc -> {
+                    NhanVien nv = new NhanVien();
+                    nv.setManv(pc.getMaNV());
+                    nv.setHoten(pc.getHoTenNV() != null ? pc.getHoTenNV() : "Không rõ");
+                    return nv;
+                })
                 .collect(Collectors.toList());
     }
 
-    private void showPhanCongDialog(CaLam ca, LocalDate ngayLam, List<NhanVien> dsDaPhanCong) {
+    private void showPhanCongDialog(String maCa, LocalDate ngayLam, List<NhanVien> dsDaPhanCong) {
         JDialog dialog = new JDialog(
                 (Frame) SwingUtilities.getWindowAncestor(this),
                 "Phân công nhân viên",
@@ -409,10 +395,8 @@ public class LichLamViecGUI extends JPanel {
         dialog.setLayout(new BorderLayout(10, 10));
 
         String title = String.format(
-                "Ca: %s (%s - %s) - Ngày: %s",
-                ca.getTenCa(),
-                ca.getGioBatDau() != null ? ca.getGioBatDau().format(timeFormatter) : "N/A",
-                ca.getGioKetThuc() != null ? ca.getGioKetThuc().format(timeFormatter) : "N/A",
+                "Ca: %s - Ngày: %s",
+                maCa,
                 ngayLam.format(fullDateFormatter)
         );
 
@@ -516,9 +500,9 @@ public class LichLamViecGUI extends JPanel {
             }
 
             try {
-                boolean success = phanCongService.themPhanCong(
+                boolean success = phanCongRemoteService.themPhanCong(
                         nv.getManv(),
-                        ca.getMaCa(),
+                        maCa,
                         ngayLam
                 );
 
@@ -551,9 +535,9 @@ public class LichLamViecGUI extends JPanel {
             }
 
             try {
-                boolean success = phanCongService.xoaPhanCong(
+                boolean success = phanCongRemoteService.xoaPhanCong(
                         nv.getManv(),
-                        ca.getMaCa(),
+                        maCa,
                         ngayLam
                 );
 

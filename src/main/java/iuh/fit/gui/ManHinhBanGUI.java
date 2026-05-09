@@ -7,7 +7,6 @@ import iuh.fit.core.mapper.JsonMapper;
 import iuh.fit.core.net.client.*;
 import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.MessageEnvelope;
-import iuh.fit.core.service.*;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -20,7 +19,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;

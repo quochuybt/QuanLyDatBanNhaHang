@@ -9,14 +9,12 @@ import iuh.fit.core.dto.NhanVienDTO;
 
 import iuh.fit.core.mapper.JsonMapper;
 import iuh.fit.core.net.client.*;
-import iuh.fit.core.service.BanService;
 import iuh.fit.core.net.client.BanRemoteService;
 import iuh.fit.core.net.client.ChiTietHoaDonRemoteService;
 import iuh.fit.core.net.client.KhachHangRemoteService;
 import iuh.fit.core.net.client.KhuyenMaiRemoteService;
 import iuh.fit.core.net.client.MonAnAdminRemoteService;
 import iuh.fit.core.net.client.HoaDonRemoteService;
-import iuh.fit.core.net.client.ChiTietHoaDonRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
 import iuh.fit.core.net.client.NhanVienRemoteService;
 

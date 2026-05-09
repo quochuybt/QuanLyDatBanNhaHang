@@ -3,7 +3,6 @@ package iuh.fit.core.net.client;
 import com.fasterxml.jackson.core.type.TypeReference;
 import iuh.fit.core.dto.ChiTietHoaDonDTO;
 import iuh.fit.core.net.dto.chitiethoadon.ChiTietHoaDonReplaceRequest;
-import iuh.fit.core.net.dto.dondatmon.MaDonRequest;
 import iuh.fit.core.net.protocol.CommandAction;
 import iuh.fit.core.net.protocol.JsonCodec;
 import iuh.fit.core.net.protocol.MessageEnvelope;

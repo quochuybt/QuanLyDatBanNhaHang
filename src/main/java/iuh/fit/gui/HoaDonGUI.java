@@ -12,13 +12,12 @@ import iuh.fit.core.net.client.DonDatMonRemoteService;
 import iuh.fit.core.net.client.HoaDonRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
 import iuh.fit.core.net.client.NhanVienRemoteService;
+import iuh.fit.core.net.client.SocketClientConnection;
 import iuh.fit.core.net.dto.hoadon.HoaDonDetailRequestDTO;
 import iuh.fit.core.net.dto.hoadon.HoaDonPageRequestDTO;
 import iuh.fit.core.net.dto.hoadon.HoaDonTotalRequestDTO;
 import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.MessageEnvelope;
-import iuh.fit.core.service.DonDatMonService;
-import iuh.fit.core.service.HoaDonService;
 import iuh.fit.core.util.ExcelExporter;
 
 import javax.swing.*;
@@ -39,13 +38,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 public class HoaDonGUI extends JPanel {
 
     // --- Services ---
-
-
-    private DonDatMonRemoteService donDatMonService;
     private final HoaDonRemoteService hoaDonRemoteService;
     private final NhanVienRemoteService nhanVienRemoteService;
     private final BanRemoteService banRemoteService;
@@ -98,15 +95,18 @@ public class HoaDonGUI extends JPanel {
     private static int printSessionCounter = 0;
 
     public HoaDonGUI() {
-        if (NetClientContext.isReady()) {
-            hoaDonRemoteService = new HoaDonRemoteService(NetClientContext.getConnection());
-            nhanVienRemoteService = new NhanVienRemoteService(NetClientContext.getConnection());
-            banRemoteService = new BanRemoteService(NetClientContext.getConnection());
+        this(Objects.requireNonNull(NetClientContext.getConnection(), "SocketClientConnection không được null."));
+    }
 
-            donDatMonRemoteService = new DonDatMonRemoteService(NetClientContext.getConnection());
-            chiTietHoaDonRemoteService = new ChiTietHoaDonRemoteService(NetClientContext.getConnection());
+    public HoaDonGUI(SocketClientConnection connection) {
+        Objects.requireNonNull(connection, "SocketClientConnection không được null.");
+        hoaDonRemoteService = new HoaDonRemoteService(connection);
+        nhanVienRemoteService = new NhanVienRemoteService(connection);
+        banRemoteService = new BanRemoteService(connection);
+        donDatMonRemoteService = new DonDatMonRemoteService(connection);
+        chiTietHoaDonRemoteService = new ChiTietHoaDonRemoteService(connection);
 
-            NetClientContext.getConnection().addEventListener(new ClientEventListener() {
+        connection.addEventListener(new ClientEventListener() {
                 @Override
                 public void onEvent(MessageEnvelope event) {
                     if (event == null || event.getName() == null) {
@@ -117,13 +117,7 @@ public class HoaDonGUI extends JPanel {
                         SwingUtilities.invokeLater(HoaDonGUI.this::loadDataForCurrentPage);
                     }
                 }
-            });
-        } else {
-            hoaDonRemoteService = null;
-            nhanVienRemoteService = null;
-            banRemoteService = null;
-            chiTietHoaDonRemoteService = null;
-        }
+        });
 
         setLayout(new BorderLayout(10, 10));
         setBackground(COLOR_BG_LIGHT);
@@ -919,7 +913,7 @@ public class HoaDonGUI extends JPanel {
             @Override
             protected Boolean doInBackground() {
                 try {
-                    long total;
+                    long total = 0;
 
                     if (hoaDonRemoteService != null) {
                         total = hoaDonRemoteService.getTotalHoaDonCount(
@@ -930,20 +924,9 @@ public class HoaDonGUI extends JPanel {
                                         .denNgay(dates[1])
                                         .build()
                         );
-                    } else {
-                        total = hoaDonService.getTotalHoaDonCount(
-                                trangThai,
-                                keyword,
-                                dates[0],
-                                dates[1]
-                        );
                     }
 
-                    if (total == 0) {
-                        return false;
-                    }
-
-                    List<HoaDonDTO> dtos;
+                    List<HoaDonDTO> dtos = List.of();
 
                     if (hoaDonRemoteService != null) {
                         dtos = hoaDonRemoteService.getHoaDonByPage(
@@ -956,16 +939,7 @@ public class HoaDonGUI extends JPanel {
                                         .denNgay(dates[1])
                                         .build()
                         );
-                    } else {
-                        dtos = hoaDonService.getHoaDonByPage(
-                                1,
-                                (int) total,
-                                trangThai,
-                                keyword,
-                                dates[0],
-                                dates[1]
-                        );
-                    }
+                    } 
 
                     ExcelExporter reporter = new ExcelExporter();
                     return reporter.exportHoaDonReport(dtos, finalPath);
@@ -976,29 +950,23 @@ public class HoaDonGUI extends JPanel {
                 }
             }
 
-                @Override
-                protected void done() {
-                    try {
-                        if (get()) {
-                            JOptionPane.showMessageDialog(
-                                    HoaDonGUI.this,
-                                    "Xuất file Excel thành công!",
-                                    "Thông báo",
-                                    JOptionPane.INFORMATION_MESSAGE);
-                        } else {
-                            JOptionPane.showMessageDialog(
-                                    HoaDonGUI.this,
-                                    "Xuất file thất bại hoặc không có dữ liệu.",
-                                    "Lỗi",
-                                    JOptionPane.ERROR_MESSAGE);
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
+            @Override
+            protected void done() {
+                try {
+                    if (get()) {
+                        JOptionPane.showMessageDialog(
+                                HoaDonGUI.this,
+                                "Xuất file Excel thành công!",
+                                "Thông báo",
+                                JOptionPane.INFORMATION_MESSAGE
+                        );
+                    } else {
                         JOptionPane.showMessageDialog(
                                 HoaDonGUI.this,
                                 "Xuất file thất bại hoặc không có dữ liệu.",
                                 "Lỗi",
-                                JOptionPane.ERROR_MESSAGE);
+                                JOptionPane.ERROR_MESSAGE
+                        );
                     }
                 } catch (Exception e) {
                     e.printStackTrace();

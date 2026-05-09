@@ -2,13 +2,16 @@ package iuh.fit.core.net.client;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import iuh.fit.core.dto.PhanCongDTO;
+import iuh.fit.core.net.dto.phancong.PhanCongDateRangeRequestDTO;
 import iuh.fit.core.net.dto.phancong.PhanCongRequestDTO;
+import iuh.fit.core.net.dto.phancong.PhanCongTongGioTheoThangRequestDTO;
 import iuh.fit.core.net.protocol.CommandAction;
 import iuh.fit.core.net.protocol.JsonCodec;
 import iuh.fit.core.net.protocol.MessageEnvelope;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 public class PhanCongRemoteService extends BaseRemoteService {
 
@@ -64,6 +67,40 @@ public class PhanCongRemoteService extends BaseRemoteService {
         return JsonCodec.convertValue(
                 response.getPayload(),
                 new TypeReference<List<PhanCongDTO>>() {}
+        );
+    }
+
+    public List<PhanCongDTO> findByDateRange(LocalDate tuNgay, LocalDate denNgay) {
+        PhanCongDateRangeRequestDTO request = new PhanCongDateRangeRequestDTO(tuNgay, denNgay);
+
+        MessageEnvelope response = connection.sendCommand(
+                CommandAction.PHANCONG_GET_BY_DATE_RANGE.name(),
+                request,
+                DEFAULT_TIMEOUT_MS
+        );
+
+        ensureSuccess(response, "Không thể tải danh sách phân công theo khoảng ngày.");
+
+        return JsonCodec.convertValue(
+                response.getPayload(),
+                new TypeReference<List<PhanCongDTO>>() {}
+        );
+    }
+
+    public Map<String, Double> getTongGioLamTheoThang(int thang, int nam) {
+        PhanCongTongGioTheoThangRequestDTO request = new PhanCongTongGioTheoThangRequestDTO(thang, nam);
+
+        MessageEnvelope response = connection.sendCommand(
+                CommandAction.PHANCONG_GET_TONG_GIO_THEO_THANG.name(),
+                request,
+                DEFAULT_TIMEOUT_MS
+        );
+
+        ensureSuccess(response, "Không thể tải tổng giờ làm theo tháng.");
+
+        return JsonCodec.convertValue(
+                response.getPayload(),
+                new TypeReference<Map<String, Double>>() {}
         );
     }
 }

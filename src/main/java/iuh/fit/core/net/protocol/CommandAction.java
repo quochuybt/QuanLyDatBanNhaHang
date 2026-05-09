@@ -21,6 +21,7 @@ public enum CommandAction {
     PHANCONG_REMOVE,
     PHANCONG_LIST_BY_DATE,
     PHANCONG_GET_BY_DATE_RANGE,
+    PHANCONG_GET_TONG_GIO_THEO_THANG,
 
     // ===== Nhân viên =====
     NHANVIEN_GET_ALL,
@@ -66,6 +67,8 @@ public enum CommandAction {
     // ===== Tài khoản =====
     TAIKHOAN_UPDATE_PASSWORD,
 
+    // ===== Ca làm =====
+    CALAM_GET_ALL_ORDER_BY_START,
     GIAOCA_DASHBOARD_LOAD,
     GIAOCA_START,
     GIAOCA_END,

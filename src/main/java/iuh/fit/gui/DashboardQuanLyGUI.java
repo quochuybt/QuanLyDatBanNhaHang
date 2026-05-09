@@ -7,12 +7,11 @@ import iuh.fit.core.net.client.DashboardRemoteService;
 import iuh.fit.core.net.client.GiaoCaRemoteService;
 import iuh.fit.core.net.client.HoaDonRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
+import iuh.fit.core.net.client.SocketClientConnection;
 import iuh.fit.core.net.dto.hoadon.HoaDonTotalRequestDTO;
 import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.MessageEnvelope;
 import iuh.fit.core.dto.GiaoCaDTO;
-import iuh.fit.core.service.HoaDonService;
-import iuh.fit.core.service.GiaoCaService;
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.markers.SeriesMarkers;
 
@@ -30,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class DashboardQuanLyGUI extends JPanel {
@@ -79,12 +79,16 @@ public class DashboardQuanLyGUI extends JPanel {
     private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     public DashboardQuanLyGUI() {
-        if (NetClientContext.isReady()) {
-            dashboardRemoteService = new DashboardRemoteService(NetClientContext.getConnection());
-            hoaDonRemoteService = new HoaDonRemoteService(NetClientContext.getConnection());
-            giaoCaRemoteService = new GiaoCaRemoteService(NetClientContext.getConnection());
+        this(Objects.requireNonNull(NetClientContext.getConnection(), "SocketClientConnection không được null."));
+    }
 
-            NetClientContext.getConnection().addEventListener(new ClientEventListener() {
+    public DashboardQuanLyGUI(SocketClientConnection connection) {
+        Objects.requireNonNull(connection, "SocketClientConnection không được null.");
+        dashboardRemoteService = new DashboardRemoteService(connection);
+        hoaDonRemoteService = new HoaDonRemoteService(connection);
+        giaoCaRemoteService = new GiaoCaRemoteService(connection);
+
+        connection.addEventListener(new ClientEventListener() {
                 @Override
                 public void onEvent(MessageEnvelope event) {
                     if (event == null || event.getName() == null) {
@@ -98,12 +102,7 @@ public class DashboardQuanLyGUI extends JPanel {
                         SwingUtilities.invokeLater(DashboardQuanLyGUI.this::loadDashboardData);
                     }
                 }
-            });
-        } else {
-            dashboardRemoteService = null;
-            hoaDonRemoteService = null;
-            giaoCaRemoteService = null;
-        }
+        });
 
         initComponents();
         setDefaultDateRange();

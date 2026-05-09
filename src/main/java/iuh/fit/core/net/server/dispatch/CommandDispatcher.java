@@ -35,9 +35,12 @@ public class CommandDispatcher {
                 handlers.put(CommandAction.DASHBOARD_TABLE_STATUS_COUNTS.name(), new DashboardTableStatusHandler());
 
                 // ===== Phase 3 (write) - skeleton =====
-                handlers.put(CommandAction.PHANCONG_ADD.name(), new PhanCongAddHandler(sessionRegistry));
-                handlers.put(CommandAction.PHANCONG_REMOVE.name(), new PhanCongRemoveHandler(sessionRegistry));
-                handlers.put(CommandAction.PHANCONG_LIST_BY_DATE.name(), new PhanCongListByDateHandler());
+        handlers.put(CommandAction.PHANCONG_ADD.name(), new PhanCongAddHandler(sessionRegistry));
+        handlers.put(CommandAction.PHANCONG_REMOVE.name(), new PhanCongRemoveHandler(sessionRegistry));
+        handlers.put(CommandAction.PHANCONG_LIST_BY_DATE.name(), new PhanCongListByDateHandler());
+        handlers.put(CommandAction.PHANCONG_GET_BY_DATE_RANGE.name(), new PhanCongGetByDateRangeHandler());
+        handlers.put(CommandAction.PHANCONG_GET_TONG_GIO_THEO_THANG.name(), new PhanCongGetTongGioTheoThangHandler());
+        handlers.put(CommandAction.CALAM_GET_ALL_ORDER_BY_START.name(), new CaLamGetAllOrderByStartHandler());
 
                 // ===== Nhân viên =====
                 handlers.put(CommandAction.NHANVIEN_GET_ALL.name(), new NhanVienGetAllHandler());

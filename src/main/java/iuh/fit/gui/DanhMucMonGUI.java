@@ -5,6 +5,7 @@ import iuh.fit.core.dto.MonAnDTO;
 import iuh.fit.core.net.client.DanhMucMonRemoteService;
 import iuh.fit.core.net.client.MonAnAdminRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
+import iuh.fit.core.net.client.SocketClientConnection;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -15,6 +16,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class DanhMucMonGUI extends JPanel {
 
@@ -36,11 +38,13 @@ public class DanhMucMonGUI extends JPanel {
     private static final Color COLOR_ACCENT_BLUE = new Color(56, 118, 243);
 
     public DanhMucMonGUI() {
-        if (!NetClientContext.isReady()) {
-            throw new IllegalStateException("Không có kết nối remote cho màn danh mục món ăn.");
-        }
-        this.monAnRemoteService = new MonAnAdminRemoteService(NetClientContext.getConnection());
-        this.danhMucMonRemoteService = new DanhMucMonRemoteService(NetClientContext.getConnection());
+        this(Objects.requireNonNull(NetClientContext.getConnection(), "SocketClientConnection không được null."));
+    }
+
+    public DanhMucMonGUI(SocketClientConnection connection) {
+        Objects.requireNonNull(connection, "SocketClientConnection không được null.");
+        this.monAnRemoteService = new MonAnAdminRemoteService(connection);
+        this.danhMucMonRemoteService = new DanhMucMonRemoteService(connection);
 
         this.dsMonAnFull = new ArrayList<>();
         this.dsMonAnPanel = new ArrayList<>();

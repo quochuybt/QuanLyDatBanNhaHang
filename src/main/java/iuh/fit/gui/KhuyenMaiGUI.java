@@ -5,6 +5,7 @@ import iuh.fit.core.dto.KhuyenMaiDTO;
 import iuh.fit.core.entity.KhuyenMai;
 import iuh.fit.core.net.client.KhuyenMaiRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
+import iuh.fit.core.net.client.SocketClientConnection;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -17,6 +18,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class KhuyenMaiGUI extends JPanel {
@@ -42,10 +44,12 @@ public class KhuyenMaiGUI extends JPanel {
     private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public KhuyenMaiGUI() {
-        if (!NetClientContext.isReady()) {
-            throw new IllegalStateException("Không có kết nối remote cho màn khuyến mãi.");
-        }
-        this.khuyenMaiRemoteService = new KhuyenMaiRemoteService(NetClientContext.getConnection());
+        this(Objects.requireNonNull(NetClientContext.getConnection(), "SocketClientConnection không được null."));
+    }
+
+    public KhuyenMaiGUI(SocketClientConnection connection) {
+        Objects.requireNonNull(connection, "SocketClientConnection không được null.");
+        this.khuyenMaiRemoteService = new KhuyenMaiRemoteService(connection);
 
         setLayout(new BorderLayout(10, 15));
         setBackground(COLOR_BACKGROUND);

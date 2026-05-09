@@ -3,10 +3,10 @@ package iuh.fit.gui;
 
 import iuh.fit.core.dto.NhanVienDTO;
 import iuh.fit.core.net.client.NhanVienRemoteService;
+import iuh.fit.core.net.client.PhanCongRemoteService;
 import iuh.fit.core.net.client.NetClientContext;
+import iuh.fit.core.net.client.SocketClientConnection;
 import iuh.fit.core.entity.NhanVien;
-import iuh.fit.core.service.PhanCongService;
-import iuh.fit.core.entity.PhanCong;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -15,15 +15,15 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class NhanVienGUI extends JPanel {
 
-    private final PhanCongService phanCongService = new PhanCongService();
+    private final PhanCongRemoteService phanCongRemoteService;
     private final NhanVienRemoteService nhanVienRemoteService;
     private DefaultTableModel model;
     private JTable table;
@@ -36,11 +36,13 @@ public class NhanVienGUI extends JPanel {
     private JButton btnCancelSearch;
 
     public NhanVienGUI() {
-        if (NetClientContext.isReady()) {
-            nhanVienRemoteService = new NhanVienRemoteService(NetClientContext.getConnection());
-        } else {
-            nhanVienRemoteService = null;
-        }
+        this(Objects.requireNonNull(NetClientContext.getConnection(), "SocketClientConnection không được null."));
+    }
+
+    public NhanVienGUI(SocketClientConnection connection) {
+        Objects.requireNonNull(connection, "SocketClientConnection không được null.");
+        nhanVienRemoteService = new NhanVienRemoteService(connection);
+        phanCongRemoteService = new PhanCongRemoteService(connection);
 
         setLayout(new BorderLayout(10, 10));
         setBackground(new Color(244, 247, 252));
@@ -217,27 +219,12 @@ public class NhanVienGUI extends JPanel {
     }
 
     private Map<String, Double> tinhTongGioLam(int month, int year) {
-        Map<String, Double> result = new HashMap<>();
         try {
-            List<PhanCong> allPC = phanCongService.findAll();
-            for (PhanCong pc : allPC) {
-                if (pc.getNgayLam() != null
-                        && pc.getNgayLam().getMonthValue() == month
-                        && pc.getNgayLam().getYear() == year) {
-                    String maNV = pc.getNhanVien().getManv();
-                    double soGio = 0;
-                    if (pc.getCaLam() != null
-                            && pc.getCaLam().getGioBatDau() != null
-                            && pc.getCaLam().getGioKetThuc() != null) {
-                        soGio = Duration.between(pc.getCaLam().getGioBatDau(), pc.getCaLam().getGioKetThuc()).toMinutes() / 60.0;
-                    }
-                    result.merge(maNV, soGio, Double::sum);
-                }
-            }
+            return phanCongRemoteService.getTongGioLamTheoThang(month, year);
         } catch (Exception e) {
             e.printStackTrace();
+            return new HashMap<>();
         }
-        return result;
     }
 
 

@@ -3,13 +3,13 @@ package iuh.fit.gui;
 import iuh.fit.core.dto.CaLamDTO;
 import iuh.fit.core.dto.PhanCongDTO;
 import iuh.fit.core.entity.NhanVien;
+import iuh.fit.core.net.client.CaLamRemoteService;
 import iuh.fit.core.net.client.ClientEventListener;
 import iuh.fit.core.net.client.NhanVienRemoteService;
 import iuh.fit.core.net.client.PhanCongRemoteService;
 import iuh.fit.core.net.client.SocketClientConnection;
 import iuh.fit.core.net.protocol.EventType;
 import iuh.fit.core.net.protocol.MessageEnvelope;
-import iuh.fit.core.service.CaLamService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -30,15 +30,8 @@ public class AssignShiftDialog extends JDialog {
     private static final Font FONT_LABEL = new Font("Arial", Font.BOLD, 14);
     private static final Font FONT_COMPONENT = new Font("Arial", Font.PLAIN, 14);
 
-    /*
-     * Ca làm vẫn local, danh sách nhân viên đã chuyển remote.
-     */
-    private final CaLamService caLamService = new CaLamService();
+    private final CaLamRemoteService caLamRemoteService;
     private final NhanVienRemoteService nhanVienRemoteService;
-
-    /*
-     * Phần phân công đã đi qua socket.
-     */
     private final PhanCongRemoteService phanCongRemoteService;
 
     private JSpinner dateSpinner;
@@ -63,6 +56,7 @@ public class AssignShiftDialog extends JDialog {
 
         Objects.requireNonNull(socketConnection, "SocketClientConnection không được null.");
         this.phanCongRemoteService = new PhanCongRemoteService(socketConnection);
+        this.caLamRemoteService = new CaLamRemoteService(socketConnection);
         this.nhanVienRemoteService = new NhanVienRemoteService(socketConnection);
 
         socketConnection.addEventListener(new ClientEventListener() {
@@ -272,7 +266,7 @@ public class AssignShiftDialog extends JDialog {
         new SwingWorker<List<CaLamDTO>, Void>() {
             @Override
             protected List<CaLamDTO> doInBackground() {
-                return caLamService.getAllCaLamOrderByGioBatDau();
+                return caLamRemoteService.getAllCaLamOrderByGioBatDau();
             }
 
             @Override
