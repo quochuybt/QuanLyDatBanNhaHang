@@ -44,6 +44,9 @@ public class CommandDispatcher {
                 handlers.put(CommandAction.PHANCONG_LIST_BY_DATE.name(), new PhanCongListByDateHandler());
                 handlers.put(CommandAction.PHANCONG_GET_BY_DATE_RANGE.name(), new PhanCongGetByDateRangeHandler());
                 handlers.put(CommandAction.PHANCONG_GET_TONG_GIO_THEO_THANG.name(), new PhanCongGetTongGioTheoThangHandler());
+                // ===== Tài khoản =====
+                handlers.put(CommandAction.TAIKHOAN_UPDATE_PASSWORD.name(), new TaiKhoanUpdatePasswordHandler());
+
                 handlers.put(CommandAction.CALAM_GET_ALL_ORDER_BY_START.name(), new CaLamGetAllOrderByStartHandler());
 
                 // ===== Nhân viên =====
