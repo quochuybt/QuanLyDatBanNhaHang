@@ -106,38 +106,41 @@ INSERT INTO KhuyenMai (maKM, tenKM, moTa, ngayBatDau, ngayKetThuc, loaiGiam, gia
 ('SINHNHAT', 'Chúc mừng sinh nhật', 'Giảm 30% cho khách hàng thành viên', '2026-01-01', '2026-12-31', 'Giảm theo phần trăm', 30.00, 'Đang áp dụng', 0);
 
 -- 8. Khách hàng
-INSERT INTO KhachHang (maKH, tenKH, gioiTinh, sdt, hangThanhVien, tongChiTieu, ngaySinh, diaChi, ngayThamGia, email) VALUES
-('KH20260301001', 'Trần Minh Hoài', 'Nam', '0987656442', 'BRONZE', 878000.00, '1990-01-01', 'TP.HCM', '2026-01-01', 'hoaiminh@email.com'),
-('KH20260301002', 'Trần Văn Bảo', 'Nam', '0912345678', 'MEMBER', 411000.00, '1995-05-15', '123 Lê Lợi, Q1', '2026-01-02', 'bao.tran@email.com'),
-('KH20260301003', 'Nguyễn Thị Lan', 'Nữ', '0987654321', 'BRONZE', 510000.00, '1992-11-30', '456 Hai Bà Trưng, Q3', '2026-01-03', 'lan.nguyen@email.com'),
-('KH20260301004', 'Lê Minh Hùng', 'Nam', '0933445566', 'BRONZE', 645000.00, '1988-02-10', '789 Nguyễn Trãi, Q5', '2026-01-04', 'hung.le@email.com'),
-('KH20260301005', 'Phạm Hoàng Yến', 'Nữ', '0977889900', 'BRONZE', 585000.00, '2000-07-22', '321 CMT8, Q10', '2026-01-05', 'yen.pham@email.com'),
-('KH20260301006', 'Võ Thành Trung', 'Nam', '0905112233', 'MEMBER', 411000.00, '1990-01-20', 'Bình Dương', '2026-01-06', 'trung.vo@email.com'),
-('KH20260301007', 'Đặng Minh Tuấn', 'Nam', '0901234567', 'MEMBER', 432000.00, '1998-03-12', '15 Điện Biên Phủ, Q.Bình Thạnh', '2026-01-07', 'tuan.dang@email.com'),
-('KH20260301008', 'Bùi Thị Hương', 'Nữ', '0902345678', 'MEMBER', 491000.00, '2001-08-25', '22 Cách Mạng Tháng 8, Q.3', '2026-01-08', 'huong.bui@email.com'),
-('KH20260301009', 'Trương Văn Đức', 'Nam', '0903456789', 'BRONZE', 761000.00, '1993-06-18', '45 Lý Thường Kiệt, Q.Tân Bình', '2026-01-09', 'duc.truong@email.com'),
-('KH20260301010', 'Ngô Thị Mai', 'Nữ', '0904567890', 'BRONZE', 681000.00, '1996-12-08', '78 Nguyễn Thị Minh Khai, Q.1', '2026-01-10', 'mai.ngo@email.com'),
-('KH20260301011', 'Phan Minh Khôi', 'Nam', '0905678901', 'BRONZE', 606000.00, '1999-04-30', '12 Phan Xích Long, Q.Phú Nhuận', '2026-01-11', 'khoi.phan@email.com'),
-('KH20260301012', 'Hoàng Thị Thảo', 'Nữ', '0906789012', 'BRONZE', 907000.00, '1994-09-14', '56 Hoàng Văn Thụ, Q.Tân Bình', '2026-01-12', 'thao.hoang@email.com'),
-('KH20260301013', 'Vũ Quang Huy', 'Nam', '0907890123', 'BRONZE', 962000.00, '1997-02-27', '89 Trường Chinh, Q.12', '2026-01-13', 'huy.vu@email.com'),
-('KH20260301014', 'Đinh Thị Nga', 'Nữ', '0908901234', 'BRONZE', 905000.00, '1991-11-03', '34 Xô Viết Nghệ Tĩnh, Q.Bình Thạnh', '2026-01-14', 'nga.dinh@email.com'),
-('KH20260301015', 'Lý Văn Phong', 'Nam', '0909012345', 'GOLD', 4022000.00, '1989-07-19', '67 Đinh Tiên Hoàng, Q.1', '2026-01-15', 'phong.ly@email.com'),
-('KH20260301016', 'Trịnh Thị Kim', 'Nữ', '0910123456', 'GOLD', 4048000.00, '1993-05-22', '90 Nguyễn Đình Chiểu, Q.3', '2026-01-16', 'kim.trinh@email.com'),
-('KH20260301017', 'Đỗ Minh Tâm', 'Nam', '0911234567', 'MEMBER', 245000.00, '1996-10-11', '23 Lê Văn Sỹ, Q.3', '2026-01-17', 'tam.do@email.com'),
-('KH20260301018', 'Chu Thị Hà', 'Nữ', '0912345679', 'DIAMOND', 5536000.00, '1990-03-08', '45 Nam Kỳ Khởi Nghĩa, Q.1', '2026-01-18', 'ha.chu@email.com'),
-('KH20260301019', 'Mai Văn Long', 'Nam', '0913456780', 'DIAMOND', 7643000.00, '1987-12-25', '78 Phan Đăng Lưu, Q.Phú Nhuận', '2026-01-19', 'long.mai@email.com'),
-('KH20260301020', 'Lâm Thị Phượng', 'Nữ', '0914567891', 'GOLD', 2398000.00, '1985-08-15', '12 Tôn Đức Thắng, Q.1', '2026-01-20', 'phuong.lam@email.com'),
-('KH20260301021', 'Nguyễn Văn Hùng', 'Nam', '0911111111', 'BRONZE', 550000.00, '1985-03-15', '123 Nguyễn Văn Linh, Q7', '2026-01-21', 'hung.nguyen@email.com'),
-('KH20260301022', 'Trần Thị Mai', 'Nữ', '0912222222', 'MEMBER', 450000.00, '1990-07-20', '456 Lê Văn Việt, Q9', '2026-01-22', 'mai.tran@email.com'),
-('KH20260301023', 'Lê Văn Nam', 'Nam', '0913333333', 'BRONZE', 606000.00, '1992-05-10', '789 Nguyễn Hữu Thọ, Q7', '2026-01-23', 'nam.le@email.com'),
-('KH20260301024', 'Phạm Thị Lan', 'Nữ', '0914444444', 'BRONZE', 590000.00, '1995-11-25', '321 Huỳnh Tấn Phát, Q7', '2026-01-24', 'lan.pham@email.com'),
-('KH20260301025', 'Hoàng Văn Tuấn', 'Nam', '0915555555', 'MEMBER', 366000.00, '1988-08-12', '654 Nguyễn Văn Linh, Q7', '2026-01-25', 'tuan.hoang@email.com'),
-('KH20260301026', 'Vũ Thị Hương', 'Nữ', '0916666666', 'MEMBER', 255000.00, '1993-02-18', '987 Nguyễn Thị Thập, Q7', '2026-01-26', 'huong.vu@email.com'),
-('KH20260301027', 'Đặng Văn Bình', 'Nam', '0917777777', 'MEMBER', 240000.00, '1986-12-05', '147 Nguyễn Văn Quỳ, Q7', '2026-01-27', 'binh.dang@email.com'),
-('KH20260301028', 'Bùi Thị Ngọc', 'Nữ', '0918888888', 'BRONZE', 605000.00, '1991-04-30', '258 Nguyễn Văn Linh, Q7', '2026-01-28', 'ngoc.bui@email.com'),
-('KH20260301029', 'Đỗ Văn Long', 'Nam', '0919999999', 'MEMBER', 375000.00, '1984-09-22', '369 Nguyễn Hữu Thọ, Q7', '2026-01-29', 'long.do@email.com'),
-('KH20260301030', 'Lý Thị Thu', 'Nữ', '0920000000', 'MEMBER', 230000.00, '1989-01-14', '472 Lê Văn Việt, Q9', '2026-01-30', 'thu.ly@email.com');
+INSERT INTO KhachHang
+(maKH, tenKH, gioiTinh, sdt, hangThanhVien, tongChiTieu, ngaySinh, diaChi, ngayThamGia, email)
+VALUES
+    ('KH20260301001', 'Trần Minh Hoài', 'Nam', '0987656442', 'MEMBER', 878000.00, '1990-01-01', 'TP.HCM', '2026-01-01', 'hoaiminh@email.com'),
+    ('KH20260301002', 'Trần Văn Bảo', 'Nam', '0912345678', 'MEMBER', 411000.00, '1995-05-15', '123 Lê Lợi, Q1', '2026-01-02', 'bao.tran@email.com'),
+    ('KH20260301003', 'Nguyễn Thị Lan', 'Nữ', '0987654321', 'MEMBER', 510000.00, '1992-11-30', '456 Hai Bà Trưng, Q3', '2026-01-03', 'lan.nguyen@email.com'),
+    ('KH20260301004', 'Lê Minh Hùng', 'Nam', '0933445566', 'MEMBER', 645000.00, '1988-02-10', '789 Nguyễn Trãi, Q5', '2026-01-04', 'hung.le@email.com'),
+    ('KH20260301005', 'Phạm Hoàng Yến', 'Nữ', '0977889900', 'MEMBER', 585000.00, '2000-07-22', '321 CMT8, Q10', '2026-01-05', 'yen.pham@email.com'),
+    ('KH20260301006', 'Võ Thành Trung', 'Nam', '0905112233', 'MEMBER', 411000.00, '1990-01-20', 'Bình Dương', '2026-01-06', 'trung.vo@email.com'),
+    ('KH20260301007', 'Đặng Minh Tuấn', 'Nam', '0901234567', 'MEMBER', 432000.00, '1998-03-12', '15 Điện Biên Phủ, Q.Bình Thạnh', '2026-01-07', 'tuan.dang@email.com'),
+    ('KH20260301008', 'Bùi Thị Hương', 'Nữ', '0902345678', 'MEMBER', 491000.00, '2001-08-25', '22 Cách Mạng Tháng 8, Q.3', '2026-01-08', 'huong.bui@email.com'),
+    ('KH20260301009', 'Trương Văn Đức', 'Nam', '0903456789', 'MEMBER', 761000.00, '1993-06-18', '45 Lý Thường Kiệt, Q.Tân Bình', '2026-01-09', 'duc.truong@email.com'),
+    ('KH20260301010', 'Ngô Thị Mai', 'Nữ', '0904567890', 'MEMBER', 681000.00, '1996-12-08', '78 Nguyễn Thị Minh Khai, Q.1', '2026-01-10', 'mai.ngo@email.com'),
 
+    ('KH20260301011', 'Phan Minh Khôi', 'Nam', '0905678901', 'MEMBER', 606000.00, '1999-04-30', '12 Phan Xích Long, Q.Phú Nhuận', '2026-01-11', 'khoi.phan@email.com'),
+    ('KH20260301012', 'Hoàng Thị Thảo', 'Nữ', '0906789012', 'MEMBER', 907000.00, '1994-09-14', '56 Hoàng Văn Thụ, Q.Tân Bình', '2026-01-12', 'thao.hoang@email.com'),
+    ('KH20260301013', 'Vũ Quang Huy', 'Nam', '0907890123', 'MEMBER', 962000.00, '1997-02-27', '89 Trường Chinh, Q.12', '2026-01-13', 'huy.vu@email.com'),
+    ('KH20260301014', 'Đinh Thị Nga', 'Nữ', '0908901234', 'MEMBER', 905000.00, '1991-11-03', '34 Xô Viết Nghệ Tĩnh, Q.Bình Thạnh', '2026-01-14', 'nga.dinh@email.com'),
+    ('KH20260301015', 'Lý Văn Phong', 'Nam', '0909012345', 'MEMBER', 4022000.00, '1989-07-19', '67 Đinh Tiên Hoàng, Q.1', '2026-01-15', 'phong.ly@email.com'),
+    ('KH20260301016', 'Trịnh Thị Kim', 'Nữ', '0910123456', 'MEMBER', 4048000.00, '1993-05-22', '90 Nguyễn Đình Chiểu, Q.3', '2026-01-16', 'kim.trinh@email.com'),
+    ('KH20260301017', 'Đỗ Minh Tâm', 'Nam', '0911234567', 'MEMBER', 245000.00, '1996-10-11', '23 Lê Văn Sỹ, Q.3', '2026-01-17', 'tam.do@email.com'),
+    ('KH20260301018', 'Chu Thị Hà', 'Nữ', '0912345679', 'BRONZE', 5536000.00, '1990-03-08', '45 Nam Kỳ Khởi Nghĩa, Q.1', '2026-01-18', 'ha.chu@email.com'),
+    ('KH20260301019', 'Mai Văn Long', 'Nam', '0913456780', 'BRONZE', 7643000.00, '1987-12-25', '78 Phan Đăng Lưu, Q.Phú Nhuận', '2026-01-19', 'long.mai@email.com'),
+    ('KH20260301020', 'Lâm Thị Phượng', 'Nữ', '0914567891', 'MEMBER', 2398000.00, '1985-08-15', '12 Tôn Đức Thắng, Q.1', '2026-01-20', 'phuong.lam@email.com'),
+
+    ('KH20260301021', 'Nguyễn Văn Hùng', 'Nam', '0911111111', 'MEMBER', 550000.00, '1985-03-15', '123 Nguyễn Văn Linh, Q7', '2026-01-21', 'hung.nguyen@email.com'),
+    ('KH20260301022', 'Trần Thị Mai', 'Nữ', '0912222222', 'MEMBER', 450000.00, '1990-07-20', '456 Lê Văn Việt, Q9', '2026-01-22', 'mai.tran@email.com'),
+    ('KH20260301023', 'Lê Văn Nam', 'Nam', '0913333333', 'MEMBER', 606000.00, '1992-05-10', '789 Nguyễn Hữu Thọ, Q7', '2026-01-23', 'nam.le@email.com'),
+    ('KH20260301024', 'Phạm Thị Lan', 'Nữ', '0914444444', 'MEMBER', 590000.00, '1995-11-25', '321 Huỳnh Tấn Phát, Q7', '2026-01-24', 'lan.pham@email.com'),
+    ('KH20260301025', 'Hoàng Văn Tuấn', 'Nam', '0915555555', 'MEMBER', 366000.00, '1988-08-12', '654 Nguyễn Văn Linh, Q7', '2026-01-25', 'tuan.hoang@email.com'),
+    ('KH20260301026', 'Vũ Thị Hương', 'Nữ', '0916666666', 'MEMBER', 255000.00, '1993-02-18', '987 Nguyễn Thị Thập, Q7', '2026-01-26', 'huong.vu@email.com'),
+    ('KH20260301027', 'Đặng Văn Bình', 'Nam', '0917777777', 'MEMBER', 240000.00, '1986-12-05', '147 Nguyễn Văn Quỳ, Q7', '2026-01-27', 'binh.dang@email.com'),
+    ('KH20260301028', 'Bùi Thị Ngọc', 'Nữ', '0918888888', 'MEMBER', 605000.00, '1991-04-30', '258 Nguyễn Văn Linh, Q7', '2026-01-28', 'ngoc.bui@email.com'),
+    ('KH20260301029', 'Đỗ Văn Long', 'Nam', '0919999999', 'MEMBER', 375000.00, '1984-09-22', '369 Nguyễn Hữu Thọ, Q7', '2026-01-29', 'long.do@email.com'),
+    ('KH20260301030', 'Lý Thị Thu', 'Nữ', '0920000000', 'MEMBER', 230000.00, '1989-01-14', '472 Lê Văn Việt, Q9', '2026-01-30', 'thu.ly@email.com');
 -- 9. Phân công ca
 INSERT INTO PhanCongCa (maNV, maCa, ngayLam) VALUES
 ('NV01102', 'CA-01', '2026-03-01'),
