@@ -2,8 +2,8 @@ package iuh.fit.core.net.server.handler;
 
 import iuh.fit.core.net.dto.common.UpdatePasswordRequest;
 import iuh.fit.core.net.protocol.MessageEnvelope;
-import iuh.fit.core.net.server.base.BaseCommandHandler;
-import iuh.fit.core.net.server.base.CommandHandler;
+
+import iuh.fit.core.net.server.dispatch.CommandHandler;
 import iuh.fit.core.net.server.session.ClientSession;
 import iuh.fit.core.service.TaiKhoanService;
 
