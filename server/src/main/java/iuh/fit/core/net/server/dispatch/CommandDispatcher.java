@@ -72,6 +72,10 @@ public class CommandDispatcher {
                 handlers.put(CommandAction.KHUYENMAI_DELETE.name(), new KhuyenMaiDeleteHandler(sessionRegistry));
                 handlers.put(CommandAction.KHUYENMAI_USE.name(), new KhuyenMaiUseHandler(sessionRegistry));
 
+                // ===== Upload/Download ảnh =====
+                handlers.put(CommandAction.MONAN_IMAGE_UPLOAD.name(), new ImageUploadHandler());
+                handlers.put(CommandAction.MONAN_IMAGE_GET.name(), new ImageGetHandler());
+
                 // ===== Danh mục món / món ăn admin =====
                 handlers.put(CommandAction.DANHMUCMON_GET_ALL.name(), new DanhMucMonGetAllHandler());
                 handlers.put(CommandAction.DANHMUCMON_ADD.name(), new DanhMucMonAddHandler(sessionRegistry));

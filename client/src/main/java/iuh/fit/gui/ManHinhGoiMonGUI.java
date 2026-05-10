@@ -266,7 +266,7 @@ public class ManHinhGoiMonGUI extends BaseEventAwarePanel {
             pnlMenuItemContainer.add(new JLabel("Không có món ăn nào trong CSDL."));
         } else {
             for (MonAnDTO mon : dsMonAnFull) {
-                MonAnItemPanel itemPanel = new MonAnItemPanel(mon);
+                MonAnItemPanel itemPanel = new MonAnItemPanel(mon, monAnRemoteService::getImage);
 
                 itemPanel.addMouseListener(new MouseAdapter() {
                     @Override

@@ -53,6 +53,10 @@ public enum CommandAction {
     KHUYENMAI_DELETE,
     KHUYENMAI_USE,
 
+    // ===== Upload ảnh =====
+    MONAN_IMAGE_UPLOAD,
+    MONAN_IMAGE_GET,
+
     // ===== Danh mục món / Món ăn (admin) =====
     DANHMUCMON_GET_ALL,
     DANHMUCMON_ADD,

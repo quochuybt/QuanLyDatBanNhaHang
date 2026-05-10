@@ -193,7 +193,7 @@ public class DanhMucMonGUI extends BaseEventAwarePanel {
             dsMonAnPanel.clear();
 
             for (MonAnDTO mon : dsMonAnFull) {
-                MonAnItemPanel itemPanel = new MonAnItemPanel(mon);
+                MonAnItemPanel itemPanel = new MonAnItemPanel(mon, monAnRemoteService::getImage);
 
                 JPopupMenu popupMenu = new JPopupMenu();
                 JMenuItem editItem = new JMenuItem("Sửa món ăn");

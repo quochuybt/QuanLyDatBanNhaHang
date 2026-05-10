@@ -13,14 +13,21 @@ public class MonAnItemPanel extends JPanel {
 
     private MonAnDTO monAn;
     private final NumberFormat nf = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+    private final java.util.function.Function<String, java.awt.Image> imageLoader;
 
     private static final Color BORDER_COLOR = new Color(220, 220, 220);
     private static final Color HOVER_COLOR = new Color(230, 245, 255);
 
-    public MonAnItemPanel(MonAnDTO monAn) {
+    public MonAnItemPanel(MonAnDTO monAn, java.util.function.Function<String, java.awt.Image> imageLoader) {
         this.monAn = monAn;
+        this.imageLoader = imageLoader;
         buildUI();
         addMouseHoverEffect();
+    }
+
+    // Constructor tương thích ngược (không có ảnh từ server)
+    public MonAnItemPanel(MonAnDTO monAn) {
+        this(monAn, null);
     }
 
     private void buildUI() {
@@ -40,21 +47,14 @@ public class MonAnItemPanel extends JPanel {
         String imgName = monAn.getHinhAnh();
         ImageIcon icon = null;
 
-        if (imgName != null && !imgName.isEmpty()) {
+        if (imgName != null && !imgName.isEmpty() && imageLoader != null) {
             try {
-                String projectPath = System.getProperty("user.dir") + "/resources/img/MonAn/" + imgName;
-                File f = new File(projectPath);
-
-                if (f.exists()) {
-                    icon = new ImageIcon(projectPath);
-                } else {
-                    java.net.URL url = getClass().getResource("/img/MonAn/" + imgName);
-                    if (url != null) {
-                        icon = new ImageIcon(url);
-                    }
+                java.awt.Image img = imageLoader.apply(imgName);
+                if (img != null) {
+                    icon = new ImageIcon(img);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                // bỏ qua, hiển thị placeholder
             }
         }
 

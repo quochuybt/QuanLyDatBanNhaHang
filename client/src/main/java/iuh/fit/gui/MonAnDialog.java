@@ -178,11 +178,7 @@ public class MonAnDialog extends JDialog {
         JFileChooser fc = new JFileChooser();
         fc.setFileFilter(new FileNameExtensionFilter(
                 "Hình ảnh (JPG, PNG, GIF, BMP)",
-                "jpg",
-                "jpeg",
-                "png",
-                "gif",
-                "bmp"
+                "jpg", "jpeg", "png", "gif", "bmp"
         ));
 
         if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
@@ -193,28 +189,12 @@ public class MonAnDialog extends JDialog {
                 return;
             }
 
-            String projectPath = System.getProperty("user.dir");
-            File destFolder = new File(projectPath + "/resources/img/MonAn");
-
-            if (!destFolder.exists()) {
-                destFolder.mkdirs();
-            }
-
-            String newName = System.currentTimeMillis() + "_" + srcFile.getName();
-            File destFile = new File(destFolder, newName);
-
             try {
-                Files.copy(
-                        srcFile.toPath(),
-                        destFile.toPath(),
-                        StandardCopyOption.REPLACE_EXISTING
-                );
-
+                String newName = monAnAdminRemoteService.uploadImage(srcFile);
                 this.selectedImageFileName = newName;
-                displayImage(destFile.getAbsolutePath());
-
+                displayImage(newName);
             } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, "Lỗi copy ảnh: " + e.getMessage());
+                JOptionPane.showMessageDialog(this, "Lỗi upload ảnh: " + e.getMessage());
             }
         }
     }
@@ -226,37 +206,19 @@ public class MonAnDialog extends JDialog {
             return;
         }
 
-        ImageIcon icon = null;
-
         try {
-            File f = new File(pathOrName);
-
-            if (f.exists() && f.isAbsolute()) {
-                icon = new ImageIcon(f.getAbsolutePath());
-            } else {
-                String localPath = System.getProperty("user.dir") + "/resources/img/MonAn/" + pathOrName;
-                File localFile = new File(localPath);
-
-                if (localFile.exists()) {
-                    icon = new ImageIcon(localPath);
-                } else {
-                    java.net.URL imgURL = getClass().getResource("/img/MonAn/" + pathOrName);
-                    if (imgURL != null) {
-                        icon = new ImageIcon(imgURL);
-                    }
-                }
+            java.awt.Image img = monAnAdminRemoteService.getImage(pathOrName);
+            if (img != null) {
+                java.awt.Image scaled = img.getScaledInstance(230, 180, java.awt.Image.SCALE_SMOOTH);
+                lblHinhAnhPreview.setIcon(new javax.swing.ImageIcon(scaled));
+                lblHinhAnhPreview.setText("");
+                return;
             }
         } catch (Exception ignored) {
         }
 
-        if (icon != null) {
-            Image img = icon.getImage().getScaledInstance(230, 180, Image.SCALE_SMOOTH);
-            lblHinhAnhPreview.setIcon(new ImageIcon(img));
-            lblHinhAnhPreview.setText("");
-        } else {
-            lblHinhAnhPreview.setIcon(null);
-            lblHinhAnhPreview.setText("Ảnh lỗi/Không tìm thấy");
-        }
+        lblHinhAnhPreview.setIcon(null);
+        lblHinhAnhPreview.setText("Ảnh lỗi/Không tìm thấy");
     }
 
     private void onSave(ActionEvent e) {

@@ -70,6 +70,38 @@ public class MonAnAdminRemoteService extends BaseRemoteService {
         return JsonCodec.fromJsonNode(response.getPayload(), MonAnDTO.class);
     }
 
+    public java.awt.Image getImage(String fileName) {
+        try {
+            MessageEnvelope response = connection.sendCommand(
+                    CommandAction.MONAN_IMAGE_GET.name(),
+                    java.util.Map.of("fileName", fileName),
+                    15000
+            );
+            ensureSuccess(response, "Không thể tải ảnh.");
+            String base64 = JsonCodec.fromJsonNode(response.getPayload(), String.class);
+            byte[] bytes = java.util.Base64.getDecoder().decode(base64);
+            return javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(bytes));
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Không thể đọc ảnh: " + e.getMessage(), e);
+        }
+    }
+
+    public String uploadImage(java.io.File imageFile) {
+        try {
+            byte[] bytes = java.nio.file.Files.readAllBytes(imageFile.toPath());
+            String base64 = java.util.Base64.getEncoder().encodeToString(bytes);
+            MessageEnvelope response = connection.sendCommand(
+                    CommandAction.MONAN_IMAGE_UPLOAD.name(),
+                    java.util.Map.of("fileName", imageFile.getName(), "data", base64),
+                    15000
+            );
+            ensureSuccess(response, "Không thể upload ảnh.");
+            return JsonCodec.fromJsonNode(response.getPayload(), String.class);
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Không thể đọc file ảnh: " + e.getMessage(), e);
+        }
+    }
+
     public boolean delete(String maMonAn) {
         MessageEnvelope response = connection.sendCommand(
                 CommandAction.MONAN_ADMIN_DELETE.name(),

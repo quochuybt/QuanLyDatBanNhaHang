@@ -36,4 +36,20 @@ public class MonAnRemoteService extends BaseRemoteService {
     public List<MonAnDTO> getAllMonAn() {
         return findAll();
     }
+
+    public java.awt.Image getImage(String fileName) {
+        try {
+            MessageEnvelope response = connection.sendCommand(
+                    CommandAction.MONAN_IMAGE_GET.name(),
+                    java.util.Map.of("fileName", fileName),
+                    15000
+            );
+            ensureSuccess(response, "Không thể tải ảnh.");
+            String base64 = JsonCodec.fromJsonNode(response.getPayload(), String.class);
+            byte[] bytes = java.util.Base64.getDecoder().decode(base64);
+            return javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(bytes));
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Không thể đọc ảnh: " + e.getMessage(), e);
+        }
+    }
 }
